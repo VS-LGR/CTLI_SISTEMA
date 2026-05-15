@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import api from "@/lib/api";
+import api, { isSupabaseAuthMode } from "@/lib/api";
+import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
@@ -34,7 +35,15 @@ const Layout = () => {
 
   const loadTenants = async () => {
     try {
-      const { data } = await api.get("/tenants");
+      let data;
+      if (isSupabaseAuthMode) {
+        const { data: rows, error } = await supabase.from("tenants").select("*").order("name");
+        if (error) throw error;
+        data = rows || [];
+      } else {
+        const { data: d } = await api.get("/tenants");
+        data = d;
+      }
       setTenants(data);
       if (!currentTenantId && data.length > 0) selectTenant(data[0].id);
     } catch (e) { /* ignore */ }

@@ -1,22 +1,28 @@
 import axios from "axios";
 import { createMockApiClient } from "@/lib/mockBackend";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 /** Quando true, não há chamadas HTTP à API real — dados vêm do mock em `mockBackend.js`. */
 export const isMockApiMode = process.env.REACT_APP_USE_MOCK_API === "true";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+/** Auth e CRUD administrativo via Supabase; documentos podem continuar em `REACT_APP_BACKEND_URL` (fase 2). */
+export const isSupabaseAuthMode = isSupabaseConfigured && !isMockApiMode;
+
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").trim();
 export const API_BASE = isMockApiMode
   ? `${typeof window !== "undefined" ? window.location.origin : ""}/mock-api`
-  : `${BACKEND_URL}/api`;
+  : BACKEND_URL
+    ? `${BACKEND_URL}/api`
+    : "";
 
 const api = isMockApiMode
   ? createMockApiClient()
   : axios.create({
-      baseURL: API_BASE,
+      baseURL: API_BASE || "/",
       withCredentials: true,
     });
 
-if (!isMockApiMode) {
+if (!isMockApiMode && BACKEND_URL) {
   api.interceptors.request.use((config) => {
     const token = localStorage.getItem("pv_token");
     if (token) {

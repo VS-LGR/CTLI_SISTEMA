@@ -1,7 +1,31 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import api, { formatApiError } from "@/lib/api";
+import api, { formatApiError, isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
+import { supabase } from "@/lib/supabaseClient";
 
 const AuthCtx = createContext(null);
+
+function mapProfileToUser(row, fallbackEmail) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.full_name || "",
+    email: row.email || fallbackEmail || "",
+    role: row.role,
+    tenant_id: row.tenant_id ?? null,
+  };
+}
+
+async function loadUserFromSupabaseSession(session) {
+  if (!supabase || !session?.user) return null;
+  const u = session.user;
+  const { data: row, error } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role, tenant_id")
+    .eq("id", u.id)
+    .maybeSingle();
+  if (error) throw error;
+  return mapProfileToUser(row, u.email);
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // null = checking, false = unauth, object = authed
@@ -9,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     () => localStorage.getItem("pv_current_tenant") || null
   );
 
-  const refreshMe = useCallback(async () => {
+  const refreshLegacy = useCallback(async () => {
     try {
       const { data } = await api.get("/auth/me");
       setUser(data);
@@ -24,27 +48,94 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const applySupabaseSession = useCallback(async (session) => {
+    if (!session) {
+      localStorage.removeItem("pv_token");
+      setUser(false);
+      return null;
+    }
+    localStorage.setItem("pv_token", session.access_token);
+    const shaped = await loadUserFromSupabaseSession(session);
+    if (!shaped) {
+      setUser(false);
+      return null;
+    }
+    setUser(shaped);
+    if (shaped.role === "client" && shaped.tenant_id) {
+      setCurrentTenantId(shaped.tenant_id);
+      localStorage.setItem("pv_current_tenant", shaped.tenant_id);
+    }
+    return shaped;
+  }, []);
+
+  const refreshMe = useCallback(async () => {
+    if (isMockApiMode || !isSupabaseAuthMode) {
+      return refreshLegacy();
+    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return await applySupabaseSession(session);
+    } catch (e) {
+      setUser(false);
+      return null;
+    }
+  }, [applySupabaseSession, refreshLegacy]);
+
   useEffect(() => {
-    refreshMe();
-  }, [refreshMe]);
+    if (isMockApiMode || !isSupabaseAuthMode) {
+      refreshMe();
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!cancelled) await applySupabaseSession(session);
+      } catch {
+        if (!cancelled) setUser(false);
+      }
+    })();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!cancelled) applySupabaseSession(session).catch(() => setUser(false));
+    });
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [applySupabaseSession, refreshMe]);
 
   const login = async (email, password) => {
-    try {
-      const { data } = await api.post("/auth/login", { email, password });
-      if (data.access_token) localStorage.setItem("pv_token", data.access_token);
-      setUser(data);
-      if (data.role === "client" && data.tenant_id) {
-        setCurrentTenantId(data.tenant_id);
-        localStorage.setItem("pv_current_tenant", data.tenant_id);
+    if (isMockApiMode || !isSupabaseAuthMode) {
+      try {
+        const { data } = await api.post("/auth/login", { email, password });
+        if (data.access_token) localStorage.setItem("pv_token", data.access_token);
+        setUser(data);
+        if (data.role === "client" && data.tenant_id) {
+          setCurrentTenantId(data.tenant_id);
+          localStorage.setItem("pv_current_tenant", data.tenant_id);
+        }
+        return { ok: true, user: data };
+      } catch (e) {
+        return { ok: false, error: formatApiError(e.response?.data?.detail) || e.message };
       }
-      return { ok: true, user: data };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { ok: false, error: error.message };
+      const shaped = await applySupabaseSession(data.session);
+      return { ok: true, user: shaped };
     } catch (e) {
-      return { ok: false, error: formatApiError(e.response?.data?.detail) || e.message };
+      return { ok: false, error: e?.message || "Falha no login" };
     }
   };
 
   const logout = async () => {
-    try { await api.post("/auth/logout"); } catch (_) {}
+    if (isMockApiMode || !isSupabaseAuthMode) {
+      try { await api.post("/auth/logout"); } catch (_) { /* ignore */ }
+    } else {
+      try { await supabase.auth.signOut(); } catch (_) { /* ignore */ }
+    }
     localStorage.removeItem("pv_token");
     localStorage.removeItem("pv_current_tenant");
     setCurrentTenantId(null);

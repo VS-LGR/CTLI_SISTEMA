@@ -1,24 +1,43 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import api from "@/lib/api";
+import api, { isSupabaseAuthMode } from "@/lib/api";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Buildings, UserPlus, Trash, Users, IdentificationCard } from "@phosphor-icons/react";
+import { Plus, Buildings, UserPlus, Trash, Users, IdentificationCard, PencilSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { ROLES, RESPONSIBLE_ROLES, roleShort } from "@/lib/roles";
+
+async function fnErrorMessage(data, error) {
+  if (data?.error) return typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+  if (error?.context && typeof error.context.json === "function") {
+    try {
+      const b = await error.context.json();
+      if (b?.error) return typeof b.error === "string" ? b.error : JSON.stringify(b.error);
+    } catch {
+      /* ignore */
+    }
+  }
+  return error?.message || "Falha";
+}
 
 const AdminClients = () => {
   const { isAdmin, reloadTenants, currentTenantId, selectTenant } = useOutletContext();
   const [tenants, setTenants] = useState([]);
+  const [adminProfiles, setAdminProfiles] = useState([]);
   const [users, setUsers] = useState({});
   const [resps, setResps] = useState({});
   const [openTenant, setOpenTenant] = useState(false);
   const [openUser, setOpenUser] = useState(false);
   const [openResp, setOpenResp] = useState(false);
+
+  const [editingTenantId, setEditingTenantId] = useState(null);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editingRespId, setEditingRespId] = useState(null);
 
   const [tName, setTName] = useState("");
   const [tCode, setTCode] = useState("");
@@ -35,73 +54,299 @@ const AdminClients = () => {
   const [rRole, setRRole] = useState("gerente_qualidade");
   const [rEmail, setREmail] = useState("");
 
-  const load = async () => {
-    const { data } = await api.get("/tenants");
-    setTenants(data);
-    const us = {}; const rs = {};
-    for (const t of data) {
-      try { us[t.id] = (await api.get(`/tenants/${t.id}/users`)).data; } catch { us[t.id] = []; }
-      try { rs[t.id] = (await api.get(`/tenants/${t.id}/responsibles`)).data; } catch { rs[t.id] = []; }
-    }
-    setUsers(us); setResps(rs);
+  const resetTenantForm = () => {
+    setEditingTenantId(null);
+    setTName("");
+    setTCode("");
+    setTDesc("");
   };
 
-  useEffect(() => { load(); }, []);
+  const resetUserForm = () => {
+    setEditingUserId(null);
+    setUTenant("");
+    setUName("");
+    setUEmail("");
+    setUPassword("");
+    setURole("gerente_qualidade");
+  };
+
+  const resetRespForm = () => {
+    setEditingRespId(null);
+    setRTenant("");
+    setRName("");
+    setRRole("gerente_qualidade");
+    setREmail("");
+  };
+
+  const loadSupabase = async () => {
+    const { data: trows, error: te } = await supabase.from("tenants").select("*").order("name");
+    if (te) {
+      toast.error(te.message);
+      return;
+    }
+    const list = trows || [];
+    setTenants(list);
+
+    const { data: admins, error: ae } = await supabase.from("profiles").select("*").eq("role", "admin");
+    if (ae) {
+      toast.error(ae.message);
+      return;
+    }
+    setAdminProfiles(admins || []);
+
+    const us = {};
+    const rs = {};
+    for (const t of list) {
+      const { data: profs, error: pe } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("tenant_id", t.id);
+      if (pe) us[t.id] = [];
+      else us[t.id] = (profs || []).map((p) => ({ id: p.id, name: p.full_name, email: p.email, role: p.role }));
+
+      const { data: respRows, error: re } = await supabase
+        .from("responsibles")
+        .select("*")
+        .eq("tenant_id", t.id)
+        .order("name");
+      if (re) rs[t.id] = [];
+      else rs[t.id] = respRows || [];
+    }
+    setUsers(us);
+    setResps(rs);
+  };
+
+  const load = async () => {
+    if (isSupabaseAuthMode) {
+      await loadSupabase();
+      return;
+    }
+    const { data } = await api.get("/tenants");
+    setTenants(data);
+    const us = {};
+    const rs = {};
+    for (const t of data) {
+      try {
+        us[t.id] = (await api.get(`/tenants/${t.id}/users`)).data;
+      } catch {
+        us[t.id] = [];
+      }
+      try {
+        rs[t.id] = (await api.get(`/tenants/${t.id}/responsibles`)).data;
+      } catch {
+        rs[t.id] = [];
+      }
+    }
+    setUsers(us);
+    setResps(rs);
+  };
+
+  useEffect(() => {
+    load();
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
 
   if (!isAdmin) return <div className="text-slate-600">Acesso restrito.</div>;
 
-  const createTenant = async () => {
+  const createOrUpdateTenant = async () => {
     if (!tName.trim()) return toast.error("Informe o nome");
     try {
-      await api.post("/tenants", { name: tName.trim(), code: tCode, description: tDesc });
-      toast.success("Cliente criado");
-      setOpenTenant(false); setTName(""); setTCode(""); setTDesc("");
-      await load(); reloadTenants?.();
-    } catch { toast.error("Falha"); }
+      if (isSupabaseAuthMode) {
+        if (editingTenantId) {
+          const { error } = await supabase
+            .from("tenants")
+            .update({ name: tName.trim(), code: tCode, description: tDesc })
+            .eq("id", editingTenantId);
+          if (error) throw error;
+          toast.success("Cliente atualizado");
+        } else {
+          const { error } = await supabase
+            .from("tenants")
+            .insert({ name: tName.trim(), code: tCode, description: tDesc });
+          if (error) throw error;
+          toast.success("Cliente criado");
+        }
+      } else if (editingTenantId) {
+        toast.error("Edição de cliente não disponível neste modo");
+        return;
+      } else {
+        await api.post("/tenants", { name: tName.trim(), code: tCode, description: tDesc });
+        toast.success("Cliente criado");
+      }
+      setOpenTenant(false);
+      resetTenantForm();
+      await load();
+      reloadTenants?.();
+    } catch (e) {
+      toast.error(e?.message || "Falha");
+    }
+  };
+
+  const openEditTenant = (t) => {
+    setEditingTenantId(t.id);
+    setTName(t.name);
+    setTCode(t.code || "");
+    setTDesc(t.description || "");
+    setOpenTenant(true);
   };
 
   const removeTenant = async (id) => {
     if (!window.confirm("Excluir cliente, seus documentos e usuários?")) return;
     try {
-      await api.delete(`/tenants/${id}`);
+      if (isSupabaseAuthMode) {
+        const { error } = await supabase.from("tenants").delete().eq("id", id);
+        if (error) throw error;
+      } else {
+        await api.delete(`/tenants/${id}`);
+      }
       toast.success("Excluído");
       if (currentTenantId === id) selectTenant(null);
-      await load(); reloadTenants?.();
-    } catch { toast.error("Falha"); }
+      await load();
+      reloadTenants?.();
+    } catch (e) {
+      toast.error(e?.message || "Falha");
+    }
   };
 
-  const createUser = async () => {
-    if (!uTenant || !uEmail || !uPassword || !uName) return toast.error("Preencha todos os campos");
+  const createOrUpdateUser = async () => {
+    if (!uEmail || !uName.trim()) return toast.error("Preencha nome e e-mail");
+    if (!editingUserId && !uPassword) return toast.error("Informe a senha para novo utilizador");
+    if (!editingUserId && uRole !== "admin" && !uTenant) return toast.error("Selecione o cliente");
+
     try {
-      await api.post("/auth/register", {
-        name: uName, email: uEmail, password: uPassword, role: uRole,
-        tenant_id: uRole === "admin" ? null : uTenant,
-      });
-      toast.success("Usuário criado");
-      setOpenUser(false); setUName(""); setUEmail(""); setUPassword(""); setUTenant(""); setURole("gerente_qualidade");
+      if (isSupabaseAuthMode) {
+        if (editingUserId) {
+          const { data, error } = await supabase.functions.invoke("admin-update-user", {
+            body: {
+              user_id: editingUserId,
+              full_name: uName.trim(),
+              role: uRole,
+              tenant_id: uRole === "admin" ? null : uTenant,
+              email: uEmail.trim(),
+            },
+          });
+          if (error) throw new Error(await fnErrorMessage(data, error));
+          toast.success("Utilizador atualizado");
+        } else {
+          const { data, error } = await supabase.functions.invoke("admin-create-user", {
+            body: {
+              email: uEmail.trim(),
+              password: uPassword,
+              full_name: uName.trim(),
+              role: uRole,
+              tenant_id: uRole === "admin" ? null : uTenant,
+            },
+          });
+          if (error) throw new Error(await fnErrorMessage(data, error));
+          toast.success("Utilizador criado");
+        }
+      } else {
+        if (editingUserId) {
+          toast.error("Edição de utilizador não disponível neste modo");
+          return;
+        }
+        await api.post("/auth/register", {
+          name: uName,
+          email: uEmail,
+          password: uPassword,
+          role: uRole,
+          tenant_id: uRole === "admin" ? null : uTenant,
+        });
+        toast.success("Usuário criado");
+      }
+      setOpenUser(false);
+      resetUserForm();
       await load();
     } catch (e) {
-      const msg = e.response?.data?.detail || "Falha";
+      const msg = e.response?.data?.detail || e.message || "Falha";
       toast.error(typeof msg === "string" ? msg : "Falha");
     }
   };
 
-  const createResp = async () => {
+  const openEditUser = (u, tenantIdForScope) => {
+    setEditingUserId(u.id);
+    setUName(u.name);
+    setUEmail(u.email);
+    setUPassword("");
+    setURole(u.role);
+    setUTenant(u.role === "admin" ? "" : tenantIdForScope || u.tenant_id || "");
+    setOpenUser(true);
+  };
+
+  const removeUser = async (userId) => {
+    if (!isSupabaseAuthMode) return;
+    if (!window.confirm("Eliminar este utilizador?")) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { user_id: userId },
+      });
+      if (error) throw new Error(await fnErrorMessage(data, error));
+      toast.success("Utilizador eliminado");
+      await load();
+    } catch (e) {
+      toast.error(e.message || "Falha");
+    }
+  };
+
+  const createOrUpdateResp = async () => {
     if (!rTenant || !rName.trim()) return toast.error("Selecione cliente e informe o nome");
     try {
-      await api.post(`/tenants/${rTenant}/responsibles`, { name: rName.trim(), role: rRole, email: rEmail });
-      toast.success("Responsável cadastrado");
-      setOpenResp(false); setRTenant(""); setRName(""); setRRole("gerente_qualidade"); setREmail("");
+      if (isSupabaseAuthMode) {
+        if (editingRespId) {
+          const { error } = await supabase
+            .from("responsibles")
+            .update({ name: rName.trim(), role: rRole, email: rEmail || "" })
+            .eq("id", editingRespId);
+          if (error) throw error;
+          toast.success("Responsável atualizado");
+        } else {
+          const { error } = await supabase
+            .from("responsibles")
+            .insert({ tenant_id: rTenant, name: rName.trim(), role: rRole, email: rEmail || "" });
+          if (error) throw error;
+          toast.success("Responsável cadastrado");
+        }
+      } else if (editingRespId) {
+        toast.error("Edição de responsável não disponível neste modo");
+        return;
+      } else {
+        await api.post(`/tenants/${rTenant}/responsibles`, {
+          name: rName.trim(),
+          role: rRole,
+          email: rEmail,
+        });
+        toast.success("Responsável cadastrado");
+      }
+      setOpenResp(false);
+      resetRespForm();
       await load();
-    } catch { toast.error("Falha"); }
+    } catch (e) {
+      toast.error(e?.message || "Falha");
+    }
+  };
+
+  const openEditResp = (r, tenantId) => {
+    setEditingRespId(r.id);
+    setRTenant(tenantId);
+    setRName(r.name);
+    setRRole(r.role);
+    setREmail(r.email || "");
+    setOpenResp(true);
   };
 
   const removeResp = async (tenantId, rid) => {
     if (!window.confirm("Excluir este responsável?")) return;
     try {
-      await api.delete(`/tenants/${tenantId}/responsibles/${rid}`);
+      if (isSupabaseAuthMode) {
+        const { error } = await supabase.from("responsibles").delete().eq("id", rid);
+        if (error) throw error;
+      } else {
+        await api.delete(`/tenants/${tenantId}/responsibles/${rid}`);
+      }
       await load();
-    } catch { toast.error("Falha"); }
+    } catch (e) {
+      toast.error(e?.message || "Falha");
+    }
   };
 
   return (
@@ -110,89 +355,259 @@ const AdminClients = () => {
         <div>
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Administração</div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">Clientes</h1>
-          <p className="text-sm text-slate-600 mt-1">Cada cliente possui sua própria base de procedimentos, registros, usuários e responsáveis.</p>
+          <p className="text-sm text-slate-600 mt-1">
+            Cada cliente possui sua própria base de procedimentos, registros, usuários e responsáveis.
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Dialog open={openResp} onOpenChange={setOpenResp}>
+          <Dialog
+            open={openResp}
+            onOpenChange={(o) => {
+              setOpenResp(o);
+              if (!o) resetRespForm();
+            }}
+          >
             <DialogTrigger asChild>
-              <Button variant="outline" data-testid="open-create-resp"><IdentificationCard size={16} className="mr-1.5" /> Novo responsável</Button>
+              <Button variant="outline" data-testid="open-create-resp">
+                <IdentificationCard size={16} className="mr-1.5" /> Novo responsável
+              </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle className="font-display">Novo responsável</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="font-display">
+                  {editingRespId ? "Editar responsável" : "Novo responsável"}
+                </DialogTitle>
+              </DialogHeader>
               <div className="space-y-3">
                 <div>
                   <Label>Cliente</Label>
-                  <select value={rTenant} onChange={(e) => setRTenant(e.target.value)} className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white" data-testid="resp-tenant-select">
+                  <select
+                    value={rTenant}
+                    onChange={(e) => setRTenant(e.target.value)}
+                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                    data-testid="resp-tenant-select"
+                    disabled={Boolean(editingRespId)}
+                  >
                     <option value="">Selecione…</option>
-                    {tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    {tenants.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div><Label>Nome *</Label><Input value={rName} onChange={(e) => setRName(e.target.value)} data-testid="resp-name-input" /></div>
+                <div>
+                  <Label>Nome *</Label>
+                  <Input value={rName} onChange={(e) => setRName(e.target.value)} data-testid="resp-name-input" />
+                </div>
                 <div>
                   <Label>Cargo</Label>
-                  <select value={rRole} onChange={(e) => setRRole(e.target.value)} className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white" data-testid="resp-role-select">
-                    {RESPONSIBLE_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  <select
+                    value={rRole}
+                    onChange={(e) => setRRole(e.target.value)}
+                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                    data-testid="resp-role-select"
+                  >
+                    {RESPONSIBLE_ROLES.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div><Label>E-mail (opcional)</Label><Input type="email" value={rEmail} onChange={(e) => setREmail(e.target.value)} /></div>
+                <div>
+                  <Label>E-mail (opcional)</Label>
+                  <Input type="email" value={rEmail} onChange={(e) => setREmail(e.target.value)} />
+                </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpenResp(false)}>Cancelar</Button>
-                <Button onClick={createResp} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-resp">Cadastrar</Button>
+                <Button variant="outline" onClick={() => setOpenResp(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={createOrUpdateResp} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-resp">
+                  {editingRespId ? "Guardar" : "Cadastrar"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
-          <Dialog open={openUser} onOpenChange={setOpenUser}>
+          <Dialog
+            open={openUser}
+            onOpenChange={(o) => {
+              setOpenUser(o);
+              if (!o) resetUserForm();
+            }}
+          >
             <DialogTrigger asChild>
-              <Button variant="outline" data-testid="open-create-user"><UserPlus size={16} className="mr-1.5" /> Novo usuário</Button>
+              <Button variant="outline" data-testid="open-create-user">
+                <UserPlus size={16} className="mr-1.5" /> Novo usuário
+              </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle className="font-display">Novo usuário</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="font-display">{editingUserId ? "Editar usuário" : "Novo usuário"}</DialogTitle>
+              </DialogHeader>
               <div className="space-y-3">
                 <div>
-                  <Label>Cliente {uRole === "admin" && <span className="text-xs text-slate-500">(não obrigatório para admin)</span>}</Label>
-                  <select value={uTenant} onChange={(e) => setUTenant(e.target.value)} className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white" data-testid="user-tenant-select" disabled={uRole === "admin"}>
+                  <Label>
+                    Cliente {uRole === "admin" && <span className="text-xs text-slate-500">(não obrigatório para admin)</span>}
+                  </Label>
+                  <select
+                    value={uTenant}
+                    onChange={(e) => setUTenant(e.target.value)}
+                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                    data-testid="user-tenant-select"
+                    disabled={uRole === "admin"}
+                  >
                     <option value="">Selecione…</option>
-                    {tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    {tenants.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <Label>Nível de acesso</Label>
-                  <select value={uRole} onChange={(e) => setURole(e.target.value)} className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white" data-testid="user-role-select">
-                    {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  <select
+                    value={uRole}
+                    onChange={(e) => setURole(e.target.value)}
+                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                    data-testid="user-role-select"
+                  >
+                    {ROLES.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div><Label>Nome *</Label><Input value={uName} onChange={(e) => setUName(e.target.value)} data-testid="user-name-input" /></div>
-                <div><Label>E-mail *</Label><Input type="email" value={uEmail} onChange={(e) => setUEmail(e.target.value)} data-testid="user-email-input" /></div>
-                <div><Label>Senha *</Label><Input type="password" value={uPassword} onChange={(e) => setUPassword(e.target.value)} data-testid="user-password-input" /></div>
+                <div>
+                  <Label>Nome *</Label>
+                  <Input value={uName} onChange={(e) => setUName(e.target.value)} data-testid="user-name-input" />
+                </div>
+                <div>
+                  <Label>E-mail *</Label>
+                  <Input type="email" value={uEmail} onChange={(e) => setUEmail(e.target.value)} data-testid="user-email-input" />
+                </div>
+                {!editingUserId && (
+                  <div>
+                    <Label>Senha *</Label>
+                    <Input type="password" value={uPassword} onChange={(e) => setUPassword(e.target.value)} data-testid="user-password-input" />
+                  </div>
+                )}
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpenUser(false)}>Cancelar</Button>
-                <Button onClick={createUser} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-user">Criar</Button>
+                <Button variant="outline" onClick={() => setOpenUser(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={createOrUpdateUser} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-user">
+                  {editingUserId ? "Guardar" : "Criar"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
-          <Dialog open={openTenant} onOpenChange={setOpenTenant}>
+          <Dialog
+            open={openTenant}
+            onOpenChange={(o) => {
+              setOpenTenant(o);
+              if (!o) resetTenantForm();
+            }}
+          >
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="open-create-tenant"><Plus size={16} className="mr-1.5" /> Novo cliente</Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                data-testid="open-create-tenant"
+                onClick={() => resetTenantForm()}
+              >
+                <Plus size={16} className="mr-1.5" /> Novo cliente
+              </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle className="font-display">Novo cliente</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="font-display">{editingTenantId ? "Editar cliente" : "Novo cliente"}</DialogTitle>
+              </DialogHeader>
               <div className="space-y-3">
-                <div><Label>Nome *</Label><Input value={tName} onChange={(e) => setTName(e.target.value)} data-testid="tenant-name-input" /></div>
-                <div><Label>Código</Label><Input value={tCode} onChange={(e) => setTCode(e.target.value)} placeholder="ACME-001" /></div>
-                <div><Label>Descrição</Label><Input value={tDesc} onChange={(e) => setTDesc(e.target.value)} /></div>
+                <div>
+                  <Label>Nome *</Label>
+                  <Input value={tName} onChange={(e) => setTName(e.target.value)} data-testid="tenant-name-input" />
+                </div>
+                <div>
+                  <Label>Código</Label>
+                  <Input value={tCode} onChange={(e) => setTCode(e.target.value)} placeholder="ACME-001" />
+                </div>
+                <div>
+                  <Label>Descrição</Label>
+                  <Input value={tDesc} onChange={(e) => setTDesc(e.target.value)} />
+                </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpenTenant(false)}>Cancelar</Button>
-                <Button onClick={createTenant} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-tenant">Criar</Button>
+                <Button variant="outline" onClick={() => setOpenTenant(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={createOrUpdateTenant} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-tenant">
+                  {editingTenantId ? "Guardar" : "Criar"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
       </div>
+
+      {isSupabaseAuthMode && (
+        <Card className="border-slate-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-lg flex items-center gap-2">
+              <Users size={20} /> Administradores globais
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {adminProfiles.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum administrador listado.</p>
+            ) : (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {adminProfiles.map((p) => (
+                  <div
+                    key={p.id}
+                    className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-700 truncate">{p.full_name}</div>
+                      <div className="text-slate-500 truncate">
+                        {p.email} • {roleShort(p.role)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openEditUser(
+                            { id: p.id, name: p.full_name, email: p.email, role: p.role },
+                            null,
+                          )
+                        }
+                        className="text-slate-500 hover:text-blue-600 p-1"
+                        title="Editar"
+                      >
+                        <PencilSimple size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeUser(p.id)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                        title="Excluir"
+                      >
+                        <Trash size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {tenants.length === 0 && (
@@ -206,47 +621,97 @@ const AdminClients = () => {
         )}
         {tenants.map((t) => (
           <Card key={t.id} className="border-slate-200" data-testid={`tenant-card-${t.id}`}>
-            <CardHeader className="pb-2 flex flex-row items-start justify-between">
+            <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
               <div className="min-w-0">
                 <CardTitle className="font-display text-lg truncate">{t.name}</CardTitle>
                 {t.code && <div className="text-xs font-mono text-slate-500 mt-0.5">{t.code}</div>}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => removeTenant(t.id)} className="text-red-600 hover:text-red-700"><Trash size={16} /></Button>
+              <div className="flex items-center gap-0.5 shrink-0">
+                {isSupabaseAuthMode && (
+                  <Button variant="ghost" size="sm" onClick={() => openEditTenant(t)} className="text-slate-600" title="Editar">
+                    <PencilSimple size={16} />
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => removeTenant(t.id)} className="text-red-600 hover:text-red-700" title="Excluir">
+                  <Trash size={16} />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {t.description && <p className="text-sm text-slate-600 mb-3">{t.description}</p>}
 
               <Tabs defaultValue="resp">
                 <TabsList className="w-full grid grid-cols-2 bg-slate-100">
-                  <TabsTrigger value="resp" data-testid={`tab-resp-${t.id}`}>Responsáveis ({(resps[t.id] || []).length})</TabsTrigger>
-                  <TabsTrigger value="users" data-testid={`tab-users-${t.id}`}>Usuários ({(users[t.id] || []).length})</TabsTrigger>
+                  <TabsTrigger value="resp" data-testid={`tab-resp-${t.id}`}>
+                    Responsáveis ({(resps[t.id] || []).length})
+                  </TabsTrigger>
+                  <TabsTrigger value="users" data-testid={`tab-users-${t.id}`}>
+                    Usuários ({(users[t.id] || []).length})
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="resp" className="mt-3 space-y-1 max-h-44 overflow-y-auto">
                   {(resps[t.id] || []).length === 0 && (
-                    <div className="text-xs text-slate-500 italic">Sem responsáveis. Use "Novo responsável".</div>
+                    <div className="text-xs text-slate-500 italic">Sem responsáveis. Use &quot;Novo responsável&quot;.</div>
                   )}
                   {(resps[t.id] || []).map((r) => (
-                    <div key={r.id} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5">
+                    <div key={r.id} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2">
                       <div className="min-w-0">
                         <div className="font-medium text-slate-700 truncate">{r.name}</div>
-                        <div className="text-slate-500 truncate">{roleShort(r.role)}{r.email ? ` • ${r.email}` : ""}</div>
+                        <div className="text-slate-500 truncate">
+                          {roleShort(r.role)}
+                          {r.email ? ` • ${r.email}` : ""}
+                        </div>
                       </div>
-                      <button onClick={() => removeResp(t.id, r.id)} className="text-red-500 hover:text-red-700 p-1" title="Excluir"><Trash size={12} /></button>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {isSupabaseAuthMode && (
+                          <button
+                            type="button"
+                            onClick={() => openEditResp(r, t.id)}
+                            className="text-slate-500 hover:text-blue-600 p-1"
+                            title="Editar"
+                          >
+                            <PencilSimple size={12} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeResp(t.id, r.id)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                          title="Excluir"
+                        >
+                          <Trash size={12} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </TabsContent>
 
                 <TabsContent value="users" className="mt-3 space-y-1 max-h-44 overflow-y-auto">
-                  {(users[t.id] || []).length === 0 && (
-                    <div className="text-xs text-slate-500 italic">Sem usuários.</div>
-                  )}
+                  {(users[t.id] || []).length === 0 && <div className="text-xs text-slate-500 italic">Sem usuários.</div>}
                   {(users[t.id] || []).map((u) => (
-                    <div key={u.id} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5">
+                    <div key={u.id} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2">
                       <div className="min-w-0">
                         <div className="font-medium text-slate-700 truncate">{u.name}</div>
-                        <div className="text-slate-500 truncate">{u.email} • {roleShort(u.role)}</div>
+                        <div className="text-slate-500 truncate">
+                          {u.email} • {roleShort(u.role)}
+                        </div>
                       </div>
+                      {isSupabaseAuthMode && (
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => openEditUser(u, t.id)}
+                            className="text-slate-500 hover:text-blue-600 p-1"
+                            title="Editar"
+                          >
+                            <PencilSimple size={12} />
+                          </button>
+                          <button type="button" onClick={() => removeUser(u.id)} className="text-red-500 hover:text-red-700 p-1" title="Excluir">
+                            <Trash size={12} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </TabsContent>

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShieldCheck, Spinner } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { isMockApiMode } from "@/lib/api";
+import { isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 
 const Login = () => {
   const { user, login } = useAuth();
@@ -93,6 +93,19 @@ const Login = () => {
                   <li><span className="font-mono text-slate-800">admin@demo.local</span> — administrador (todos os clientes)</li>
                   <li><span className="font-mono text-slate-800">cliente@demo.local</span> — utilizador cliente (ambiente demonstração)</li>
                 </ul>
+              </>
+            ) : isSupabaseAuthMode ? (
+              <>
+                <div className="font-semibold text-slate-700 mb-1">Supabase Auth</div>
+                <p className="text-slate-600 mb-2">
+                  Utilize uma conta criada no projeto Supabase. O primeiro administrador costuma ser promovido manualmente
+                  após o primeiro registo (por exemplo, atualizar a coluna <span className="font-mono">role</span> para{" "}
+                  <span className="font-mono">admin</span> na tabela <span className="font-mono">profiles</span>)
+                  ou criado com papel admin pelas Edge Functions.
+                </p>
+                <p className="text-slate-600">
+                  Documentos e outras rotas REST continuam a usar <span className="font-mono">REACT_APP_BACKEND_URL</span> quando configurado (fase 2).
+                </p>
               </>
             ) : (
               <>
