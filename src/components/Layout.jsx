@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import api, { isSupabaseAuthMode } from "@/lib/api";
@@ -33,7 +33,7 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const loadTenants = async () => {
+  const loadTenants = useCallback(async () => {
     try {
       let data;
       if (isSupabaseAuthMode) {
@@ -47,9 +47,11 @@ const Layout = () => {
       setTenants(data);
       if (!currentTenantId && data.length > 0) selectTenant(data[0].id);
     } catch (e) { /* ignore */ }
-  };
+  }, [currentTenantId, selectTenant]);
 
-  useEffect(() => { if (user) loadTenants(); /* eslint-disable-next-line */ }, [user]);
+  useEffect(() => {
+    if (user) loadTenants();
+  }, [user, loadTenants]);
 
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";

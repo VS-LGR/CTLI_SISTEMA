@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import RichEditor from "@/components/RichEditor";
@@ -88,7 +88,7 @@ const DocumentEditor = () => {
   const [responsibles, setResponsibles] = useState([]);
   const fileInputRef = useRef();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const { data } = await api.get(`/documents/${id}`);
       setDoc(data);
@@ -100,9 +100,11 @@ const DocumentEditor = () => {
       }
     }
     catch { toast.error("Documento não encontrado"); nav(-1); }
-  };
+  }, [id, nav]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const save = async () => {
     setSaving(true);

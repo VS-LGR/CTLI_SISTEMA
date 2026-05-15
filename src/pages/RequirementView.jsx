@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useOutletContext, Link, Navigate } from "react-router-dom";
 import api from "@/lib/api";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
@@ -258,7 +258,7 @@ const RequirementView = () => {
 
   const first = getFirstFolderKey(id);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!currentTenantId) { setLoading(false); return; }
     setLoading(true);
     try {
@@ -268,9 +268,11 @@ const RequirementView = () => {
       setDocs(data);
     } catch { setDocs([]); }
     finally { setLoading(false); }
-  };
+  }, [currentTenantId, id, folderKey, section, status]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id, folderKey, section, status, currentTenantId]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (requiresFolderNav(id) && !folderKey && !first) {
     return <div className="text-slate-600">Nenhuma subsessão configurada para este requisito.</div>;

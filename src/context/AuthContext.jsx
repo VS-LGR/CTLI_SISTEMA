@@ -142,11 +142,11 @@ export const AuthProvider = ({ children }) => {
     setUser(false);
   };
 
-  const selectTenant = (tid) => {
+  const selectTenant = useCallback((tid) => {
     setCurrentTenantId(tid);
     if (tid) localStorage.setItem("pv_current_tenant", tid);
     else localStorage.removeItem("pv_current_tenant");
-  };
+  }, []);
 
   return (
     <AuthCtx.Provider value={{ user, login, logout, refreshMe, currentTenantId, selectTenant }}>

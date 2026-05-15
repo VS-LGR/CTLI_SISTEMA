@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -41,15 +41,17 @@ const BackupView = () => {
   const [replace, setReplace] = useState(false);
   const fileRef = useRef();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!currentTenantId) return;
     try {
       const { data } = await api.get(`/tenants/${currentTenantId}/backups`);
       setData(data);
     } catch { /* ignore */ }
-  };
+  }, [currentTenantId]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [currentTenantId]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (!currentTenantId) {
     return <div className="text-slate-600">Selecione um ambiente de cliente.</div>;
