@@ -153,10 +153,10 @@ const Layout = () => {
           {isAdmin && (
             <>
               <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
-                Administração
+                Administração CTLI
               </div>
               <NavLink to="/admin/clients" className={navLinkClass} data-testid="nav-admin-clients">
-                <Buildings size={18} weight="duotone" /> Clientes
+                <Buildings size={18} weight="duotone" /> Ambientes (clientes)
               </NavLink>
             </>
           )}
@@ -197,20 +197,22 @@ const Layout = () => {
       <div className="pl-64 min-h-screen">
         <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200 flex items-center px-8">
           <div className="flex-1">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Ambiente atual</div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 text-base font-display font-semibold text-slate-900 hover:text-blue-600 transition" data-testid="tenant-switcher">
-                  {currentTenant?.name || (tenants.length === 0 ? "Nenhum cliente cadastrado" : "Selecionar cliente")}
-                  {isAdmin && <CaretDown size={16} />}
-                </button>
-              </DropdownMenuTrigger>
-              {isAdmin && (
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+              {isAdmin ? "Ambiente atual (pré-visualização)" : "O seu ambiente"}
+            </div>
+            {isAdmin ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="flex items-center gap-2 text-base font-display font-semibold text-slate-900 hover:text-blue-600 transition" data-testid="tenant-switcher">
+                    {currentTenant?.name || (tenants.length === 0 ? "Nenhum ambiente cadastrado" : "Selecionar ambiente")}
+                    <CaretDown size={16} />
+                  </button>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-72">
                   <DropdownMenuLabel>Trocar de ambiente (cliente)</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {tenants.length === 0 && (
-                    <div className="px-3 py-2 text-sm text-slate-500">Nenhum cliente. Crie um em "Clientes".</div>
+                    <div className="px-3 py-2 text-sm text-slate-500">Nenhum ambiente. Crie um em Administração CTLI → Ambientes.</div>
                   )}
                   {tenants.map((t) => (
                     <DropdownMenuItem
@@ -226,8 +228,12 @@ const Layout = () => {
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
-              )}
-            </DropdownMenu>
+              </DropdownMenu>
+            ) : (
+              <div className="text-base font-display font-semibold text-slate-900 mt-0.5" data-testid="tenant-switcher">
+                {currentTenant?.name || "—"}
+              </div>
+            )}
           </div>
         </header>
 

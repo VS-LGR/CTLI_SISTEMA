@@ -12,6 +12,17 @@ import { Plus, Buildings, UserPlus, Trash, Users, IdentificationCard, PencilSimp
 import { toast } from "sonner";
 import { ROLES, RESPONSIBLE_ROLES, roleShort } from "@/lib/roles";
 
+function toastSupabaseAccessError(e, fallback) {
+  const detail = e?.response?.data?.detail;
+  const fromDetail = typeof detail === "string" ? detail : "";
+  const msg = fromDetail || e?.message || String(e || "") || fallback;
+  const rls = /permission denied|row-level security|\bRLS\b|42501/i.test(msg);
+  const hint = rls
+    ? " Confirme que a sessão é de administrador CTLI (profiles.role = 'admin')."
+    : "";
+  toast.error(`${msg}${hint}`);
+}
+
 async function fnErrorMessage(data, error) {
   if (data?.error) return typeof data.error === "string" ? data.error : JSON.stringify(data.error);
   if (error?.context && typeof error.context.json === "function") {
@@ -81,7 +92,7 @@ const AdminClients = () => {
   const loadSupabase = async () => {
     const { data: trows, error: te } = await supabase.from("tenants").select("*").order("name");
     if (te) {
-      toast.error(te.message);
+      toastSupabaseAccessError(te, te.message || "Falha ao carregar clientes");
       return;
     }
     const list = trows || [];
@@ -89,7 +100,7 @@ const AdminClients = () => {
 
     const { data: admins, error: ae } = await supabase.from("profiles").select("*").eq("role", "admin");
     if (ae) {
-      toast.error(ae.message);
+      toastSupabaseAccessError(ae, ae.message || "Falha ao listar administradores");
       return;
     }
     setAdminProfiles(admins || []);
@@ -146,7 +157,7 @@ const AdminClients = () => {
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
-  if (!isAdmin) return <div className="text-slate-600">Acesso restrito.</div>;
+  if (!isAdmin) return <div className="text-slate-600">Acesso restrito a administradores CTLI.</div>;
 
   const createOrUpdateTenant = async () => {
     if (!tName.trim()) return toast.error("Informe o nome");
@@ -178,7 +189,7 @@ const AdminClients = () => {
       await load();
       reloadTenants?.();
     } catch (e) {
-      toast.error(e?.message || "Falha");
+      toastSupabaseAccessError(e, "Falha");
     }
   };
 
@@ -204,14 +215,14 @@ const AdminClients = () => {
       await load();
       reloadTenants?.();
     } catch (e) {
-      toast.error(e?.message || "Falha");
+      toastSupabaseAccessError(e, "Falha");
     }
   };
 
   const createOrUpdateUser = async () => {
     if (!uEmail || !uName.trim()) return toast.error("Preencha nome e e-mail");
     if (!editingUserId && !uPassword) return toast.error("Informe a senha para novo utilizador");
-    if (!editingUserId && uRole !== "admin" && !uTenant) return toast.error("Selecione o cliente");
+    if (uRole !== "admin" && !uTenant) return toast.error("Selecione o ambiente (cliente) para este utilizador");
 
     try {
       if (isSupabaseAuthMode) {
@@ -258,8 +269,7 @@ const AdminClients = () => {
       resetUserForm();
       await load();
     } catch (e) {
-      const msg = e.response?.data?.detail || e.message || "Falha";
-      toast.error(typeof msg === "string" ? msg : "Falha");
+      toastSupabaseAccessError(e, "Falha");
     }
   };
 
@@ -284,12 +294,12 @@ const AdminClients = () => {
       toast.success("Utilizador eliminado");
       await load();
     } catch (e) {
-      toast.error(e.message || "Falha");
+      toastSupabaseAccessError(e, e.message || "Falha");
     }
   };
 
   const createOrUpdateResp = async () => {
-    if (!rTenant || !rName.trim()) return toast.error("Selecione cliente e informe o nome");
+    if (!rTenant || !rName.trim()) return toast.error("Selecione o ambiente e informe o nome");
     try {
       if (isSupabaseAuthMode) {
         if (editingRespId) {
@@ -321,7 +331,7 @@ const AdminClients = () => {
       resetRespForm();
       await load();
     } catch (e) {
-      toast.error(e?.message || "Falha");
+      toastSupabaseAccessError(e, "Falha");
     }
   };
 
@@ -345,7 +355,7 @@ const AdminClients = () => {
       }
       await load();
     } catch (e) {
-      toast.error(e?.message || "Falha");
+      toastSupabaseAccessError(e, "Falha");
     }
   };
 
@@ -353,10 +363,11 @@ const AdminClients = () => {
     <div className="space-y-6" data-testid="admin-clients">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Administração</div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">Clientes</h1>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Administração CTLI</div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">Ambientes (clientes)</h1>
           <p className="text-sm text-slate-600 mt-1">
-            Cada cliente possui sua própria base de procedimentos, registros, usuários e responsáveis.
+            Cada ambiente corresponde a um cliente: documentos, responsáveis e utilizadores do portal ficam isolados.
+            A CTLI cria ambientes e as contas de acesso (incluindo &quot;Conta cliente&quot;) para o cliente entrar só no seu espaço.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -380,7 +391,7 @@ const AdminClients = () => {
               </DialogHeader>
               <div className="space-y-3">
                 <div>
-                  <Label>Cliente</Label>
+                  <Label>Ambiente (cliente)</Label>
                   <select
                     value={rTenant}
                     onChange={(e) => setRTenant(e.target.value)}
@@ -450,7 +461,7 @@ const AdminClients = () => {
               <div className="space-y-3">
                 <div>
                   <Label>
-                    Cliente {uRole === "admin" && <span className="text-xs text-slate-500">(não obrigatório para admin)</span>}
+                    Ambiente (cliente) {uRole === "admin" && <span className="text-xs text-slate-500">(não aplicável a CTLI)</span>}
                   </Label>
                   <select
                     value={uTenant}
@@ -521,12 +532,12 @@ const AdminClients = () => {
                 data-testid="open-create-tenant"
                 onClick={() => resetTenantForm()}
               >
-                <Plus size={16} className="mr-1.5" /> Novo cliente
+                <Plus size={16} className="mr-1.5" /> Novo ambiente
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle className="font-display">{editingTenantId ? "Editar cliente" : "Novo cliente"}</DialogTitle>
+                <DialogTitle className="font-display">{editingTenantId ? "Editar ambiente" : "Novo ambiente"}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3">
                 <div>
@@ -559,12 +570,12 @@ const AdminClients = () => {
         <Card className="border-slate-200">
           <CardHeader className="pb-2">
             <CardTitle className="font-display text-lg flex items-center gap-2">
-              <Users size={20} /> Administradores globais
+              <Users size={20} /> Administradores CTLI
             </CardTitle>
           </CardHeader>
           <CardContent>
             {adminProfiles.length === 0 ? (
-              <p className="text-sm text-slate-500">Nenhum administrador listado.</p>
+              <p className="text-sm text-slate-500">Nenhum administrador CTLI listado.</p>
             ) : (
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {adminProfiles.map((p) => (
@@ -614,8 +625,8 @@ const AdminClients = () => {
           <Card className="md:col-span-2 xl:col-span-3 border-slate-200 border-dashed">
             <CardContent className="p-10 text-center">
               <Buildings size={48} className="mx-auto text-slate-300" />
-              <h3 className="font-display text-xl font-semibold mt-3">Nenhum cliente</h3>
-              <p className="text-sm text-slate-600">Cadastre o primeiro cliente para começar.</p>
+              <h3 className="font-display text-xl font-semibold mt-3">Nenhum ambiente (cliente)</h3>
+              <p className="text-sm text-slate-600">Cadastre o primeiro ambiente para começar.</p>
             </CardContent>
           </Card>
         )}

@@ -15,6 +15,11 @@ function mapProfileToUser(row, fallbackEmail) {
   };
 }
 
+/** Utilizadores não-CTLI com tenant fixam o ambiente atual (portal cliente ou staff no mesmo tenant). */
+function profileIndicatesTenant(data) {
+  return Boolean(data && data.role !== "admin" && data.tenant_id);
+}
+
 async function loadUserFromSupabaseSession(session) {
   if (!supabase || !session?.user) return null;
   const u = session.user;
@@ -37,7 +42,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await api.get("/auth/me");
       setUser(data);
-      if (data.role === "client" && data.tenant_id) {
+      if (profileIndicatesTenant(data)) {
         setCurrentTenantId(data.tenant_id);
         localStorage.setItem("pv_current_tenant", data.tenant_id);
       }
@@ -61,7 +66,7 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
     setUser(shaped);
-    if (shaped.role === "client" && shaped.tenant_id) {
+    if (profileIndicatesTenant(shaped)) {
       setCurrentTenantId(shaped.tenant_id);
       localStorage.setItem("pv_current_tenant", shaped.tenant_id);
     }
@@ -110,7 +115,7 @@ export const AuthProvider = ({ children }) => {
         const { data } = await api.post("/auth/login", { email, password });
         if (data.access_token) localStorage.setItem("pv_token", data.access_token);
         setUser(data);
-        if (data.role === "client" && data.tenant_id) {
+        if (profileIndicatesTenant(data)) {
           setCurrentTenantId(data.tenant_id);
           localStorage.setItem("pv_current_tenant", data.tenant_id);
         }

@@ -17,7 +17,18 @@ O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`
 
 1. Aplicar migrações SQL em `supabase/migrations/` ao projeto (Supabase SQL Editor ou `supabase db push` com o CLI ligado ao projeto).
 2. Publicar Edge Functions com segredos automáticos `SUPABASE_URL`, `SUPABASE_ANON_KEY` e definir **`SUPABASE_SERVICE_ROLE_KEY`** nos segredos da função (Dashboard → Edge Functions → Secrets), necessário para `admin-create-user`, `admin-update-user` e `admin-delete-user`.
-3. Criar o primeiro utilizador em Authentication; garantir linha em `profiles` com `role = 'admin'` (via trigger/metadata ou UPDATE manual).
+3. **Primeiro administrador CTLI:** criar o primeiro utilizador em **Authentication** (ou convite). Na tabela `public.profiles`, garantir `role = 'admin'` e `tenant_id IS NULL` (por trigger com metadata, ou `UPDATE` manual no SQL Editor). Sem isto, **não** consegue inserir linhas em `tenants` nem gerir contas (RLS).
+
+4. **Contas de portal:** utilize papel `client` (ou outros papéis com `tenant_id`) ao convidar utilizadores; o separador **Conta cliente (portal)** aparece no ecrã de criação de utilizadores quando o frontend está atualizado.
+
+## Resolução de problemas (criação de ambientes / utilizadores)
+
+| Sintoma | Causa provável |
+|---------|------------------|
+| Erro de permissão / RLS ao criar ambiente | Sessão não é `profiles.role = 'admin'` ou env Supabase incorreto. |
+| Criação de ambiente OK, falha ao criar utilizador | Edge Functions `admin-create-user` não deployadas ou falta `SUPABASE_SERVICE_ROLE_KEY` nos segredos. |
+| UI sem CRUD completo de clientes | `REACT_APP_USE_MOCK_API=true` ou variáveis Supabase em falta — só está ativo o modo Supabase com URL + chave pública. |
+| Utilizador do cliente não vê o seu ambiente | Verificar `tenant_id` em `profiles`; utilizadores não-CTLI devem ter `tenant_id` definido. |
 
 ## Notas
 

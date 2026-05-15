@@ -53,8 +53,8 @@ const Dashboard = () => {
         <Card className="mt-6">
           <CardContent className="p-8 text-center">
             <FolderSimple size={48} className="mx-auto text-slate-400" />
-            <h3 className="font-display text-xl font-semibold mt-4">Nenhum cliente cadastrado</h3>
-            <p className="text-sm text-slate-600 mt-2">Para começar, cadastre o primeiro cliente em <Link to="/admin/clients" className="text-blue-600 underline">Administração → Clientes</Link>.</p>
+            <h3 className="font-display text-xl font-semibold mt-4">Nenhum ambiente (cliente) cadastrado</h3>
+            <p className="text-sm text-slate-600 mt-2">Para começar, cadastre o primeiro ambiente em <Link to="/admin/clients" className="text-blue-600 underline">Administração CTLI → Ambientes (clientes)</Link>.</p>
           </CardContent>
         </Card>
       </div>
@@ -62,7 +62,7 @@ const Dashboard = () => {
   }
 
   if (!currentTenantId) {
-    return <div className="text-slate-600">Selecione um ambiente de cliente para visualizar o dashboard.</div>;
+    return <div className="text-slate-600">Selecione um ambiente para visualizar o dashboard.</div>;
   }
 
   if (loading) return <div className="text-slate-600">Carregando dashboard…</div>;
