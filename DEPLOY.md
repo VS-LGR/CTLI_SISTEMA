@@ -21,6 +21,8 @@ O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`
 
 4. **Contas de portal:** utilize papel `client` (ou outros papéis com `tenant_id`) ao convidar utilizadores; o separador **Conta cliente (portal)** aparece no ecrã de criação de utilizadores quando o frontend está atualizado.
 
+5. **Cadastros e anexos:** aplicar também a migração `20250616000000_cadastros_multitenant.sql`, que cria tabelas de fornecedores, clientes do cliente, colaboradores, certificados e o **bucket** privado `cadastro-certificados` com políticas RLS em `storage.objects`. O primeiro segmento do caminho do ficheiro deve ser o UUID do tenant (`{tenant_id}/weight|env/{cert_id}/{filename}`).
+
 ## Resolução de problemas (criação de ambientes / utilizadores)
 
 | Sintoma | Causa provável |

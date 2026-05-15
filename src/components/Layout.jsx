@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
-  Buildings, CaretRight,
+  Buildings, CaretRight, ClipboardText,
 } from "@phosphor-icons/react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -94,6 +94,10 @@ const Layout = () => {
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard">
             <House size={18} weight="duotone" /> Dashboard
+          </NavLink>
+
+          <NavLink to="/cadastros" className={navLinkClass} data-testid="nav-cadastros">
+            <ClipboardText size={18} weight="duotone" /> Cadastros
           </NavLink>
 
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">

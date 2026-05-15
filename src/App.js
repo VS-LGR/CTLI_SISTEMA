@@ -9,6 +9,7 @@ import RequirementView from "@/pages/RequirementView";
 import DocumentEditor from "@/pages/DocumentEditor";
 import AdminClients from "@/pages/AdminClients";
 import BackupView from "@/pages/BackupView";
+import CadastrosPage from "@/pages/CadastrosPage";
 import "@/App.css";
 
 const Protected = ({ children, adminOnly = false }) => {
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/requirement/:id" element={<RequirementView />} />
             <Route path="/document/:id" element={<DocumentEditor />} />
             <Route path="/backup" element={<BackupView />} />
+            <Route path="/cadastros" element={<CadastrosPage />} />
             <Route path="/admin/clients" element={<Protected adminOnly><AdminClients /></Protected>} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
