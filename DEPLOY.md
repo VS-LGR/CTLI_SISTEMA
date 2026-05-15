@@ -7,7 +7,7 @@ Defina no painel do projeto Vercel (Settings → Environment Variables):
 | Variável | Obrigatória | Descrição |
 |----------|-------------|-----------|
 | `REACT_APP_SUPABASE_URL` | Sim (modo Supabase) | URL do projeto (Settings → API no Supabase). |
-| `REACT_APP_SUPABASE_ANON_KEY` | Sim (modo Supabase) | Chave `anon` **publicável** (nunca a `service_role`). |
+| `REACT_APP_SUPABASE_ANON_KEY` *ou* `REACT_APP_SUPABASE_PUBLISHABLE_KEY` | Sim (modo Supabase) | Chave **publicável** do painel (`anon` / JWT ou `sb_publishable_…`). Nunca expor `service_role`. |
 | `REACT_APP_BACKEND_URL` | Opcional | URL base da API legada (documentos, etc.); omitir se ainda não existir backend. |
 | `REACT_APP_USE_MOCK_API` | Opcional | `true` apenas para demo local sem Supabase nem API. |
 
