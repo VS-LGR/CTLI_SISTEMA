@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ShieldCheck, Spinner } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
+import { isTechnicianOnlyNav } from "@/lib/roles";
 
 const Login = () => {
   const { user, login } = useAuth();
@@ -16,7 +17,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  if (user && user !== false) return <Navigate to="/dashboard" replace />;
+  if (user && user !== false) {
+    return <Navigate to={isTechnicianOnlyNav(user.role) ? "/coleta" : "/dashboard"} replace />;
+  }
 
   const submit = async (e) => {
     e.preventDefault();
@@ -29,7 +32,7 @@ const Login = () => {
       toast.error(res.error);
     } else {
       toast.success("Bem-vindo de volta!");
-      navigate("/dashboard");
+      navigate(isTechnicianOnlyNav(res.user?.role) ? "/coleta" : "/dashboard");
     }
   };
 

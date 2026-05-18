@@ -6,13 +6,13 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
-  Buildings, CaretRight, ClipboardText,
+  Buildings, CaretRight,   ClipboardText, Scales,
 } from "@phosphor-icons/react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { roleShort } from "@/lib/roles";
+import { roleShort, canAccessColeta, isTechnicianOnlyNav } from "@/lib/roles";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -55,6 +55,8 @@ const Layout = () => {
 
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";
+  const technicianNav = isTechnicianOnlyNav(user?.role);
+  const showColeta = canAccessColeta(user?.role);
 
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all ${
@@ -92,14 +94,26 @@ const Layout = () => {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard">
-            <House size={18} weight="duotone" /> Dashboard
-          </NavLink>
+          {!technicianNav && (
+            <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard">
+              <House size={18} weight="duotone" /> Dashboard
+            </NavLink>
+          )}
 
-          <NavLink to="/cadastros" className={navLinkClass} data-testid="nav-cadastros">
-            <ClipboardText size={18} weight="duotone" /> Cadastros
-          </NavLink>
+          {showColeta && (
+            <NavLink to="/coleta" className={navLinkClass} data-testid="nav-coleta">
+              <Scales size={18} weight="duotone" /> Coleta de dados
+            </NavLink>
+          )}
 
+          {!technicianNav && (
+            <NavLink to="/cadastros" className={navLinkClass} data-testid="nav-cadastros">
+              <ClipboardText size={18} weight="duotone" /> Cadastros
+            </NavLink>
+          )}
+
+          {!technicianNav && (
+          <>
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Requisitos
           </div>
@@ -171,6 +185,8 @@ const Layout = () => {
           <NavLink to="/backup" className={navLinkClass} data-testid="nav-backup">
             <Database size={18} weight="duotone" /> Backup
           </NavLink>
+          </>
+          )}
         </nav>
 
         <div className="p-3 border-t border-slate-800">
