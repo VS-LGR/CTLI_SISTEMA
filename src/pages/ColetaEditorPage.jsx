@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link, Navigate, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
@@ -20,7 +20,9 @@ import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 
 const ColetaEditorPage = () => {
   const { id } = useParams();
-  const isNew = id === "nova";
+  const { pathname } = useLocation();
+  // Rota dedicada /coleta/nova não expõe :id — detectar pelo path
+  const isNew = id === "nova" || pathname.endsWith("/coleta/nova");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
@@ -56,30 +58,40 @@ const ColetaEditorPage = () => {
   }, [currentTenant?.logo_storage_path]);
 
   const load = useCallback(async () => {
-    if (isNew || !id) return;
+    if (isNew) {
+      setLoading(false);
+      return;
+    }
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("scale_calibration_collections")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const { data, error } = await supabase
+        .from("scale_calibration_collections")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      if (!data) {
+        toast.error("Coleta não encontrada");
+        navigate(COLETA_LIST_PATH);
+        return;
+      }
+      if (data.tenant_id !== currentTenantId && user?.role !== "admin") {
+        toast.error("Sem permissão para esta coleta");
+        navigate(COLETA_LIST_PATH);
+        return;
+      }
+      setPayload(mergeColetaPayload(data.payload));
+      setCommercialProposalRef(data.commercial_proposal_ref || "");
+    } finally {
+      setLoading(false);
     }
-    if (!data) {
-      toast.error("Coleta não encontrada");
-      navigate(COLETA_LIST_PATH);
-      return;
-    }
-    if (data.tenant_id !== currentTenantId && user?.role !== "admin") {
-      toast.error("Sem permissão para esta coleta");
-      navigate(COLETA_LIST_PATH);
-      return;
-    }
-    setPayload(mergeColetaPayload(data.payload));
-    setCommercialProposalRef(data.commercial_proposal_ref || "");
   }, [id, isNew, currentTenantId, user?.role, navigate]);
 
   useEffect(() => { load(); }, [load]);
