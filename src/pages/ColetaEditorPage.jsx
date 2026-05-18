@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, FloppyDisk, FilePdf, FileDoc, Table, CaretDown } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, FilePdf, FileText, CaretDown } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import ColetaForm from "@/components/coleta/ColetaForm";
 import {
   emptyColetaPayload, mergeColetaPayload, denormalizeFromPayload,
 } from "@/lib/coletaSchema";
-import { exportColetaPdf, exportColetaDocx, exportColetaXlsx } from "@/lib/coletaExport";
+import { exportColetaPdf, exportColetaTsv } from "@/lib/coletaExport";
+import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
+import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 
 const ColetaEditorPage = () => {
   const { id } = useParams();
@@ -28,6 +30,30 @@ const ColetaEditorPage = () => {
   const [commercialProposalRef, setCommercialProposalRef] = useState("");
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [weightCerts, setWeightCerts] = useState([]);
+  const [envCerts, setEnvCerts] = useState([]);
+  const [logoDataUrl, setLogoDataUrl] = useState(null);
+
+  const loadCerts = useCallback(async () => {
+    if (!currentTenantId) return;
+    const [w, e] = await Promise.all([
+      supabase.from("weight_standard_certificates").select("*").eq("tenant_id", currentTenantId).order("set_name"),
+      supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", currentTenantId).order("equipment_name"),
+    ]);
+    if (!w.error) setWeightCerts(w.data || []);
+    if (!e.error) setEnvCerts(e.data || []);
+  }, [currentTenantId]);
+
+  const loadLogo = useCallback(async () => {
+    const path = currentTenant?.logo_storage_path;
+    if (!path) {
+      setLogoDataUrl(null);
+      return;
+    }
+    const { data, error } = await supabase.storage.from(TENANT_BRANDING_BUCKET).createSignedUrl(path, 3600);
+    if (!error && data?.signedUrl) setLogoDataUrl(data.signedUrl);
+    else setLogoDataUrl(null);
+  }, [currentTenant?.logo_storage_path]);
 
   const load = useCallback(async () => {
     if (isNew || !id) return;
@@ -44,12 +70,12 @@ const ColetaEditorPage = () => {
     }
     if (!data) {
       toast.error("Coleta não encontrada");
-      navigate("/coleta");
+      navigate(COLETA_LIST_PATH);
       return;
     }
     if (data.tenant_id !== currentTenantId && user?.role !== "admin") {
       toast.error("Sem permissão para esta coleta");
-      navigate("/coleta");
+      navigate(COLETA_LIST_PATH);
       return;
     }
     setPayload(mergeColetaPayload(data.payload));
@@ -57,13 +83,15 @@ const ColetaEditorPage = () => {
   }, [id, isNew, currentTenantId, user?.role, navigate]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadCerts(); }, [loadCerts]);
+  useEffect(() => { loadLogo(); }, [loadLogo]);
 
   if (!canAccessColeta(user?.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 
   if (!isSupabaseAuthMode || !currentTenantId) {
-    return <Navigate to="/coleta" replace />;
+    return <Navigate to={COLETA_LIST_PATH} replace />;
   }
 
   const buildRow = () => {
@@ -85,14 +113,11 @@ const ColetaEditorPage = () => {
     const row = buildRow();
     try {
       if (isNew) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("scale_calibration_collections")
-          .insert({ ...row, created_by: user.id })
-          .select("id")
-          .single();
+          .insert({ ...row, created_by: user.id });
         if (error) throw error;
         toast.success("Coleta criada");
-        navigate(`/coleta/${data.id}`, { replace: true });
       } else {
         const { error } = await supabase
           .from("scale_calibration_collections")
@@ -101,6 +126,7 @@ const ColetaEditorPage = () => {
         if (error) throw error;
         toast.success("Coleta guardada");
       }
+      navigate(COLETA_LIST_PATH);
     } catch (e) {
       toast.error(e?.message || "Falha ao guardar");
     } finally {
@@ -108,7 +134,9 @@ const ColetaEditorPage = () => {
     }
   };
 
-  const exportCurrent = async (format) => {
+  const exportOpts = { logoDataUrl, envCerts, weightCerts };
+
+  const exportCurrent = (format) => {
     const row = {
       id,
       commercial_proposal_ref: commercialProposalRef,
@@ -116,9 +144,8 @@ const ColetaEditorPage = () => {
       ...denormalizeFromPayload(payload, commercialProposalRef),
     };
     try {
-      if (format === "pdf") exportColetaPdf(row, tenantName);
-      else if (format === "docx") await exportColetaDocx(row, tenantName);
-      else exportColetaXlsx(row, tenantName);
+      if (format === "pdf") exportColetaPdf(row, tenantName, exportOpts);
+      else exportColetaTsv(row, exportOpts);
     } catch (e) {
       toast.error(e?.message || "Falha na exportação");
     }
@@ -129,11 +156,11 @@ const ColetaEditorPage = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-6 max-w-5xl w-full min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost" size="sm">
-            <Link to="/coleta"><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
+            <Link to={COLETA_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
           </Button>
           <h1 className="font-display text-xl font-semibold text-slate-900">
             {isNew ? "Nova coleta" : "Editar coleta"}
@@ -151,11 +178,8 @@ const ColetaEditorPage = () => {
                 <DropdownMenuItem onClick={() => exportCurrent("pdf")}>
                   <FilePdf size={16} className="mr-2" /> PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportCurrent("docx")}>
-                  <FileDoc size={16} className="mr-2" /> Word
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportCurrent("xlsx")}>
-                  <Table size={16} className="mr-2" /> Excel
+                <DropdownMenuItem onClick={() => exportCurrent("tsv")}>
+                  <FileText size={16} className="mr-2" /> TXT (VBA)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -172,6 +196,8 @@ const ColetaEditorPage = () => {
         onChange={setPayload}
         commercialProposalRef={commercialProposalRef}
         onProposalChange={setCommercialProposalRef}
+        weightCerts={weightCerts}
+        envCerts={envCerts}
       />
     </div>
   );

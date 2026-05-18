@@ -169,7 +169,7 @@ const DocumentEditor = () => {
           <div className="text-xs text-slate-500 flex items-center gap-1.5">
             <Link to={buildRequirementListPath(doc.requirement, doc.folder_key)} className="hover:text-blue-600 inline-flex items-center gap-1"><ArrowLeft size={12} /> Voltar para {doc.requirement}. {REQ_NAMES[String(doc.requirement)]}</Link>
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">{doc.title || "Sem título"}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold break-words tracking-tight text-slate-900 mt-1">{doc.title || "Sem título"}</h1>
           <div className="text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
             <span className="font-mono">Emissão: {doc.code || "—"}</span>
             <span>•</span>

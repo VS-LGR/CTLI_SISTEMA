@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import Layout from "@/components/Layout";
@@ -13,7 +13,14 @@ import CadastrosPage from "@/pages/CadastrosPage";
 import ColetaPage from "@/pages/ColetaPage";
 import ColetaEditorPage from "@/pages/ColetaEditorPage";
 import { canAccessColeta, isTechnicianOnlyNav } from "@/lib/roles";
+import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import "@/App.css";
+
+const ColetaLegacyRedirect = () => {
+  const { id } = useParams();
+  if (id === "nova") return <Navigate to={COLETA_NEW_PATH} replace />;
+  return <Navigate to={coletaEditorPath(id)} replace />;
+};
 
 const Protected = ({ children, adminOnly = false, coletaOnly = false }) => {
   const { user } = useAuth();
@@ -30,8 +37,8 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false }) => {
   if (coletaOnly && !canAccessColeta(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (isTechnicianOnlyNav(user.role) && !loc.pathname.startsWith("/coleta")) {
-    return <Navigate to="/coleta" replace />;
+  if (isTechnicianOnlyNav(user.role) && !isColetaPath(loc.pathname)) {
+    return <Navigate to={COLETA_LIST_PATH} replace />;
   }
   return children;
 };
@@ -39,7 +46,7 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false }) => {
 const HomeRedirect = () => {
   const { user } = useAuth();
   if (user && isTechnicianOnlyNav(user.role)) {
-    return <Navigate to="/coleta" replace />;
+    return <Navigate to={COLETA_LIST_PATH} replace />;
   }
   return <Navigate to="/dashboard" replace />;
 };
@@ -58,13 +65,16 @@ const App = () => (
           >
             <Route path="/" element={<HomeRedirect />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/requirement/7/pr-7-2/coleta" element={<Protected coletaOnly><ColetaPage /></Protected>} />
+            <Route path="/requirement/7/pr-7-2/coleta/nova" element={<Protected coletaOnly><ColetaEditorPage /></Protected>} />
+            <Route path="/requirement/7/pr-7-2/coleta/:id" element={<Protected coletaOnly><ColetaEditorPage /></Protected>} />
+            <Route path="/coleta" element={<Navigate to={COLETA_LIST_PATH} replace />} />
+            <Route path="/coleta/:id" element={<ColetaLegacyRedirect />} />
             <Route path="/requirement/:id/:folderKey" element={<RequirementView />} />
             <Route path="/requirement/:id" element={<RequirementView />} />
             <Route path="/document/:id" element={<DocumentEditor />} />
             <Route path="/backup" element={<BackupView />} />
             <Route path="/cadastros" element={<CadastrosPage />} />
-            <Route path="/coleta" element={<Protected coletaOnly><ColetaPage /></Protected>} />
-            <Route path="/coleta/:id" element={<Protected coletaOnly><ColetaEditorPage /></Protected>} />
             <Route path="/admin/clients" element={<Protected adminOnly><AdminClients /></Protected>} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

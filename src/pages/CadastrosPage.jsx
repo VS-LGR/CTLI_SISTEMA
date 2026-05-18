@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { canManageTechnicians } from "@/lib/roles";
+import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -51,7 +54,8 @@ async function removeStoragePath(path) {
 }
 
 const CadastrosPage = () => {
-  const { currentTenantId, currentTenant } = useOutletContext();
+  const { user } = useAuth();
+  const { currentTenantId, currentTenant, isAdmin } = useOutletContext();
   const tenantName = currentTenant?.name || "";
 
   const [suppliers, setSuppliers] = useState([]);
@@ -139,7 +143,7 @@ const CadastrosPage = () => {
     <div className="space-y-6" data-testid="cadastros-page">
       <div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Gestão</div>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">Cadastros</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Cadastros</h1>
         <p className="text-sm text-slate-600 mt-1">
           Dados do ambiente: <span className="font-medium text-slate-800">{tenantName || currentTenantId}</span>
         </p>
@@ -152,6 +156,9 @@ const CadastrosPage = () => {
           <TabsTrigger value="colaboradores">Colaboradores</TabsTrigger>
           <TabsTrigger value="peso">Certif. peso padrão</TabsTrigger>
           <TabsTrigger value="thermo">Thermo-baro-higrômetro</TabsTrigger>
+          {canManageTechnicians(user?.role) && (
+            <TabsTrigger value="tecnicos">Técnicos de campo</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="fornecedores" className="mt-4">
@@ -187,6 +194,11 @@ const CadastrosPage = () => {
             onRefresh={loadAll}
           />
         </TabsContent>
+        {canManageTechnicians(user?.role) && (
+          <TabsContent value="tecnicos" className="mt-4">
+            <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext, Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
+import { canAccessColeta } from "@/lib/roles";
+import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { FileText, FolderSimple, WarningCircle, Clock, CheckCircle, XCircle } from "@phosphor-icons/react";
+import { FileText, FolderSimple, WarningCircle, Clock, CheckCircle, XCircle, Scales } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
 
 const REQ_COLORS = ["#2563EB", "#0EA5E9", "#10B981", "#F59E0B", "#8B5CF6"];
 
@@ -33,6 +37,7 @@ const KpiCard = ({ label, value, icon: Icon, tint = "blue", testId }) => {
 };
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const { currentTenantId, currentTenant, tenants } = useOutletContext();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +54,7 @@ const Dashboard = () => {
   if (tenants && tenants.length === 0) {
     return (
       <div className="max-w-2xl">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mb-2">Dashboard</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-2">Dashboard</h1>
         <Card className="mt-6">
           <CardContent className="p-8 text-center">
             <FolderSimple size={48} className="mx-auto text-slate-400" />
@@ -87,13 +92,34 @@ const Dashboard = () => {
     <div className="space-y-8" data-testid="dashboard">
       <div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Visão geral</div>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">Dashboard</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Dashboard</h1>
         <p className="text-sm text-slate-600 mt-1">
           Indicadores documentais do ambiente <span className="font-medium text-slate-800">{currentTenant?.name}</span>.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {canAccessColeta(user?.role) && (
+        <Card className="border-blue-200 bg-blue-50/40">
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-md bg-blue-600 text-white shrink-0">
+                <Scales size={22} weight="duotone" />
+              </div>
+              <div>
+                <h2 className="font-display font-semibold text-slate-900">Coleta RE-7.2A</h2>
+                <p className="text-sm text-slate-600 mt-0.5">
+                  Formulário de calibração de balança — PR-7.2 Registros.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="bg-blue-600 hover:bg-blue-700 shrink-0">
+              <Link to={COLETA_LIST_PATH}>Abrir coletas</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard testId="kpi-total" label="Total de documentos" value={total} icon={FileText} tint="blue" />
         <KpiCard testId="kpi-vigentes" label="Vigentes" value={vigentes} icon={CheckCircle} tint="green" />
         <KpiCard testId="kpi-obsoletos" label="Obsoletos" value={obsoletos} icon={XCircle} tint="red" />

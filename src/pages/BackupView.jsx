@@ -116,7 +116,7 @@ const BackupView = () => {
     <div className="space-y-6" data-testid="backup-view">
       <div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Backup do sistema</div>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">Backup &amp; Restauração</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Backup &amp; Restauração</h1>
         <p className="text-sm text-slate-600 mt-1">
           Ambiente: <span className="font-medium text-slate-800">{currentTenant?.name}</span>. Backup automático a cada {data.auto_interval_days} dias.
         </p>

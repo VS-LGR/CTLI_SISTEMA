@@ -8,6 +8,7 @@ import { ShieldCheck, Spinner } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 import { isTechnicianOnlyNav } from "@/lib/roles";
+import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 
 const Login = () => {
   const { user, login } = useAuth();
@@ -18,7 +19,7 @@ const Login = () => {
   const [error, setError] = useState("");
 
   if (user && user !== false) {
-    return <Navigate to={isTechnicianOnlyNav(user.role) ? "/coleta" : "/dashboard"} replace />;
+    return <Navigate to={isTechnicianOnlyNav(user.role) ? COLETA_LIST_PATH : "/dashboard"} replace />;
   }
 
   const submit = async (e) => {
@@ -32,14 +33,14 @@ const Login = () => {
       toast.error(res.error);
     } else {
       toast.success("Bem-vindo de volta!");
-      navigate(isTechnicianOnlyNav(res.user?.role) ? "/coleta" : "/dashboard");
+      navigate(isTechnicianOnlyNav(res.user?.role) ? COLETA_LIST_PATH : "/dashboard");
     }
   };
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left form */}
-      <div className="flex items-center justify-center px-6 py-12 bg-white">
+      <div className="flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12 bg-white">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-10">
             <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center text-white">
@@ -51,7 +52,7 @@ const Login = () => {
             </div>
           </div>
 
-          <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mb-2">Bem-vindo de volta</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-2">Bem-vindo de volta</h1>
           <p className="text-sm text-slate-600 mb-8">Acesse sua base de procedimentos, registros e dashboard de qualidade.</p>
 
           <form onSubmit={submit} className="space-y-5">

@@ -4,6 +4,12 @@ export const COLETA_DOC_CODE = "RE-7.2A";
 export const COLETA_DOC_REF = "PR-7.2";
 export const COLETA_DOC_REV = "Rev.03 de 14/05/2026";
 
+export const UNIDADE_OPTIONS = [
+  { value: "mg", label: "mg" },
+  { value: "g", label: "g" },
+  { value: "kg", label: "kg" },
+];
+
 export const TIPO_BALANCA_OPTIONS = [
   { value: "analitica", label: "Analítica" },
   { value: "semi_analitica", label: "Semi-analítica" },
@@ -12,6 +18,7 @@ export const TIPO_BALANCA_OPTIONS = [
   { value: "silo", label: "Silo" },
   { value: "tanque", label: "Tanque" },
   { value: "rodoviaria", label: "Rodoviária" },
+  { value: "ferroviaria", label: "Ferroviária" },
   { value: "outros", label: "Outros" },
 ];
 
@@ -19,6 +26,7 @@ export const TIPO_PLATAFORMA_OPTIONS = [
   { value: "retangular_quadrada", label: "Retangular ou Quadrada" },
   { value: "redondo", label: "Redondo" },
   { value: "rodoviaria", label: "Rodoviária" },
+  { value: "ferroviaria", label: "Ferroviária" },
   { value: "excentricidade_na", label: "Excentricidade Não Aplicável" },
 ];
 
@@ -44,7 +52,19 @@ function emptyCalPoint() {
     rep1: "",
     rep2: "",
     rep3: "",
-    identificacao_pesos: "",
+    pesos_padrao_ids: [],
+  };
+}
+
+function emptyLote() {
+  return {
+    leituras: ["", "", ""],
+    depois_ajuste: "",
+    valor_nominal_carga: "",
+    massa_especifica: "",
+    temp: "",
+    umidade: "",
+    pressao: "",
   };
 }
 
@@ -67,7 +87,7 @@ export function emptyColetaPayload() {
       tipo_plataforma: "",
     },
     ambiente: {
-      climatizacao: "",
+      thermo_cert_id: "",
       horario_inicial: "",
       horario_final: "",
       temp_inicial: "",
@@ -96,16 +116,50 @@ export function emptyColetaPayload() {
     calibracao: {
       pontos: Array.from({ length: 10 }, () => emptyCalPoint()),
     },
+    verso: {
+      descricao_carga: "",
+      questoes_carga: {
+        facil_manuseio: "",
+        facil_centro_gravidade: "",
+        massa_constante: "",
+      },
+      repetitividade: {
+        formacao_carga: "",
+        massa_especifica_estimada: "",
+        observacoes: "",
+        p1_valor_balanca: "",
+        lotes: Array.from({ length: 6 }, () => emptyLote()),
+      },
+    },
   };
 }
 
 export function mergeColetaPayload(raw) {
   const base = emptyColetaPayload();
   if (!raw || typeof raw !== "object") return base;
+
+  const migrateAmbiente = (a) => {
+    const merged = { ...base.ambiente, ...(a || {}) };
+    if (a?.climatizacao && !merged.thermo_cert_id) {
+      merged.thermo_cert_id = "";
+    }
+    delete merged.climatizacao;
+    return merged;
+  };
+
+  const migrateCalPoint = (pt) => {
+    const p = { ...emptyCalPoint(), ...(pt || {}) };
+    if (p.identificacao_pesos && !p.pesos_padrao_ids?.length) {
+      p.pesos_padrao_ids = [];
+    }
+    delete p.identificacao_pesos;
+    return p;
+  };
+
   return {
     cliente: { ...base.cliente, ...(raw.cliente || {}) },
     balanca: { ...base.balanca, ...(raw.balanca || {}) },
-    ambiente: { ...base.ambiente, ...(raw.ambiente || {}) },
+    ambiente: migrateAmbiente(raw.ambiente),
     excentricidade: {
       valor_aplicado: raw.excentricidade?.valor_aplicado ?? "",
       pontos: Array.from({ length: 6 }, (_, i) => ({
@@ -115,10 +169,29 @@ export function mergeColetaPayload(raw) {
     },
     controle: { ...base.controle, ...(raw.controle || {}) },
     calibracao: {
-      pontos: Array.from({ length: 10 }, (_, i) => ({
-        ...emptyCalPoint(),
-        ...(raw.calibracao?.pontos?.[i] || {}),
-      })),
+      pontos: Array.from({ length: 10 }, (_, i) => migrateCalPoint(raw.calibracao?.pontos?.[i])),
+    },
+    verso: {
+      descricao_carga: raw.verso?.descricao_carga ?? "",
+      questoes_carga: {
+        ...base.verso.questoes_carga,
+        ...(raw.verso?.questoes_carga || {}),
+      },
+      repetitividade: {
+        formacao_carga: raw.verso?.repetitividade?.formacao_carga ?? "",
+        massa_especifica_estimada: raw.verso?.repetitividade?.massa_especifica_estimada ?? "",
+        observacoes: raw.verso?.repetitividade?.observacoes ?? "",
+        p1_valor_balanca: raw.verso?.repetitividade?.p1_valor_balanca ?? "",
+        lotes: Array.from({ length: 6 }, (_, i) => ({
+          ...emptyLote(),
+          ...(raw.verso?.repetitividade?.lotes?.[i] || {}),
+          leituras: [
+            raw.verso?.repetitividade?.lotes?.[i]?.leituras?.[0] ?? "",
+            raw.verso?.repetitividade?.lotes?.[i]?.leituras?.[1] ?? "",
+            raw.verso?.repetitividade?.lotes?.[i]?.leituras?.[2] ?? "",
+          ],
+        })),
+      },
     },
   };
 }
@@ -135,6 +208,18 @@ export function denormalizeFromPayload(payload, commercialProposalRef = "") {
   };
 }
 
+export function weightCertLabel(w) {
+  if (!w) return "—";
+  const parts = [w.set_name, w.certificate_number].filter(Boolean);
+  const base = parts.join(" — ") || "Conjunto";
+  return w.class ? `${base} (Classe ${w.class})` : base;
+}
+
+export function envCertLabel(e) {
+  if (!e) return "—";
+  return [e.equipment_name, e.certificate_number].filter(Boolean).join(" — ") || "Equipamento";
+}
+
 export function triStateLabel(v) {
   const o = TRI_STATE_OPTIONS.find((x) => x.value === v);
   return o ? o.label : v || "—";
@@ -145,6 +230,12 @@ export function binaryLabel(v) {
   return o ? o.label : v || "—";
 }
 
+export function simNaoLabel(v) {
+  if (v === "sim") return "Sim";
+  if (v === "nao") return "Não";
+  return v || "—";
+}
+
 export function tipoBalancaLabel(v, outros = "") {
   if (v === "outros") return outros ? `Outros: ${outros}` : "Outros";
   return TIPO_BALANCA_OPTIONS.find((x) => x.value === v)?.label || v || "—";
@@ -152,4 +243,17 @@ export function tipoBalancaLabel(v, outros = "") {
 
 export function tipoPlataformaLabel(v) {
   return TIPO_PLATAFORMA_OPTIONS.find((x) => x.value === v)?.label || v || "—";
+}
+
+export function unidadeLabel(v) {
+  return UNIDADE_OPTIONS.find((x) => x.value === v)?.label || v || "—";
+}
+
+export function formatPesosIds(ids, weightCerts) {
+  if (!ids?.length || !weightCerts?.length) return "";
+  return ids
+    .map((id) => weightCerts.find((w) => w.id === id))
+    .filter(Boolean)
+    .map(weightCertLabel)
+    .join("; ");
 }

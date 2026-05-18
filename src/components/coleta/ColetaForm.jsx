@@ -8,7 +8,11 @@ import {
   TIPO_PLATAFORMA_OPTIONS,
   TRI_STATE_OPTIONS,
   BINARY_OPTIONS,
+  UNIDADE_OPTIONS,
+  envCertLabel,
 } from "@/lib/coletaSchema";
+import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
+import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
 
 function Field({ label, children, className = "" }) {
   return (
@@ -49,7 +53,14 @@ function RadioRow({ label, options, value, onChange }) {
   );
 }
 
-export default function ColetaForm({ payload, onChange, commercialProposalRef, onProposalChange }) {
+export default function ColetaForm({
+  payload,
+  onChange,
+  commercialProposalRef,
+  onProposalChange,
+  weightCerts = [],
+  envCerts = [],
+}) {
   const setCliente = (k, v) => onChange({ ...payload, cliente: { ...payload.cliente, [k]: v } });
   const setBalanca = (k, v) => onChange({ ...payload, balanca: { ...payload.balanca, [k]: v } });
   const setAmbiente = (k, v) => onChange({ ...payload, ambiente: { ...payload.ambiente, [k]: v } });
@@ -102,14 +113,31 @@ export default function ColetaForm({ payload, onChange, commercialProposalRef, o
             ["Local da Calibração", "local"],
             ["Etiqueta IPEM", "etiqueta_ipem"],
             ["Portaria Inmetro", "portaria_inmetro"],
-            ["Capacidade", "capacidade"],
-            ["Resolução", "resolucao"],
-            ["Unidade", "unidade"],
           ].map(([lbl, key]) => (
             <Field key={key} label={lbl}>
               <Input value={payload.balanca[key]} onChange={(e) => setBalanca(key, e.target.value)} />
             </Field>
           ))}
+        </div>
+        <div className="grid grid-cols-12 gap-3 items-end">
+          <Field label="Capacidade" className="col-span-12 sm:col-span-5">
+            <Input value={payload.balanca.capacidade} onChange={(e) => setBalanca("capacidade", e.target.value)} />
+          </Field>
+          <Field label="Resolução" className="col-span-12 sm:col-span-5">
+            <Input value={payload.balanca.resolucao} onChange={(e) => setBalanca("resolucao", e.target.value)} />
+          </Field>
+          <Field label="Unidade" className="col-span-12 sm:col-span-2">
+            <select
+              value={payload.balanca.unidade || ""}
+              onChange={(e) => setBalanca("unidade", e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm"
+            >
+              <option value="">—</option>
+              {UNIDADE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </Field>
         </div>
         <RadioRow
           label="Tipo de balança"
@@ -134,33 +162,42 @@ export default function ColetaForm({ payload, onChange, commercialProposalRef, o
       </SectionCard>
 
       <SectionCard num="3" title="Condições Ambientais Durante a Calibração">
-        <Field label="Climatização dos pesos-padrão e termo-baro-higrômetro">
-          <Input value={payload.ambiente.climatizacao} onChange={(e) => setAmbiente("climatizacao", e.target.value)} />
+        <Field label="Identificação (termo-baro-higrômetro)">
+          <select
+            value={payload.ambiente.thermo_cert_id || ""}
+            onChange={(e) => setAmbiente("thermo_cert_id", e.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+          >
+            <option value="">Selecionar equipamento…</option>
+            {envCerts.map((e) => (
+              <option key={e.id} value={e.id}>{envCertLabel(e)}</option>
+            ))}
+          </select>
         </Field>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Field label="Horário inicial">
-            <Input type="time" value={payload.ambiente.horario_inicial} onChange={(e) => setAmbiente("horario_inicial", e.target.value)} />
+            <Input type="time" value={payload.ambiente.horario_inicial} onChange={(ev) => setAmbiente("horario_inicial", ev.target.value)} />
           </Field>
           <Field label="Horário final">
-            <Input type="time" value={payload.ambiente.horario_final} onChange={(e) => setAmbiente("horario_final", e.target.value)} />
+            <Input type="time" value={payload.ambiente.horario_final} onChange={(ev) => setAmbiente("horario_final", ev.target.value)} />
           </Field>
           <Field label="Temperatura inicial (°C)">
-            <Input value={payload.ambiente.temp_inicial} onChange={(e) => setAmbiente("temp_inicial", e.target.value)} />
+            <Input value={payload.ambiente.temp_inicial} onChange={(ev) => setAmbiente("temp_inicial", ev.target.value)} />
           </Field>
           <Field label="Temperatura final (°C)">
-            <Input value={payload.ambiente.temp_final} onChange={(e) => setAmbiente("temp_final", e.target.value)} />
+            <Input value={payload.ambiente.temp_final} onChange={(ev) => setAmbiente("temp_final", ev.target.value)} />
           </Field>
           <Field label="Umidade inicial (%ur)">
-            <Input value={payload.ambiente.umidade_inicial} onChange={(e) => setAmbiente("umidade_inicial", e.target.value)} />
+            <Input value={payload.ambiente.umidade_inicial} onChange={(ev) => setAmbiente("umidade_inicial", ev.target.value)} />
           </Field>
           <Field label="Umidade final (%ur)">
-            <Input value={payload.ambiente.umidade_final} onChange={(e) => setAmbiente("umidade_final", e.target.value)} />
+            <Input value={payload.ambiente.umidade_final} onChange={(ev) => setAmbiente("umidade_final", ev.target.value)} />
           </Field>
           <Field label="Pressão inicial (hPa)">
-            <Input value={payload.ambiente.pressao_inicial} onChange={(e) => setAmbiente("pressao_inicial", e.target.value)} />
+            <Input value={payload.ambiente.pressao_inicial} onChange={(ev) => setAmbiente("pressao_inicial", ev.target.value)} />
           </Field>
           <Field label="Pressão final (hPa)">
-            <Input value={payload.ambiente.pressao_final} onChange={(e) => setAmbiente("pressao_final", e.target.value)} />
+            <Input value={payload.ambiente.pressao_final} onChange={(ev) => setAmbiente("pressao_final", ev.target.value)} />
           </Field>
         </div>
         <RadioRow label="A balança foi ajustada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_ajustada} onChange={(v) => setAmbiente("balanca_ajustada", v)} />
@@ -235,7 +272,7 @@ export default function ColetaForm({ payload, onChange, commercialProposalRef, o
 
       <SectionCard num="6" title="Calibração da Balança">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs border-collapse min-w-[720px]">
+          <table className="w-full text-xs border-collapse min-w-[800px]">
             <thead>
               <tr className="border-b bg-slate-50">
                 <th className="p-2">Ponto</th>
@@ -244,25 +281,33 @@ export default function ColetaForm({ payload, onChange, commercialProposalRef, o
                 <th className="p-2">Leitura 1</th>
                 <th className="p-2">Leitura 2</th>
                 <th className="p-2">Leitura 3</th>
-                <th className="p-2">Identificação do(s) Peso(s) Padrão</th>
+                <th className="p-2 min-w-[180px]">Identificação do(s) Peso(s) Padrão</th>
               </tr>
             </thead>
             <tbody>
               {payload.calibracao.pontos.map((pt, i) => (
                 <tr key={i} className="border-b">
-                  <td className="p-2 font-mono">P{i + 1}</td>
-                  <td className="p-1"><Input value={pt.peso_nominal} onChange={(e) => setCalPonto(i, "peso_nominal", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1"><Input value={pt.leitura_antes} onChange={(e) => setCalPonto(i, "leitura_antes", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1"><Input value={pt.rep1} onChange={(e) => setCalPonto(i, "rep1", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1"><Input value={pt.rep2} onChange={(e) => setCalPonto(i, "rep2", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1"><Input value={pt.rep3} onChange={(e) => setCalPonto(i, "rep3", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1"><Input value={pt.identificacao_pesos} onChange={(e) => setCalPonto(i, "identificacao_pesos", e.target.value)} className="h-8 text-xs" /></td>
+                  <td className="p-2 font-mono align-top">P{i + 1}</td>
+                  <td className="p-1 align-top"><Input value={pt.peso_nominal} onChange={(e) => setCalPonto(i, "peso_nominal", e.target.value)} className="h-8 text-xs" /></td>
+                  <td className="p-1 align-top"><Input value={pt.leitura_antes} onChange={(e) => setCalPonto(i, "leitura_antes", e.target.value)} className="h-8 text-xs" /></td>
+                  <td className="p-1 align-top"><Input value={pt.rep1} onChange={(e) => setCalPonto(i, "rep1", e.target.value)} className="h-8 text-xs" /></td>
+                  <td className="p-1 align-top"><Input value={pt.rep2} onChange={(e) => setCalPonto(i, "rep2", e.target.value)} className="h-8 text-xs" /></td>
+                  <td className="p-1 align-top"><Input value={pt.rep3} onChange={(e) => setCalPonto(i, "rep3", e.target.value)} className="h-8 text-xs" /></td>
+                  <td className="p-1 align-top min-w-[180px]">
+                    <PesoPadraoMultiSelect
+                      weightCerts={weightCerts}
+                      value={pt.pesos_padrao_ids || []}
+                      onChange={(ids) => setCalPonto(i, "pesos_padrao_ids", ids)}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </SectionCard>
+
+      <ColetaVersoForm payload={payload} onChange={onChange} />
     </div>
   );
 }

@@ -6,13 +6,15 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
-  Buildings, CaretRight,   ClipboardText, Scales,
+  Buildings, CaretRight, ClipboardText, List,
 } from "@phosphor-icons/react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { roleShort, canAccessColeta, isTechnicianOnlyNav } from "@/lib/roles";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { roleShort, isTechnicianOnlyNav } from "@/lib/roles";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -27,9 +29,26 @@ const REQ_ICONS = {
   "8": GearSix,
 };
 
+function SidebarBrand() {
+  return (
+    <div className="px-4 sm:px-6 py-5 border-b border-slate-800 shrink-0">
+      <div className="flex items-center gap-2">
+        <div className="w-9 h-9 rounded-md bg-blue-600 flex items-center justify-center shrink-0">
+          <ShieldCheck size={20} weight="bold" />
+        </div>
+        <div className="min-w-0">
+          <div className="font-display font-bold text-lg tracking-tight truncate">ProcVault</div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">QMS</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const Layout = () => {
   const { user, logout, currentTenantId, selectTenant } = useAuth();
   const [tenants, setTenants] = useState([]);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -53,10 +72,15 @@ const Layout = () => {
     if (user) loadTenants();
   }, [user, loadTenants]);
 
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";
   const technicianNav = isTechnicianOnlyNav(user?.role);
-  const showColeta = canAccessColeta(user?.role);
+
+  const closeMobileNav = () => setMobileNavOpen(false);
 
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all ${
@@ -78,42 +102,22 @@ const Layout = () => {
     return p === reqGroupPathPrefix(rid) || p.startsWith(`${reqGroupPathPrefix(rid)}/`);
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <aside className="w-64 fixed inset-y-0 left-0 bg-slate-900 text-white border-r border-slate-800 z-40 flex flex-col">
-        <div className="px-6 py-5 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-md bg-blue-600 flex items-center justify-center">
-              <ShieldCheck size={20} weight="bold" />
-            </div>
-            <div>
-              <div className="font-display font-bold text-lg tracking-tight">ProcVault</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">QMS</div>
-            </div>
-          </div>
-        </div>
+  const renderNav = (onNavigate) => (
+    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain">
+      {!technicianNav && (
+        <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard" onClick={onNavigate}>
+          <House size={18} weight="duotone" /> Dashboard
+        </NavLink>
+      )}
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {!technicianNav && (
-            <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard">
-              <House size={18} weight="duotone" /> Dashboard
-            </NavLink>
-          )}
+      {!technicianNav && (
+        <NavLink to="/cadastros" className={navLinkClass} data-testid="nav-cadastros" onClick={onNavigate}>
+          <ClipboardText size={18} weight="duotone" /> Cadastros
+        </NavLink>
+      )}
 
-          {showColeta && (
-            <NavLink to="/coleta" className={navLinkClass} data-testid="nav-coleta">
-              <Scales size={18} weight="duotone" /> Coleta de dados
-            </NavLink>
-          )}
-
-          {!technicianNav && (
-            <NavLink to="/cadastros" className={navLinkClass} data-testid="nav-cadastros">
-              <ClipboardText size={18} weight="duotone" /> Cadastros
-            </NavLink>
-          )}
-
-          {!technicianNav && (
-          <>
+      {!technicianNav && (
+        <>
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Requisitos
           </div>
@@ -126,11 +130,12 @@ const Layout = () => {
                   to={`/requirement/${r.id}`}
                   className={navLinkClass}
                   data-testid={`nav-req-${r.id}`}
+                  onClick={onNavigate}
                 >
                   <Icon size={18} weight="duotone" />
-                  <span className="flex-1">
+                  <span className="flex-1 min-w-0">
                     <span className="font-mono text-xs text-slate-400 mr-1.5">{r.id}.</span>
-                    Requisitos de {r.name}
+                    <span className="break-words">Requisitos de {r.name}</span>
                   </span>
                 </NavLink>
               );
@@ -144,10 +149,10 @@ const Layout = () => {
                   }`}
                   data-testid={`nav-req-group-${r.id}`}
                 >
-                  <Icon size={18} weight="duotone" />
+                  <Icon size={18} weight="duotone" className="shrink-0" />
                   <span className="flex-1 min-w-0">
                     <span className="font-mono text-xs text-slate-400 mr-1.5">{r.id}.</span>
-                    Requisitos de {r.name}
+                    <span className="break-words">Requisitos de {r.name}</span>
                   </span>
                   <CaretRight size={14} className="shrink-0 opacity-70" />
                 </CollapsibleTrigger>
@@ -159,6 +164,7 @@ const Layout = () => {
                       className={subNavLinkClass}
                       title={f.label}
                       data-testid={`nav-req-${r.id}-${f.folderKey}`}
+                      onClick={onNavigate}
                     >
                       <span className="truncate">{f.label}</span>
                     </NavLink>
@@ -173,7 +179,7 @@ const Layout = () => {
               <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
                 Administração CTLI
               </div>
-              <NavLink to="/admin/clients" className={navLinkClass} data-testid="nav-admin-clients">
+              <NavLink to="/admin/clients" className={navLinkClass} data-testid="nav-admin-clients" onClick={onNavigate}>
                 <Buildings size={18} weight="duotone" /> Ambientes (clientes)
               </NavLink>
             </>
@@ -182,53 +188,97 @@ const Layout = () => {
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Sistema
           </div>
-          <NavLink to="/backup" className={navLinkClass} data-testid="nav-backup">
+          <NavLink to="/backup" className={navLinkClass} data-testid="nav-backup" onClick={onNavigate}>
             <Database size={18} weight="duotone" /> Backup
           </NavLink>
-          </>
-          )}
-        </nav>
+        </>
+      )}
+    </nav>
+  );
 
-        <div className="p-3 border-t border-slate-800">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 transition" data-testid="user-menu-trigger">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold">
-                  {user?.name?.[0]?.toUpperCase() || "U"}
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-medium truncate">{user?.name}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400">{roleShort(user?.role)}</div>
-                </div>
-                <CaretDown size={14} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { logout(); navigate("/login"); }} data-testid="logout-btn">
-                <SignOut size={16} className="mr-2" /> Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+  const renderUserMenu = () => (
+    <div className="p-3 border-t border-slate-800 shrink-0">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 transition" data-testid="user-menu-trigger">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold shrink-0">
+              {user?.name?.[0]?.toUpperCase() || "U"}
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <div className="text-sm font-medium truncate">{user?.name}</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-400">{roleShort(user?.role)}</div>
+            </div>
+            <CaretDown size={14} className="shrink-0" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="truncate">{user?.email}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => { logout(); navigate("/login"); }} data-testid="logout-btn">
+            <SignOut size={16} className="mr-2" /> Sair
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
+  const sidebarInner = (onNavigate) => (
+  <>
+    <SidebarBrand />
+    {renderNav(onNavigate)}
+    {renderUserMenu()}
+  </>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-64 fixed inset-y-0 left-0 bg-slate-900 text-white border-r border-slate-800 z-40 flex-col">
+        {sidebarInner()}
       </aside>
 
-      <div className="pl-64 min-h-screen">
-        <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200 flex items-center px-8">
-          <div className="flex-1">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+      {/* Mobile / tablet drawer */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent
+          side="left"
+          className="w-[min(18rem,88vw)] max-w-xs p-0 gap-0 flex flex-col bg-slate-900 text-white border-slate-800 [&>button]:text-slate-300 [&>button]:hover:text-white [&>button]:right-3 [&>button]:top-4"
+        >
+          {sidebarInner(closeMobileNav)}
+        </SheetContent>
+      </Sheet>
+
+      <div className="lg:pl-64 min-h-screen flex flex-col min-w-0">
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200 flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-3 min-h-[4rem]">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="lg:hidden shrink-0 text-slate-700 hover:bg-slate-100"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Abrir menu"
+            data-testid="mobile-nav-toggle"
+          >
+            <List size={22} weight="bold" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 truncate">
               {isAdmin ? "Ambiente atual (pré-visualização)" : "O seu ambiente"}
             </div>
             {isAdmin ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="flex items-center gap-2 text-base font-display font-semibold text-slate-900 hover:text-blue-600 transition" data-testid="tenant-switcher">
-                    {currentTenant?.name || (tenants.length === 0 ? "Nenhum ambiente cadastrado" : "Selecionar ambiente")}
-                    <CaretDown size={16} />
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 text-left text-base sm:text-lg font-display font-semibold text-slate-900 hover:text-blue-600 transition max-w-full"
+                    data-testid="tenant-switcher"
+                  >
+                    <span className="truncate">
+                      {currentTenant?.name || (tenants.length === 0 ? "Nenhum ambiente cadastrado" : "Selecionar ambiente")}
+                    </span>
+                    <CaretDown size={16} className="shrink-0" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-72">
+                <DropdownMenuContent align="start" className="w-[min(18rem,calc(100vw-2rem))]">
                   <DropdownMenuLabel>Trocar de ambiente (cliente)</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {tenants.length === 0 && (
@@ -241,23 +291,23 @@ const Layout = () => {
                       data-testid={`tenant-option-${t.id}`}
                       className={t.id === currentTenantId ? "bg-blue-50 text-blue-700" : ""}
                     >
-                      <div>
-                        <div className="font-medium">{t.name}</div>
-                        {t.code && <div className="text-xs text-slate-500">{t.code}</div>}
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{t.name}</div>
+                        {t.code && <div className="text-xs text-slate-500 truncate">{t.code}</div>}
                       </div>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="text-base font-display font-semibold text-slate-900 mt-0.5" data-testid="tenant-switcher">
+              <div className="text-base sm:text-lg font-display font-semibold text-slate-900 mt-0.5 truncate" data-testid="tenant-switcher">
                 {currentTenant?.name || "—"}
               </div>
             )}
           </div>
         </header>
 
-        <main className="p-8 fade-in">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 fade-in min-w-0 max-w-full">
           <Outlet context={{ tenants, currentTenant, currentTenantId, isAdmin, reloadTenants: loadTenants, selectTenant }} />
         </main>
       </div>

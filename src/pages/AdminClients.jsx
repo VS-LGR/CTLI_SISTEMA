@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Buildings, UserPlus, Trash, Users, IdentificationCard, PencilSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { ROLES, RESPONSIBLE_ROLES, roleShort } from "@/lib/roles";
+import { TENANT_BRANDING_BUCKET, tenantLogoStoragePath } from "@/lib/tenantBranding";
 
 function toastSupabaseAccessError(e, fallback) {
   const detail = e?.response?.data?.detail;
@@ -53,6 +54,9 @@ const AdminClients = () => {
   const [tName, setTName] = useState("");
   const [tCode, setTCode] = useState("");
   const [tDesc, setTDesc] = useState("");
+  const [tLogoFile, setTLogoFile] = useState(null);
+  const [tLogoPreview, setTLogoPreview] = useState("");
+  const [tLogoPath, setTLogoPath] = useState("");
 
   const [uTenant, setUTenant] = useState("");
   const [uName, setUName] = useState("");
@@ -70,6 +74,9 @@ const AdminClients = () => {
     setTName("");
     setTCode("");
     setTDesc("");
+    setTLogoFile(null);
+    setTLogoPreview("");
+    setTLogoPath("");
   };
 
   const resetUserForm = () => {
@@ -159,22 +166,40 @@ const AdminClients = () => {
 
   if (!isAdmin) return <div className="text-slate-600">Acesso restrito a administradores CTLI.</div>;
 
+  const uploadTenantLogo = async (tenantId) => {
+    if (!tLogoFile || !tenantId) return tLogoPath || null;
+    const path = tenantLogoStoragePath(tenantId, tLogoFile.name);
+    const { error } = await supabase.storage.from(TENANT_BRANDING_BUCKET).upload(path, tLogoFile, {
+      upsert: true,
+      contentType: tLogoFile.type || undefined,
+    });
+    if (error) throw error;
+    return path;
+  };
+
   const createOrUpdateTenant = async () => {
     if (!tName.trim()) return toast.error("Informe o nome");
     try {
       if (isSupabaseAuthMode) {
         if (editingTenantId) {
-          const { error } = await supabase
-            .from("tenants")
-            .update({ name: tName.trim(), code: tCode, description: tDesc })
-            .eq("id", editingTenantId);
+          let logoPath = tLogoPath;
+          if (tLogoFile) logoPath = await uploadTenantLogo(editingTenantId);
+          const patch = { name: tName.trim(), code: tCode, description: tDesc };
+          if (logoPath) patch.logo_storage_path = logoPath;
+          const { error } = await supabase.from("tenants").update(patch).eq("id", editingTenantId);
           if (error) throw error;
           toast.success("Cliente atualizado");
         } else {
-          const { error } = await supabase
+          const { data: inserted, error } = await supabase
             .from("tenants")
-            .insert({ name: tName.trim(), code: tCode, description: tDesc });
+            .insert({ name: tName.trim(), code: tCode, description: tDesc })
+            .select("id")
+            .single();
           if (error) throw error;
+          if (tLogoFile && inserted?.id) {
+            const logoPath = await uploadTenantLogo(inserted.id);
+            await supabase.from("tenants").update({ logo_storage_path: logoPath }).eq("id", inserted.id);
+          }
           toast.success("Cliente criado");
         }
       } else if (editingTenantId) {
@@ -193,12 +218,30 @@ const AdminClients = () => {
     }
   };
 
-  const openEditTenant = (t) => {
+  const openEditTenant = async (t) => {
     setEditingTenantId(t.id);
     setTName(t.name);
     setTCode(t.code || "");
     setTDesc(t.description || "");
+    setTLogoFile(null);
+    setTLogoPath(t.logo_storage_path || "");
+    setTLogoPreview("");
+    if (t.logo_storage_path) {
+      const { data } = await supabase.storage.from(TENANT_BRANDING_BUCKET).createSignedUrl(t.logo_storage_path, 3600);
+      if (data?.signedUrl) setTLogoPreview(data.signedUrl);
+    }
     setOpenTenant(true);
+  };
+
+  const onTenantLogoPick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(png|jpeg|jpg|webp)$/i.test(file.type)) {
+      toast.error("Use PNG, JPG ou WebP");
+      return;
+    }
+    setTLogoFile(file);
+    setTLogoPreview(URL.createObjectURL(file));
   };
 
   const removeTenant = async (id) => {
@@ -364,7 +407,7 @@ const AdminClients = () => {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Administração CTLI</div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">Ambientes (clientes)</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Ambientes (clientes)</h1>
           <p className="text-sm text-slate-600 mt-1">
             Cada ambiente corresponde a um cliente: documentos, responsáveis e utilizadores do portal ficam isolados.
             A CTLI cria ambientes e as contas de acesso (incluindo &quot;Conta cliente&quot;) para o cliente entrar só no seu espaço.
@@ -552,6 +595,15 @@ const AdminClients = () => {
                   <Label>Descrição</Label>
                   <Input value={tDesc} onChange={(e) => setTDesc(e.target.value)} />
                 </div>
+                {isSupabaseAuthMode && (
+                  <div>
+                    <Label>Logo do ambiente (PDF coleta)</Label>
+                    <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={onTenantLogoPick} className="mt-1" />
+                    {tLogoPreview && (
+                      <img src={tLogoPreview} alt="Pré-visualização do logo" className="mt-2 h-16 w-auto object-contain border rounded p-1 bg-white" />
+                    )}
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpenTenant(false)}>

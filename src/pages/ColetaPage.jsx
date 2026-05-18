@@ -3,16 +3,16 @@ import { Link, Navigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
-import { canAccessColeta, canManageTechnicians } from "@/lib/roles";
+import { canAccessColeta } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, PencilSimple, Trash, FilePdf, FileDoc, Table, CaretDown } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, FilePdf, FileText, CaretDown } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
-import { exportColetaPdf, exportColetaDocx, exportColetaXlsx } from "@/lib/coletaExport";
+import { exportColetaPdf, exportColetaTsv } from "@/lib/coletaExport";
+import { COLETA_NEW_PATH, coletaEditorPath } from "@/lib/coletaRoutes";
+import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -21,13 +21,16 @@ function fmtDmy(iso) {
   return `${d}/${m}/${y}`;
 }
 
-const ColetaPage = () => {
+const ColetaPage = ({ embedded = false }) => {
   const { user } = useAuth();
-  const { currentTenantId, currentTenant, isAdmin } = useOutletContext();
+  const { currentTenantId, currentTenant } = useOutletContext();
   const tenantName = currentTenant?.name || "";
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [weightCerts, setWeightCerts] = useState([]);
+  const [envCerts, setEnvCerts] = useState([]);
+  const [logoDataUrl, setLogoDataUrl] = useState(null);
 
   const load = useCallback(async () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
@@ -42,7 +45,29 @@ const ColetaPage = () => {
     else setRows(data || []);
   }, [currentTenantId]);
 
+  const loadCerts = useCallback(async () => {
+    if (!currentTenantId) return;
+    const [w, e] = await Promise.all([
+      supabase.from("weight_standard_certificates").select("*").eq("tenant_id", currentTenantId),
+      supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", currentTenantId),
+    ]);
+    if (!w.error) setWeightCerts(w.data || []);
+    if (!e.error) setEnvCerts(e.data || []);
+  }, [currentTenantId]);
+
+  const loadLogo = useCallback(async () => {
+    const path = currentTenant?.logo_storage_path;
+    if (!path) {
+      setLogoDataUrl(null);
+      return;
+    }
+    const { data } = await supabase.storage.from(TENANT_BRANDING_BUCKET).createSignedUrl(path, 3600);
+    setLogoDataUrl(data?.signedUrl || null);
+  }, [currentTenant?.logo_storage_path]);
+
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadCerts(); }, [loadCerts]);
+  useEffect(() => { loadLogo(); }, [loadLogo]);
 
   if (!canAccessColeta(user?.role)) {
     return <Navigate to="/dashboard" replace />;
@@ -75,11 +100,12 @@ const ColetaPage = () => {
     }
   };
 
-  const exportRow = async (row, format) => {
+  const exportOpts = { logoDataUrl, envCerts, weightCerts };
+
+  const exportRow = (row, format) => {
     try {
-      if (format === "pdf") exportColetaPdf(row, tenantName);
-      else if (format === "docx") await exportColetaDocx(row, tenantName);
-      else exportColetaXlsx(row, tenantName);
+      if (format === "pdf") exportColetaPdf(row, tenantName, exportOpts);
+      else exportColetaTsv(row, exportOpts);
     } catch (e) {
       toast.error(e?.message || "Falha na exportação");
     }
@@ -88,103 +114,92 @@ const ColetaPage = () => {
   return (
     <div className="space-y-6" data-testid="coleta-page">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Calibração</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-1">
-            Coleta de dados
-          </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            RE-7.2A — formulário de calibração de balança por ambiente.
-          </p>
-        </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700">
-          <Link to="/coleta/nova">
+        {!embedded && (
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Calibração</p>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+              Coleta de dados
+            </h1>
+            <p className="text-sm text-slate-600 mt-1">
+              RE-7.2A — formulário de calibração de balança por ambiente.
+            </p>
+          </div>
+        )}
+        {embedded && (
+          <div>
+            <p className="text-sm text-slate-600">
+              Registros RE-7.2A — coletas de calibração de balança neste ambiente.
+            </p>
+          </div>
+        )}
+        <Button asChild className="bg-blue-600 hover:bg-blue-700 shrink-0">
+          <Link to={COLETA_NEW_PATH}>
             <Plus size={18} className="mr-1" /> Nova coleta
           </Link>
         </Button>
       </div>
 
-      <Tabs defaultValue="coletas">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-slate-100 p-1">
-          <TabsTrigger value="coletas">Coletas</TabsTrigger>
-          {canManageTechnicians(user?.role) && (
-            <TabsTrigger value="tecnicos">Técnicos do ambiente</TabsTrigger>
-          )}
-        </TabsList>
-
-        <TabsContent value="coletas" className="mt-4">
-          {loading ? (
-            <p className="text-sm text-slate-500 py-8 text-center">A carregar…</p>
-          ) : rows.length === 0 ? (
-            <div className="text-center py-12 border rounded-lg bg-slate-50">
-              <p className="text-slate-600">Nenhuma coleta registada neste ambiente.</p>
-              <Button asChild className="mt-4 bg-blue-600 hover:bg-blue-700">
-                <Link to="/coleta/nova">Criar primeira coleta</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="border rounded-lg overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b">
-                  <tr>
-                    <th className="text-left p-3 font-medium">Cliente</th>
-                    <th className="text-left p-3 font-medium">Nº série</th>
-                    <th className="text-left p-3 font-medium">Data calibração</th>
-                    <th className="text-left p-3 font-medium">Atualizado</th>
-                    <th className="p-3 w-40" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50/50">
-                      <td className="p-3">{row.client_name || "—"}</td>
-                      <td className="p-3 font-mono text-xs">{row.scale_serial || "—"}</td>
-                      <td className="p-3">{fmtDmy(row.calibration_date)}</td>
-                      <td className="p-3 text-slate-500 text-xs">
-                        {row.updated_at ? new Date(row.updated_at).toLocaleString("pt-BR") : "—"}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex justify-end items-center gap-1">
-                          <Button asChild variant="ghost" size="sm">
-                            <Link to={`/coleta/${row.id}`}><PencilSimple size={16} /></Link>
+      {loading ? (
+        <p className="text-sm text-slate-500 py-8 text-center">A carregar…</p>
+      ) : rows.length === 0 ? (
+        <div className="text-center py-12 border rounded-lg bg-slate-50">
+          <p className="text-slate-600">Nenhuma coleta registada neste ambiente.</p>
+          <Button asChild className="mt-4 bg-blue-600 hover:bg-blue-700">
+            <Link to={COLETA_NEW_PATH}>Criar primeira coleta</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b">
+              <tr>
+                <th className="text-left p-3 font-medium">Cliente</th>
+                <th className="text-left p-3 font-medium">Nº série</th>
+                <th className="text-left p-3 font-medium">Data calibração</th>
+                <th className="text-left p-3 font-medium">Atualizado</th>
+                <th className="p-3 w-40" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50/50">
+                  <td className="p-3">{row.client_name || "—"}</td>
+                  <td className="p-3 font-mono text-xs">{row.scale_serial || "—"}</td>
+                  <td className="p-3">{fmtDmy(row.calibration_date)}</td>
+                  <td className="p-3 text-slate-500 text-xs">
+                    {row.updated_at ? new Date(row.updated_at).toLocaleString("pt-BR") : "—"}
+                  </td>
+                  <td className="p-3">
+                    <div className="flex justify-end items-center gap-1">
+                      <Button asChild variant="ghost" size="sm">
+                        <Link to={coletaEditorPath(row.id)}><PencilSimple size={16} /></Link>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" type="button">
+                            <CaretDown size={14} />
                           </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" type="button">
-                                <CaretDown size={14} />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => exportRow(row, "pdf")}>
-                                <FilePdf size={16} className="mr-2" /> PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => exportRow(row, "docx")}>
-                                <FileDoc size={16} className="mr-2" /> Word
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => exportRow(row, "xlsx")}>
-                                <Table size={16} className="mr-2" /> Excel
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          <Button variant="ghost" size="sm" className="text-red-600" onClick={() => remove(row)}>
-                            <Trash size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </TabsContent>
-
-        {canManageTechnicians(user?.role) && (
-          <TabsContent value="tecnicos" className="mt-4">
-            <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />
-          </TabsContent>
-        )}
-      </Tabs>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => exportRow(row, "pdf")}>
+                            <FilePdf size={16} className="mr-2" /> PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportRow(row, "tsv")}>
+                            <FileText size={16} className="mr-2" /> TXT (VBA)
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => remove(row)}>
+                        <Trash size={16} />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

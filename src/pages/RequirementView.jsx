@@ -20,6 +20,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import ColetaPage from "@/pages/ColetaPage";
+import { COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
+import { canAccessColeta } from "@/lib/roles";
+import { useAuth } from "@/context/AuthContext";
 
 const CreateDocDialog = ({ tenantId, requirement, folderKey, section, onCreated }) => {
   const [open, setOpen] = useState(false);
@@ -225,7 +229,8 @@ const DocRow = ({ doc, onUpdate, onDelete }) => {
 
 const DocTable = ({ docs, onUpdate, onDelete }) => (
   <Card className="border-slate-200 overflow-hidden">
-    <table className="w-full text-sm">
+    <div className="overflow-x-auto -mx-px">
+    <table className="w-full text-sm min-w-[640px]">
       <thead className="bg-slate-50 border-b border-slate-200">
         <tr className="text-left text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
           <th className="px-4 py-3">Documento</th>
@@ -245,11 +250,13 @@ const DocTable = ({ docs, onUpdate, onDelete }) => (
         {docs.map((d) => <DocRow key={d.id} doc={d} onUpdate={onUpdate} onDelete={onDelete} />)}
       </tbody>
     </table>
+    </div>
   </Card>
 );
 
 const RequirementView = () => {
   const { id, folderKey } = useParams();
+  const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
   const [section, setSection] = useState("procedimento");
   const [status, setStatus] = useState("vigente");
@@ -293,6 +300,11 @@ const RequirementView = () => {
 
   const folderLabel = folderKey ? getFolderLabel(id, folderKey) : null;
   const reqTitle = REQ_NAMES[String(id)];
+  const isColetaRegistro =
+    String(id) === COLETA_REQ_ID
+    && folderKey === COLETA_FOLDER_KEY
+    && section === "registro"
+    && canAccessColeta(user?.role);
 
   const updateDoc = (d) => setDocs((prev) => prev.map((x) => x.id === d.id ? d : x).filter((x) => x.status === status));
   const removeDoc = (idd) => setDocs((prev) => prev.filter((x) => x.id !== idd));
@@ -318,7 +330,7 @@ const RequirementView = () => {
             </>
           )}
         </div>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 mt-2">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-2 break-words">
           <span className="font-mono text-slate-400 mr-2">{id}.</span>{reqTitle}
         </h1>
         {folderLabel && (
@@ -334,19 +346,27 @@ const RequirementView = () => {
             <TabsTrigger value="registro" data-testid="tab-registros">Registros</TabsTrigger>
           </TabsList>
 
-          <div className="flex items-center gap-2">
-            <Tabs value={status} onValueChange={setStatus}>
-              <TabsList className="bg-white border border-slate-200">
-                <TabsTrigger value="vigente" data-testid="tab-vigentes">Vigentes</TabsTrigger>
-                <TabsTrigger value="obsoleto" data-testid="tab-obsoletos">Obsoletos</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <CreateDocDialog tenantId={currentTenantId} requirement={id} folderKey={folderKey} section={section} onCreated={onCreated} />
-          </div>
+          {!isColetaRegistro && (
+            <div className="flex items-center gap-2">
+              <Tabs value={status} onValueChange={setStatus}>
+                <TabsList className="bg-white border border-slate-200">
+                  <TabsTrigger value="vigente" data-testid="tab-vigentes">Vigentes</TabsTrigger>
+                  <TabsTrigger value="obsoleto" data-testid="tab-obsoletos">Obsoletos</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <CreateDocDialog tenantId={currentTenantId} requirement={id} folderKey={folderKey} section={section} onCreated={onCreated} />
+            </div>
+          )}
         </div>
 
         <TabsContent value={section} className="mt-4">
-          {loading ? <div className="text-slate-600">Carregando…</div> : <DocTable docs={docs} onUpdate={updateDoc} onDelete={removeDoc} />}
+          {isColetaRegistro ? (
+            <ColetaPage embedded />
+          ) : loading ? (
+            <div className="text-slate-600">Carregando…</div>
+          ) : (
+            <DocTable docs={docs} onUpdate={updateDoc} onDelete={removeDoc} />
+          )}
         </TabsContent>
       </Tabs>
     </div>
