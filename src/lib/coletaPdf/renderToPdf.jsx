@@ -4,7 +4,7 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { ColetaPdfDocument } from "./ColetaPdfDocument";
 import { buildColetaPdfViewModel, coletaPdfFileSlug } from "./viewModel";
-import { PAGE_EM_H, PAGE_EM_W, PAGE_FONT_PT, PAGE_PX_H, PAGE_PX_W } from "./layoutSpec";
+import { PAGE_EM_H, PAGE_EM_PX, PAGE_EM_W, PAGE_PX_H, PAGE_PX_W } from "./layoutSpec";
 
 const PAGE_W_MM = 210;
 const PAGE_H_MM = 297;
@@ -21,14 +21,16 @@ export async function renderColetaPdf(row, tenantName = "", opts = {}) {
 
   const container = document.createElement("div");
   container.setAttribute("data-coleta-pdf-export", "true");
+  // Na viewport (z-index atrás do app): html2canvas falha com left:-10000 ou opacity no ancestral
   container.style.cssText = [
     "position:fixed",
-    "left:-10000px",
+    "left:0",
     "top:0",
     "z-index:-1",
     "pointer-events:none",
     `width:${PAGE_PX_W}px`,
-    `font-size:${PAGE_FONT_PT}pt`,
+    "overflow:visible",
+    "background:#fff",
   ].join(";");
   document.body.appendChild(container);
 
@@ -47,17 +49,23 @@ export async function renderColetaPdf(row, tenantName = "", opts = {}) {
     const pageEl = pages[i];
     pageEl.style.width = `${PAGE_EM_W}em`;
     pageEl.style.height = `${PAGE_EM_H}em`;
-    pageEl.style.fontSize = `${PAGE_FONT_PT}pt`;
+    pageEl.style.fontSize = `${PAGE_EM_PX}px`;
+    pageEl.style.boxSizing = "border-box";
 
     const canvas = await html2canvas(pageEl, {
       scale: 2,
       useCORS: true,
+      allowTaint: true,
       backgroundColor: "#ffffff",
       logging: false,
       width: PAGE_PX_W,
       height: PAGE_PX_H,
       windowWidth: PAGE_PX_W,
       windowHeight: PAGE_PX_H,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
     });
     const img = canvas.toDataURL("image/png");
     if (i > 0) doc.addPage();

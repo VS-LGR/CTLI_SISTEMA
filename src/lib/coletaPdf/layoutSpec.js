@@ -5,6 +5,8 @@ export const PAGE_PX_W = 794;
 export const PAGE_PX_H = 1123;
 /** 10pt base → 1em ≈ 13.33px; page width ≈ 794px at 96dpi */
 export const PAGE_FONT_PT = 10;
+/** px por em para o canvas bater com PAGE_PX_W (794px) */
+export const PAGE_EM_PX = PAGE_PX_W / PAGE_EM_W;
 
 /** @param {number} top @param {number} left @param {number} [width] @param {number} [height] */
 export function pos(top, left, width, height) {
@@ -52,8 +54,8 @@ export const FRENTE = {
   },
   sec6: {
     title: pos(46.51, 0.73, 25, 0.8),
-    subTitle: pos(48.5, 19.46, 12, 0.7),
-    table: pos(48.5, 0.75, 48.5, 20.5),
+    subTitle: pos(48.52, 19.46, 12, 0.7),
+    table: pos(49.68, 0.75, 48.5, 19.5),
   },
   footer: pos(69.57, 43.4, 6, 0.6),
 };

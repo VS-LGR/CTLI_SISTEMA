@@ -22,7 +22,7 @@
 
 .coleta-abs {
   position: absolute;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Tipografia PDF24 */
