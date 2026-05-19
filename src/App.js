@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
@@ -10,11 +10,16 @@ import DocumentEditor from "@/pages/DocumentEditor";
 import AdminClients from "@/pages/AdminClients";
 import BackupView from "@/pages/BackupView";
 import CadastrosPage from "@/pages/CadastrosPage";
-import ColetaPage from "@/pages/ColetaPage";
-import ColetaEditorPage from "@/pages/ColetaEditorPage";
 import { canAccessColeta, isTechnicianOnlyNav } from "@/lib/roles";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import "@/App.css";
+
+const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
+const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
+
+const coletaSuspenseFallback = (
+  <div className="p-8 text-center text-slate-500 text-sm">A carregar…</div>
+);
 
 const ColetaLegacyRedirect = () => {
   const { id } = useParams();
@@ -65,9 +70,36 @@ const App = () => (
           >
             <Route path="/" element={<HomeRedirect />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/requirement/7/pr-7-2/coleta" element={<Protected coletaOnly><ColetaPage /></Protected>} />
-            <Route path="/requirement/7/pr-7-2/coleta/nova" element={<Protected coletaOnly><ColetaEditorPage /></Protected>} />
-            <Route path="/requirement/7/pr-7-2/coleta/:id" element={<Protected coletaOnly><ColetaEditorPage /></Protected>} />
+            <Route
+              path="/requirement/7/pr-7-2/coleta"
+              element={(
+                <Protected coletaOnly>
+                  <Suspense fallback={coletaSuspenseFallback}>
+                    <ColetaPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/coleta/nova"
+              element={(
+                <Protected coletaOnly>
+                  <Suspense fallback={coletaSuspenseFallback}>
+                    <ColetaEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/coleta/:id"
+              element={(
+                <Protected coletaOnly>
+                  <Suspense fallback={coletaSuspenseFallback}>
+                    <ColetaEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
             <Route path="/coleta" element={<Navigate to={COLETA_LIST_PATH} replace />} />
             <Route path="/coleta/:id" element={<ColetaLegacyRedirect />} />
             <Route path="/requirement/:id/:folderKey" element={<RequirementView />} />

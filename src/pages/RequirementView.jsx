@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useOutletContext, Link, Navigate } from "react-router-dom";
 import api from "@/lib/api";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
@@ -20,8 +20,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import ColetaPage from "@/pages/ColetaPage";
 import { COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
+
+const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 import { canAccessColeta } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
 
@@ -361,7 +362,9 @@ const RequirementView = () => {
 
         <TabsContent value={section} className="mt-4">
           {isColetaRegistro ? (
-            <ColetaPage embedded />
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta…</div>}>
+              <ColetaPage embedded />
+            </Suspense>
           ) : loading ? (
             <div className="text-slate-600">Carregando…</div>
           ) : (

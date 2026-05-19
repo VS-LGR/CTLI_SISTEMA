@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, PencilSimple, Trash, FilePdf, FileText, CaretDown } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { exportColetaPdf, exportColetaTsv } from "@/lib/coletaExport";
 import { COLETA_NEW_PATH, coletaEditorPath } from "@/lib/coletaRoutes";
 import { formatColetaDocFullTitle } from "@/lib/coletaDocMeta";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
@@ -105,8 +104,9 @@ const ColetaPage = ({ embedded = false }) => {
 
   const exportRow = async (row, format) => {
     try {
-      if (format === "pdf") await exportColetaPdf(row, tenantName, exportOpts);
-      else exportColetaTsv(row, exportOpts);
+      const mod = await import("@/lib/coletaExport");
+      if (format === "pdf") await mod.exportColetaPdf(row, tenantName, exportOpts);
+      else mod.exportColetaTsv(row, exportOpts);
     } catch (e) {
       toast.error(e?.message || "Falha na exportação");
     }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -10,13 +10,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowLeft, FloppyDisk, FilePdf, FileText, CaretDown } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import ColetaForm from "@/components/coleta/ColetaForm";
 import {
   emptyColetaPayload, mergeColetaPayload, denormalizeFromPayload,
 } from "@/lib/coletaSchema";
-import { exportColetaPdf, exportColetaTsv } from "@/lib/coletaExport";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
+
+const ColetaForm = lazy(() => import("@/components/coleta/ColetaForm"));
 
 const ColetaEditorPage = () => {
   const { id } = useParams();
@@ -28,7 +28,7 @@ const ColetaEditorPage = () => {
   const { currentTenantId, currentTenant } = useOutletContext();
   const tenantName = currentTenant?.name || "";
 
-  const [payload, setPayload] = useState(emptyColetaPayload);
+  const [payload, setPayload] = useState(() => emptyColetaPayload());
   const [commercialProposalRef, setCommercialProposalRef] = useState("");
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -156,8 +156,9 @@ const ColetaEditorPage = () => {
       ...denormalizeFromPayload(payload, commercialProposalRef),
     };
     try {
-      if (format === "pdf") await exportColetaPdf(row, tenantName, exportOpts);
-      else exportColetaTsv(row, exportOpts);
+      const mod = await import("@/lib/coletaExport");
+      if (format === "pdf") await mod.exportColetaPdf(row, tenantName, exportOpts);
+      else mod.exportColetaTsv(row, exportOpts);
     } catch (e) {
       toast.error(e?.message || "Falha na exportação");
     }
@@ -203,14 +204,16 @@ const ColetaEditorPage = () => {
         </div>
       </div>
 
-      <ColetaForm
-        payload={payload}
-        onChange={setPayload}
-        commercialProposalRef={commercialProposalRef}
-        onProposalChange={setCommercialProposalRef}
-        weightItems={weightItems}
-        envCerts={envCerts}
-      />
+      <Suspense fallback={<p className="text-sm text-slate-500 py-8 text-center">A carregar formulário…</p>}>
+        <ColetaForm
+          payload={payload}
+          onChange={setPayload}
+          commercialProposalRef={commercialProposalRef}
+          onProposalChange={setCommercialProposalRef}
+          weightItems={weightItems}
+          envCerts={envCerts}
+        />
+      </Suspense>
     </div>
   );
 };
