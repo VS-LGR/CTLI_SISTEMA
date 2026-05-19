@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { NavLink, Navigate, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Navigate, useOutletContext, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { canManageTechnicians } from "@/lib/roles";
 import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
 import ColetaTenantConfig from "@/components/cadastros/ColetaTenantConfig";
-import { CADASTRO_SECTIONS, cadastroSectionPath, getCadastroSectionLabel } from "@/lib/cadastroSections";
+import { cadastroSectionPath, getCadastroSectionLabel, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -13,8 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, PencilSimple, Trash, FilePdf, FileArrowUp, List } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, FilePdf, FileArrowUp } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   JOB_ROLES,
@@ -61,11 +59,8 @@ async function removeStoragePath(path) {
 const CadastrosPage = () => {
   const { user } = useAuth();
   const { section } = useParams();
-  const navigate = useNavigate();
   const { currentTenantId, currentTenant, isAdmin, reloadTenants } = useOutletContext();
   const tenantName = currentTenant?.name || "";
-
-  const [menuOpen, setMenuOpen] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
   const [endCustomers, setEndCustomers] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -151,11 +146,7 @@ const CadastrosPage = () => {
     );
   }
 
-  const visibleSections = CADASTRO_SECTIONS.filter((s) => {
-    if (s.techniciansOnly && !canManageTechnicians(user?.role)) return false;
-    if (s.roles?.length && !s.roles.includes(user?.role)) return false;
-    return true;
-  });
+  const visibleSections = getVisibleCadastroSections(user?.role);
   const activeSection = section || "fornecedores";
   if (!section) return <Navigate to={cadastroSectionPath("fornecedores")} replace />;
   if (!visibleSections.some((s) => s.id === activeSection)) {
@@ -165,32 +156,12 @@ const CadastrosPage = () => {
 
   return (
     <div className="space-y-6" data-testid="cadastros-page">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Gestão</div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">{sectionTitle}</h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Ambiente: <span className="font-medium text-slate-800">{tenantName || currentTenantId}</span>
-          </p>
-        </div>
-        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" type="button" className="shrink-0">
-              <List size={18} className="mr-2" /> Tipos de cadastro
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[min(18rem,85vw)]">
-            <SheetHeader><SheetTitle className="font-display text-left">Cadastros</SheetTitle></SheetHeader>
-            <nav className="mt-6 flex flex-col gap-1">
-              {visibleSections.map((s) => (
-                <NavLink key={s.id} to={cadastroSectionPath(s.id)} onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) => `px-3 py-2.5 rounded-md text-sm ${isActive ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`}>
-                  {s.label}
-                </NavLink>
-              ))}
-            </nav>
-          </SheetContent>
-        </Sheet>
+      <div>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Gestão</div>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">{sectionTitle}</h1>
+        <p className="text-sm text-slate-600 mt-1">
+          Ambiente: <span className="font-medium text-slate-800">{tenantName || currentTenantId}</span>
+        </p>
       </div>
       <div className="mt-2">
         {activeSection === "fornecedores" && <SupplierSection rows={suppliers} tenantId={currentTenantId} onRefresh={loadAll} />}

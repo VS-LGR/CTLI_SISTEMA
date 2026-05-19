@@ -103,9 +103,9 @@ const ColetaPage = ({ embedded = false }) => {
 
   const exportOpts = { logoDataUrl, envCerts, weightItems, tenant: currentTenant };
 
-  const exportRow = (row, format) => {
+  const exportRow = async (row, format) => {
     try {
-      if (format === "pdf") exportColetaPdf(row, tenantName, exportOpts);
+      if (format === "pdf") await exportColetaPdf(row, tenantName, exportOpts);
       else exportColetaTsv(row, exportOpts);
     } catch (e) {
       toast.error(e?.message || "Falha na exportação");

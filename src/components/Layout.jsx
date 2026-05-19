@@ -20,6 +20,7 @@ import {
   getFoldersForRequirement,
   requiresFolderNav,
 } from "@/lib/requirementNavConfig";
+import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
 
 const REQ_ICONS = {
   "4": ListChecks,
@@ -49,6 +50,9 @@ const Layout = () => {
   const { user, logout, currentTenantId, selectTenant } = useAuth();
   const [tenants, setTenants] = useState([]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [cadastrosExpanded, setCadastrosExpanded] = useState(() =>
+    location.pathname.startsWith("/cadastros")
+  );
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -107,6 +111,13 @@ const Layout = () => {
     return p === reqGroupPathPrefix(rid) || p.startsWith(`${reqGroupPathPrefix(rid)}/`);
   };
 
+  const isCadastrosActive = location.pathname.startsWith("/cadastros");
+  const cadastroSections = getVisibleCadastroSections(user?.role);
+
+  useEffect(() => {
+    if (isCadastrosActive) setCadastrosExpanded(true);
+  }, [isCadastrosActive]);
+
   const renderNav = (onNavigate) => (
     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain">
       {!technicianNav && (
@@ -116,9 +127,32 @@ const Layout = () => {
       )}
 
       {!technicianNav && (
-        <NavLink to="/cadastros/fornecedores" className={navLinkClass} data-testid="nav-cadastros" onClick={onNavigate}>
-          <ClipboardText size={18} weight="duotone" /> Cadastros
-        </NavLink>
+        <Collapsible open={cadastrosExpanded} onOpenChange={setCadastrosExpanded}>
+          <CollapsibleTrigger
+            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
+              isCadastrosActive ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            }`}
+            data-testid="nav-cadastros"
+          >
+            <ClipboardText size={18} weight="duotone" className="shrink-0" />
+            <span className="flex-1 min-w-0">Cadastros</span>
+            <CaretRight size={14} className="shrink-0 opacity-70" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
+            {cadastroSections.map((s) => (
+              <NavLink
+                key={s.id}
+                to={cadastroSectionPath(s.id)}
+                className={subNavLinkClass}
+                title={s.label}
+                data-testid={`nav-cadastros-${s.id}`}
+                onClick={onNavigate}
+              >
+                <span className="truncate">{s.label}</span>
+              </NavLink>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       {!technicianNav && (

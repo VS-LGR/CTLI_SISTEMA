@@ -148,7 +148,7 @@ const ColetaEditorPage = () => {
 
   const exportOpts = { logoDataUrl, envCerts, weightItems, tenant: currentTenant };
 
-  const exportCurrent = (format) => {
+  const exportCurrent = async (format) => {
     const row = {
       id,
       commercial_proposal_ref: commercialProposalRef,
@@ -156,7 +156,7 @@ const ColetaEditorPage = () => {
       ...denormalizeFromPayload(payload, commercialProposalRef),
     };
     try {
-      if (format === "pdf") exportColetaPdf(row, tenantName, exportOpts);
+      if (format === "pdf") await exportColetaPdf(row, tenantName, exportOpts);
       else exportColetaTsv(row, exportOpts);
     } catch (e) {
       toast.error(e?.message || "Falha na exportação");

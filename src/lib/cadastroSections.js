@@ -1,4 +1,6 @@
-/** Secções do menu Cadastros (hambúrguer) */
+import { canManageTechnicians } from "@/lib/roles";
+
+/** Secções do menu Cadastros (submenu lateral) */
 
 export const CADASTRO_SECTIONS = [
   { id: "fornecedores", label: "Fornecedores" },
@@ -17,4 +19,12 @@ export function cadastroSectionPath(id) {
 
 export function getCadastroSectionLabel(id) {
   return CADASTRO_SECTIONS.find((s) => s.id === id)?.label || "Cadastros";
+}
+
+export function getVisibleCadastroSections(role) {
+  return CADASTRO_SECTIONS.filter((s) => {
+    if (s.techniciansOnly && !canManageTechnicians(role)) return false;
+    if (s.roles?.length && !s.roles.includes(role)) return false;
+    return true;
+  });
 }
