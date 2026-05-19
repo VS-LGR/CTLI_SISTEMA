@@ -48,13 +48,13 @@ function SidebarBrand() {
 
 const Layout = () => {
   const { user, logout, currentTenantId, selectTenant } = useAuth();
-  const [tenants, setTenants] = useState([]);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [cadastrosExpanded, setCadastrosExpanded] = useState(() =>
-    location.pathname.startsWith("/cadastros")
-  );
   const navigate = useNavigate();
   const location = useLocation();
+  const [tenants, setTenants] = useState([]);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [cadastrosExpanded, setCadastrosExpanded] = useState(
+    () => location.pathname.startsWith("/cadastros"),
+  );
 
   const loadTenants = useCallback(async () => {
     try {
