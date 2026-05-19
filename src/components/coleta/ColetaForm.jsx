@@ -58,7 +58,7 @@ export default function ColetaForm({
   onChange,
   commercialProposalRef,
   onProposalChange,
-  weightCerts = [],
+  weightItems = [],
   envCerts = [],
 }) {
   const setCliente = (k, v) => onChange({ ...payload, cliente: { ...payload.cliente, [k]: v } });
@@ -295,7 +295,7 @@ export default function ColetaForm({
                   <td className="p-1 align-top"><Input value={pt.rep3} onChange={(e) => setCalPonto(i, "rep3", e.target.value)} className="h-8 text-xs" /></td>
                   <td className="p-1 align-top min-w-[180px]">
                     <PesoPadraoMultiSelect
-                      weightCerts={weightCerts}
+                      weightItems={weightItems}
                       value={pt.pesos_padrao_ids || []}
                       onChange={(ids) => setCalPonto(i, "pesos_padrao_ids", ids)}
                     />

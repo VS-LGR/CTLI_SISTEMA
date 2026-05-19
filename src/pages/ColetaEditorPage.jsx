@@ -32,17 +32,17 @@ const ColetaEditorPage = () => {
   const [commercialProposalRef, setCommercialProposalRef] = useState("");
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
-  const [weightCerts, setWeightCerts] = useState([]);
+  const [weightItems, setWeightItems] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [logoDataUrl, setLogoDataUrl] = useState(null);
 
   const loadCerts = useCallback(async () => {
     if (!currentTenantId) return;
     const [w, e] = await Promise.all([
-      supabase.from("weight_standard_certificates").select("*").eq("tenant_id", currentTenantId).order("set_name"),
+      supabase.from("standard_weight_items").select("*").eq("tenant_id", currentTenantId).eq("active", true).order("identification"),
       supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", currentTenantId).order("equipment_name"),
     ]);
-    if (!w.error) setWeightCerts(w.data || []);
+    if (!w.error) setWeightItems(w.data || []);
     if (!e.error) setEnvCerts(e.data || []);
   }, [currentTenantId]);
 
@@ -146,7 +146,7 @@ const ColetaEditorPage = () => {
     }
   };
 
-  const exportOpts = { logoDataUrl, envCerts, weightCerts };
+  const exportOpts = { logoDataUrl, envCerts, weightItems, tenant: currentTenant };
 
   const exportCurrent = (format) => {
     const row = {
@@ -208,7 +208,7 @@ const ColetaEditorPage = () => {
         onChange={setPayload}
         commercialProposalRef={commercialProposalRef}
         onProposalChange={setCommercialProposalRef}
-        weightCerts={weightCerts}
+        weightItems={weightItems}
         envCerts={envCerts}
       />
     </div>

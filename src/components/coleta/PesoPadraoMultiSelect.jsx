@@ -1,12 +1,18 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CaretDown } from "@phosphor-icons/react";
-import { weightCertLabel } from "@/lib/coletaSchema";
+import { weightItemLabel } from "@/lib/coletaSchema";
 
-export default function PesoPadraoMultiSelect({ weightCerts, value = [], onChange, placeholder = "Selecionar pesos padrão" }) {
+export default function PesoPadraoMultiSelect({
+  weightItems = [],
+  weightCerts,
+  value = [],
+  onChange,
+  placeholder = "Selecionar pesos padrão",
+}) {
+  const items = weightItems.length ? weightItems : (weightCerts || []);
   const [open, setOpen] = useState(false);
   const selected = value || [];
 
@@ -19,7 +25,7 @@ export default function PesoPadraoMultiSelect({ weightCerts, value = [], onChang
 
   const summary = selected.length === 0
     ? placeholder
-    : `${selected.length} conjunto(s) selecionado(s)`;
+    : `${selected.length} peso(s) selecionado(s)`;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -30,11 +36,11 @@ export default function PesoPadraoMultiSelect({ weightCerts, value = [], onChang
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[min(20rem,calc(100vw-2rem))] p-2" align="start">
-        {weightCerts.length === 0 ? (
-          <p className="text-sm text-slate-500 p-2">Cadastre certificados de peso padrão em Cadastros.</p>
+        {items.length === 0 ? (
+          <p className="text-sm text-slate-500 p-2">Cadastre pesos padrão em Cadastros → Pesos padrão (identificação).</p>
         ) : (
           <div className="max-h-56 overflow-y-auto space-y-1">
-            {weightCerts.map((w) => (
+            {items.map((w) => (
               <label
                 key={w.id}
                 className="flex items-start gap-2 p-2 rounded-md hover:bg-slate-50 cursor-pointer"
@@ -44,7 +50,7 @@ export default function PesoPadraoMultiSelect({ weightCerts, value = [], onChang
                   onCheckedChange={() => toggle(w.id)}
                   className="mt-0.5"
                 />
-                <span className="text-sm leading-snug">{weightCertLabel(w)}</span>
+                <span className="text-sm leading-snug">{weightItemLabel(w)}</span>
               </label>
             ))}
           </div>

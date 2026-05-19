@@ -12,6 +12,11 @@ import { Plus, Buildings, UserPlus, Trash, Users, IdentificationCard, PencilSimp
 import { toast } from "sonner";
 import { ROLES, RESPONSIBLE_ROLES, roleShort } from "@/lib/roles";
 import { TENANT_BRANDING_BUCKET, tenantLogoStoragePath } from "@/lib/tenantBranding";
+import {
+  DEFAULT_COLETA_FORM_CODE,
+  DEFAULT_COLETA_FORM_TITLE,
+  DEFAULT_COLETA_FORM_REVISION,
+} from "@/lib/coletaDocMeta";
 
 function toastSupabaseAccessError(e, fallback) {
   const detail = e?.response?.data?.detail;
@@ -57,6 +62,9 @@ const AdminClients = () => {
   const [tLogoFile, setTLogoFile] = useState(null);
   const [tLogoPreview, setTLogoPreview] = useState("");
   const [tLogoPath, setTLogoPath] = useState("");
+  const [tColetaCode, setTColetaCode] = useState(DEFAULT_COLETA_FORM_CODE);
+  const [tColetaTitle, setTColetaTitle] = useState(DEFAULT_COLETA_FORM_TITLE);
+  const [tColetaRev, setTColetaRev] = useState(DEFAULT_COLETA_FORM_REVISION);
 
   const [uTenant, setUTenant] = useState("");
   const [uName, setUName] = useState("");
@@ -77,6 +85,9 @@ const AdminClients = () => {
     setTLogoFile(null);
     setTLogoPreview("");
     setTLogoPath("");
+    setTColetaCode(DEFAULT_COLETA_FORM_CODE);
+    setTColetaTitle(DEFAULT_COLETA_FORM_TITLE);
+    setTColetaRev(DEFAULT_COLETA_FORM_REVISION);
   };
 
   const resetUserForm = () => {
@@ -184,7 +195,14 @@ const AdminClients = () => {
         if (editingTenantId) {
           let logoPath = tLogoPath;
           if (tLogoFile) logoPath = await uploadTenantLogo(editingTenantId);
-          const patch = { name: tName.trim(), code: tCode, description: tDesc };
+          const patch = {
+            name: tName.trim(),
+            code: tCode,
+            description: tDesc,
+            coleta_form_code: tColetaCode.trim() || DEFAULT_COLETA_FORM_CODE,
+            coleta_form_title: tColetaTitle.trim() || DEFAULT_COLETA_FORM_TITLE,
+            coleta_form_revision: tColetaRev.trim() || DEFAULT_COLETA_FORM_REVISION,
+          };
           if (logoPath) patch.logo_storage_path = logoPath;
           const { error } = await supabase.from("tenants").update(patch).eq("id", editingTenantId);
           if (error) throw error;
@@ -192,7 +210,14 @@ const AdminClients = () => {
         } else {
           const { data: inserted, error } = await supabase
             .from("tenants")
-            .insert({ name: tName.trim(), code: tCode, description: tDesc })
+            .insert({
+              name: tName.trim(),
+              code: tCode,
+              description: tDesc,
+              coleta_form_code: tColetaCode.trim() || DEFAULT_COLETA_FORM_CODE,
+              coleta_form_title: tColetaTitle.trim() || DEFAULT_COLETA_FORM_TITLE,
+              coleta_form_revision: tColetaRev.trim() || DEFAULT_COLETA_FORM_REVISION,
+            })
             .select("id")
             .single();
           if (error) throw error;
@@ -225,6 +250,9 @@ const AdminClients = () => {
     setTDesc(t.description || "");
     setTLogoFile(null);
     setTLogoPath(t.logo_storage_path || "");
+    setTColetaCode(t.coleta_form_code || DEFAULT_COLETA_FORM_CODE);
+    setTColetaTitle(t.coleta_form_title || DEFAULT_COLETA_FORM_TITLE);
+    setTColetaRev(t.coleta_form_revision || DEFAULT_COLETA_FORM_REVISION);
     setTLogoPreview("");
     if (t.logo_storage_path) {
       const { data } = await supabase.storage.from(TENANT_BRANDING_BUCKET).createSignedUrl(t.logo_storage_path, 3600);
@@ -594,6 +622,23 @@ const AdminClients = () => {
                 <div>
                   <Label>Descrição</Label>
                   <Input value={tDesc} onChange={(e) => setTDesc(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-slate-700 font-medium">Formulário RE-7.2A</Label>
+                  <div className="grid sm:grid-cols-3 gap-2 mt-2">
+                    <div>
+                      <Label className="text-xs">Código</Label>
+                      <Input value={tColetaCode} onChange={(e) => setTColetaCode(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Título</Label>
+                      <Input value={tColetaTitle} onChange={(e) => setTColetaTitle(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Revisão / data</Label>
+                      <Input value={tColetaRev} onChange={(e) => setTColetaRev(e.target.value)} />
+                    </div>
+                  </div>
                 </div>
                 {isSupabaseAuthMode && (
                   <div>

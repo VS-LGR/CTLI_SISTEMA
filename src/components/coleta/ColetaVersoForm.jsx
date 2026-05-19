@@ -4,6 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SUBSTITUICAO_LINHA_DEFS } from "@/lib/coletaSchema";
 
 function Field({ label, children, className = "" }) {
   return (
@@ -42,23 +44,22 @@ export default function ColetaVersoForm({ payload, onChange }) {
   const verso = payload.verso || {};
   const q = verso.questoes_carga || {};
   const rep = verso.repetitividade || {};
-  const lotes = rep.lotes || [];
+  const linhas = rep.linhas || [];
+  const aplicavel = rep.aplicavel !== false;
 
   const setVerso = (patch) => onChange({ ...payload, verso: { ...verso, ...patch } });
   const setQuestao = (k, v) => setVerso({ questoes_carga: { ...q, [k]: v } });
   const setRep = (k, v) => setVerso({ repetitividade: { ...rep, [k]: v } });
 
-  const setLote = (idx, patch) => {
-    const next = [...lotes];
-    next[idx] = { ...next[idx], ...patch };
-    setRep("lotes", next);
-  };
+  const linhaByKey = (key) => linhas.find((l) => l.key === key) || { key, label: key };
 
-  const setLoteLeitura = (idx, li, v) => {
-    const lote = { ...lotes[idx] };
-    const leituras = [...(lote.leituras || ["", "", ""])];
-    leituras[li] = v;
-    setLote(idx, { leituras });
+  const setLinha = (key, patch) => {
+    const next = linhas.map((l) => (l.key === key ? { ...l, ...patch } : l));
+    if (!next.some((l) => l.key === key)) {
+      const def = SUBSTITUICAO_LINHA_DEFS.find((d) => d.key === key);
+      next.push({ key, label: def?.label || key, ...patch });
+    }
+    setRep("linhas", next);
   };
 
   return (
@@ -103,78 +104,95 @@ export default function ColetaVersoForm({ payload, onChange }) {
       </Card>
 
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-base font-display">Repetitividade com Carga de Substituição</CardTitle>
+          <label className="flex items-center gap-2 text-sm font-normal cursor-pointer shrink-0">
+            <Checkbox
+              checked={!aplicavel}
+              onCheckedChange={(c) => setRep("aplicavel", !c)}
+            />
+            Ensaio não aplicável
+          </label>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Formação da carga">
-              <Input value={rep.formacao_carga || ""} onChange={(e) => setRep("formacao_carga", e.target.value)} />
+        {aplicavel && (
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="Formação da carga">
+                <Input value={rep.formacao_carga || ""} onChange={(e) => setRep("formacao_carga", e.target.value)} />
+              </Field>
+              <Field label="Massa específica estimada (kg/m³)">
+                <Input value={rep.massa_especifica_estimada || ""} onChange={(e) => setRep("massa_especifica_estimada", e.target.value)} />
+              </Field>
+            </div>
+            <Field label="Observações">
+              <Textarea value={rep.observacoes || ""} onChange={(e) => setRep("observacoes", e.target.value)} rows={2} />
             </Field>
-            <Field label="Massa específica estimada (kg/m³)">
-              <Input value={rep.massa_especifica_estimada || ""} onChange={(e) => setRep("massa_especifica_estimada", e.target.value)} />
-            </Field>
-          </div>
-          <Field label="Observações">
-            <Textarea value={rep.observacoes || ""} onChange={(e) => setRep("observacoes", e.target.value)} rows={2} />
-          </Field>
-          <Field label="P1* — Valor indicado pela balança (kg)">
-            <Input value={rep.p1_valor_balanca || ""} onChange={(e) => setRep("p1_valor_balanca", e.target.value)} />
-          </Field>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse min-w-[900px]">
-              <thead>
-                <tr className="border-b bg-slate-50">
-                  <th className="p-2">Lote</th>
-                  <th className="p-2">Leitura 1</th>
-                  <th className="p-2">Leitura 2</th>
-                  <th className="p-2">Leitura 3</th>
-                  <th className="p-2">Depois do ajuste</th>
-                  <th className="p-2">Valor nominal carga</th>
-                  <th className="p-2">Massa específica</th>
-                  <th className="p-2">°C</th>
-                  <th className="p-2">%ur</th>
-                  <th className="p-2">hPa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lotes.map((lote, i) => (
-                  <tr key={i} className="border-b">
-                    <td className="p-2 font-mono align-top">L{i + 1}</td>
-                    {[0, 1, 2].map((li) => (
-                      <td key={li} className="p-1 align-top">
-                        <Input
-                          value={lote.leituras?.[li] || ""}
-                          onChange={(e) => setLoteLeitura(i, li, e.target.value)}
-                          className="h-8 text-xs"
-                        />
-                      </td>
-                    ))}
-                    <td className="p-1 align-top">
-                      <Input value={lote.depois_ajuste || ""} onChange={(e) => setLote(i, { depois_ajuste: e.target.value })} className="h-8 text-xs" />
-                    </td>
-                    <td className="p-1 align-top">
-                      <Input value={lote.valor_nominal_carga || ""} onChange={(e) => setLote(i, { valor_nominal_carga: e.target.value })} className="h-8 text-xs" />
-                    </td>
-                    <td className="p-1 align-top">
-                      <Input value={lote.massa_especifica || ""} onChange={(e) => setLote(i, { massa_especifica: e.target.value })} className="h-8 text-xs" />
-                    </td>
-                    <td className="p-1 align-top">
-                      <Input value={lote.temp || ""} onChange={(e) => setLote(i, { temp: e.target.value })} className="h-8 text-xs" />
-                    </td>
-                    <td className="p-1 align-top">
-                      <Input value={lote.umidade || ""} onChange={(e) => setLote(i, { umidade: e.target.value })} className="h-8 text-xs" />
-                    </td>
-                    <td className="p-1 align-top">
-                      <Input value={lote.pressao || ""} onChange={(e) => setLote(i, { pressao: e.target.value })} className="h-8 text-xs" />
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse min-w-[960px]">
+                <thead>
+                  <tr className="border-b bg-slate-50">
+                    <th className="p-2 text-left">Linha</th>
+                    <th className="p-2">Leitura 1</th>
+                    <th className="p-2">Leitura 2</th>
+                    <th className="p-2">Leitura 3</th>
+                    <th className="p-2">Valor nominal</th>
+                    <th className="p-2">Massa específica</th>
+                    <th className="p-2">°C</th>
+                    <th className="p-2">%ur</th>
+                    <th className="p-2">hPa</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
+                </thead>
+                <tbody>
+                  {SUBSTITUICAO_LINHA_DEFS.map((def) => {
+                    const row = linhaByKey(def.key);
+                    return (
+                      <tr key={def.key} className="border-b">
+                        <td className="p-2 font-mono align-top whitespace-nowrap">{def.label}</td>
+                        {[0, 1, 2].map((i) => (
+                          <td key={i} className="p-1 align-top">
+                            {def.leituras3 || i === 0 ? (
+                              <Input
+                                value={row[`leitura${i + 1}`] || ""}
+                                onChange={(e) => setLinha(def.key, { [`leitura${i + 1}`]: e.target.value })}
+                                className="h-8 text-xs"
+                              />
+                            ) : (
+                              <span className="text-slate-300 block text-center py-2">—</span>
+                            )}
+                          </td>
+                        ))}
+                        <td className="p-1 align-top">
+                          <Input
+                            value={row.valor_nominal || ""}
+                            onChange={(e) => setLinha(def.key, { valor_nominal: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </td>
+                        <td className="p-1 align-top">
+                          <Input
+                            value={row.massa_especifica || ""}
+                            onChange={(e) => setLinha(def.key, { massa_especifica: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </td>
+                        <td className="p-1 align-top">
+                          <Input value={row.temp || ""} onChange={(e) => setLinha(def.key, { temp: e.target.value })} className="h-8 text-xs" />
+                        </td>
+                        <td className="p-1 align-top">
+                          <Input value={row.umidade || ""} onChange={(e) => setLinha(def.key, { umidade: e.target.value })} className="h-8 text-xs" />
+                        </td>
+                        <td className="p-1 align-top">
+                          <Input value={row.pressao || ""} onChange={(e) => setLinha(def.key, { pressao: e.target.value })} className="h-8 text-xs" />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   );

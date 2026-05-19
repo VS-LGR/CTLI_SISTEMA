@@ -64,7 +64,12 @@ const Layout = () => {
         data = d;
       }
       setTenants(data);
-      if (!currentTenantId && data.length > 0) selectTenant(data[0].id);
+      const ids = new Set((data || []).map((t) => t.id));
+      if (currentTenantId && !ids.has(currentTenantId)) {
+        selectTenant(data.length > 0 ? data[0].id : null);
+      } else if (!currentTenantId && data.length > 0) {
+        selectTenant(data[0].id);
+      }
     } catch (e) { /* ignore */ }
   }, [currentTenantId, selectTenant]);
 
@@ -111,7 +116,7 @@ const Layout = () => {
       )}
 
       {!technicianNav && (
-        <NavLink to="/cadastros" className={navLinkClass} data-testid="nav-cadastros" onClick={onNavigate}>
+        <NavLink to="/cadastros/fornecedores" className={navLinkClass} data-testid="nav-cadastros" onClick={onNavigate}>
           <ClipboardText size={18} weight="duotone" /> Cadastros
         </NavLink>
       )}

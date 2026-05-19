@@ -12,6 +12,7 @@ import { Plus, PencilSimple, Trash, FilePdf, FileText, CaretDown } from "@phosph
 import { toast } from "sonner";
 import { exportColetaPdf, exportColetaTsv } from "@/lib/coletaExport";
 import { COLETA_NEW_PATH, coletaEditorPath } from "@/lib/coletaRoutes";
+import { formatColetaDocFullTitle } from "@/lib/coletaDocMeta";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 
 function fmtDmy(iso) {
@@ -28,7 +29,7 @@ const ColetaPage = ({ embedded = false }) => {
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [weightCerts, setWeightCerts] = useState([]);
+  const [weightItems, setWeightItems] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [logoDataUrl, setLogoDataUrl] = useState(null);
 
@@ -48,10 +49,10 @@ const ColetaPage = ({ embedded = false }) => {
   const loadCerts = useCallback(async () => {
     if (!currentTenantId) return;
     const [w, e] = await Promise.all([
-      supabase.from("weight_standard_certificates").select("*").eq("tenant_id", currentTenantId),
+      supabase.from("standard_weight_items").select("*").eq("tenant_id", currentTenantId).eq("active", true).order("identification"),
       supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", currentTenantId),
     ]);
-    if (!w.error) setWeightCerts(w.data || []);
+    if (!w.error) setWeightItems(w.data || []);
     if (!e.error) setEnvCerts(e.data || []);
   }, [currentTenantId]);
 
@@ -100,7 +101,7 @@ const ColetaPage = ({ embedded = false }) => {
     }
   };
 
-  const exportOpts = { logoDataUrl, envCerts, weightCerts };
+  const exportOpts = { logoDataUrl, envCerts, weightItems, tenant: currentTenant };
 
   const exportRow = (row, format) => {
     try {
@@ -121,7 +122,7 @@ const ColetaPage = ({ embedded = false }) => {
               Coleta de dados
             </h1>
             <p className="text-sm text-slate-600 mt-1">
-              RE-7.2A — formulário de calibração de balança por ambiente.
+              {formatColetaDocFullTitle(currentTenant)} — por ambiente.
             </p>
           </div>
         )}

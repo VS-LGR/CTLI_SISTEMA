@@ -33,3 +33,18 @@ export function generateEmployeeRegistrationCode() {
 }
 
 export const CADASTRO_STORAGE_BUCKET = "cadastro-certificados";
+
+export const ENV_EQUIPMENT_TYPES = [
+  { value: "termo_higrometro", label: "Termo-higrômetro" },
+  { value: "barometro", label: "Barômetro" },
+  { value: "thermo_baro_higrometro", label: "Termo-baro-higrômetro" },
+];
+
+export const envEquipmentTypeLabel = (v) =>
+  ENV_EQUIPMENT_TYPES.find((x) => x.value === v)?.label || v || "—";
+
+export const WEIGHT_ITEM_UNITS = [
+  { value: "mg", label: "mg" },
+  { value: "g", label: "g" },
+  { value: "kg", label: "kg" },
+];

@@ -2,9 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
   mergeColetaPayload,
-  COLETA_DOC_CODE,
-  COLETA_DOC_REF,
-  COLETA_DOC_REV,
+  SUBSTITUICAO_LINHA_DEFS,
   triStateLabel,
   binaryLabel,
   simNaoLabel,
@@ -14,6 +12,7 @@ import {
   envCertLabel,
   formatPesosIds,
 } from "./coletaSchema";
+import { coletaDocMetaFromTenant } from "./coletaDocMeta";
 
 const LOGO_COL_MM = 26;
 const MARGIN = 10;
@@ -25,16 +24,17 @@ function fmtDmy(isoDate) {
   return `${d}/${m}/${y}`;
 }
 
-export function buildColetaDocumentModel(row, tenantName = "") {
+export function buildColetaDocumentModel(row, tenantName = "", tenant = null) {
   const p = mergeColetaPayload(row?.payload);
   const prop = row?.commercial_proposal_ref || "";
+  const meta = coletaDocMetaFromTenant(tenant);
   return {
     tenantName,
     commercialProposalRef: prop,
     payload: p,
     header: {
       title: "COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA",
-      code: `Cód. ${COLETA_DOC_CODE}  Ref. ${COLETA_DOC_REF}  ${COLETA_DOC_REV}`,
+      code: `Cód. ${meta.code}  Ref. ${meta.ref}  ${meta.revision}`,
       proposal: prop ? `Referente à Proposta Comercial: ${prop}` : "Referente à Proposta Comercial:",
     },
   };
@@ -86,8 +86,8 @@ function kvRows(pairs) {
   return pairs.filter(([, v]) => v !== undefined);
 }
 
-export function exportColetaPdf(row, tenantName = "", { logoDataUrl, envCerts = [], weightCerts = [] } = {}) {
-  const model = buildColetaDocumentModel(row, tenantName);
+export function exportColetaPdf(row, tenantName = "", { logoDataUrl, envCerts = [], weightItems = [], tenant = null } = {}) {
+  const model = buildColetaDocumentModel(row, tenantName, tenant);
   const p = model.payload;
   const left = contentLeft(logoDataUrl);
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -195,7 +195,7 @@ export function exportColetaPdf(row, tenantName = "", { logoDataUrl, envCerts = 
       pt.rep1,
       pt.rep2,
       pt.rep3,
-      formatPesosIds(pt.pesos_padrao_ids, weightCerts),
+      formatPesosIds(pt.pesos_padrao_ids, weightItems),
     ]),
   );
 
@@ -222,27 +222,36 @@ export function exportColetaPdf(row, tenantName = "", { logoDataUrl, envCerts = 
   ]);
 
   section(3, "Repetitividade com Carga de Substituição");
-  table(["Campo", "Valor"], kvRows([
-    ["Formação da carga", rep.formacao_carga],
-    ["Massa específica estimada", rep.massa_especifica_estimada],
-    ["Observações", rep.observacoes],
-    ["P1* valor balança", rep.p1_valor_balanca],
-  ]));
+  if (rep.aplicavel === false) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Ensaio não aplicável.", left, y);
+    y += 6;
+  } else {
+    table(["Campo", "Valor"], kvRows([
+      ["Formação da carga", rep.formacao_carga],
+      ["Massa específica estimada", rep.massa_especifica_estimada],
+      ["Observações", rep.observacoes],
+    ]));
+  }
 
+  const linhasByKey = Object.fromEntries((rep.linhas || []).map((l) => [l.key, l]));
   table(
-    ["Lote", "L1", "L2", "L3", "Depois ajuste", "V. nominal", "Massa esp.", "°C", "%ur", "hPa"],
-    (rep.lotes || []).map((lote, i) => [
-      `L${i + 1}`,
-      lote.leituras?.[0] || "",
-      lote.leituras?.[1] || "",
-      lote.leituras?.[2] || "",
-      lote.depois_ajuste,
-      lote.valor_nominal_carga,
-      lote.massa_especifica,
-      lote.temp,
-      lote.umidade,
-      lote.pressao,
-    ]),
+    ["Linha", "Leitura 1", "Leitura 2", "Leitura 3", "Valor nominal", "Massa esp.", "°C", "%ur", "hPa"],
+    SUBSTITUICAO_LINHA_DEFS.map((def) => {
+      const ln = linhasByKey[def.key] || {};
+      return [
+        def.label,
+        ln.leitura1 || "",
+        def.leituras3 ? (ln.leitura2 || "") : "",
+        def.leituras3 ? (ln.leitura3 || "") : "",
+        ln.valor_nominal || "",
+        ln.massa_especifica || "",
+        ln.temp || "",
+        ln.umidade || "",
+        ln.pressao || "",
+      ];
+    }),
   );
 
   doc.save(`coleta-${fileSlug(row)}.pdf`);
@@ -253,7 +262,7 @@ function tsvEscape(val) {
   return s.replace(/\t/g, " ").replace(/\r?\n/g, " ");
 }
 
-function buildTsvRow(row, envCerts, weightCerts) {
+function buildTsvRow(row, envCerts, weightItems) {
   const p = mergeColetaPayload(row?.payload);
   const cols = [];
 
@@ -294,28 +303,29 @@ function buildTsvRow(row, envCerts, weightCerts) {
     push(pt.rep2);
     push(pt.rep3);
     push((pt.pesos_padrao_ids || []).join("|"));
-    push(formatPesosIds(pt.pesos_padrao_ids, weightCerts));
+    push(formatPesosIds(pt.pesos_padrao_ids, weightItems));
   });
 
   push(p.verso.descricao_carga);
   push(p.verso.questoes_carga.facil_manuseio);
   push(p.verso.questoes_carga.facil_centro_gravidade);
   push(p.verso.questoes_carga.massa_constante);
+  push(p.verso.repetitividade.aplicavel === false ? "nao" : "sim");
   push(p.verso.repetitividade.formacao_carga);
   push(p.verso.repetitividade.massa_especifica_estimada);
   push(p.verso.repetitividade.observacoes);
-  push(p.verso.repetitividade.p1_valor_balanca);
 
-  (p.verso.repetitividade.lotes || []).forEach((lote) => {
-    push(lote.leituras?.[0]);
-    push(lote.leituras?.[1]);
-    push(lote.leituras?.[2]);
-    push(lote.depois_ajuste);
-    push(lote.valor_nominal_carga);
-    push(lote.massa_especifica);
-    push(lote.temp);
-    push(lote.umidade);
-    push(lote.pressao);
+  const linhasByKey = Object.fromEntries((p.verso.repetitividade.linhas || []).map((l) => [l.key, l]));
+  SUBSTITUICAO_LINHA_DEFS.forEach((def) => {
+    const ln = linhasByKey[def.key] || {};
+    push(ln.leitura1);
+    push(def.leituras3 ? ln.leitura2 : "");
+    push(def.leituras3 ? ln.leitura3 : "");
+    push(ln.valor_nominal);
+    push(ln.massa_especifica);
+    push(ln.temp);
+    push(ln.umidade);
+    push(ln.pressao);
   });
 
   return cols;
@@ -348,21 +358,22 @@ export function buildTsvHeaders() {
   h.push(
     "verso_descricao_carga",
     "questao_facil_manuseio", "questao_centro_gravidade", "questao_massa_constante",
-    "rep_formacao_carga", "rep_massa_especifica_estimada", "rep_observacoes", "rep_p1_valor_balanca",
+    "rep_aplicavel", "rep_formacao_carga", "rep_massa_especifica_estimada", "rep_observacoes",
   );
-  for (let i = 1; i <= 6; i += 1) {
+  SUBSTITUICAO_LINHA_DEFS.forEach((def) => {
+    const k = def.key;
     h.push(
-      `lote_l${i}_leitura1`, `lote_l${i}_leitura2`, `lote_l${i}_leitura3`,
-      `lote_l${i}_depois_ajuste`, `lote_l${i}_valor_nominal`, `lote_l${i}_massa_especifica`,
-      `lote_l${i}_temp`, `lote_l${i}_umidade`, `lote_l${i}_pressao`,
+      `rep_${k}_leitura1`, `rep_${k}_leitura2`, `rep_${k}_leitura3`,
+      `rep_${k}_valor_nominal`, `rep_${k}_massa_especifica`,
+      `rep_${k}_temp`, `rep_${k}_umidade`, `rep_${k}_pressao`,
     );
-  }
+  });
   return h;
 }
 
-export function exportColetaTsv(row, { envCerts = [], weightCerts = [] } = {}) {
+export function exportColetaTsv(row, { envCerts = [], weightItems = [] } = {}) {
   const headers = buildTsvHeaders();
-  const values = buildTsvRow(row, envCerts, weightCerts);
+  const values = buildTsvRow(row, envCerts, weightItems);
   const bom = "\uFEFF";
   const content = `${bom}${headers.join("\t")}\n${values.join("\t")}\n`;
   const blob = new Blob([content], { type: "text/tab-separated-values;charset=utf-8" });

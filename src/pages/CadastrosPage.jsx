@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { NavLink, Navigate, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { canManageTechnicians } from "@/lib/roles";
 import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
+import PesoItemSection from "@/components/cadastros/PesoItemSection";
+import ColetaTenantConfig from "@/components/cadastros/ColetaTenantConfig";
+import { CADASTRO_SECTIONS, cadastroSectionPath, getCadastroSectionLabel } from "@/lib/cadastroSections";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -10,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, PencilSimple, Trash, FilePdf, FileArrowUp } from "@phosphor-icons/react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Plus, PencilSimple, Trash, FilePdf, FileArrowUp, List } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   JOB_ROLES,
@@ -19,6 +22,8 @@ import {
   jobLabel,
   generateEmployeeRegistrationCode,
   CADASTRO_STORAGE_BUCKET,
+  ENV_EQUIPMENT_TYPES,
+  envEquipmentTypeLabel,
 } from "@/lib/cadastroConstants";
 import { downloadWeightCertificatesValidPdf, downloadEnvironmentCertificatesValidPdf } from "@/lib/cadastroPdf";
 
@@ -55,13 +60,17 @@ async function removeStoragePath(path) {
 
 const CadastrosPage = () => {
   const { user } = useAuth();
-  const { currentTenantId, currentTenant, isAdmin } = useOutletContext();
+  const { section } = useParams();
+  const navigate = useNavigate();
+  const { currentTenantId, currentTenant, isAdmin, reloadTenants } = useOutletContext();
   const tenantName = currentTenant?.name || "";
 
+  const [menuOpen, setMenuOpen] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
   const [endCustomers, setEndCustomers] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [weightCerts, setWeightCerts] = useState([]);
+  const [weightItems, setWeightItems] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
 
   const [yearWeight, setYearWeight] = useState("all");
@@ -70,11 +79,12 @@ const CadastrosPage = () => {
   const loadAll = useCallback(async () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
     const tid = currentTenantId;
-    const [s, e, em, w, v] = await Promise.all([
+    const [s, e, em, w, wi, v] = await Promise.all([
       supabase.from("supplier_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("end_customer_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("employee_registrations").select("*").eq("tenant_id", tid).order("full_name"),
       supabase.from("weight_standard_certificates").select("*").eq("tenant_id", tid).order("calibration_date", { ascending: false }),
+      supabase.from("standard_weight_items").select("*").eq("tenant_id", tid).eq("active", true).order("identification"),
       supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", tid).order("calibration_date", { ascending: false }),
     ]);
     if (s.error) toast.error(s.error.message);
@@ -85,6 +95,8 @@ const CadastrosPage = () => {
     else setEmployees(em.data || []);
     if (w.error) toast.error(w.error.message);
     else setWeightCerts(w.data || []);
+    if (wi.error) toast.error(wi.error.message);
+    else setWeightItems(wi.data || []);
     if (v.error) toast.error(v.error.message);
     else setEnvCerts(v.data || []);
   }, [currentTenantId]);
@@ -139,67 +151,65 @@ const CadastrosPage = () => {
     );
   }
 
+  const visibleSections = CADASTRO_SECTIONS.filter((s) => {
+    if (s.techniciansOnly && !canManageTechnicians(user?.role)) return false;
+    if (s.roles?.length && !s.roles.includes(user?.role)) return false;
+    return true;
+  });
+  const activeSection = section || "fornecedores";
+  if (!section) return <Navigate to={cadastroSectionPath("fornecedores")} replace />;
+  if (!visibleSections.some((s) => s.id === activeSection)) {
+    return <Navigate to={cadastroSectionPath(visibleSections[0]?.id || "fornecedores")} replace />;
+  }
+  const sectionTitle = getCadastroSectionLabel(activeSection);
+
   return (
     <div className="space-y-6" data-testid="cadastros-page">
-      <div>
-        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Gestão</div>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Cadastros</h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Dados do ambiente: <span className="font-medium text-slate-800">{tenantName || currentTenantId}</span>
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Gestão</div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">{sectionTitle}</h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Ambiente: <span className="font-medium text-slate-800">{tenantName || currentTenantId}</span>
+          </p>
+        </div>
+        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" type="button" className="shrink-0">
+              <List size={18} className="mr-2" /> Tipos de cadastro
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[min(18rem,85vw)]">
+            <SheetHeader><SheetTitle className="font-display text-left">Cadastros</SheetTitle></SheetHeader>
+            <nav className="mt-6 flex flex-col gap-1">
+              {visibleSections.map((s) => (
+                <NavLink key={s.id} to={cadastroSectionPath(s.id)} onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) => `px-3 py-2.5 rounded-md text-sm ${isActive ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`}>
+                  {s.label}
+                </NavLink>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
       </div>
-
-      <Tabs defaultValue="fornecedores">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-slate-100 p-1">
-          <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
-          <TabsTrigger value="clientes">Clientes do cliente</TabsTrigger>
-          <TabsTrigger value="colaboradores">Colaboradores</TabsTrigger>
-          <TabsTrigger value="peso">Certif. peso padrão</TabsTrigger>
-          <TabsTrigger value="thermo">Thermo-baro-higrômetro</TabsTrigger>
-          {canManageTechnicians(user?.role) && (
-            <TabsTrigger value="tecnicos">Técnicos de campo</TabsTrigger>
-          )}
-        </TabsList>
-
-        <TabsContent value="fornecedores" className="mt-4">
-          <SupplierSection rows={suppliers} tenantId={currentTenantId} onRefresh={loadAll} />
-        </TabsContent>
-        <TabsContent value="clientes" className="mt-4">
-          <EndCustomerSection rows={endCustomers} tenantId={currentTenantId} onRefresh={loadAll} />
-        </TabsContent>
-        <TabsContent value="colaboradores" className="mt-4">
-          <EmployeeSection rows={employees} tenantId={currentTenantId} onRefresh={loadAll} />
-        </TabsContent>
-        <TabsContent value="peso" className="mt-4">
-          <WeightCertSection
-            rows={filteredWeight}
-            allRows={weightCerts}
-            tenantId={currentTenantId}
-            tenantName={tenantName}
-            year={yearWeight}
-            years={yearsWeight}
-            onYearChange={setYearWeight}
-            onRefresh={loadAll}
-          />
-        </TabsContent>
-        <TabsContent value="thermo" className="mt-4">
-          <EnvCertSection
-            rows={filteredEnv}
-            allRows={envCerts}
-            tenantId={currentTenantId}
-            tenantName={tenantName}
-            year={yearEnv}
-            years={yearsEnv}
-            onYearChange={setYearEnv}
-            onRefresh={loadAll}
-          />
-        </TabsContent>
-        {canManageTechnicians(user?.role) && (
-          <TabsContent value="tecnicos" className="mt-4">
-            <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />
-          </TabsContent>
+      <div className="mt-2">
+        {activeSection === "fornecedores" && <SupplierSection rows={suppliers} tenantId={currentTenantId} onRefresh={loadAll} />}
+        {activeSection === "clientes" && <EndCustomerSection rows={endCustomers} tenantId={currentTenantId} onRefresh={loadAll} />}
+        {activeSection === "colaboradores" && <EmployeeSection rows={employees} tenantId={currentTenantId} onRefresh={loadAll} />}
+        {activeSection === "cert-peso" && (
+          <WeightCertSection rows={filteredWeight} allRows={weightCerts} tenantId={currentTenantId} tenantName={tenantName}
+            year={yearWeight} years={yearsWeight} onYearChange={setYearWeight} onRefresh={loadAll} />
         )}
-      </Tabs>
+        {activeSection === "pesos" && <PesoItemSection rows={weightItems} tenantId={currentTenantId} onRefresh={loadAll} />}
+        {activeSection === "thermo" && (
+          <EnvCertSection rows={filteredEnv} allRows={envCerts} tenantId={currentTenantId} tenantName={tenantName}
+            year={yearEnv} years={yearsEnv} onYearChange={setYearEnv} onRefresh={loadAll} />
+        )}
+        {activeSection === "config-coleta" && (
+          <ColetaTenantConfig tenantId={currentTenantId} tenant={currentTenant} onSaved={() => reloadTenants?.()} />
+        )}
+        {activeSection === "tecnicos" && <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />}
+      </div>
     </div>
   );
 };
@@ -790,6 +800,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [eqName, setEqName] = useState("");
+  const [equipmentType, setEquipmentType] = useState("thermo_baro_higrometro");
   const [manuf, setManuf] = useState("");
   const [model, setModel] = useState("");
   const [certNum, setCertNum] = useState("");
@@ -799,13 +810,25 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
 
   const reset = () => {
     setEditing(null);
-    setEqName(""); setManuf(""); setModel(""); setCertNum(""); setCalDate(todayIso()); setCalBy(""); setFile(null);
+    setEqName("");
+    setEquipmentType("thermo_baro_higrometro");
+    setManuf("");
+    setModel("");
+    setCertNum("");
+    setCalDate(todayIso());
+    setCalBy("");
+    setFile(null);
   };
 
   const save = async () => {
+    if (!tenantId) {
+      toast.error("Selecione um ambiente válido no topo da página.");
+      return;
+    }
     if (!calDate) return toast.error("Informe a data de calibração");
     const base = {
       tenant_id: tenantId,
+      equipment_type: equipmentType,
       equipment_name: eqName.trim(),
       manufacturer: manuf.trim(),
       model: model.trim(),
@@ -842,7 +865,12 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
       reset();
       onRefresh();
     } catch (err) {
-      toast.error(err.message || "Falha");
+      const msg = err?.message || "";
+      if (msg.includes("environment_sensor_certificates_tenant_id_fkey")) {
+        toast.error("Ambiente inválido. Selecione outro cliente no topo da página e tente novamente.");
+      } else {
+        toast.error(msg || "Falha");
+      }
     }
   };
 
@@ -876,6 +904,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-600">
               <tr>
+                <th className="p-2">Tipo</th>
                 <th className="p-2">Equipamento</th>
                 <th className="p-2">Nº cert.</th>
                 <th className="p-2">Calibração</th>
@@ -887,10 +916,11 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-slate-500 text-center">Nenhum registro.</td></tr>
+                <tr><td colSpan={8} className="p-4 text-slate-500 text-center">Nenhum registro.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
+                  <td className="p-2 text-xs">{envEquipmentTypeLabel(r.equipment_type)}</td>
                   <td className="p-2 font-medium">{r.equipment_name}</td>
                   <td className="p-2">{r.certificate_number}</td>
                   <td className="p-2">{fmtIsoDate(r.calibration_date)}</td>
@@ -904,7 +934,9 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
                   <td className="p-2">
                     <Button variant="ghost" size="sm" onClick={() => {
                       setEditing(r);
-                      setEqName(r.equipment_name); setManuf(r.manufacturer); setModel(r.model);
+                      setEqName(r.equipment_name);
+                      setEquipmentType(r.equipment_type || "thermo_baro_higrometro");
+                      setManuf(r.manufacturer); setModel(r.model);
                       setCertNum(r.certificate_number); setCalDate(fmtIsoDate(r.calibration_date));
                       setCalBy(r.calibrated_by); setFile(null);
                       setOpen(true);
@@ -918,8 +950,20 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editing ? "Editar equipamento" : "Novo thermo-baro-higrômetro"}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editing ? "Editar equipamento" : "Novo equipamento ambiental"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
+              <div>
+                <Label>Tipo de equipamento</Label>
+                <select
+                  value={equipmentType}
+                  onChange={(e) => setEquipmentType(e.target.value)}
+                  className="mt-1 w-full border rounded-md h-9 px-2 text-sm"
+                >
+                  {ENV_EQUIPMENT_TYPES.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
               <div><Label>Nome do equipamento</Label><Input value={eqName} onChange={(e) => setEqName(e.target.value)} /></div>
               <div><Label>Fabricante</Label><Input value={manuf} onChange={(e) => setManuf(e.target.value)} /></div>
               <div><Label>Modelo</Label><Input value={model} onChange={(e) => setModel(e.target.value)} /></div>

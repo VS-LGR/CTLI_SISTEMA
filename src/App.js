@@ -74,7 +74,8 @@ const App = () => (
             <Route path="/requirement/:id" element={<RequirementView />} />
             <Route path="/document/:id" element={<DocumentEditor />} />
             <Route path="/backup" element={<BackupView />} />
-            <Route path="/cadastros" element={<CadastrosPage />} />
+            <Route path="/cadastros" element={<Navigate to="/cadastros/fornecedores" replace />} />
+            <Route path="/cadastros/:section" element={<CadastrosPage />} />
             <Route path="/admin/clients" element={<Protected adminOnly><AdminClients /></Protected>} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -1,4 +1,4 @@
-/** RE-7.2A Rev.03 — estrutura do payload de coleta de calibração */
+/** RE-7.2A — estrutura do payload de coleta de calibração */
 
 export const COLETA_DOC_CODE = "RE-7.2A";
 export const COLETA_DOC_REF = "PR-7.2";
@@ -41,6 +41,23 @@ export const BINARY_OPTIONS = [
   { value: "nao", label: "Não" },
 ];
 
+/** Ordem fixa das linhas no coletaVerso.pdf */
+export const SUBSTITUICAO_LINHA_DEFS = [
+  { key: "p1", label: "P1*", leituras3: true },
+  { key: "l1", label: "L1", leituras3: false },
+  { key: "l1_p1", label: "L1 + P1", leituras3: false },
+  { key: "l2", label: "L2", leituras3: false },
+  { key: "l2_p1", label: "L2 + P1", leituras3: false },
+  { key: "l3", label: "L3", leituras3: false },
+  { key: "l3_p1", label: "L3 + P1", leituras3: false },
+  { key: "l4", label: "L4", leituras3: false },
+  { key: "l4_p1", label: "L4 + P1", leituras3: false },
+  { key: "l5", label: "L5", leituras3: false },
+  { key: "l5_p1", label: "L5 + P1", leituras3: false },
+  { key: "l6", label: "L6", leituras3: false },
+  { key: "l6_p1", label: "L6 + P1", leituras3: false },
+];
+
 function emptyEccPoint() {
   return { antes: "", depois: "" };
 }
@@ -56,16 +73,61 @@ function emptyCalPoint() {
   };
 }
 
-function emptyLote() {
+function emptySubstituicaoLinha(def) {
   return {
-    leituras: ["", "", ""],
-    depois_ajuste: "",
-    valor_nominal_carga: "",
+    key: def.key,
+    label: def.label,
+    valor_nominal: "",
+    leitura1: "",
+    leitura2: "",
+    leitura3: "",
     massa_especifica: "",
     temp: "",
     umidade: "",
     pressao: "",
   };
+}
+
+export function emptySubstituicaoLinhas() {
+  return SUBSTITUICAO_LINHA_DEFS.map((d) => emptySubstituicaoLinha(d));
+}
+
+function migrateLotesToLinhas(rawRep) {
+  const linhas = emptySubstituicaoLinhas();
+  const byKey = Object.fromEntries(linhas.map((l) => [l.key, l]));
+
+  if (rawRep?.linhas?.length) {
+    rawRep.linhas.forEach((row) => {
+      if (row?.key && byKey[row.key]) {
+        byKey[row.key] = { ...byKey[row.key], ...row, label: byKey[row.key].label };
+      }
+    });
+    return SUBSTITUICAO_LINHA_DEFS.map((d) => byKey[d.key]);
+  }
+
+  const lotes = rawRep?.lotes || [];
+  const loteKeys = ["l1", "l2", "l3", "l4", "l5", "l6"];
+  loteKeys.forEach((lk, i) => {
+    const lot = lotes[i];
+    if (!lot) return;
+    byKey[lk] = {
+      ...byKey[lk],
+      leitura1: lot.leituras?.[0] ?? lot.leitura1 ?? "",
+      leitura2: lot.leituras?.[1] ?? "",
+      leitura3: lot.leituras?.[2] ?? "",
+      valor_nominal: lot.valor_nominal_carga ?? lot.valor_nominal ?? "",
+      massa_especifica: lot.massa_especifica ?? "",
+      temp: lot.temp ?? "",
+      umidade: lot.umidade ?? "",
+      pressao: lot.pressao ?? "",
+    };
+  });
+
+  if (rawRep?.p1_valor_balanca) {
+    byKey.p1 = { ...byKey.p1, leitura1: rawRep.p1_valor_balanca };
+  }
+
+  return SUBSTITUICAO_LINHA_DEFS.map((d) => byKey[d.key]);
 }
 
 export function emptyColetaPayload() {
@@ -124,11 +186,12 @@ export function emptyColetaPayload() {
         massa_constante: "",
       },
       repetitividade: {
+        aplicavel: true,
         formacao_carga: "",
         massa_especifica_estimada: "",
         observacoes: "",
         p1_valor_balanca: "",
-        lotes: Array.from({ length: 6 }, () => emptyLote()),
+        linhas: emptySubstituicaoLinhas(),
       },
     },
   };
@@ -140,21 +203,19 @@ export function mergeColetaPayload(raw) {
 
   const migrateAmbiente = (a) => {
     const merged = { ...base.ambiente, ...(a || {}) };
-    if (a?.climatizacao && !merged.thermo_cert_id) {
-      merged.thermo_cert_id = "";
-    }
     delete merged.climatizacao;
     return merged;
   };
 
   const migrateCalPoint = (pt) => {
     const p = { ...emptyCalPoint(), ...(pt || {}) };
-    if (p.identificacao_pesos && !p.pesos_padrao_ids?.length) {
-      p.pesos_padrao_ids = [];
-    }
     delete p.identificacao_pesos;
+    if (!Array.isArray(p.pesos_padrao_ids)) p.pesos_padrao_ids = [];
     return p;
   };
+
+  const rawRep = raw.verso?.repetitividade || {};
+  const linhas = migrateLotesToLinhas(rawRep);
 
   return {
     cliente: { ...base.cliente, ...(raw.cliente || {}) },
@@ -178,19 +239,12 @@ export function mergeColetaPayload(raw) {
         ...(raw.verso?.questoes_carga || {}),
       },
       repetitividade: {
-        formacao_carga: raw.verso?.repetitividade?.formacao_carga ?? "",
-        massa_especifica_estimada: raw.verso?.repetitividade?.massa_especifica_estimada ?? "",
-        observacoes: raw.verso?.repetitividade?.observacoes ?? "",
-        p1_valor_balanca: raw.verso?.repetitividade?.p1_valor_balanca ?? "",
-        lotes: Array.from({ length: 6 }, (_, i) => ({
-          ...emptyLote(),
-          ...(raw.verso?.repetitividade?.lotes?.[i] || {}),
-          leituras: [
-            raw.verso?.repetitividade?.lotes?.[i]?.leituras?.[0] ?? "",
-            raw.verso?.repetitividade?.lotes?.[i]?.leituras?.[1] ?? "",
-            raw.verso?.repetitividade?.lotes?.[i]?.leituras?.[2] ?? "",
-          ],
-        })),
+        aplicavel: rawRep.aplicavel !== false,
+        formacao_carga: rawRep.formacao_carga ?? "",
+        massa_especifica_estimada: rawRep.massa_especifica_estimada ?? "",
+        observacoes: rawRep.observacoes ?? "",
+        p1_valor_balanca: rawRep.p1_valor_balanca ?? linhas.find((l) => l.key === "p1")?.leitura1 ?? "",
+        linhas,
       },
     },
   };
@@ -208,8 +262,18 @@ export function denormalizeFromPayload(payload, commercialProposalRef = "") {
   };
 }
 
+export function weightItemLabel(w) {
+  if (!w) return "—";
+  const id = w.identification || "—";
+  const val = w.nominal_value ? ` — ${w.nominal_value}` : "";
+  const u = w.unit ? ` ${w.unit}` : "";
+  return `${id}${val}${u}`.trim();
+}
+
+/** @deprecated use weightItemLabel — certificados de conjunto */
 export function weightCertLabel(w) {
   if (!w) return "—";
+  if (w.identification != null) return weightItemLabel(w);
   const parts = [w.set_name, w.certificate_number].filter(Boolean);
   const base = parts.join(" — ") || "Conjunto";
   return w.class ? `${base} (Classe ${w.class})` : base;
@@ -249,11 +313,11 @@ export function unidadeLabel(v) {
   return UNIDADE_OPTIONS.find((x) => x.value === v)?.label || v || "—";
 }
 
-export function formatPesosIds(ids, weightCerts) {
-  if (!ids?.length || !weightCerts?.length) return "";
+export function formatPesosIds(ids, weightItems) {
+  if (!ids?.length || !weightItems?.length) return "";
   return ids
-    .map((id) => weightCerts.find((w) => w.id === id))
+    .map((id) => weightItems.find((w) => w.id === id))
     .filter(Boolean)
-    .map(weightCertLabel)
+    .map(weightItemLabel)
     .join("; ");
 }
