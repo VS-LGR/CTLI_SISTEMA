@@ -1,3 +1,4 @@
+import React from "react";
 import { TIPO_BALANCA_OPTIONS, TIPO_PLATAFORMA_OPTIONS } from "../coletaSchema";
 
 export function Cb({ checked, children }) {

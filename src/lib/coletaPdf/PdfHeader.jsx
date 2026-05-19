@@ -1,3 +1,5 @@
+import React from "react";
+
 export function PdfHeader({ header, logoUrl }) {
   return (
     <header className="coleta-pdf-header">

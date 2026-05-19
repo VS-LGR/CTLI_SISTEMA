@@ -1,3 +1,4 @@
+import React from "react";
 import { ColetaPdfFrente } from "./ColetaPdfFrente";
 import { ColetaPdfVerso } from "./ColetaPdfVerso";
 import "./coletaPdf.css";

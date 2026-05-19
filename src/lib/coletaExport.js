@@ -5,8 +5,6 @@ import {
   formatPesosIds,
 } from "./coletaSchema";
 import { coletaDocMetaFromTenant } from "./coletaDocMeta";
-import { renderColetaPdf } from "./coletaPdf/renderToPdf";
-import { coletaPdfFileSlug } from "./coletaPdf/viewModel";
 
 export function buildColetaDocumentModel(row, tenantName = "", tenant = null) {
   const p = mergeColetaPayload(row?.payload);
@@ -25,14 +23,20 @@ export function buildColetaDocumentModel(row, tenantName = "", tenant = null) {
 }
 
 function fileSlug(row) {
-  return coletaPdfFileSlug(row);
+  const serial = row?.scale_serial || "coleta";
+  const date = row?.calibration_date || new Date().toISOString().slice(0, 10);
+  return `${serial}-${date}`.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
+/** Carrega html2canvas/jspdf/templates só ao exportar (evita TDZ no bundle principal). */
 export async function exportColetaPdf(
   row,
   tenantName = "",
   { logoDataUrl, envCerts = [], weightItems = [], tenant = null } = {},
 ) {
+  const { renderColetaPdf } = await import(
+    /* webpackChunkName: "coleta-pdf" */ "./coletaPdf/renderToPdf"
+  );
   await renderColetaPdf(row, tenantName, { logoDataUrl, envCerts, weightItems, tenant });
 }
 

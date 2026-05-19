@@ -1,3 +1,4 @@
+import React from "react";
 import { PdfHeader } from "./PdfHeader";
 import { SimNaoPair } from "./PdfCheckbox";
 
