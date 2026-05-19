@@ -28,7 +28,7 @@ function fileSlug(row) {
   return `${serial}-${date}`.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
-/** Carrega html2canvas/jspdf/templates só ao exportar (evita TDZ no bundle principal). */
+/** Carrega jsPDF só ao exportar (evita TDZ no bundle principal). */
 export async function exportColetaPdf(
   row,
   tenantName = "",
