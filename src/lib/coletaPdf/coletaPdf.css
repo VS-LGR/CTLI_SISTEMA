@@ -5,166 +5,143 @@
 }
 
 .coleta-pdf-page {
-  width: 210mm;
-  height: 297mm;
-  box-sizing: border-box;
-  padding: 5mm 7mm 4mm;
-  overflow: hidden;
   position: relative;
+  width: 49.58333em;
+  height: 70.08334em;
+  overflow: hidden;
   background: #fff;
-  font-size: 6.5pt;
-  line-height: 1.15;
+  font-size: 10pt;
+  line-height: 1.12;
+  color: #000;
+  flex-shrink: 0;
 }
 
 .coleta-pdf-page * {
   box-sizing: border-box;
 }
 
-/* Cabeçalho */
-.coleta-pdf-header {
-  display: grid;
-  grid-template-columns: 28mm 1fr;
-  grid-template-rows: auto auto auto;
-  gap: 0.5mm 2mm;
-  margin-bottom: 1.5mm;
-  align-items: start;
+.coleta-abs {
+  position: absolute;
+  overflow: hidden;
+}
+
+/* Tipografia PDF24 */
+.coleta-txt-xs {
+  font-size: 0.55em;
+}
+
+.coleta-txt-sm {
+  font-size: 0.6em;
+}
+
+.coleta-txt-body {
+  font-size: 0.66em;
+}
+
+.coleta-txt-label {
+  font-size: 0.66em;
+}
+
+.coleta-txt-sec {
+  font-size: 0.6em;
+  font-weight: bold;
+}
+
+.coleta-txt-title {
+  font-size: 0.99em;
+  font-weight: bold;
+  text-align: center;
+}
+
+.coleta-txt-code {
+  font-size: 0.55em;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+  font-weight: bold;
+  text-align: center;
+}
+
+.coleta-txt-proposal {
+  font-size: 0.55em;
+  font-weight: bold;
+  text-align: right;
 }
 
 .coleta-pdf-logo {
-  grid-row: 1 / 4;
-  max-width: 26mm;
-  max-height: 16mm;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+  display: block;
 }
 
-.coleta-pdf-proposal {
-  grid-column: 2;
-  text-align: right;
-  font-size: 6pt;
-  font-weight: bold;
-}
-
-.coleta-pdf-title {
-  grid-column: 1 / 3;
-  text-align: center;
-  font-size: 9pt;
-  font-weight: bold;
-  margin-top: 0.5mm;
-}
-
-.coleta-pdf-code {
-  grid-column: 1 / 3;
-  text-align: center;
-  font-size: 6.5pt;
-}
-
-/* Seções */
-.coleta-sec-title {
-  font-size: 7pt;
-  font-weight: bold;
-  margin: 1.2mm 0 0.6mm;
-}
-
-.coleta-sec-title-sm {
-  font-size: 6.5pt;
-  font-weight: bold;
-  margin: 0.8mm 0 0.4mm;
-}
-
-.coleta-field-row {
-  display: flex;
-  align-items: baseline;
-  gap: 1mm;
-  margin-bottom: 0.5mm;
-  min-height: 3.2mm;
-}
-
-.coleta-label {
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.coleta-value {
-  flex: 1;
-  border-bottom: 0.3pt solid #000;
-  min-height: 3mm;
-  padding: 0 0.5mm;
-  word-break: break-word;
-}
-
-.coleta-value-inline {
-  border-bottom: 0.3pt solid #000;
+.coleta-underline {
+  border-bottom: 0.35pt solid #000;
   display: inline-block;
-  min-width: 12mm;
-  padding: 0 0.5mm;
+  min-width: 2em;
+  padding: 0 0.15em 0.05em;
+  vertical-align: baseline;
 }
 
-/* Grid balança */
-.coleta-grid-3 {
+.coleta-underline-block {
+  border-bottom: 0.35pt solid #000;
+  min-height: 1.1em;
+  padding: 0 0.15em;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.coleta-grid-bal {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.5mm 2mm;
-  margin-bottom: 0.5mm;
+  grid-template-columns: 10fr 10fr 10fr 10fr 9fr;
+  gap: 0 0.4em;
+  width: 100%;
 }
 
-.coleta-grid-5 {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.5mm 1.5mm;
-  margin-bottom: 0.5mm;
-}
-
-/* Checkboxes */
-.coleta-cb-line {
+.coleta-grid-bal .coleta-field {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.5mm 2mm;
-  margin-bottom: 0.5mm;
-  font-size: 6pt;
+  gap: 0.2em;
+  margin-bottom: 0.15em;
+}
+
+.coleta-cb-line {
+  font-size: 0.66em;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .coleta-cb {
   white-space: nowrap;
+  margin-right: 0.35em;
 }
 
 .coleta-cb-group-title {
   font-weight: bold;
-  margin-right: 1mm;
+  margin-right: 0.25em;
 }
 
-/* Ambiente */
-.coleta-amb-block {
-  margin-bottom: 0.5mm;
+.coleta-amb-col {
+  font-size: 0.66em;
 }
 
-.coleta-amb-row {
+.coleta-amb-col .coleta-cb-line {
+  display: block;
+  margin-bottom: 0.35em;
+}
+
+.coleta-measure-block {
+  margin-bottom: 0.5em;
+}
+
+.coleta-measure-block .coleta-measure-title {
+  font-size: 0.66em;
+  margin-bottom: 0.1em;
+}
+
+.coleta-measure-row {
+  font-size: 0.55em;
   display: flex;
-  flex-wrap: wrap;
-  gap: 1mm 3mm;
-  align-items: baseline;
-  margin-bottom: 0.4mm;
-}
-
-.coleta-amb-measures {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5mm 4mm;
-  margin-top: 0.5mm;
-}
-
-.coleta-measure-pair {
-  display: flex;
-  gap: 2mm;
-  align-items: baseline;
-}
-
-/* Excentricidade + Controle lado a lado */
-.coleta-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2mm;
-  margin-bottom: 1mm;
+  gap: 0.8em;
 }
 
 .coleta-ecc-table,
@@ -172,7 +149,8 @@
 .coleta-sub-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 5.5pt;
+  table-layout: fixed;
+  font-size: 0.55em;
 }
 
 .coleta-ecc-table th,
@@ -181,83 +159,102 @@
 .coleta-cal-table td,
 .coleta-sub-table th,
 .coleta-sub-table td {
-  border: 0.3pt solid #000;
-  padding: 0.3mm 0.5mm;
+  border: 0.35pt solid #000;
+  padding: 0.08em 0.2em;
   text-align: center;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .coleta-ecc-table th,
 .coleta-cal-table th,
 .coleta-sub-table th {
   font-weight: bold;
-  font-size: 5pt;
-  background: #f8f8f8;
+  font-size: 0.5em;
+  line-height: 1.1;
+  background: #fff;
 }
 
 .coleta-cal-table td:first-child,
 .coleta-sub-table td:first-child {
   font-weight: bold;
   text-align: left;
-  width: 6mm;
 }
 
-.coleta-cal-table .col-peso { width: 14%; }
-.coleta-cal-table .col-antes { width: 10%; }
-.coleta-cal-table .col-rep { width: 8%; }
-.coleta-cal-table .col-ids { width: 28%; text-align: left; font-size: 5pt; }
-
-.coleta-controle-fields .coleta-field-row {
-  margin-bottom: 0.8mm;
+.coleta-cal-table .col-ids {
+  text-align: left;
+  font-size: 0.48em;
+  word-break: break-all;
 }
 
-/* Verso */
+.coleta-sub-table thead .sub-head-row2 th {
+  font-size: 0.48em;
+}
+
 .coleta-desc-box {
-  border: 0.3pt solid #000;
-  min-height: 22mm;
-  padding: 1mm;
-  margin-bottom: 1.5mm;
+  border: 0.35pt solid #000;
+  width: 100%;
+  height: 100%;
+  padding: 0.3em;
+  font-size: 0.66em;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow: hidden;
 }
 
 .coleta-questao {
+  font-size: 0.66em;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 1mm 2mm;
-  margin-bottom: 0.8mm;
-  font-size: 6pt;
+  gap: 0.5em 1em;
+  width: 100%;
 }
 
 .coleta-nota {
-  font-size: 5.5pt;
-  margin: 1mm 0;
-  line-height: 1.2;
+  font-size: 0.55em;
+  line-height: 1.15;
 }
 
-.coleta-obs-box {
-  border-bottom: 0.3pt solid #000;
-  min-height: 5mm;
-  margin-bottom: 1mm;
-}
-
-.coleta-pdf-footer {
-  position: absolute;
-  bottom: 3mm;
-  left: 7mm;
-  right: 7mm;
+.coleta-obs-line {
+  font-size: 0.66em;
   display: flex;
-  justify-content: space-between;
-  font-size: 6pt;
+  align-items: baseline;
+  gap: 0.3em;
+}
+
+.coleta-obs-line .coleta-underline-block {
+  flex: 1;
+}
+
+.coleta-pdf-footer-line {
+  font-size: 0.55em;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+  white-space: nowrap;
 }
 
 .coleta-pdf-footer-center {
   text-align: center;
-  flex: 1;
 }
 
-.coleta-sub-table .col-form { width: 8%; }
-.coleta-sub-table .col-nom { width: 9%; }
-.coleta-sub-table .col-leit { width: 7%; }
-.coleta-sub-table .col-env { width: 6%; }
+.coleta-field-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2em;
+}
+
+.coleta-controle-stack .coleta-field-line {
+  font-size: 0.6em;
+  margin-bottom: 0.45em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2em;
+}
+
+.coleta-controle-stack .coleta-underline-block {
+  flex: 1;
+  min-width: 8em;
+}

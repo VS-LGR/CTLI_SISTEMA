@@ -1,5 +1,6 @@
 import React from "react";
-import { PdfHeader, FieldRow } from "./PdfHeader";
+import { PdfHeader, FieldLine } from "./PdfHeader";
+import { AbsBlock } from "./AbsBlock";
 import {
   BinaryRow,
   PontosSolicitadosCheckboxes,
@@ -8,12 +9,13 @@ import {
   TriStateRow,
 } from "./PdfCheckbox";
 import { unidadeLabel } from "../coletaSchema";
+import { FRENTE, CAL_ROW_HEIGHT_EM } from "./layoutSpec";
 
-function GridField({ label, value }) {
+function BalField({ label, value }) {
   return (
-    <div className="coleta-field-row">
-      <span className="coleta-label">{label}</span>
-      <span className="coleta-value">{value || "\u00a0"}</span>
+    <div className="coleta-field coleta-txt-label">
+      <span>{label}</span>
+      <span className="coleta-underline">{value || "\u00a0"}</span>
     </div>
   );
 }
@@ -25,165 +27,208 @@ export function ColetaPdfFrente({ model, logoUrl }) {
     <section className="coleta-pdf-page">
       <PdfHeader header={model.header} logoUrl={logoUrl} />
 
-      <h2 className="coleta-sec-title">1) Dados do Cliente</h2>
-      <FieldRow label="Cliente" value={cliente.cliente} />
-      <FieldRow label="Resposável" value={cliente.responsavel} />
+      <AbsBlock style={FRENTE.sec1.title} className="coleta-txt-sec">
+        1) Dados do Cliente
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec1.cliente}>
+        <FieldLine label="Cliente" value={cliente.cliente} />
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec1.responsavel}>
+        <FieldLine label="Resposável" value={cliente.responsavel} />
+      </AbsBlock>
 
-      <h2 className="coleta-sec-title">2) Informações da Balança</h2>
-      <div className="coleta-grid-3">
-        <GridField label="Fabricante:" value={balanca.fabricante} />
-        <GridField label="Modelo:" value={balanca.modelo} />
-        <GridField label="Nº de série:" value={balanca.serie} />
-      </div>
-      <div className="coleta-grid-3">
-        <GridField label="Etiqueta IPEM:" value={balanca.etiqueta_ipem} />
-        <GridField label="Portaria Inmetro:" value={balanca.portaria_inmetro} />
-        <GridField label="Capacidade:" value={balanca.capacidade} />
-      </div>
-      <div className="coleta-grid-3">
-        <GridField label="Tag / Codigo Interno:" value={balanca.tag} />
-        <GridField label="Resolução:" value={balanca.resolucao} />
-        <GridField label="Unidade" value={unidadeLabel(balanca.unidade)} />
-      </div>
-      <FieldRow label="Local da Calibração:" value={balanca.local} />
-      <TipoBalancaCheckboxes balanca={balanca} />
-      <TipoPlataformaCheckboxes balanca={balanca} />
-
-      <h2 className="coleta-sec-title">3) Condições Ambientais Durante a Calibração</h2>
-      <div className="coleta-amb-block">
-        <FieldRow
-          label="Climatização dos pesos-padrão e termo-baro-higrômetro"
-          value={ambiente.thermoLabel}
-        />
-        <div className="coleta-amb-row">
-          <span>
-            Horário inicial: <span className="coleta-value-inline">{ambiente.horario_inicial}</span>
-          </span>
-          <span>
-            Horário final: <span className="coleta-value-inline">{ambiente.horario_final}</span>
-          </span>
+      <AbsBlock style={FRENTE.sec2.title} className="coleta-txt-sec">
+        2) Informações da Balança
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec2.row1}>
+        <div className="coleta-grid-bal">
+          <BalField label="Fabricante:" value={balanca.fabricante} />
+          <BalField label="Modelo:" value={balanca.modelo} />
+          <BalField label="Nº de série:" value={balanca.serie} />
+          <BalField label="Local da Calibração:" value={balanca.local} />
+          <BalField label="Tag / Codigo Interno:" value={balanca.tag} />
         </div>
-        <TriStateRow label="A balança foi ajustada?" value={ambiente.balanca_ajustada} />
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec2.row2}>
+        <div className="coleta-grid-bal">
+          <BalField label="Etiqueta IPEM:" value={balanca.etiqueta_ipem} />
+          <BalField label="Portaria Inmetro:" value={balanca.portaria_inmetro} />
+          <BalField label="Capacidade:" value={balanca.capacidade} />
+          <BalField label="Resolução:" value={balanca.resolucao} />
+          <BalField label="Unidade" value={unidadeLabel(balanca.unidade)} />
+        </div>
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec2.tipoBalanca}>
+        <TipoBalancaCheckboxes balanca={balanca} />
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec2.tipoPlataforma}>
+        <TipoPlataformaCheckboxes balanca={balanca} />
+      </AbsBlock>
+
+      <AbsBlock style={FRENTE.sec3.title} className="coleta-txt-sec">
+        3) Condições Ambientais Durante a Calibração
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec3.ambLeft} className="coleta-amb-col">
+        <div className="coleta-txt-label" style={{ marginBottom: "0.4em", paddingLeft: "3.5em" }}>
+          Climatização dos pesos-padrão e termo-baro-higrômetro{" "}
+          <span className="coleta-underline">{ambiente.thermoLabel || "\u00a0"}</span>
+        </div>
+        <div className="coleta-txt-label" style={{ marginBottom: "0.5em" }}>
+          Horário inicial:{" "}
+          <span className="coleta-underline">{ambiente.horario_inicial || "\u00a0"}</span>
+          {"  "}Horário final:{" "}
+          <span className="coleta-underline">{ambiente.horario_final || "\u00a0"}</span>
+        </div>
+        <TriStateRow label="A balança foi ajustada ?" value={ambiente.balanca_ajustada} />
         <TriStateRow label="A balança foi nivelada?" value={ambiente.balanca_nivelada} />
         <BinaryRow label="Existe vibração no local?" value={ambiente.existe_vibracao} />
         <BinaryRow label="Existe corrente de ar no local?" value={ambiente.existe_corrente_ar} />
-        <div className="coleta-amb-measures">
-          <div>
-            <div>Temperatura (t) corrigida</div>
-            <div className="coleta-measure-pair">
-              <span>
-                Inicial: <span className="coleta-value-inline">{ambiente.temp_inicial}</span> °C
-              </span>
-              <span>
-                Final: <span className="coleta-value-inline">{ambiente.temp_final}</span> °C
-              </span>
-            </div>
-          </div>
-          <div>
-            <div>Umidade relativa (h) corrigida</div>
-            <div className="coleta-measure-pair">
-              <span>
-                Inicial: <span className="coleta-value-inline">{ambiente.umidade_inicial}</span> %ur
-              </span>
-              <span>
-                Final: <span className="coleta-value-inline">{ambiente.umidade_final}</span> %ur
-              </span>
-            </div>
-          </div>
-          <div>
-            <div>Pressão atmosférica (P) corrigida</div>
-            <div className="coleta-measure-pair">
-              <span>
-                Inicial: <span className="coleta-value-inline">{ambiente.pressao_inicial}</span> hPa
-              </span>
-              <span>
-                Final: <span className="coleta-value-inline">{ambiente.pressao_final}</span> hPa
-              </span>
-            </div>
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec3.ambRight} className="coleta-amb-col">
+        <div className="coleta-measure-block">
+          <div className="coleta-measure-title">Temperatura (t) corrigida</div>
+          <div className="coleta-measure-row">
+            <span>
+              Inicial: <span className="coleta-underline">{ambiente.temp_inicial || "\u00a0"}</span> °C
+            </span>
+            <span>
+              Final: <span className="coleta-underline">{ambiente.temp_final || "\u00a0"}</span> °C
+            </span>
           </div>
         </div>
-      </div>
+        <div className="coleta-measure-block">
+          <div className="coleta-measure-title">Umidade relativa (h) corrigida</div>
+          <div className="coleta-measure-row">
+            <span>
+              Inicial: <span className="coleta-underline">{ambiente.umidade_inicial || "\u00a0"}</span> %ur
+            </span>
+            <span>
+              Final: <span className="coleta-underline">{ambiente.umidade_final || "\u00a0"}</span> %ur
+            </span>
+          </div>
+        </div>
+        <div className="coleta-measure-block">
+          <div className="coleta-measure-title">Pressão atmosférica (P) corrigida</div>
+          <div className="coleta-measure-row">
+            <span>
+              Inicial: <span className="coleta-underline">{ambiente.pressao_inicial || "\u00a0"}</span> hPa
+            </span>
+            <span>
+              Final: <span className="coleta-underline">{ambiente.pressao_final || "\u00a0"}</span> hPa
+            </span>
+          </div>
+        </div>
+      </AbsBlock>
 
-      <div className="coleta-split">
-        <div>
-          <h2 className="coleta-sec-title-sm">4) Ensaio de Excentricidade</h2>
-          <div className="coleta-field-row">
-            <span className="coleta-label">Valor Aplicado:</span>
-            <span className="coleta-value">{excentricidade.valor_aplicado || "\u00a0"}</span>
-          </div>
-          <table className="coleta-ecc-table">
-            <thead>
-              <tr>
-                <th>Ponto</th>
-                <th>Antes do ajuste</th>
-                <th>Depois do ajuste</th>
-              </tr>
-            </thead>
-            <tbody>
-              {excentricidade.pontos.map((pt, i) => (
-                <tr key={i}>
-                  <td>{i + 1}</td>
-                  <td>{pt.antes || ""}</td>
-                  <td>{pt.depois || ""}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="coleta-controle-fields">
-          <h2 className="coleta-sec-title-sm">5) Controle</h2>
-          <FieldRow label="Representante do Cliente" value={controle.representante_cliente} />
-          <FieldRow label="Conferido e Transcrito por" value={controle.conferido_por} />
-          <FieldRow label="Número do Certificado Emitido" value={controle.numero_certificado} />
-          <FieldRow label="Nome do Executor" value={controle.nome_executor} />
-          <FieldRow label="Data da Calibração" value={controle.data_calibracao_fmt} />
-          <div className="coleta-field-row">
-            <span className="coleta-label">Pontos de Calibração Solicitados pelo Cliente</span>
-            <PontosSolicitadosCheckboxes value={controle.pontos_solicitados} />
-          </div>
-        </div>
-      </div>
-
-      <h2 className="coleta-sec-title">6) Calibração da Balança</h2>
-      <p className="coleta-sec-title-sm" style={{ marginTop: 0 }}>
-        Ensaio de Repetitividade
-      </p>
-      <table className="coleta-cal-table">
-        <thead>
-          <tr>
-            <th />
-            <th className="col-peso">
-              Valor nominal do Peso de Referência aplicado
-            </th>
-            <th className="col-antes">Leitura antes do ajuste</th>
-            <th className="col-rep">Leitura 1</th>
-            <th className="col-rep">Leitura 2</th>
-            <th className="col-rep">Leitura 3</th>
-            <th className="col-ids">
-              Identificação do(s) Peso(s) Padrão de Referência aplicado
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {calibracaoRows.map((row) => (
-            <tr key={row.label}>
-              <td>{row.label}</td>
-              <td>{row.pesoNominal}</td>
-              <td>{row.antes}</td>
-              <td>{row.rep1}</td>
-              <td>{row.rep2}</td>
-              <td>{row.rep3}</td>
-              <td className="col-ids">{row.pesos}</td>
+      <AbsBlock style={FRENTE.sec4.title} className="coleta-txt-sec">
+        4) Ensaio de Excentricidade
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec4.valor} className="coleta-txt-body">
+        Valor Aplicado:{" "}
+        <span className="coleta-underline">{excentricidade.valor_aplicado || "\u00a0"}</span>
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec4.table}>
+        <table className="coleta-ecc-table">
+          <thead>
+            <tr>
+              <th style={{ width: "18%" }}>Ponto</th>
+              <th>Antes do ajuste</th>
+              <th>Depois do ajuste</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {excentricidade.pontos.map((pt, i) => (
+              <tr key={i}>
+                <td>{i + 1}</td>
+                <td>{pt.antes || ""}</td>
+                <td>{pt.depois || ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AbsBlock>
 
-      <footer className="coleta-pdf-footer">
-        <span />
-        <span className="coleta-pdf-footer-center">Página 1 de 2</span>
-        <span />
-      </footer>
+      <AbsBlock style={FRENTE.sec5.title} className="coleta-txt-sec">
+        5) Controle
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec5.block} className="coleta-controle-stack">
+        <div className="coleta-field-line">
+          <span>Representante do Cliente</span>
+          <span className="coleta-underline-block">{controle.representante_cliente || "\u00a0"}</span>
+        </div>
+        <div className="coleta-field-line">
+          <span>Conferido e Transcrito por</span>
+          <span className="coleta-underline-block">{controle.conferido_por || "\u00a0"}</span>
+        </div>
+        <div className="coleta-field-line">
+          <span>Número do Certificado Emitido</span>
+          <span className="coleta-underline-block">{controle.numero_certificado || "\u00a0"}</span>
+        </div>
+        <div className="coleta-field-line">
+          <span>Nome do Executor</span>
+          <span className="coleta-underline-block">{controle.nome_executor || "\u00a0"}</span>
+        </div>
+        <div className="coleta-field-line">
+          <span>Data da Calibração</span>
+          <span className="coleta-underline-block">{controle.data_calibracao_fmt || "\u00a0"}</span>
+        </div>
+        <div className="coleta-field-line coleta-txt-body">
+          <span>Pontos de Calibração Solicitados pelo Cliente</span>
+          <PontosSolicitadosCheckboxes value={controle.pontos_solicitados} />
+        </div>
+      </AbsBlock>
+
+      <AbsBlock style={FRENTE.sec6.title} className="coleta-txt-sec">
+        6) Calibração da Balança
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec6.subTitle} className="coleta-txt-sm">
+        Ensaio de Repetitividade
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec6.table}>
+        <table className="coleta-cal-table">
+          <thead>
+            <tr>
+              <th style={{ width: "4%" }} />
+              <th style={{ width: "14%" }}>
+                Valor nominal do Peso de
+                <br />
+                Referência aplicado
+              </th>
+              <th style={{ width: "11%" }}>
+                Leitura antes do
+                <br />
+                ajuste
+              </th>
+              <th style={{ width: "9%" }}>Leitura 1</th>
+              <th style={{ width: "9%" }}>Leitura 2</th>
+              <th style={{ width: "9%" }}>Leitura 3</th>
+              <th className="col-ids">
+                Identificação do(s) Peso(s) Padrão de Referência aplicado
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {calibracaoRows.map((row) => (
+              <tr key={row.label} style={{ height: `${CAL_ROW_HEIGHT_EM}em` }}>
+                <td>{row.label}</td>
+                <td>{row.pesoNominal}</td>
+                <td>{row.antes}</td>
+                <td>{row.rep1}</td>
+                <td>{row.rep2}</td>
+                <td>{row.rep3}</td>
+                <td className="col-ids">{row.pesos}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AbsBlock>
+
+      <AbsBlock style={FRENTE.footer} className="coleta-pdf-footer-line coleta-pdf-footer-center">
+        Página 1 de 2
+      </AbsBlock>
     </section>
   );
 }
+
+
+

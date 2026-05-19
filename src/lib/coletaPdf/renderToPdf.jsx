@@ -4,6 +4,7 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { ColetaPdfDocument } from "./ColetaPdfDocument";
 import { buildColetaPdfViewModel, coletaPdfFileSlug } from "./viewModel";
+import { PAGE_EM_H, PAGE_EM_W, PAGE_FONT_PT, PAGE_PX_H, PAGE_PX_W } from "./layoutSpec";
 
 const PAGE_W_MM = 210;
 const PAGE_H_MM = 297;
@@ -20,8 +21,15 @@ export async function renderColetaPdf(row, tenantName = "", opts = {}) {
 
   const container = document.createElement("div");
   container.setAttribute("data-coleta-pdf-export", "true");
-  container.style.cssText =
-    "position:fixed;left:-10000px;top:0;z-index:-1;pointer-events:none;";
+  container.style.cssText = [
+    "position:fixed",
+    "left:-10000px",
+    "top:0",
+    "z-index:-1",
+    "pointer-events:none",
+    `width:${PAGE_PX_W}px`,
+    `font-size:${PAGE_FONT_PT}pt`,
+  ].join(";");
   document.body.appendChild(container);
 
   const root = createRoot(container);
@@ -37,13 +45,19 @@ export async function renderColetaPdf(row, tenantName = "", opts = {}) {
 
   for (let i = 0; i < pages.length; i += 1) {
     const pageEl = pages[i];
+    pageEl.style.width = `${PAGE_EM_W}em`;
+    pageEl.style.height = `${PAGE_EM_H}em`;
+    pageEl.style.fontSize = `${PAGE_FONT_PT}pt`;
+
     const canvas = await html2canvas(pageEl, {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff",
       logging: false,
-      width: pageEl.offsetWidth,
-      height: pageEl.offsetHeight,
+      width: PAGE_PX_W,
+      height: PAGE_PX_H,
+      windowWidth: PAGE_PX_W,
+      windowHeight: PAGE_PX_H,
     });
     const img = canvas.toDataURL("image/png");
     if (i > 0) doc.addPage();
