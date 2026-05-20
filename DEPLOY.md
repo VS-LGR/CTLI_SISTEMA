@@ -11,6 +11,24 @@ Defina no painel do projeto Vercel (Settings → Environment Variables):
 | `REACT_APP_BACKEND_URL` | Opcional | URL base da API legada (documentos, etc.); omitir se ainda não existir backend. |
 | `REACT_APP_USE_MOCK_API` | Opcional | `true` apenas para demo local sem Supabase nem API. |
 
+### Backup (Edge Function `tenant-backup`) — ZIP local
+
+O backup **não** é guardado no Supabase Storage. O utilizador **gera e baixa** um `.zip` e guarda no PC; para recuperar, faz **upload** do mesmo ficheiro.
+
+Segredos na Edge Function `tenant-backup`:
+
+| Segredo | Obrigatório | Descrição |
+|---------|-------------|-----------|
+| `SUPABASE_SERVICE_ROLE_KEY` | Sim | Export/restore com service role. |
+| `LEGACY_API_URL` | Opcional | URL base da API de documentos (ex. `https://api.exemplo.com`). |
+| `LEGACY_API_SERVICE_TOKEN` | Opcional | Token de serviço para export/restore de documentos. |
+
+Migrações de backup (por ordem): `20250623000000` (colunas em `tenants`), depois **`20250624000000_tenant_backup_local_only.sql`** — remove tabela `tenant_backup_runs`, cron automático e histórico na nuvem. **Não** é necessário aplicar `20250623100000` (cron na nuvem) se usar só backup local.
+
+Após alterar a função: `supabase functions deploy tenant-backup`.
+
+**SQL Editor:** execute **um bloco de cada vez** em `20250624000000`. Limite de tamanho do ZIP na resposta: ~5 MB (Edge Function).
+
 O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`).
 
 ## Supabase (CLI)

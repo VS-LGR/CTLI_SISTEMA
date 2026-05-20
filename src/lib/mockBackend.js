@@ -2,6 +2,7 @@
  * Backend simulado para desenvolvimento local (sem API real).
  * Persistência: localStorage (chave pv_mock_db).
  */
+import { buildMockBackupZip, restoreMockBackupFromBlob } from "@/lib/mockBackupZip";
 
 const STORAGE_KEY = "pv_mock_db";
 
@@ -565,58 +566,51 @@ export function createMockApiClient() {
     const backupsList = path.match(/^\/tenants\/([^/]+)\/backups$/);
     if (method === "GET" && backupsList) {
       const tid = backupsList[1];
-      const b = db.backups[tid] || { last_backup_at: null, auto_interval_days: 20, backups: [] };
-      return { data: { ...b, backups: [...(b.backups || [])] } };
+      const b = db.backups[tid] || { last_backup_at: null, auto_interval_days: 20 };
+      return {
+        data: {
+          backups: [],
+          storage_mode: "local",
+          last_backup_at: b.last_backup_at ?? null,
+          auto_interval_days: b.auto_interval_days ?? 20,
+        },
+      };
     }
 
     const backupPost = path.match(/^\/tenants\/([^/]+)\/backup$/);
     if (method === "POST" && backupPost) {
       const tid = backupPost[1];
-      if (!db.backups[tid]) db.backups[tid] = { last_backup_at: null, auto_interval_days: 20, backups: [] };
-      const bid = `bk-${nextId(db, "backup")}`;
-      const docCount = db.documents.filter((d) => d.tenant_id === tid).length;
-      const row = {
-        id: bid,
-        filename: `backup-mock-${tid}-${Date.now()}.zip`,
-        created_at: new Date().toISOString(),
-        doc_count: docCount,
-        size_bytes: 1024 + docCount * 50,
-        source: "manual",
+      if (!db.backups[tid]) db.backups[tid] = { last_backup_at: null, auto_interval_days: 20 };
+      const built = await buildMockBackupZip(db, tid, "manual");
+      const created_at = new Date().toISOString();
+      db.backups[tid].last_backup_at = created_at;
+      saveDb(db);
+      return {
+        data: {
+          filename: `backup-mock-${tid}-${created_at.slice(0, 10)}.zip`,
+          created_at,
+          doc_count: built.doc_count,
+          size_bytes: built.size_bytes,
+          zip_base64: built.zipBase64,
+          legacy_api_available: true,
+          storage_mode: "local",
+        },
       };
-      db.backups[tid].backups.unshift(row);
-      db.backups[tid].last_backup_at = row.created_at;
-      saveDb(db);
-      return { data: row };
-    }
-
-    const bkDl = path.match(/^\/tenants\/([^/]+)\/backups\/([^/]+)\/download$/);
-    if (method === "GET" && bkDl && config && config.responseType === "blob") {
-      const [, tid, bid] = bkDl;
-      const row = (db.backups[tid]?.backups || []).find((x) => x.id === bid);
-      if (!row) return rejectApi(404, "Backup não encontrado");
-      const blob = new Blob([`Mock backup zip: ${row.filename}\n`], { type: "application/zip" });
-      return { data: blob };
-    }
-
-    const bkDel = path.match(/^\/tenants\/([^/]+)\/backups\/([^/]+)$/);
-    if (method === "DELETE" && bkDel) {
-      const [, tid, bid] = bkDel;
-      if (db.backups[tid]) {
-        db.backups[tid].backups = (db.backups[tid].backups || []).filter((x) => x.id !== bid);
-      }
-      saveDb(db);
-      return { data: { ok: true } };
     }
 
     const restoreMatch = path.match(/^\/tenants\/([^/]+)\/restore$/);
     if (method === "POST" && restoreMatch) {
-      return {
-        data: {
-          documents_restored: 0,
-          responsibles_restored: 0,
-          detail: "Mock: nenhum dado importado do ZIP (apenas simulação).",
-        },
-      };
+      const tid = restoreMatch[1];
+      const replace = mergedParams.replace === "true" || mergedParams.replace === true;
+      const file = readFormFile(data);
+      if (!file) return rejectApi(400, "Arquivo ZIP obrigatório");
+      try {
+        const result = await restoreMockBackupFromBlob(db, tid, file, replace);
+        saveDb(db);
+        return { data: result };
+      } catch (e) {
+        return rejectApi(400, String(e.message || e));
+      }
     }
 
     return rejectApi(404, `Mock: rota não implementada ${method} ${path}`);

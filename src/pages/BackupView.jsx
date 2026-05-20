@@ -1,21 +1,19 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
-import api, { asArray } from "@/lib/api";
+import {
+  listBackupStatus,
+  createAndDownloadBackup,
+  restoreBackup,
+  formatRestoreMessage,
+} from "@/lib/backupApi";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Database, DownloadSimple, Trash, UploadSimple, ClockClockwise, FileArchive, Warning, CheckCircle } from "@phosphor-icons/react";
+import { Database, DownloadSimple, UploadSimple, FileArchive, Warning, CheckCircle, HardDrives } from "@phosphor-icons/react";
 import { toast } from "sonner";
-
-const formatBytes = (b) => {
-  if (!b) return "0 B";
-  const k = 1024, sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(b) / Math.log(k));
-  return `${(b / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-};
 
 const formatDate = (s) => {
   if (!s) return "—";
@@ -34,7 +32,7 @@ const daysAgo = (s) => {
 
 const BackupView = () => {
   const { currentTenantId, currentTenant } = useOutletContext();
-  const [data, setData] = useState({ backups: [], last_backup_at: null, auto_interval_days: 20 });
+  const [status, setStatus] = useState({ last_backup_at: null, auto_interval_days: 20 });
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [openRestore, setOpenRestore] = useState(false);
@@ -44,9 +42,8 @@ const BackupView = () => {
   const load = useCallback(async () => {
     if (!currentTenantId) return;
     try {
-      const { data: raw } = await api.get(`/tenants/${currentTenantId}/backups`);
-      setData({
-        backups: asArray(raw?.backups ?? raw),
+      const raw = await listBackupStatus(currentTenantId);
+      setStatus({
         last_backup_at: raw?.last_backup_at ?? null,
         auto_interval_days: raw?.auto_interval_days ?? 20,
       });
@@ -61,60 +58,42 @@ const BackupView = () => {
     return <div className="text-slate-600">Selecione um ambiente de cliente.</div>;
   }
 
-  const createBackup = async () => {
+  const generateAndDownload = async () => {
     setBusy(true);
     try {
-      await api.post(`/tenants/${currentTenantId}/backup`);
-      toast.success("Backup criado");
+      const result = await createAndDownloadBackup(currentTenantId);
+      toast.success(
+        result?.legacy_api_available === false
+          ? "ZIP baixado. Documentos da API legada não foram incluídos — guarde o ficheiro em local seguro."
+          : "ZIP baixado. Guarde o ficheiro no seu computador ou rede da empresa.",
+      );
       await load();
-    } catch { toast.error("Falha ao criar backup"); }
-    finally { setBusy(false); }
-  };
-
-  const download = async (b) => {
-    try {
-      const res = await api.get(`/tenants/${currentTenantId}/backups/${b.id}/download`, { responseType: "blob" });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url; a.download = b.filename; a.click();
-      URL.revokeObjectURL(url);
-    } catch { toast.error("Falha ao baixar"); }
-  };
-
-  const remove = async (b) => {
-    if (!window.confirm(`Excluir o backup "${b.filename}"?`)) return;
-    try {
-      await api.delete(`/tenants/${currentTenantId}/backups/${b.id}`);
-      toast.success("Excluído");
-      await load();
-    } catch { toast.error("Falha"); }
+    } catch (e) {
+      toast.error(e?.message || "Falha ao gerar backup");
+    } finally { setBusy(false); }
   };
 
   const restore = async (file) => {
     if (!window.confirm(replace
-      ? "Atenção: o modo SUBSTITUIR irá APAGAR todos os documentos e responsáveis atuais antes de restaurar. Continuar?"
-      : "Restaurar este backup (acrescentar)?"
+      ? "Atenção: o modo SUBSTITUIR irá APAGAR os dados atuais do ambiente antes de restaurar. Continuar?"
+      : "Restaurar este backup (acrescentar dados do ZIP)?"
     )) return;
     setRestoring(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const { data } = await api.post(`/tenants/${currentTenantId}/restore?replace=${replace}`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      toast.success(`Restaurados ${data.documents_restored} documentos e ${data.responsibles_restored} responsáveis`);
+      const result = await restoreBackup(currentTenantId, file, replace);
+      toast.success(formatRestoreMessage(result));
       setOpenRestore(false);
       await load();
     } catch (e) {
-      const msg = e.response?.data?.detail || "Falha na restauração";
+      const msg = e?.response?.data?.detail || e?.message || "Falha na restauração";
       toast.error(typeof msg === "string" ? msg : "Falha");
     } finally { setRestoring(false); }
   };
 
-  const lastDays = daysAgo(data.last_backup_at);
-  const status = lastDays === null ? "never"
-    : lastDays > data.auto_interval_days ? "overdue"
-    : lastDays > data.auto_interval_days - 5 ? "soon" : "ok";
+  const lastDays = daysAgo(status.last_backup_at);
+  const health = lastDays === null ? "never"
+    : lastDays > status.auto_interval_days ? "overdue"
+    : lastDays > status.auto_interval_days - 5 ? "soon" : "ok";
 
   return (
     <div className="space-y-6" data-testid="backup-view">
@@ -122,7 +101,8 @@ const BackupView = () => {
         <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Backup do sistema</div>
         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Backup &amp; Restauração</h1>
         <p className="text-sm text-slate-600 mt-1">
-          Ambiente: <span className="font-medium text-slate-800">{currentTenant?.name}</span>. Backup automático a cada {data.auto_interval_days} dias.
+          Ambiente: <span className="font-medium text-slate-800">{currentTenant?.name}</span>.
+          Os backups são ficheiros <strong>.zip</strong> no seu computador — não ficam guardados na nuvem.
         </p>
       </div>
 
@@ -130,18 +110,21 @@ const BackupView = () => {
         <Card className="border-slate-200 md:col-span-2">
           <CardContent className="p-6 flex items-start justify-between gap-4">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Último backup</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Último backup gerado</div>
               <div className="font-display text-2xl font-bold mt-2">
-                {formatDate(data.last_backup_at)}
+                {formatDate(status.last_backup_at)}
               </div>
-              <div className="mt-2 flex items-center gap-2">
-                {status === "ok" && (<Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100"><CheckCircle size={14} className="mr-1" /> Em dia ({lastDays}d atrás)</Badge>)}
-                {status === "soon" && (<Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100"><Warning size={14} className="mr-1" /> Próximo do limite ({lastDays}d)</Badge>)}
-                {status === "overdue" && (<Badge className="bg-red-100 text-red-700 hover:bg-red-100"><Warning size={14} className="mr-1" /> Atrasado ({lastDays}d)</Badge>)}
-                {status === "never" && (<Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100"><Warning size={14} className="mr-1" /> Nunca executado</Badge>)}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {health === "ok" && (<Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100"><CheckCircle size={14} className="mr-1" /> Em dia ({lastDays}d atrás)</Badge>)}
+                {health === "soon" && (<Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100"><Warning size={14} className="mr-1" /> Próximo do limite ({lastDays}d)</Badge>)}
+                {health === "overdue" && (<Badge className="bg-red-100 text-red-700 hover:bg-red-100"><Warning size={14} className="mr-1" /> Atrasado ({lastDays}d)</Badge>)}
+                {health === "never" && (<Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100"><Warning size={14} className="mr-1" /> Nunca executado</Badge>)}
               </div>
+              <p className="text-xs text-slate-500 mt-3">
+                Recomendado: novo ZIP a cada {status.auto_interval_days} dias. Para recuperar dados antigos, use &quot;Restaurar&quot; com o ZIP guardado nessa data.
+              </p>
             </div>
-            <Database size={36} className="text-blue-600" weight="duotone" />
+            <Database size={36} className="text-blue-600 shrink-0" weight="duotone" />
           </CardContent>
         </Card>
 
@@ -149,25 +132,27 @@ const BackupView = () => {
           <CardContent className="p-6">
             <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Ações</div>
             <div className="space-y-2 mt-3">
-              <Button onClick={createBackup} disabled={busy} className="w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="create-backup-btn">
-                <FileArchive size={16} className="mr-1.5" /> {busy ? "Gerando…" : "Gerar backup agora"}
+              <Button onClick={generateAndDownload} disabled={busy} className="w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="create-backup-btn">
+                <DownloadSimple size={16} className="mr-1.5" /> {busy ? "Gerando ZIP…" : "Gerar e baixar backup"}
               </Button>
               <Dialog open={openRestore} onOpenChange={setOpenRestore}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="w-full" data-testid="open-restore-btn">
-                    <UploadSimple size={16} className="mr-1.5" /> Restaurar backup
+                    <UploadSimple size={16} className="mr-1.5" /> Restaurar de ZIP
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle className="font-display">Restaurar backup (.zip)</DialogTitle>
-                    <p className="text-sm text-slate-500 mt-1">Faça upload de um arquivo de backup gerado anteriormente.</p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Selecione um ficheiro .zip que tenha sido gerado e guardado anteriormente neste ambiente.
+                    </p>
                   </DialogHeader>
                   <div className="space-y-4 mt-2">
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} data-testid="replace-checkbox" />
                       <span>
-                        <strong>Modo substituir</strong> — apaga documentos e responsáveis atuais antes (cuidado!)
+                        <strong>Modo substituir</strong> — apaga os dados atuais do ambiente antes (cuidado!)
                       </span>
                     </label>
                     <input ref={fileRef} type="file" accept=".zip" hidden
@@ -186,47 +171,17 @@ const BackupView = () => {
         </Card>
       </div>
 
-      <Card className="border-slate-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="font-display text-lg flex items-center gap-2"><ClockClockwise size={18} /> Histórico de backups</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {data.backups.length === 0 ? (
-            <div className="text-center py-12 text-sm text-slate-500">
-              <FileArchive size={36} className="mx-auto text-slate-300 mb-2" />
-              Nenhum backup gerado ainda. Clique em "Gerar backup agora".
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="border-b border-slate-200">
-                <tr className="text-left text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  <th className="px-2 py-3">Arquivo</th>
-                  <th className="px-2 py-3">Data</th>
-                  <th className="px-2 py-3">Documentos</th>
-                  <th className="px-2 py-3">Tamanho</th>
-                  <th className="px-2 py-3">Origem</th>
-                  <th className="px-2 py-3 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.backups.map((b) => (
-                  <tr key={b.id} data-testid={`backup-row-${b.id}`} className="hover:bg-slate-50">
-                    <td className="px-2 py-3 font-mono text-xs">{b.filename}</td>
-                    <td className="px-2 py-3 text-slate-600">{formatDate(b.created_at)}</td>
-                    <td className="px-2 py-3">{b.doc_count}</td>
-                    <td className="px-2 py-3 text-slate-600">{formatBytes(b.size_bytes)}</td>
-                    <td className="px-2 py-3">
-                      <Badge variant="outline" className="text-[10px]">{b.source === "auto" ? "Automático" : "Manual"}</Badge>
-                    </td>
-                    <td className="px-2 py-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => download(b)} data-testid={`download-backup-${b.id}`}><DownloadSimple size={16} /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => remove(b)} className="text-red-600 hover:text-red-700" data-testid={`delete-backup-${b.id}`}><Trash size={16} /></Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      <Card className="border-slate-200 bg-slate-50/50">
+        <CardContent className="p-6 flex gap-4 items-start">
+          <HardDrives size={28} className="text-slate-500 shrink-0 mt-0.5" weight="duotone" />
+          <div className="text-sm text-slate-600 space-y-2">
+            <p className="font-medium text-slate-800">Como funciona</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Gerar e baixar</strong> — cria um ZIP com cadastros, coleta, anexos e (se configurado) documentos da API legada.</li>
+              <li>Guarde o ZIP em pasta segura (PC, servidor ou nuvem da empresa).</li>
+              <li><strong>Restaurar de ZIP</strong> — envia o ficheiro para repor dados neste ambiente; não é necessário ter o backup no Supabase.</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
     </div>
