@@ -22,6 +22,10 @@ export const canAccessColeta = (role) =>
 export const canManageTechnicians = (role) =>
   role === "admin" || role === "client";
 
+/** Lembretes na dashboard: criar, ler e excluir (admin CTLI + conta cliente). */
+export const canManageDashboardReminders = (role) =>
+  role === "admin" || role === "client";
+
 export const isTechnicianOnlyNav = (role) => role === "tecnico_campo";
 
 export const roleLabel = (value) => ROLES.find((r) => r.value === value)?.label || value || "—";

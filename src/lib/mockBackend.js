@@ -13,6 +13,40 @@ const REQ_NAMES = {
   "8": "Requisitos de Gestão",
 };
 
+const nowIso = () => new Date().toISOString();
+
+function docTimestamps(overrides = {}) {
+  const t = nowIso();
+  return {
+    created_at: overrides.created_at || t,
+    updated_at: overrides.updated_at || t,
+    pinned_at: overrides.pinned_at ?? null,
+  };
+}
+
+function mapDocSummary(d) {
+  return {
+    id: d.id,
+    title: d.title,
+    requirement: d.requirement,
+    section: d.section,
+    status: d.status,
+    version: d.version,
+    responsible: d.responsible,
+    updated_at: d.updated_at,
+    created_at: d.created_at,
+    pinned_at: d.pinned_at,
+  };
+}
+
+function ensureDocumentFields(doc) {
+  const t = nowIso();
+  if (!doc.created_at) doc.created_at = t;
+  if (!doc.updated_at) doc.updated_at = doc.created_at;
+  if (doc.pinned_at === undefined) doc.pinned_at = null;
+  return doc;
+}
+
 const seedDb = () => ({
   tenants: [
     {
@@ -54,6 +88,7 @@ const seedDb = () => ({
       has_file: false,
       file_name: null,
       folder_key: null,
+      ...docTimestamps({ created_at: "2026-05-10T10:00:00.000Z", updated_at: "2026-05-18T14:30:00.000Z" }),
     },
     {
       id: "doc-demo-2",
@@ -70,8 +105,10 @@ const seedDb = () => ({
       status: "vigente",
       has_file: false,
       file_name: null,
+      ...docTimestamps({ created_at: "2026-05-01T08:00:00.000Z", updated_at: "2026-05-15T09:00:00.000Z" }),
     },
   ],
+  dashboard_reminders: {},
   backups: {
     "demo-tenant-1": {
       last_backup_at: null,
@@ -79,7 +116,7 @@ const seedDb = () => ({
       backups: [],
     },
   },
-  counters: { doc: 2, user: 1, resp: 2, backup: 0, tenant: 1 },
+  counters: { doc: 2, user: 1, resp: 2, backup: 0, tenant: 1, reminder: 0 },
 });
 
 function loadDb() {
@@ -92,7 +129,11 @@ function loadDb() {
       ...base,
       ...parsed,
       tenants: Array.isArray(parsed.tenants) ? parsed.tenants : base.tenants,
-      documents: Array.isArray(parsed.documents) ? parsed.documents : base.documents,
+      documents: (Array.isArray(parsed.documents) ? parsed.documents : base.documents).map(ensureDocumentFields),
+      dashboard_reminders:
+        parsed.dashboard_reminders && typeof parsed.dashboard_reminders === "object"
+          ? parsed.dashboard_reminders
+          : base.dashboard_reminders,
       users: parsed.users && typeof parsed.users === "object" ? parsed.users : base.users,
       responsibles: parsed.responsibles && typeof parsed.responsibles === "object" ? parsed.responsibles : base.responsibles,
       backups: parsed.backups && typeof parsed.backups === "object" ? parsed.backups : base.backups,
@@ -179,24 +220,42 @@ function buildDashboard(db, tenantId) {
     };
   }
 
-  const recent_updates = [...docs]
-    .sort(() => 0)
+  const recent_documents = [...docs]
+    .sort((a, b) => {
+      const ta = new Date(b.updated_at || b.created_at || 0).getTime();
+      const tb = new Date(a.updated_at || a.created_at || 0).getTime();
+      return ta - tb;
+    })
     .slice(0, 8)
-    .map((d) => ({
-      id: d.id,
-      title: d.title,
-      requirement: d.requirement,
-      section: d.section,
-      status: d.status,
-    }));
+    .map(mapDocSummary);
+
+  const pinned_documents = docs
+    .filter((d) => d.pinned_at)
+    .sort((a, b) => new Date(b.pinned_at).getTime() - new Date(a.pinned_at).getTime())
+    .map(mapDocSummary);
+
+  const reminders = [...(db.dashboard_reminders?.[tenantId] || [])].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
 
   return {
     total_documents,
     by_status,
     near_review,
     by_requirement,
-    recent_updates,
+    recent_documents,
+    pinned_documents,
+    reminders,
   };
+}
+
+function getSessionUser() {
+  try {
+    const raw = localStorage.getItem("pv_mock_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
 function nextId(db, key) {
@@ -347,6 +406,7 @@ export function createMockApiClient() {
       const src = db.documents.find((d) => d.id === dupMatch[1]);
       if (!src) return rejectApi(404, "Documento não encontrado");
       const nid = `doc-${nextId(db, "doc")}`;
+      const ts = docTimestamps();
       const copy = {
         ...src,
         id: nid,
@@ -359,6 +419,8 @@ export function createMockApiClient() {
         status: "vigente",
         has_file: false,
         file_name: null,
+        pinned_at: null,
+        ...ts,
       };
       db.documents.push(copy);
       saveDb(db);
@@ -372,6 +434,7 @@ export function createMockApiClient() {
       const file = readFormFile(data);
       doc.has_file = true;
       doc.file_name = file ? file.name : "anexo.bin";
+      doc.updated_at = nowIso();
       if (file && (file.name || "").toLowerCase().endsWith(".docx")) {
         doc.content_html = `<p><em>Mock:</em> ficheiro <strong>${doc.file_name}</strong> anexado (conteúdo real não foi convertido).</p>`;
       }
@@ -409,7 +472,12 @@ export function createMockApiClient() {
     if (method === "PUT" && docIdMatch) {
       const doc = db.documents.find((d) => d.id === docIdMatch[1]);
       if (!doc) return rejectApi(404, "Não encontrado");
+      if (data && typeof data.pinned === "boolean") {
+        doc.pinned_at = data.pinned ? nowIso() : null;
+        delete data.pinned;
+      }
       Object.assign(doc, data);
+      doc.updated_at = nowIso();
       saveDb(db);
       return { data: { ...doc } };
     }
@@ -437,6 +505,7 @@ export function createMockApiClient() {
         has_file: false,
         file_name: null,
         folder_key: data.folder_key != null && data.folder_key !== "" ? String(data.folder_key) : null,
+        ...docTimestamps(),
       };
       db.documents.push(row);
       saveDb(db);
@@ -448,6 +517,48 @@ export function createMockApiClient() {
       const tenant_id = mergedParams.tenant_id;
       if (!tenant_id) return rejectApi(400, "tenant_id obrigatório");
       return { data: buildDashboard(db, tenant_id) };
+    }
+
+    if (method === "POST" && path === "/dashboard/reminders") {
+      const { tenant_id, text } = data || {};
+      if (!tenant_id) return rejectApi(400, "tenant_id obrigatório");
+      if (!text || !String(text).trim()) return rejectApi(400, "Informe o texto do lembrete");
+      const user = getSessionUser();
+      if (!user || !["admin", "client"].includes(user.role)) {
+        return rejectApi(403, "Sem permissão para criar lembretes");
+      }
+      if (!db.dashboard_reminders) db.dashboard_reminders = {};
+      if (!db.dashboard_reminders[tenant_id]) db.dashboard_reminders[tenant_id] = [];
+      const row = {
+        id: `rem-${nextId(db, "reminder")}`,
+        tenant_id,
+        text: String(text).trim(),
+        created_by_id: user.id,
+        created_by_name: user.name || user.email || "Utilizador",
+        created_at: nowIso(),
+      };
+      db.dashboard_reminders[tenant_id].unshift(row);
+      saveDb(db);
+      return { data: row };
+    }
+
+    const remDelMatch = path.match(/^\/dashboard\/reminders\/([^/]+)$/);
+    if (method === "DELETE" && remDelMatch) {
+      const tenant_id = mergedParams.tenant_id;
+      if (!tenant_id) return rejectApi(400, "tenant_id obrigatório");
+      const user = getSessionUser();
+      if (!user || !["admin", "client"].includes(user.role)) {
+        return rejectApi(403, "Sem permissão");
+      }
+      const list = db.dashboard_reminders?.[tenant_id] || [];
+      const item = list.find((r) => r.id === remDelMatch[1]);
+      if (!item) return rejectApi(404, "Lembrete não encontrado");
+      if (user.role !== "admin" && item.created_by_id !== user.id) {
+        return rejectApi(403, "Só pode excluir os seus lembretes");
+      }
+      db.dashboard_reminders[tenant_id] = list.filter((r) => r.id !== remDelMatch[1]);
+      saveDb(db);
+      return { data: { ok: true } };
     }
 
     // —— Backups ——

@@ -13,7 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DownloadSimple, FileText, FilePdf, FileDoc, ArrowsClockwise, Trash, PencilSimple, Upload, Archive } from "@phosphor-icons/react";
+import {
+  Plus, DownloadSimple, FileText, FilePdf, FileDoc, ArrowsClockwise, Trash, PencilSimple, Upload, Archive,
+  PushPin,
+} from "@phosphor-icons/react";
+import { toggleDocumentPin } from "@/lib/dashboardApi";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -172,6 +176,15 @@ const DocRow = ({ doc, onUpdate, onDelete }) => {
     } catch { toast.error("Falha ao atualizar"); }
   };
 
+  const togglePin = async () => {
+    const next = !doc.pinned_at;
+    try {
+      const { data } = await toggleDocumentPin(doc.id, next);
+      toast.success(next ? "Marcado na dashboard" : "Removido da dashboard");
+      onUpdate?.(data);
+    } catch { toast.error("Falha ao atualizar pin"); }
+  };
+
   const deleteDoc = async () => {
     if (!window.confirm("Excluir este documento permanentemente?")) return;
     try {
@@ -189,6 +202,12 @@ const DocRow = ({ doc, onUpdate, onDelete }) => {
           {doc.code && <span className="font-mono">Emissão: {doc.code}</span>}
           <span>Rev. {doc.version}</span>
           {doc.has_file && <Badge variant="outline" className="text-[10px] py-0">arquivo anexo</Badge>}
+          {doc.pinned_at && (
+            <Badge className="text-[10px] py-0 bg-amber-50 text-amber-800 border-amber-100 hover:bg-amber-50">
+              <PushPin size={10} weight="fill" className="mr-0.5 inline" />
+              Dashboard
+            </Badge>
+          )}
         </div>
       </td>
       <td className="px-4 py-3 text-sm text-slate-600">{doc.responsible || "—"}</td>
@@ -214,6 +233,16 @@ const DocRow = ({ doc, onUpdate, onDelete }) => {
           </Button>
           <Button variant="ghost" size="sm" onClick={() => downloadExport("docx")} title="Exportar Word" data-testid={`export-docx-${doc.id}`}>
             <FileDoc size={16} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={togglePin}
+            title={doc.pinned_at ? "Remover da dashboard" : "Marcar na dashboard"}
+            className={doc.pinned_at ? "text-amber-600" : "text-slate-500"}
+            data-testid={`toggle-pin-${doc.id}`}
+          >
+            <PushPin size={16} weight={doc.pinned_at ? "fill" : "regular"} />
           </Button>
           <Link to={`/document/${doc.id}`}><Button variant="ghost" size="sm" title="Editar"><PencilSimple size={16} /></Button></Link>
           <Button variant="ghost" size="sm" onClick={toggleStatus} title={doc.status === "vigente" ? "Mover para obsoletos" : "Reativar"} data-testid={`toggle-status-${doc.id}`}>

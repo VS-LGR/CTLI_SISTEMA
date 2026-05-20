@@ -10,9 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
-import { FloppyDisk, FilePdf, FileDoc, Upload, DownloadSimple, ArrowLeft, Archive, ArrowsClockwise, Copy, Eye, PencilSimple } from "@phosphor-icons/react";
+import {
+  FloppyDisk, FilePdf, FileDoc, Upload, DownloadSimple, ArrowLeft, Archive, ArrowsClockwise,
+  Copy, Eye, PencilSimple, PushPin, PushPinSlash,
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
+import { toggleDocumentPin } from "@/lib/dashboardApi";
 import { REQ_NAMES, buildRequirementListPath } from "@/lib/requirementNavConfig";
 
 const SaveAsDialog = ({ doc, onCreated }) => {
@@ -160,6 +164,15 @@ const DocumentEditor = () => {
     } catch { toast.error("Falha ao atualizar"); }
   };
 
+  const togglePin = async () => {
+    const next = !doc.pinned_at;
+    try {
+      const { data } = await toggleDocumentPin(id, next);
+      setDoc((p) => ({ ...data, content_html: p.content_html }));
+      toast.success(next ? "Marcado na dashboard" : "Removido da dashboard");
+    } catch { toast.error("Falha ao atualizar pin"); }
+  };
+
   if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
 
   return (
@@ -190,6 +203,18 @@ const DocumentEditor = () => {
           {doc.has_file && <Button variant="outline" onClick={downloadOriginal} data-testid="download-original-btn"><DownloadSimple size={16} className="mr-1.5" /> Baixar original</Button>}
           <Button variant="outline" onClick={() => exportFile("pdf")} data-testid="export-pdf-btn"><FilePdf size={16} className="mr-1.5" /> PDF</Button>
           <Button variant="outline" onClick={() => exportFile("docx")} data-testid="export-docx-btn"><FileDoc size={16} className="mr-1.5" /> Word</Button>
+          <Button
+            variant="outline"
+            onClick={togglePin}
+            data-testid="toggle-pin-btn"
+            className={doc.pinned_at ? "border-amber-300 bg-amber-50 text-amber-800" : ""}
+          >
+            {doc.pinned_at ? (
+              <><PushPinSlash size={16} className="mr-1.5" /> Remover da dashboard</>
+            ) : (
+              <><PushPin size={16} className="mr-1.5" /> Marcar na dashboard</>
+            )}
+          </Button>
           <Button variant="outline" onClick={toggleStatus} data-testid="toggle-status-btn">
             {doc.status === "vigente" ? <><Archive size={16} className="mr-1.5" /> Obsoleto</> : <><ArrowsClockwise size={16} className="mr-1.5" /> Reativar</>}
           </Button>
