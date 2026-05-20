@@ -2,7 +2,7 @@ import {
   mergeColetaPayload,
   SUBSTITUICAO_LINHA_DEFS,
   isSubstituicaoLinhaSoloL,
-  envCertLabel,
+  envCertIdentification,
   formatPesosIds,
 } from "../coletaSchema";
 import { coletaDocMetaFromTenant } from "../coletaDocMeta";
@@ -24,10 +24,10 @@ export function buildColetaPdfViewModel(
   const prop = row?.commercial_proposal_ref || "";
 
   const thermoLabel = p.ambiente.thermo_cert_id
-    ? envCertLabel(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id))
+    ? envCertIdentification(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id))
     : "";
   const thermoLabel2 = p.ambiente.thermo_cert_id_2
-    ? envCertLabel(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id_2))
+    ? envCertIdentification(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id_2))
     : "";
 
   const calibracaoRows = p.calibracao.pontos.map((pt, i) => ({

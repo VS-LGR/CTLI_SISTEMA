@@ -1,4 +1,4 @@
-import { mergeColetaPayload, envCertLabel } from "./coletaSchema";
+import { mergeColetaPayload, envCertIdentification } from "./coletaSchema";
 import { fmtDmyShortForExport } from "./dateFormat";
 
 /**
@@ -50,12 +50,12 @@ export function buildColetaVbaLines(row, { envCerts = [] } = {}) {
   push(
     SHEET_COLETA,
     "J",
-    envCertLabel(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id)),
+    envCertIdentification(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id)),
   );
   push(
     SHEET_COLETA,
     "K",
-    envCertLabel(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id_2)),
+    envCertIdentification(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id_2)),
   );
   push(SHEET_COLETA, "O", p.ambiente.temp_inicial);
   push(SHEET_COLETA, "P", p.ambiente.umidade_inicial);

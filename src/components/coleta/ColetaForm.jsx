@@ -9,7 +9,7 @@ import {
   TRI_STATE_OPTIONS,
   BINARY_OPTIONS,
   UNIDADE_OPTIONS,
-  envCertLabel,
+  envCertIdentification,
 } from "@/lib/coletaSchema";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
 import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
@@ -171,7 +171,7 @@ export default function ColetaForm({
             >
               <option value="">Selecionar equipamento…</option>
               {envCerts.map((e) => (
-                <option key={e.id} value={e.id}>{envCertLabel(e)}</option>
+                <option key={e.id} value={e.id}>{envCertIdentification(e)}</option>
               ))}
             </select>
           </Field>
@@ -183,7 +183,7 @@ export default function ColetaForm({
             >
               <option value="">Selecionar equipamento…</option>
               {envCerts.map((e) => (
-                <option key={e.id} value={e.id}>{envCertLabel(e)}</option>
+                <option key={e.id} value={e.id}>{envCertIdentification(e)}</option>
               ))}
             </select>
           </Field>

@@ -287,9 +287,16 @@ export function weightCertLabel(w) {
   return w.class ? `${base} (Classe ${w.class})` : base;
 }
 
+/** Rótulo completo (cadastros, listagens). */
 export function envCertLabel(e) {
   if (!e) return "—";
   return [e.equipment_name, e.certificate_number].filter(Boolean).join(" — ") || "Equipamento";
+}
+
+/** Identificação do termo-baro na coleta, PDF e export VBA — só nome do equipamento. */
+export function envCertIdentification(e) {
+  if (!e) return "—";
+  return (e.equipment_name || "").trim() || "Equipamento";
 }
 
 export function triStateLabel(v) {
