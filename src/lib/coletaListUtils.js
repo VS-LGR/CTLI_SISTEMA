@@ -6,16 +6,26 @@ function norm(s) {
 
 /**
  * @param {Array<Record<string, unknown>>} rows
- * @param {{ client?: string, serial?: string, date?: string }} filters
+ * @param {{ query?: string, pdfStatus?: string, date?: string }} filters
  */
-export function filterColetaRows(rows, { client = "", serial = "", date = "" } = {}) {
-  const c = norm(client);
-  const ser = norm(serial);
+export function filterColetaRows(rows, { query = "", pdfStatus = "all", date = "" } = {}) {
+  const q = norm(query);
   const d = String(date ?? "").trim();
 
   return (rows || []).filter((row) => {
-    if (c && !norm(row.client_name).includes(c)) return false;
-    if (ser && !norm(row.scale_serial).includes(ser)) return false;
+    if (q) {
+      const haystack = [
+        row.client_name,
+        row.scale_serial,
+        row.commercial_proposal_ref,
+        row.responsible_name,
+      ]
+        .map(norm)
+        .join(" ");
+      if (!haystack.includes(q)) return false;
+    }
+    if (pdfStatus === "downloaded" && !row.pdf_downloaded_at) return false;
+    if (pdfStatus === "pending" && row.pdf_downloaded_at) return false;
     if (d) {
       const rowDate = row.calibration_date ? String(row.calibration_date).slice(0, 10) : "";
       if (rowDate !== d) return false;
@@ -25,7 +35,11 @@ export function filterColetaRows(rows, { client = "", serial = "", date = "" } =
 }
 
 export function hasActiveColetaFilters(filters) {
-  return Boolean(filters?.client?.trim() || filters?.serial?.trim() || filters?.date?.trim());
+  return Boolean(
+    filters?.query?.trim()
+    || (filters?.pdfStatus && filters.pdfStatus !== "all")
+    || filters?.date?.trim(),
+  );
 }
 
 /** @param {string | null | undefined} iso */

@@ -6,8 +6,10 @@ import { isSupabaseAuthMode } from "@/lib/api";
 import { canAccessColeta } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -33,7 +35,10 @@ function fmtDmy(iso) {
   return `${d}/${m}/${y}`;
 }
 
-const EMPTY_FILTERS = { client: "", serial: "", date: "" };
+const EMPTY_FILTERS = { query: "", pdfStatus: "all", date: "" };
+
+const filterFieldClass =
+  "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
 
 function KpiCard({ label, value, icon: Icon, tint = "blue", testId }) {
   const tones = {
@@ -257,61 +262,70 @@ const ColetaPage = ({ embedded = false }) => {
         />
       </div>
 
-      <Card className="border-slate-200" data-testid="coleta-filters">
-        <CardContent className="p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <MagnifyingGlass size={18} className="text-slate-500" />
-            <span className="text-sm font-medium text-slate-800">Buscar coletas</span>
+      <div
+        className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm"
+        data-testid="coleta-filters"
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <MagnifyingGlass
+              size={18}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            />
+            <Input
+              value={filters.query}
+              onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
+              placeholder="Buscar por cliente, nº de série, proposta comercial…"
+              className={`${filterFieldClass} pl-10`}
+              data-testid="coleta-filter-search"
+            />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-            <div>
-              <Label htmlFor="coleta-filter-client">Cliente</Label>
-              <Input
-                id="coleta-filter-client"
-                value={filters.client}
-                onChange={(e) => setFilters((f) => ({ ...f, client: e.target.value }))}
-                placeholder="Nome do cliente"
-                className="mt-1"
-                data-testid="coleta-filter-client"
-              />
-            </div>
-            <div>
-              <Label htmlFor="coleta-filter-serial">Nº de série</Label>
-              <Input
-                id="coleta-filter-serial"
-                value={filters.serial}
-                onChange={(e) => setFilters((f) => ({ ...f, serial: e.target.value }))}
-                placeholder="Série da balança"
-                className="mt-1 font-mono text-sm"
-                data-testid="coleta-filter-serial"
-              />
-            </div>
-            <div>
-              <Label htmlFor="coleta-filter-date">Data calibração</Label>
-              <Input
-                id="coleta-filter-date"
-                type="date"
-                value={filters.date}
-                onChange={(e) => setFilters((f) => ({ ...f, date: e.target.value }))}
-                className="mt-1"
-                data-testid="coleta-filter-date"
-              />
-            </div>
-            <div className="flex gap-2 sm:pb-0.5">
-              {filtersActive && (
-                <Button type="button" variant="outline" onClick={clearFilters} data-testid="coleta-filter-clear">
-                  Limpar
-                </Button>
-              )}
-            </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center shrink-0">
+            <Select
+              value={filters.pdfStatus}
+              onValueChange={(v) => setFilters((f) => ({ ...f, pdfStatus: v }))}
+            >
+              <SelectTrigger
+                className={`${filterFieldClass} w-full sm:w-[11.5rem]`}
+                data-testid="coleta-filter-pdf-status"
+              >
+                <SelectValue placeholder="Status PDF" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos status</SelectItem>
+                <SelectItem value="downloaded">PDF baixado</SelectItem>
+                <SelectItem value="pending">PDF pendente</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="date"
+              value={filters.date}
+              onChange={(e) => setFilters((f) => ({ ...f, date: e.target.value }))}
+              className={`${filterFieldClass} w-full sm:w-[11.5rem] text-slate-600 ${!filters.date ? "text-slate-400" : ""}`}
+              title="Filtrar por data de calibração"
+              data-testid="coleta-filter-date"
+            />
           </div>
-          {filtersActive && (
-            <p className="text-xs text-slate-500 mt-3">
+        </div>
+        {filtersActive && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+            <p className="text-xs text-slate-500">
               A mostrar {kpisFiltered.total} de {kpisAll.total} coleta(s).
             </p>
-          )}
-        </CardContent>
-      </Card>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 text-slate-600"
+              onClick={clearFilters}
+              data-testid="coleta-filter-clear"
+            >
+              Limpar filtros
+            </Button>
+          </div>
+        )}
+      </div>
 
       {loading ? (
         <p className="text-sm text-slate-500 py-8 text-center">A carregar…</p>
