@@ -33,6 +33,20 @@ if (!isMockApiMode && BACKEND_URL) {
   });
 }
 
+/** Normaliza corpo de listagem da API (array direto ou envelope `{ items, documents, ... }`). */
+export function asArray(data) {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object") {
+    for (const key of ["items", "results", "data", "documents", "tenants", "responsibles", "backups"]) {
+      if (Array.isArray(data[key])) return data[key];
+    }
+  }
+  if (process.env.NODE_ENV === "development" && data != null) {
+    console.warn("[asArray] Resposta de lista não reconhecida:", data);
+  }
+  return [];
+}
+
 export function formatApiError(detail) {
   if (detail == null) return "Algo deu errado. Tente novamente.";
   if (typeof detail === "string") return detail;

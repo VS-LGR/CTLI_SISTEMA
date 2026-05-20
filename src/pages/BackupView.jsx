@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
-import api from "@/lib/api";
+import api, { asArray } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,8 +44,12 @@ const BackupView = () => {
   const load = useCallback(async () => {
     if (!currentTenantId) return;
     try {
-      const { data } = await api.get(`/tenants/${currentTenantId}/backups`);
-      setData(data);
+      const { data: raw } = await api.get(`/tenants/${currentTenantId}/backups`);
+      setData({
+        backups: asArray(raw?.backups ?? raw),
+        last_backup_at: raw?.last_backup_at ?? null,
+        auto_interval_days: raw?.auto_interval_days ?? 20,
+      });
     } catch { /* ignore */ }
   }, [currentTenantId]);
 

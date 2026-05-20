@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import api, { isSupabaseAuthMode } from "@/lib/api";
+import api, { asArray, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
@@ -65,10 +65,10 @@ const Layout = () => {
         data = rows || [];
       } else {
         const { data: d } = await api.get("/tenants");
-        data = d;
+        data = asArray(d);
       }
       setTenants(data);
-      const ids = new Set((data || []).map((t) => t.id));
+      const ids = new Set(data.map((t) => t.id));
       if (currentTenantId && !ids.has(currentTenantId)) {
         selectTenant(data.length > 0 ? data[0].id : null);
       } else if (!currentTenantId && data.length > 0) {

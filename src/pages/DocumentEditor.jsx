@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import api from "@/lib/api";
+import api, { asArray } from "@/lib/api";
 import RichEditor from "@/components/RichEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,7 +95,7 @@ const DocumentEditor = () => {
       if (data?.tenant_id) {
         try {
           const r = await api.get(`/tenants/${data.tenant_id}/responsibles`);
-          setResponsibles(r.data);
+          setResponsibles(asArray(r.data));
         } catch { setResponsibles([]); }
       }
     }

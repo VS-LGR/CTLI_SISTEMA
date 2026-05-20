@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import api, { isSupabaseAuthMode } from "@/lib/api";
+import api, { asArray, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -151,17 +151,18 @@ const AdminClients = () => {
       return;
     }
     const { data } = await api.get("/tenants");
-    setTenants(data);
+    const list = asArray(data);
+    setTenants(list);
     const us = {};
     const rs = {};
-    for (const t of data) {
+    for (const t of list) {
       try {
-        us[t.id] = (await api.get(`/tenants/${t.id}/users`)).data;
+        us[t.id] = asArray((await api.get(`/tenants/${t.id}/users`)).data);
       } catch {
         us[t.id] = [];
       }
       try {
-        rs[t.id] = (await api.get(`/tenants/${t.id}/responsibles`)).data;
+        rs[t.id] = asArray((await api.get(`/tenants/${t.id}/responsibles`)).data);
       } catch {
         rs[t.id] = [];
       }

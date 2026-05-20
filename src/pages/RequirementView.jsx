@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useOutletContext, Link, Navigate } from "react-router-dom";
-import api from "@/lib/api";
+import api, { asArray } from "@/lib/api";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
 import {
   REQ_NAMES,
@@ -38,7 +38,7 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, onCreated 
 
   useEffect(() => {
     if (!open || !tenantId) return;
-    api.get(`/tenants/${tenantId}/responsibles`).then((r) => setResponsibles(r.data)).catch(() => setResponsibles([]));
+    api.get(`/tenants/${tenantId}/responsibles`).then((r) => setResponsibles(asArray(r.data))).catch(() => setResponsibles([]));
   }, [open, tenantId]);
 
   const save = async () => {
@@ -228,7 +228,9 @@ const DocRow = ({ doc, onUpdate, onDelete }) => {
   );
 };
 
-const DocTable = ({ docs, onUpdate, onDelete }) => (
+const DocTable = ({ docs, onUpdate, onDelete }) => {
+  const list = Array.isArray(docs) ? docs : [];
+  return (
   <Card className="border-slate-200 overflow-hidden">
     <div className="overflow-x-auto -mx-px">
     <table className="w-full text-sm min-w-[640px]">
@@ -242,18 +244,19 @@ const DocTable = ({ docs, onUpdate, onDelete }) => (
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-100 bg-white">
-        {docs.length === 0 && (
+        {list.length === 0 && (
           <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-500">
             <FileText size={32} className="mx-auto text-slate-300 mb-2" />
             Nenhum documento aqui ainda.
           </td></tr>
         )}
-        {docs.map((d) => <DocRow key={d.id} doc={d} onUpdate={onUpdate} onDelete={onDelete} />)}
+        {list.map((d) => <DocRow key={d.id} doc={d} onUpdate={onUpdate} onDelete={onDelete} />)}
       </tbody>
     </table>
     </div>
   </Card>
-);
+  );
+};
 
 const RequirementView = () => {
   const { id, folderKey } = useParams();
@@ -273,7 +276,7 @@ const RequirementView = () => {
       const params = { tenant_id: currentTenantId, requirement: id, section, status };
       if (requiresFolderNav(id) && folderKey) params.folder_key = folderKey;
       const { data } = await api.get("/documents", { params });
-      setDocs(data);
+      setDocs(asArray(data));
     } catch { setDocs([]); }
     finally { setLoading(false); }
   }, [currentTenantId, id, folderKey, section, status]);
@@ -307,12 +310,15 @@ const RequirementView = () => {
     && section === "registro"
     && canAccessColeta(user?.role);
 
-  const updateDoc = (d) => setDocs((prev) => prev.map((x) => x.id === d.id ? d : x).filter((x) => x.status === status));
-  const removeDoc = (idd) => setDocs((prev) => prev.filter((x) => x.id !== idd));
+  const updateDoc = (d) =>
+    setDocs((prev) => asArray(prev).map((x) => (x.id === d.id ? d : x)).filter((x) => x.status === status));
+  const removeDoc = (idd) => setDocs((prev) => asArray(prev).filter((x) => x.id !== idd));
   const onCreated = (d) => {
     const fk = requiresFolderNav(id) ? folderKey : null;
     const folderOk = !fk || d.folder_key === fk;
-    if (d.status === status && d.section === section && folderOk) setDocs((p) => [d, ...p]);
+    if (d.status === status && d.section === section && folderOk) {
+      setDocs((p) => [d, ...asArray(p)]);
+    }
   };
 
   return (
@@ -348,13 +354,29 @@ const RequirementView = () => {
           </TabsList>
 
           {!isColetaRegistro && (
-            <div className="flex items-center gap-2">
-              <Tabs value={status} onValueChange={setStatus}>
-                <TabsList className="bg-white border border-slate-200">
-                  <TabsTrigger value="vigente" data-testid="tab-vigentes">Vigentes</TabsTrigger>
-                  <TabsTrigger value="obsoleto" data-testid="tab-obsoletos">Obsoletos</TabsTrigger>
-                </TabsList>
-              </Tabs>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5" role="group" aria-label="Filtrar por status">
+                <Button
+                  type="button"
+                  variant={status === "vigente" ? "default" : "ghost"}
+                  size="sm"
+                  className={status === "vigente" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                  onClick={() => setStatus("vigente")}
+                  data-testid="tab-vigentes"
+                >
+                  Vigentes
+                </Button>
+                <Button
+                  type="button"
+                  variant={status === "obsoleto" ? "default" : "ghost"}
+                  size="sm"
+                  className={status === "obsoleto" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                  onClick={() => setStatus("obsoleto")}
+                  data-testid="tab-obsoletos"
+                >
+                  Obsoletos
+                </Button>
+              </div>
               <CreateDocDialog tenantId={currentTenantId} requirement={id} folderKey={folderKey} section={section} onCreated={onCreated} />
             </div>
           )}
