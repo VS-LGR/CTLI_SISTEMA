@@ -173,8 +173,11 @@ function drawFrente(doc, model) {
   const amb = model.ambiente;
   const colR = ML + 98;
   doc.setFontSize(7.5);
-  doc.text("Climatização dos pesos-padrão e termo-baro-higrômetro", ML + 14, y);
+  doc.text("Climatização dos pesos-padrão e termo-baro-higrômetro (1)", ML + 14, y);
   underlineField(doc, ML + 118, y - 0.5, "", amb.thermoLabel, 70);
+  y += 4;
+  doc.text("Termo-baro-higrômetro (2)", ML + 14, y);
+  underlineField(doc, ML + 118, y - 0.5, "", amb.thermoLabel2, 70);
   y += 4;
   doc.text(`Horário inicial: ${s(amb.horario_inicial)}    Horário final: ${s(amb.horario_final)}`, ML, y);
   y += 4;
@@ -348,7 +351,7 @@ function drawVerso(doc, model) {
     margin: { left: ML, right: ML },
     head: [
       [
-        { content: "Formação\nda Carga", rowSpan: 2 },
+        { content: "Linha", rowSpan: 2 },
         { content: "Valor nominal\nda carga", rowSpan: 2 },
         { content: "Depois do ajuste", colSpan: 3 },
         { content: "Massa específica\nestimada da carga\n(kg/m³)", rowSpan: 2 },

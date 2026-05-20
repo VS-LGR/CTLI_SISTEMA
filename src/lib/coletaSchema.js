@@ -41,6 +41,12 @@ export const BINARY_OPTIONS = [
   { value: "nao", label: "Não" },
 ];
 
+/** Linha só L (L1..L6), sem L+P — massa específica até hPa ficam nulos no formulário/PDF */
+export function isSubstituicaoLinhaSoloL(defOrKey) {
+  const key = typeof defOrKey === "string" ? defOrKey : defOrKey?.key;
+  return /^l\d+$/.test(key || "");
+}
+
 /** Ordem fixa das linhas no coletaVerso.pdf */
 export const SUBSTITUICAO_LINHA_DEFS = [
   { key: "p1", label: "P1*", leituras3: true },
@@ -150,6 +156,7 @@ export function emptyColetaPayload() {
     },
     ambiente: {
       thermo_cert_id: "",
+      thermo_cert_id_2: "",
       horario_inicial: "",
       horario_final: "",
       temp_inicial: "",
@@ -204,6 +211,7 @@ export function mergeColetaPayload(raw) {
   const migrateAmbiente = (a) => {
     const merged = { ...base.ambiente, ...(a || {}) };
     delete merged.climatizacao;
+    if (merged.thermo_cert_id_2 == null) merged.thermo_cert_id_2 = "";
     return merged;
   };
 

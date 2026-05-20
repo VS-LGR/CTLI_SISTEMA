@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SUBSTITUICAO_LINHA_DEFS } from "@/lib/coletaSchema";
+import { SUBSTITUICAO_LINHA_DEFS, isSubstituicaoLinhaSoloL } from "@/lib/coletaSchema";
 
 function Field({ label, children, className = "" }) {
   return (
@@ -133,10 +133,10 @@ export default function ColetaVersoForm({ payload, onChange }) {
                 <thead>
                   <tr className="border-b bg-slate-50">
                     <th className="p-2 text-left">Linha</th>
+                    <th className="p-2">Valor nominal</th>
                     <th className="p-2">Leitura 1</th>
                     <th className="p-2">Leitura 2</th>
                     <th className="p-2">Leitura 3</th>
-                    <th className="p-2">Valor nominal</th>
                     <th className="p-2">Massa específica</th>
                     <th className="p-2">°C</th>
                     <th className="p-2">%ur</th>
@@ -146,9 +146,28 @@ export default function ColetaVersoForm({ payload, onChange }) {
                 <tbody>
                   {SUBSTITUICAO_LINHA_DEFS.map((def) => {
                     const row = linhaByKey(def.key);
+                    const soloL = isSubstituicaoLinhaSoloL(def);
+                    const ambientCell = (field) => (
+                      soloL ? (
+                        <span className="text-slate-400 block text-center py-2">—</span>
+                      ) : (
+                        <Input
+                          value={row[field] || ""}
+                          onChange={(e) => setLinha(def.key, { [field]: e.target.value })}
+                          className="h-8 text-xs"
+                        />
+                      )
+                    );
                     return (
                       <tr key={def.key} className="border-b">
                         <td className="p-2 font-mono align-top whitespace-nowrap">{def.label}</td>
+                        <td className="p-1 align-top">
+                          <Input
+                            value={row.valor_nominal || ""}
+                            onChange={(e) => setLinha(def.key, { valor_nominal: e.target.value })}
+                            className="h-8 text-xs"
+                          />
+                        </td>
                         {[0, 1, 2].map((i) => (
                           <td key={i} className="p-1 align-top">
                             {def.leituras3 || i === 0 ? (
@@ -162,29 +181,10 @@ export default function ColetaVersoForm({ payload, onChange }) {
                             )}
                           </td>
                         ))}
-                        <td className="p-1 align-top">
-                          <Input
-                            value={row.valor_nominal || ""}
-                            onChange={(e) => setLinha(def.key, { valor_nominal: e.target.value })}
-                            className="h-8 text-xs"
-                          />
-                        </td>
-                        <td className="p-1 align-top">
-                          <Input
-                            value={row.massa_especifica || ""}
-                            onChange={(e) => setLinha(def.key, { massa_especifica: e.target.value })}
-                            className="h-8 text-xs"
-                          />
-                        </td>
-                        <td className="p-1 align-top">
-                          <Input value={row.temp || ""} onChange={(e) => setLinha(def.key, { temp: e.target.value })} className="h-8 text-xs" />
-                        </td>
-                        <td className="p-1 align-top">
-                          <Input value={row.umidade || ""} onChange={(e) => setLinha(def.key, { umidade: e.target.value })} className="h-8 text-xs" />
-                        </td>
-                        <td className="p-1 align-top">
-                          <Input value={row.pressao || ""} onChange={(e) => setLinha(def.key, { pressao: e.target.value })} className="h-8 text-xs" />
-                        </td>
+                        <td className="p-1 align-top">{ambientCell("massa_especifica")}</td>
+                        <td className="p-1 align-top">{ambientCell("temp")}</td>
+                        <td className="p-1 align-top">{ambientCell("umidade")}</td>
+                        <td className="p-1 align-top">{ambientCell("pressao")}</td>
                       </tr>
                     );
                   })}

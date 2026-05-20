@@ -8,7 +8,7 @@ export const CADASTRO_SECTIONS = [
   { id: "colaboradores", label: "Colaboradores" },
   { id: "cert-peso", label: "Certificado de peso padrão" },
   { id: "pesos", label: "Pesos padrão (identificação)" },
-  { id: "thermo", label: "Equipamento ambiental" },
+  { id: "thermo", label: "Termo-baro-higrômetro" },
   { id: "config-coleta", label: "Config. RE-7.2A", roles: ["admin", "client"] },
   { id: "tecnicos", label: "Técnicos de campo", techniciansOnly: true },
 ];

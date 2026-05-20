@@ -1,6 +1,7 @@
 import {
   mergeColetaPayload,
   SUBSTITUICAO_LINHA_DEFS,
+  isSubstituicaoLinhaSoloL,
   envCertLabel,
   formatPesosIds,
 } from "../coletaSchema";
@@ -25,6 +26,9 @@ export function buildColetaPdfViewModel(
   const thermoLabel = p.ambiente.thermo_cert_id
     ? envCertLabel(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id))
     : "";
+  const thermoLabel2 = p.ambiente.thermo_cert_id_2
+    ? envCertLabel(envCerts.find((e) => e.id === p.ambiente.thermo_cert_id_2))
+    : "";
 
   const calibracaoRows = p.calibracao.pontos.map((pt, i) => ({
     label: `P${i + 1}`,
@@ -42,17 +46,20 @@ export function buildColetaPdfViewModel(
 
   const substituicaoRows = SUBSTITUICAO_LINHA_DEFS.map((def) => {
     const ln = linhasByKey[def.key] || {};
+    const soloL = isSubstituicaoLinhaSoloL(def);
+    const dash = "-";
     return {
       label: def.label,
       leituras3: def.leituras3,
+      soloL,
       leitura1: ln.leitura1 ?? "",
       leitura2: def.leituras3 ? (ln.leitura2 ?? "") : "",
       leitura3: def.leituras3 ? (ln.leitura3 ?? "") : "",
       valorNominal: ln.valor_nominal ?? "",
-      massaEspecifica: ln.massa_especifica ?? "",
-      temp: ln.temp ?? "",
-      umidade: ln.umidade ?? "",
-      pressao: ln.pressao ?? "",
+      massaEspecifica: soloL ? dash : (ln.massa_especifica ?? ""),
+      temp: soloL ? dash : (ln.temp ?? ""),
+      umidade: soloL ? dash : (ln.umidade ?? ""),
+      pressao: soloL ? dash : (ln.pressao ?? ""),
     };
   });
 
@@ -73,7 +80,7 @@ export function buildColetaPdfViewModel(
     },
     cliente: p.cliente,
     balanca: p.balanca,
-    ambiente: { ...p.ambiente, thermoLabel },
+    ambiente: { ...p.ambiente, thermoLabel, thermoLabel2 },
     excentricidade: p.excentricidade,
     controle: {
       ...p.controle,

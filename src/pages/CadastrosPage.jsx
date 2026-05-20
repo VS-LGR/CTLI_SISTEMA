@@ -24,6 +24,9 @@ import {
   envEquipmentTypeLabel,
 } from "@/lib/cadastroConstants";
 import { downloadWeightCertificatesValidPdf, downloadEnvironmentCertificatesValidPdf } from "@/lib/cadastroPdf";
+import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
+import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
+import { fmtDmyShort } from "@/lib/dateFormat";
 
 function fmtIsoDate(d) {
   if (!d) return "";
@@ -171,7 +174,14 @@ const CadastrosPage = () => {
           <WeightCertSection rows={filteredWeight} allRows={weightCerts} tenantId={currentTenantId} tenantName={tenantName}
             year={yearWeight} years={yearsWeight} onYearChange={setYearWeight} onRefresh={loadAll} />
         )}
-        {activeSection === "pesos" && <PesoItemSection rows={weightItems} tenantId={currentTenantId} onRefresh={loadAll} />}
+        {activeSection === "pesos" && (
+          <PesoItemSection
+            rows={weightItems}
+            weightCerts={weightCerts}
+            tenantId={currentTenantId}
+            onRefresh={loadAll}
+          />
+        )}
         {activeSection === "thermo" && (
           <EnvCertSection rows={filteredEnv} allRows={envCerts} tenantId={currentTenantId} tenantName={tenantName}
             year={yearEnv} years={yearsEnv} onYearChange={setYearEnv} onRefresh={loadAll} />
@@ -600,6 +610,7 @@ async function signedUrl(path) {
 }
 
 function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, onYearChange, onRefresh }) {
+  const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [setName, setSetName] = useState("");
@@ -675,24 +686,50 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
     else { toast.success("Removido"); onRefresh(); }
   };
 
-  const pdf = () => downloadWeightCertificatesValidPdf(allRows, tenantName);
+  const searchFiltered = useMemo(
+    () => filterCadastroByQuery(rows, searchQuery, (r) => [
+      r.set_name,
+      r.certificate_number,
+      r.manufacturer,
+      r.model_type,
+      String(r.calibration_date || "").slice(0, 4),
+    ]),
+    [rows, searchQuery],
+  );
+
+  const pdf = async () => {
+    try {
+      await downloadWeightCertificatesValidPdf(allRows, tenantName);
+    } catch (e) {
+      toast.error(e?.message || "Falha ao gerar PDF");
+    }
+  };
 
   return (
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-slate-500 whitespace-nowrap">Ano (calibração)</Label>
-            <select value={year} onChange={(e) => onYearChange(e.target.value)} className="border rounded-md h-9 px-2 text-sm">
-              <option value="all">Todos</option>
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={pdf}><FilePdf size={16} className="mr-1" /> PDF válidos</Button>
-            <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}><Plus size={16} className="mr-1" /> Novo</Button>
-          </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={pdf}>
+            <FilePdf size={16} className="mr-1" /> Baixar certificados vigentes
+          </Button>
+          <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}>
+            <Plus size={16} className="mr-1" /> Novo
+          </Button>
         </div>
+
+        <CadastroListFilterBar
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          placeholder="Buscar por ano, certificado ou conjunto…"
+          year={year}
+          years={years}
+          onYearChange={onYearChange}
+          filteredCount={searchFiltered.length}
+          totalCount={rows.length}
+          onClear={() => { setSearchQuery(""); onYearChange("all"); }}
+          testIdPrefix="cert-peso"
+        />
+
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-600">
@@ -707,16 +744,16 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && (
+              {searchFiltered.length === 0 && (
                 <tr><td colSpan={7} className="p-4 text-slate-500 text-center">Nenhum registro.</td></tr>
               )}
-              {rows.map((r) => (
+              {searchFiltered.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
                   <td className="p-2 font-medium">{r.set_name}</td>
                   <td className="p-2">{r.certificate_number}</td>
-                  <td className="p-2">{fmtIsoDate(r.calibration_date)}</td>
+                  <td className="p-2">{fmtDmyShort(r.calibration_date)}</td>
                   <td className="p-2">{r.intermediate_check_label}</td>
-                  <td className="p-2">{fmtIsoDate(r.expiry_date)}</td>
+                  <td className="p-2">{fmtDmyShort(r.expiry_date)}</td>
                   <td className="p-2">
                     {r.attachment_storage_path ? (
                       <OpenAttachment path={r.attachment_storage_path} />
@@ -768,6 +805,7 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
 }
 
 function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYearChange, onRefresh }) {
+  const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [eqName, setEqName] = useState("");
@@ -853,24 +891,50 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
     else { toast.success("Removido"); onRefresh(); }
   };
 
-  const pdf = () => downloadEnvironmentCertificatesValidPdf(allRows, tenantName);
+  const searchFiltered = useMemo(
+    () => filterCadastroByQuery(rows, searchQuery, (r) => [
+      r.equipment_name,
+      r.certificate_number,
+      r.manufacturer,
+      r.model,
+      String(r.calibration_date || "").slice(0, 4),
+    ]),
+    [rows, searchQuery],
+  );
+
+  const pdf = async () => {
+    try {
+      await downloadEnvironmentCertificatesValidPdf(allRows, tenantName);
+    } catch (e) {
+      toast.error(e?.message || "Falha ao gerar PDF");
+    }
+  };
 
   return (
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-slate-500 whitespace-nowrap">Ano (calibração)</Label>
-            <select value={year} onChange={(e) => onYearChange(e.target.value)} className="border rounded-md h-9 px-2 text-sm">
-              <option value="all">Todos</option>
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={pdf}><FilePdf size={16} className="mr-1" /> PDF válidos</Button>
-            <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}><Plus size={16} className="mr-1" /> Novo</Button>
-          </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={pdf}>
+            <FilePdf size={16} className="mr-1" /> Baixar certificados vigentes
+          </Button>
+          <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}>
+            <Plus size={16} className="mr-1" /> Novo
+          </Button>
         </div>
+
+        <CadastroListFilterBar
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          placeholder="Buscar por ano, certificado ou equipamento…"
+          year={year}
+          years={years}
+          onYearChange={onYearChange}
+          filteredCount={searchFiltered.length}
+          totalCount={rows.length}
+          onClear={() => { setSearchQuery(""); onYearChange("all"); }}
+          testIdPrefix="cert-thermo"
+        />
+
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-600">
@@ -886,17 +950,17 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && (
+              {searchFiltered.length === 0 && (
                 <tr><td colSpan={8} className="p-4 text-slate-500 text-center">Nenhum registro.</td></tr>
               )}
-              {rows.map((r) => (
+              {searchFiltered.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
                   <td className="p-2 text-xs">{envEquipmentTypeLabel(r.equipment_type)}</td>
                   <td className="p-2 font-medium">{r.equipment_name}</td>
                   <td className="p-2">{r.certificate_number}</td>
-                  <td className="p-2">{fmtIsoDate(r.calibration_date)}</td>
+                  <td className="p-2">{fmtDmyShort(r.calibration_date)}</td>
                   <td className="p-2">{r.intermediate_check_label}</td>
-                  <td className="p-2">{fmtIsoDate(r.expiry_date)}</td>
+                  <td className="p-2">{fmtDmyShort(r.expiry_date)}</td>
                   <td className="p-2">
                     {r.attachment_storage_path ? (
                       <OpenAttachment path={r.attachment_storage_path} />

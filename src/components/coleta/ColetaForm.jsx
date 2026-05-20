@@ -162,18 +162,32 @@ export default function ColetaForm({
       </SectionCard>
 
       <SectionCard num="3" title="Condições Ambientais Durante a Calibração">
-        <Field label="Identificação (termo-baro-higrômetro)">
-          <select
-            value={payload.ambiente.thermo_cert_id || ""}
-            onChange={(e) => setAmbiente("thermo_cert_id", e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-          >
-            <option value="">Selecionar equipamento…</option>
-            {envCerts.map((e) => (
-              <option key={e.id} value={e.id}>{envCertLabel(e)}</option>
-            ))}
-          </select>
-        </Field>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Identificação 1 (termo-baro-higrômetro)">
+            <select
+              value={payload.ambiente.thermo_cert_id || ""}
+              onChange={(e) => setAmbiente("thermo_cert_id", e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            >
+              <option value="">Selecionar equipamento…</option>
+              {envCerts.map((e) => (
+                <option key={e.id} value={e.id}>{envCertLabel(e)}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Identificação 2 (termo-baro-higrômetro)">
+            <select
+              value={payload.ambiente.thermo_cert_id_2 || ""}
+              onChange={(e) => setAmbiente("thermo_cert_id_2", e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            >
+              <option value="">Selecionar equipamento…</option>
+              {envCerts.map((e) => (
+                <option key={e.id} value={e.id}>{envCertLabel(e)}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Field label="Horário inicial">
             <Input type="time" value={payload.ambiente.horario_inicial} onChange={(ev) => setAmbiente("horario_inicial", ev.target.value)} />
