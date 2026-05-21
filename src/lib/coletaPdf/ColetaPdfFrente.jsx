@@ -10,8 +10,6 @@ import {
 } from "./PdfCheckbox";
 import { unidadeLabel } from "../coletaSchema";
 import { FRENTE, CAL_ROW_HEIGHT_EM } from "./layoutSpec";
-import { ColetaPlatformDiagrams } from "./ColetaPlatformDiagrams";
-
 function BalField({ label, value }) {
   return (
     <div className="coleta-field-box coleta-txt-label">
@@ -65,19 +63,20 @@ export function ColetaPdfFrente({ model, logoUrl }) {
       <AbsBlock style={FRENTE.sec2.tipoPlataforma}>
         <TipoPlataformaCheckboxes balanca={balanca} />
       </AbsBlock>
-      <AbsBlock style={FRENTE.sec2.diagrams}>
-        <ColetaPlatformDiagrams />
-      </AbsBlock>
 
       <AbsBlock style={FRENTE.sec3.title} className="coleta-txt-sec">
         3) Condições Ambientais Durante a Calibração
       </AbsBlock>
       <AbsBlock style={FRENTE.sec3.ambLeft} className="coleta-amb-col">
-        <div className="coleta-txt-label" style={{ marginBottom: "0.4em", paddingLeft: "3.5em" }}>
-          Climatização dos pesos-padrão e termo-baro-higrômetro{" "}
+        <div className="coleta-txt-label coleta-amb-line">
+          Climatização dos pesos-padrão e termo-baro-higrômetro (1){" "}
           <span className="coleta-underline">{ambiente.thermoLabel || "\u00a0"}</span>
         </div>
-        <div className="coleta-txt-label" style={{ marginBottom: "0.5em" }}>
+        <div className="coleta-txt-label coleta-amb-line">
+          Termo-baro-higrômetro (2){" "}
+          <span className="coleta-underline">{ambiente.thermoLabel2 || "\u00a0"}</span>
+        </div>
+        <div className="coleta-txt-label coleta-amb-line">
           Horário inicial:{" "}
           <span className="coleta-underline">{ambiente.horario_inicial || "\u00a0"}</span>
           {"  "}Horário final:{" "}

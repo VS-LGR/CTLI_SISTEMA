@@ -9,9 +9,9 @@ import { buildColetaPdfViewModel, coletaPdfFileSlug } from "./viewModel";
 import {
   FORM_COLORS,
   drawSectionBar,
+  drawDualSectionBar,
   drawProposalBox,
   drawFieldGrid,
-  drawPlatformDiagrams,
   drawMeasureBlock,
   drawDescricaoBox,
   tableHeadStyles,
@@ -30,26 +30,35 @@ function mark(checked) {
   return checked ? "X" : " ";
 }
 
-function drawHeader(doc, model, logoDataUrl, titleY = 12) {
+const HEADER_BAND_H = 22;
+
+function drawHeader(doc, model, logoDataUrl) {
   const propRef = model.commercialProposalRef || "";
-  drawProposalBox(doc, MR - 58, 5, 58, 14, propRef);
+  const headerTop = 6;
+  drawProposalBox(doc, MR - 58, headerTop, 58, 13, propRef);
 
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, "PNG", ML, 6, 34, 14);
+      doc.addImage(logoDataUrl, "PNG", ML, headerTop, 32, 13);
     } catch {
       /* logo do tenant opcional */
     }
   }
   doc.setTextColor(...FORM_COLORS.text);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(10.5);
+  const titleY = headerTop + 11;
   doc.text("COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA", PAGE_W / 2, titleY, {
     align: "center",
+    maxWidth: PAGE_W - 72,
   });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.text(model.header.codeLine, PAGE_W / 2, titleY + 6, { align: "center" });
+  doc.setFontSize(7.5);
+  doc.text(model.header.codeLine, PAGE_W / 2, titleY + 5, { align: "center" });
+}
+
+function contentStartY() {
+  return HEADER_BAND_H + 5;
 }
 
 function underlineField(doc, x, y, label, value, width) {
@@ -112,7 +121,7 @@ function binaryRow(doc, x, y, label, value) {
 }
 
 function drawFrente(doc, model) {
-  let y = 24;
+  let y = contentStartY();
   y = drawSectionBar(doc, ML, y, CW, "1) Dados do Cliente");
   underlineField(doc, ML, y, "Cliente", model.cliente.cliente, CW);
   y += 5;
@@ -167,8 +176,7 @@ function drawFrente(doc, model) {
     })),
     CW - 28,
   );
-  y = drawPlatformDiagrams(doc, ML, y, CW);
-  y += 1;
+  y += 2;
 
   y = drawSectionBar(doc, ML, y, CW, "3) Condições Ambientais Durante a Calibração");
   const amb = model.ambiente;
@@ -218,17 +226,16 @@ function drawFrente(doc, model) {
   );
   y = Math.max(y, yR) + 4;
 
-  const ySec45 = y;
-  doc.setFillColor(...FORM_COLORS.sectionGreen);
-  doc.rect(ML, ySec45 - 3.5, 88, 5, "F");
-  doc.rect(ML + 98, ySec45 - 3.5, 92, 5, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...FORM_COLORS.text);
-  doc.text("4) Ensaio de Excentricidade", ML + 1.5, ySec45);
-  doc.text("5) Controle", ML + 99.5, ySec45);
-  doc.setFont("helvetica", "normal");
-  y += 5;
+  y = drawDualSectionBar(
+    doc,
+    ML,
+    y,
+    "4) Ensaio de Excentricidade",
+    "5) Controle",
+    88,
+    92,
+    10,
+  );
 
   const ecc = model.excentricidade;
   const ctrl = model.controle;
@@ -281,8 +288,9 @@ function drawFrente(doc, model) {
 
   y = drawSectionBar(doc, ML, y, CW, "6) Calibração da Balança");
   doc.setFontSize(8);
-  doc.text("Ensaio de Repetitividade", ML + 72, y - 1);
-  y += 4;
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text("Ensaio de Repetitividade", ML + 72, y);
+  y += 5;
 
   autoTable(doc, {
     startY: y,
@@ -350,7 +358,7 @@ function drawVerso(doc, model) {
     return;
   }
 
-  let y = 24;
+  let y = contentStartY();
   y = drawSectionBar(doc, ML, y, CW, "1) Descrição da Carga");
   const boxH = 27;
   y = drawDescricaoBox(doc, ML, y, CW, boxH, model.verso.descricao_carga) + 4;

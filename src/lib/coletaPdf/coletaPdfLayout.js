@@ -13,6 +13,7 @@ export const FORM_COLORS = {
 };
 
 const SECTION_BAR_H = 5;
+const SECTION_CONTENT_GAP = 2.5;
 const FIELD_LABEL_H = 3.5;
 const FIELD_BOX_H = 7;
 
@@ -27,21 +28,51 @@ export function tableHeadStyles(doc) {
 }
 
 /**
- * Faixa verde de título de secção.
- * @returns {number} y após a barra
+ * Faixa verde de título de secção (y = topo da barra).
+ * @returns {number} y para o primeiro conteúdo abaixo da barra
  */
 export function drawSectionBar(doc, x, y, width, text) {
+  const barTop = y;
   doc.setFillColor(...FORM_COLORS.sectionGreen);
-  doc.rect(x, y - 3.5, width, SECTION_BAR_H, "F");
+  doc.rect(x, barTop, width, SECTION_BAR_H, "F");
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.1);
-  doc.rect(x, y - 3.5, width, SECTION_BAR_H, "S");
+  doc.rect(x, barTop, width, SECTION_BAR_H, "S");
   doc.setTextColor(...FORM_COLORS.text);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text(text, x + 1.5, y);
+  doc.text(text, x + 1.5, barTop + 3.6);
   doc.setFont("helvetica", "normal");
-  return y + SECTION_BAR_H + 1.5;
+  return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
+}
+
+/** Duas faixas lado a lado (secções 4 e 5). */
+export function drawDualSectionBar(
+  doc,
+  x,
+  y,
+  leftText,
+  rightText,
+  leftW = 88,
+  rightW = 92,
+  gap = 10,
+) {
+  const barTop = y;
+  const rightX = x + leftW + gap;
+  doc.setFillColor(...FORM_COLORS.sectionGreen);
+  doc.rect(x, barTop, leftW, SECTION_BAR_H, "F");
+  doc.rect(rightX, barTop, rightW, SECTION_BAR_H, "F");
+  doc.setDrawColor(...FORM_COLORS.border);
+  doc.setLineWidth(0.1);
+  doc.rect(x, barTop, leftW, SECTION_BAR_H, "S");
+  doc.rect(rightX, barTop, rightW, SECTION_BAR_H, "S");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text(leftText, x + 1.5, barTop + 3.6);
+  doc.text(rightText, rightX + 1.5, barTop + 3.6);
+  doc.setFont("helvetica", "normal");
+  return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
 }
 
 /** Caixa proposta comercial (canto superior direito). */
@@ -119,7 +150,7 @@ export function drawMeasureBlock(doc, x, y, w, title, valueLine) {
   doc.setFontSize(7);
   const valueY = barTop + MEASURE_BAR_H + MEASURE_VALUE_GAP + 2.5;
   doc.text(valueLine, x + 0.5, valueY, { maxWidth: w - 2 });
-  return valueY + 3.5;
+  return valueY + 4.5;
 }
 
 /** Caixa de descrição (verso). */
@@ -132,63 +163,4 @@ export function drawDescricaoBox(doc, x, y, w, h, body) {
   const lines = doc.splitTextToSize(body == null ? " " : String(body), w - 4);
   doc.text(lines, x + 2, y + 4);
   return y + h;
-}
-
-/** Três diagramas esquemáticos de plataforma. */
-export function drawPlatformDiagrams(doc, x, y, totalW) {
-  const gap = 3;
-  const w = (totalW - gap * 2) / 3;
-  const h = 12;
-  drawRectPlatform(doc, x, y, w, h);
-  drawRoundPlatform(doc, x + w + gap, y, w, h);
-  drawTruckPlatform(doc, x + 2 * (w + gap), y, w, h);
-  return y + h + 2;
-}
-
-function drawRectPlatform(doc, x, y, w, h) {
-  doc.setFontSize(5);
-  doc.setTextColor(...FORM_COLORS.text);
-  const mx = x + w / 2;
-  const my = y + h / 2;
-  const rw = w * 0.55;
-  const rh = h * 0.45;
-  doc.setDrawColor(...FORM_COLORS.border);
-  doc.rect(mx - rw / 2, my - rh / 2, rw, rh, "S");
-  const pts = [
-    [mx - rw / 2, my - rh / 2, "1"],
-    [mx + rw / 2, my - rh / 2, "2"],
-    [mx + rw / 2, my + rh / 2, "3"],
-    [mx - rw / 2, my + rh / 2, "4"],
-  ];
-  pts.forEach(([px, py, n]) => {
-    doc.circle(px, py, 0.8, "F");
-    doc.text(n, px - 0.6, py + 0.5);
-  });
-}
-
-function drawRoundPlatform(doc, x, y, w, h) {
-  doc.setFontSize(5);
-  const mx = x + w / 2;
-  const my = y + h / 2;
-  const r = Math.min(w, h) * 0.28;
-  doc.setDrawColor(...FORM_COLORS.border);
-  doc.circle(mx, my, r, "S");
-  [[mx, my - r, "1"], [mx + r, my, "2"], [mx, my + r, "3"], [mx - r, my, "4"]].forEach(
-    ([px, py, n]) => {
-      doc.circle(px, py, 0.8, "F");
-      doc.text(n, px - 0.6, py + 0.5);
-    },
-  );
-}
-
-function drawTruckPlatform(doc, x, y, w, h) {
-  doc.setFontSize(5);
-  const mx = x + w / 2;
-  doc.setDrawColor(...FORM_COLORS.border);
-  doc.line(x + 2, y + h - 2, x + w - 2, y + h - 2);
-  doc.rect(mx - w * 0.2, y + 3, w * 0.4, h * 0.35, "S");
-  doc.circle(x + 4, y + h - 2, 1.2, "F");
-  doc.circle(x + w - 4, y + h - 2, 1.2, "F");
-  doc.text("1", mx - 2, y + 5);
-  doc.text("2", mx + 6, y + 5);
 }

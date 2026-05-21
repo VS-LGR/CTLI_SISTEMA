@@ -157,6 +157,11 @@
   font-weight: bold;
 }
 
+.coleta-amb-line {
+  display: block;
+  margin-bottom: 0.45em;
+}
+
 .coleta-platform-diagrams {
   display: flex;
   justify-content: space-between;
@@ -196,7 +201,11 @@
 }
 
 .coleta-measure-block {
-  margin-bottom: 0.5em;
+  margin-bottom: 0.65em;
+}
+
+.coleta-amb-col .coleta-measure-block:first-child {
+  margin-top: 0.15em;
 }
 
 .coleta-measure-block .coleta-measure-title {

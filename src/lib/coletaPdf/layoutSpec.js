@@ -20,10 +20,10 @@ export function pos(top, left, width, height) {
 
 export const FRENTE = {
   header: {
-    logo: pos(0.5, 0.5, 8, 3.5),
-    proposal: pos(1.2, 40.7, 8.5, 1.2),
-    title: pos(1.1, 11.57, 27, 1.2),
-    code: pos(3.1, 19.03, 12, 0.8),
+    logo: pos(0.5, 0.5, 8, 3.2),
+    proposal: pos(0.5, 40.7, 8.5, 1.3),
+    title: pos(1.6, 10.5, 29, 1.2),
+    code: pos(2.9, 17.5, 15, 0.8),
   },
   sec1: {
     title: pos(4.74, 0.73, 20, 0.8),
@@ -36,27 +36,25 @@ export const FRENTE = {
     row2: pos(11.9, 2.25, 47.5, 2.1),
     tipoBalanca: pos(14.5, 0.74, 48.5, 2.2),
     tipoPlataforma: pos(16.87, 0.74, 48.5, 2.2),
-    diagrams: pos(19.2, 0.74, 48.5, 2.8),
   },
   sec3: {
-    title: pos(20.54, 0.73, 30, 0.8),
-    block: pos(21.6, 0.73, 48.5, 11.5),
-    ambLeft: pos(21.8, 2.24, 31, 10.5),
-    ambRight: pos(21.8, 34, 15, 10.5),
+    title: pos(19.4, 0.73, 30, 0.8),
+    ambLeft: pos(20.6, 0.74, 31, 10.5),
+    ambRight: pos(20.6, 34, 15, 10.5),
   },
   sec4: {
-    title: pos(33.89, 0.73, 18, 0.8),
-    valor: pos(35.2, 0.73, 18, 1),
-    table: pos(36.5, 0.73, 18.5, 9.5),
+    title: pos(30.5, 0.73, 18, 0.8),
+    valor: pos(31.8, 0.73, 18, 1),
+    table: pos(33.1, 0.73, 18.5, 9.5),
   },
   sec5: {
-    title: pos(33.89, 21.32, 12, 0.8),
-    block: pos(35.2, 21.32, 28, 10.5),
+    title: pos(30.5, 21.32, 12, 0.8),
+    block: pos(31.8, 21.32, 28, 10.5),
   },
   sec6: {
-    title: pos(46.51, 0.73, 25, 0.8),
-    subTitle: pos(48.52, 19.46, 12, 0.7),
-    table: pos(49.68, 0.75, 48.5, 19.5),
+    title: pos(43.2, 0.73, 25, 0.8),
+    subTitle: pos(45.1, 19.46, 12, 0.7),
+    table: pos(46.2, 0.75, 48.5, 19.5),
   },
   footer: pos(69.57, 43.4, 6, 0.6),
 };
@@ -77,10 +75,10 @@ export const CAL_ROW_START_EM = 2.2;
 
 export const VERSO = {
   header: {
-    logo: pos(0.5, 0.5, 8, 3.5),
-    proposal: pos(1.2, 40.7, 8.5, 1.2),
-    title: pos(1.1, 11.24, 27, 1.2),
-    code: pos(3.1, 18.7, 12, 0.8),
+    logo: pos(0.5, 0.5, 8, 3.2),
+    proposal: pos(0.5, 40.7, 8.5, 1.3),
+    title: pos(1.6, 10.5, 29, 1.2),
+    code: pos(2.9, 17.5, 15, 0.8),
   },
   sec1: {
     title: pos(5.62, 0.97, 22, 0.8),
