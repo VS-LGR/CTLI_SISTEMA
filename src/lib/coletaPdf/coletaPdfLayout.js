@@ -1,15 +1,17 @@
 /**
  * Layout visual do formulário RE-7.2A (cores e helpers jsPDF).
- * Paleta ciano claro alinhada ao ProcVault (sky-100 / sky-200).
+ * Paleta blue ProcVault (Tailwind blue-100 / blue-200 / blue-300).
  * Identidade do tenant (logo, código do formulário) vem de coletaDocMeta + export opts.
  */
 
+import { COLETA_PDF_BLUE } from "./coletaPdfColors";
+
 export const FORM_COLORS = {
-  sectionGreen: [224, 242, 254],
-  tableHeaderGreen: [186, 230, 253],
-  fieldLabelGreen: [224, 242, 254],
-  border: [120, 120, 120],
-  text: [0, 0, 0],
+  sectionGreen: COLETA_PDF_BLUE.sectionFill.rgb,
+  tableHeaderGreen: COLETA_PDF_BLUE.tableHeader.rgb,
+  fieldLabelGreen: COLETA_PDF_BLUE.sectionFill.rgb,
+  border: COLETA_PDF_BLUE.border.rgb,
+  text: COLETA_PDF_BLUE.text.rgb,
 };
 
 const SECTION_BAR_H = 5;
