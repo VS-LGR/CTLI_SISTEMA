@@ -1,5 +1,13 @@
 /** Valores alinhados ao CHECK em `employee_registrations` (migration cadastros). */
 
+/** Cargos recomendados como supervisor direto de outro colaborador */
+export const SUPERVISOR_ELIGIBLE_JOB_ROLES = [
+  "supervisor",
+  "coordenador",
+  "gerente",
+  "diretoria",
+];
+
 export const JOB_ROLES = [
   { value: "operador", label: "Operador" },
   { value: "tecnico", label: "Técnico" },

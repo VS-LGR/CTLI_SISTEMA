@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { formatEdgeFunctionError } from "@/lib/supabaseFunctions";
 
 export default function ColetaTechniciansPanel({ tenantId, isAdmin }) {
   const [techs, setTechs] = useState([]);
@@ -52,8 +53,8 @@ export default function ColetaTechniciansPanel({ tenantId, isAdmin }) {
 
   const invoke = async (body) => {
     const { data, error } = await supabase.functions.invoke("tenant-manage-technician", { body });
-    if (error) throw error;
-    if (data?.error) throw new Error(data.error);
+    if (error) throw new Error(await formatEdgeFunctionError(data, error, "tenant-manage-technician"));
+    if (data?.error) throw new Error(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
     return data;
   };
 

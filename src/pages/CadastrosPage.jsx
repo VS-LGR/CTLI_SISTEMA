@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import {
   JOB_ROLES,
   EDUCATION_LEVELS,
+  SUPERVISOR_ELIGIBLE_JOB_ROLES,
   jobLabel,
   generateEmployeeRegistrationCode,
   CADASTRO_STORAGE_BUCKET,
@@ -378,7 +379,7 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
   };
 
   const remove = async (r) => {
-    if (!window.confirm("Excluir cliente do cliente?")) return;
+    if (!window.confirm("Excluir cliente?")) return;
     const { error } = await supabase.from("end_customer_registrations").delete().eq("id", r.id);
     if (error) toast.error(error.message);
     else { toast.success("Removido"); onRefresh(); }
@@ -388,7 +389,7 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end">
-          <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-blue-600 text-white"><Plus size={16} className="mr-1" /> Novo cadastro</Button>
+          <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-blue-600 text-white"><Plus size={16} className="mr-1" /> Novo cliente</Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
@@ -404,7 +405,7 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-slate-500 text-center">Nenhum cadastro.</td></tr>
+                <tr><td colSpan={6} className="p-4 text-slate-500 text-center">Nenhum cliente cadastrado.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
@@ -429,7 +430,7 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editing ? "Editar cliente do cliente" : "Novo cliente do cliente"}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nome *</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
               <div><Label>Endereço completo</Label><Input value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>
@@ -514,7 +515,12 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
     else { toast.success("Removido"); onRefresh(); }
   };
 
-  const supOpts = rows.filter((r) => !editing || r.id !== editing.id);
+  const others = rows.filter((r) => !editing || r.id !== editing.id);
+  const leadership = others.filter((r) => SUPERVISOR_ELIGIBLE_JOB_ROLES.includes(r.job_role));
+  const supervisorCandidates = (leadership.length > 0 ? leadership : others)
+    .slice()
+    .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "", "pt"));
+  const showLeadershipHint = others.length > 0 && leadership.length === 0;
 
   return (
     <Card className="border-slate-200">
@@ -585,10 +591,20 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
                 <Label>Supervisor direto</Label>
                 <select value={supId} onChange={(e) => setSupId(e.target.value)} className="w-full border rounded-md h-10 px-3 text-sm">
                   <option value="">— Nenhum —</option>
-                  {supOpts.map((x) => (
+                  {supervisorCandidates.map((x) => (
                     <option key={x.id} value={x.id}>{x.full_name} ({x.registration_code})</option>
                   ))}
                 </select>
+                {supervisorCandidates.length === 0 && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Cadastre primeiro um colaborador (de preferência com cargo Supervisor) para poder atribuir supervisor direto.
+                  </p>
+                )}
+                {showLeadershipHint && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Recomendado: cargo Supervisor, Coordenador, Gerente ou Diretoria.
+                  </p>
+                )}
               </div>
             </div>
             <DialogFooter>

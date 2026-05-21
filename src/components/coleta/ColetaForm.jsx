@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,10 @@ import {
   BINARY_OPTIONS,
   UNIDADE_OPTIONS,
   envCertIdentification,
+  applyEndCustomerToCliente,
+  resolveEndCustomerId,
 } from "@/lib/coletaSchema";
+import { cadastroSectionPath } from "@/lib/cadastroSections";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
 import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
 
@@ -60,7 +64,32 @@ export default function ColetaForm({
   onProposalChange,
   weightItems = [],
   envCerts = [],
+  endCustomers = [],
+  isNew = false,
 }) {
+  const selectedEndCustomerId = resolveEndCustomerId(payload, endCustomers);
+  const autoFilledSingleClient = useRef(false);
+
+  useEffect(() => {
+    if (!isNew || endCustomers.length !== 1 || autoFilledSingleClient.current) return;
+    if (!(payload.cliente?.cliente || "").trim() && !payload.cliente?.end_customer_id) {
+      autoFilledSingleClient.current = true;
+      onChange(applyEndCustomerToCliente(payload, endCustomers[0]));
+    }
+  }, [isNew, endCustomers, payload, onChange]);
+
+  const onSelectEndCustomer = (id) => {
+    if (!id) {
+      onChange({
+        ...payload,
+        cliente: { ...payload.cliente, end_customer_id: "", cliente: "", responsavel: "" },
+      });
+      return;
+    }
+    const ec = endCustomers.find((c) => c.id === id);
+    if (ec) onChange(applyEndCustomerToCliente(payload, ec));
+  };
+
   const setCliente = (k, v) => onChange({ ...payload, cliente: { ...payload.cliente, [k]: v } });
   const setBalanca = (k, v) => onChange({ ...payload, balanca: { ...payload.balanca, [k]: v } });
   const setAmbiente = (k, v) => onChange({ ...payload, ambiente: { ...payload.ambiente, [k]: v } });
@@ -93,6 +122,27 @@ export default function ColetaForm({
       </div>
 
       <SectionCard num="1" title="Dados do Cliente">
+        {endCustomers.length === 0 ? (
+          <p className="text-sm text-slate-600">
+            Nenhum cliente cadastrado.{" "}
+            <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+              Cadastros → Clientes
+            </Link>
+          </p>
+        ) : (
+          <Field label="Cliente (cadastro)">
+            <select
+              value={selectedEndCustomerId}
+              onChange={(e) => onSelectEndCustomer(e.target.value)}
+              className="w-full border rounded-md h-10 px-3 text-sm bg-white"
+            >
+              <option value="">— Selecionar —</option>
+              {endCustomers.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </Field>
+        )}
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Cliente">
             <Input value={payload.cliente.cliente} onChange={(e) => setCliente("cliente", e.target.value)} />

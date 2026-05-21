@@ -17,30 +17,7 @@ import {
   DEFAULT_COLETA_FORM_TITLE,
   DEFAULT_COLETA_FORM_REVISION,
 } from "@/lib/coletaDocMeta";
-
-function toastSupabaseAccessError(e, fallback) {
-  const detail = e?.response?.data?.detail;
-  const fromDetail = typeof detail === "string" ? detail : "";
-  const msg = fromDetail || e?.message || String(e || "") || fallback;
-  const rls = /permission denied|row-level security|\bRLS\b|42501/i.test(msg);
-  const hint = rls
-    ? " Confirme que a sessão é de administrador CTLI (profiles.role = 'admin')."
-    : "";
-  toast.error(`${msg}${hint}`);
-}
-
-async function fnErrorMessage(data, error) {
-  if (data?.error) return typeof data.error === "string" ? data.error : JSON.stringify(data.error);
-  if (error?.context && typeof error.context.json === "function") {
-    try {
-      const b = await error.context.json();
-      if (b?.error) return typeof b.error === "string" ? b.error : JSON.stringify(b.error);
-    } catch {
-      /* ignore */
-    }
-  }
-  return error?.message || "Falha";
-}
+import { fnErrorMessage, toastSupabaseAccessError } from "@/lib/supabaseFunctions";
 
 const AdminClients = () => {
   const { isAdmin, reloadTenants, currentTenantId, selectTenant } = useOutletContext();

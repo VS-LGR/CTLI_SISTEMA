@@ -34,7 +34,18 @@ const ColetaEditorPage = () => {
   const [saving, setSaving] = useState(false);
   const [weightItems, setWeightItems] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
+  const [endCustomers, setEndCustomers] = useState([]);
   const [logoDataUrl, setLogoDataUrl] = useState(null);
+
+  const loadEndCustomers = useCallback(async () => {
+    if (!currentTenantId) return;
+    const { data, error } = await supabase
+      .from("end_customer_registrations")
+      .select("id, name, representative_name")
+      .eq("tenant_id", currentTenantId)
+      .order("name");
+    if (!error) setEndCustomers(data || []);
+  }, [currentTenantId]);
 
   const loadCerts = useCallback(async () => {
     if (!currentTenantId) return;
@@ -96,6 +107,7 @@ const ColetaEditorPage = () => {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadCerts(); }, [loadCerts]);
+  useEffect(() => { loadEndCustomers(); }, [loadEndCustomers]);
   useEffect(() => { loadLogo(); }, [loadLogo]);
 
   if (!canAccessColeta(user?.role)) {
@@ -212,6 +224,8 @@ const ColetaEditorPage = () => {
           onProposalChange={setCommercialProposalRef}
           weightItems={weightItems}
           envCerts={envCerts}
+          endCustomers={endCustomers}
+          isNew={isNew}
         />
       </Suspense>
     </div>

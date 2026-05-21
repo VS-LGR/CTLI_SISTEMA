@@ -34,14 +34,26 @@ O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`
 ## Supabase (CLI)
 
 1. Aplicar migrações SQL em `supabase/migrations/` ao projeto (Supabase SQL Editor ou `supabase db push` com o CLI ligado ao projeto).
-2. Publicar Edge Functions com segredos automáticos `SUPABASE_URL`, `SUPABASE_ANON_KEY` e definir **`SUPABASE_SERVICE_ROLE_KEY`** nos segredos da função (Dashboard → Edge Functions → Secrets), necessário para `admin-create-user`, `admin-update-user` e `admin-delete-user`.
+2. Publicar **todas** as Edge Functions usadas pelo frontend (segredos automáticos `SUPABASE_URL`, `SUPABASE_ANON_KEY` e **`SUPABASE_SERVICE_ROLE_KEY`** em Dashboard → Edge Functions → Secrets):
+
+```bash
+supabase functions deploy admin-create-user admin-update-user admin-delete-user tenant-manage-technician tenant-backup
+```
+
+| Função | Uso |
+|--------|-----|
+| `admin-create-user`, `admin-update-user`, `admin-delete-user` | Utilizadores do ambiente (Admin → Ambientes) |
+| `tenant-manage-technician` | Técnicos de campo (Cadastros → Técnicos de campo) |
+| `tenant-backup` | Backup/restore ZIP por tenant |
 3. **Primeiro administrador CTLI:** criar o primeiro utilizador em **Authentication** (ou convite). Na tabela `public.profiles`, garantir `role = 'admin'` e `tenant_id IS NULL` (por trigger com metadata, ou `UPDATE` manual no SQL Editor). Sem isto, **não** consegue inserir linhas em `tenants` nem gerir contas (RLS).
 
 4. **Contas de portal:** utilize papel `client` (ou outros papéis com `tenant_id`) ao convidar utilizadores; o separador **Conta cliente (portal)** aparece no ecrã de criação de utilizadores quando o frontend está atualizado.
 
 5. **Lembretes da dashboard:** aplicar `20250625000000_dashboard_reminders.sql` (tabela `dashboard_reminders` no Supabase — sem API legada).
 
-6. **Cadastros e anexos:** aplicar também a migração `20250616000000_cadastros_multitenant.sql`, que cria tabelas de fornecedores, clientes do cliente, colaboradores, certificados e o **bucket** privado `cadastro-certificados` com políticas RLS em `storage.objects`. O primeiro segmento do caminho do ficheiro deve ser o UUID do tenant (`{tenant_id}/weight|env/{cert_id}/{filename}`).
+6. **Cadastros e anexos:** aplicar também a migração `20250616000000_cadastros_multitenant.sql`, que cria tabelas de fornecedores, **clientes finais** (menu Cadastros → Clientes), colaboradores, certificados e o **bucket** privado `cadastro-certificados` com políticas RLS em `storage.objects`. O primeiro segmento do caminho do ficheiro deve ser o UUID do tenant (`{tenant_id}/weight|env/{cert_id}/{filename}`).
+
+7. **Coleta RE-7.2A:** aplicar `20250618000000_scale_calibration_collections.sql` (papel `tecnico_campo` e tabela de coletas).
 
 ## Resolução de problemas (criação de ambientes / utilizadores)
 
@@ -49,6 +61,8 @@ O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`
 |---------|------------------|
 | Erro de permissão / RLS ao criar ambiente | Sessão não é `profiles.role = 'admin'` ou env Supabase incorreto. |
 | Criação de ambiente OK, falha ao criar utilizador | Edge Functions `admin-create-user` não deployadas ou falta `SUPABASE_SERVICE_ROLE_KEY` nos segredos. |
+| `Failed to send a request to the Edge Function` ao criar técnico ou utilizador | Função não publicada no projeto (`tenant-manage-technician` ou `admin-create-user`) ou falta `SUPABASE_SERVICE_ROLE_KEY`; confirmar `REACT_APP_SUPABASE_URL` aponta ao mesmo projeto. |
+| Falha ao guardar técnico de campo | Deploy de `tenant-manage-technician` + segredo service role; utilizador deve ser `admin` ou `client` com `tenant_id` válido. |
 | UI sem CRUD completo de clientes | `REACT_APP_USE_MOCK_API=true` ou variáveis Supabase em falta — só está ativo o modo Supabase com URL + chave pública. |
 | Utilizador do cliente não vê o seu ambiente | Verificar `tenant_id` em `profiles`; utilizadores não-CTLI devem ter `tenant_id` definido. |
 

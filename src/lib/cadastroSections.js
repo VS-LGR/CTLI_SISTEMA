@@ -4,7 +4,7 @@ import { canManageTechnicians } from "@/lib/roles";
 
 export const CADASTRO_SECTIONS = [
   { id: "fornecedores", label: "Fornecedores" },
-  { id: "clientes", label: "Clientes do cliente" },
+  { id: "clientes", label: "Clientes" },
   { id: "colaboradores", label: "Colaboradores" },
   { id: "cert-peso", label: "Certificado de peso padrão" },
   { id: "pesos", label: "Pesos padrão (identificação)" },

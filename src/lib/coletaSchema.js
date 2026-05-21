@@ -136,9 +136,32 @@ function migrateLotesToLinhas(rawRep) {
   return SUBSTITUICAO_LINHA_DEFS.map((d) => byKey[d.key]);
 }
 
+export function applyEndCustomerToCliente(payload, endCustomer) {
+  if (!endCustomer) return payload;
+  return {
+    ...payload,
+    cliente: {
+      ...payload.cliente,
+      end_customer_id: endCustomer.id || "",
+      cliente: endCustomer.name || "",
+      responsavel: endCustomer.representative_name || "",
+    },
+  };
+}
+
+/** Resolve id de cliente cadastrado a partir do payload (id guardado ou nome). */
+export function resolveEndCustomerId(payload, endCustomers = []) {
+  const cid = payload?.cliente?.end_customer_id;
+  if (cid && endCustomers.some((c) => c.id === cid)) return cid;
+  const name = (payload?.cliente?.cliente || "").trim();
+  if (!name) return "";
+  const match = endCustomers.find((c) => (c.name || "").trim() === name);
+  return match?.id || "";
+}
+
 export function emptyColetaPayload() {
   return {
-    cliente: { cliente: "", responsavel: "" },
+    cliente: { cliente: "", responsavel: "", end_customer_id: "" },
     balanca: {
       fabricante: "",
       modelo: "",
