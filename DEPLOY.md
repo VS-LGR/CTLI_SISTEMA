@@ -66,6 +66,24 @@ supabase functions deploy admin-create-user admin-update-user admin-delete-user 
 | UI sem CRUD completo de clientes | `REACT_APP_USE_MOCK_API=true` ou variáveis Supabase em falta — só está ativo o modo Supabase com URL + chave pública. |
 | Utilizador do cliente não vê o seu ambiente | Verificar `tenant_id` em `profiles`; utilizadores não-CTLI devem ter `tenant_id` definido. |
 
+### Publicar Edge Functions (obrigatório para técnicos e utilizadores)
+
+A função **não vem com o site** — tem de existir no **mesmo projeto** que `REACT_APP_SUPABASE_URL`.
+
+**Passos (PowerShell, pasta `frontend`):**
+
+```powershell
+npx supabase login
+npx supabase link --project-ref SEU_PROJECT_REF
+.\scripts\deploy-edge-functions.ps1
+```
+
+O **Project Ref** está em Supabase → Settings → General → Reference ID.
+
+**Segredos:** Supabase → Edge Functions → **Secrets** → criar `SUPABASE_SERVICE_ROLE_KEY` com o valor de Settings → API → **service_role** (secret). Sem isto, criar técnico/utilizador falha com erro 500.
+
+**Confirmar:** em Edge Functions deve aparecer `tenant-manage-technician`. URL sem deploy: `https://SEU_REF.supabase.co/functions/v1/tenant-manage-technician` → 404.
+
 ## Notas
 
 - O CRA emite ficheiros estáticos para `build/`; o Vercel deve usar esse diretório como saída.
