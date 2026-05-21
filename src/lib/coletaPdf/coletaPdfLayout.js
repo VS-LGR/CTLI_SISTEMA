@@ -1,13 +1,13 @@
 /**
  * Layout visual do formulário RE-7.2A (cores e helpers jsPDF).
+ * Paleta ciano claro alinhada ao ProcVault (sky-100 / sky-200).
  * Identidade do tenant (logo, código do formulário) vem de coletaDocMeta + export opts.
  */
 
 export const FORM_COLORS = {
-  sectionGreen: [198, 224, 180],
-  tableHeaderGreen: [186, 216, 168],
-  fieldLabelGreen: [198, 224, 180],
-  controlRed: [255, 0, 0],
+  sectionGreen: [224, 242, 254],
+  tableHeaderGreen: [186, 230, 253],
+  fieldLabelGreen: [224, 242, 254],
   border: [120, 120, 120],
   text: [0, 0, 0],
 };
@@ -75,12 +75,12 @@ export function drawDualSectionBar(
   return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
 }
 
-const PROPOSAL_PAD = 1.5;
-const PROPOSAL_LABEL_H = 3.5;
-const PROPOSAL_VALUE_GAP = 1.2;
-const PROPOSAL_LINE_H = 3.2;
-const PROPOSAL_MIN_H = 14;
-const PROPOSAL_MAX_H = 22;
+const PROPOSAL_PAD = 1.2;
+const PROPOSAL_LABEL_H = 3.2;
+const PROPOSAL_VALUE_GAP = 1;
+const PROPOSAL_LINE_H = 3;
+const PROPOSAL_MIN_H = 10;
+const PROPOSAL_MAX_H = 15;
 
 /**
  * Caixa proposta comercial (altura dinâmica; valor abaixo do rótulo).
@@ -88,25 +88,29 @@ const PROPOSAL_MAX_H = 22;
  */
 export function drawProposalBox(doc, x, y, w, proposalRef) {
   const innerW = w - PROPOSAL_PAD * 2;
-  doc.setFontSize(7);
+  const labelText = "Referente à Proposta Comercial:";
+  doc.setFontSize(6);
+  doc.setFont("helvetica", "bold");
+  const labelLines = doc.splitTextToSize(labelText, innerW);
+  const labelH = Math.max(PROPOSAL_LABEL_H, labelLines.length * PROPOSAL_LINE_H);
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
   const ref = proposalRef ? String(proposalRef) : "";
   const valueLines = doc.splitTextToSize(ref || " ", innerW);
   const valueH = Math.max(PROPOSAL_LINE_H, valueLines.length * PROPOSAL_LINE_H);
-  let h =
-    PROPOSAL_PAD + PROPOSAL_LABEL_H + PROPOSAL_VALUE_GAP + valueH + PROPOSAL_PAD;
+  let h = PROPOSAL_PAD + labelH + PROPOSAL_VALUE_GAP + valueH + PROPOSAL_PAD;
   h = Math.min(PROPOSAL_MAX_H, Math.max(PROPOSAL_MIN_H, h));
 
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.2);
   doc.rect(x, y, w, h, "S");
-  doc.setFontSize(6.5);
+  doc.setFontSize(6);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...FORM_COLORS.text);
-  doc.text("Referente à Proposta Comercial:", x + PROPOSAL_PAD, y + PROPOSAL_PAD + 2.6);
+  doc.text(labelLines, x + PROPOSAL_PAD, y + PROPOSAL_PAD + 2.2, { maxWidth: innerW });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  const valueY = y + PROPOSAL_PAD + PROPOSAL_LABEL_H + PROPOSAL_VALUE_GAP + 2.2;
+  doc.setFontSize(6.5);
+  const valueY = y + PROPOSAL_PAD + labelH + PROPOSAL_VALUE_GAP + 2;
   doc.text(valueLines, x + PROPOSAL_PAD, valueY, { maxWidth: innerW });
   return h;
 }

@@ -33,7 +33,8 @@ function mark(checked) {
 
 const LOGO_W = 32;
 const LOGO_H = 13;
-const PROP_W = 58;
+const PROP_W = 46;
+const CTRL_ROW_H = 5;
 const PROP_X = MR - PROP_W;
 const CENTER_X = ML + LOGO_W + 3;
 const CENTER_W = PROP_X - CENTER_X - 3;
@@ -276,14 +277,16 @@ function drawFrente(doc, model) {
 
   const ecc = model.excentricidade;
   const ctrl = model.controle;
+  const ySec = y;
   doc.setFontSize(8);
-  doc.text(`Valor Aplicado: ${s(ecc.valor_aplicado)}`, ML, y);
-  underlineField(doc, ML + 98, y, "Representante do Cliente", ctrl.representante_cliente, 92);
-  y += 6;
+  doc.text(`Valor Aplicado: ${s(ecc.valor_aplicado)}`, ML, ySec);
+  underlineField(doc, ML + 98, ySec, "Representante do Cliente", ctrl.representante_cliente, 92);
+  let yCtrl = ySec + CTRL_ROW_H;
+  const yEccTable = ySec + 6;
 
   const th = tableHeadStyles(doc);
   autoTable(doc, {
-    startY: y,
+    startY: yEccTable,
     margin: { left: ML, right: PAGE_W - ML - 98 },
     tableWidth: 88,
     head: [["Ponto", "Antes do ajuste", "Depois do ajuste"]],
@@ -293,7 +296,6 @@ function drawFrente(doc, model) {
     theme: "grid",
   });
 
-  let yCtrl = y;
   const ctrlFields = [
     ["Conferido e Transcrito por", ctrl.conferido_por],
     ["Número do Certificado Emitido", ctrl.numero_certificado],
@@ -301,14 +303,12 @@ function drawFrente(doc, model) {
     ["Data da Calibração", ctrl.data_calibracao_fmt],
   ];
   ctrlFields.forEach(([lbl, val]) => {
-    yCtrl += 5;
     underlineField(doc, ML + 98, yCtrl, lbl, val, 92);
+    yCtrl += CTRL_ROW_H;
   });
-  yCtrl += 5;
   doc.setFontSize(7.5);
-  doc.setTextColor(...FORM_COLORS.controlRed);
-  doc.text("Pontos de Calibração Solicitados pelo Cliente", ML + 98, yCtrl);
   doc.setTextColor(...FORM_COLORS.text);
+  doc.text("Pontos de Calibração Solicitados pelo Cliente", ML + 98, yCtrl);
   checkboxGroup(
     doc,
     ML + 98,

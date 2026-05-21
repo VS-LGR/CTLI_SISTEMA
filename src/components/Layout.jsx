@@ -14,10 +14,11 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, canAccessColeta } from "@/lib/roles";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
+  getFolderNavChildren,
   requiresFolderNav,
 } from "@/lib/requirementNavConfig";
 import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
@@ -100,6 +101,13 @@ const Layout = () => {
 
   const subNavLinkClass = ({ isActive }) =>
     `flex items-center gap-2 pl-9 pr-3 py-2 rounded-md text-xs transition-all leading-snug ${
+      isActive
+        ? "bg-blue-600 text-white"
+        : "text-slate-400 hover:bg-slate-800 hover:text-white"
+    }`;
+
+  const subNavNestedLinkClass = ({ isActive }) =>
+    `flex items-center gap-2 pl-12 pr-3 py-1.5 rounded-md text-xs transition-all leading-snug ${
       isActive
         ? "bg-blue-600 text-white"
         : "text-slate-400 hover:bg-slate-800 hover:text-white"
@@ -196,18 +204,37 @@ const Layout = () => {
                   <CaretRight size={14} className="shrink-0 opacity-70" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
-                  {folders.map((f) => (
-                    <NavLink
-                      key={f.folderKey}
-                      to={`/requirement/${r.id}/${f.folderKey}`}
-                      className={subNavLinkClass}
-                      title={f.label}
-                      data-testid={`nav-req-${r.id}-${f.folderKey}`}
-                      onClick={onNavigate}
-                    >
-                      <span className="truncate">{f.label}</span>
-                    </NavLink>
-                  ))}
+                  {folders.map((f) => {
+                    const children = getFolderNavChildren(f, {
+                      canColeta: canAccessColeta(user?.role),
+                    });
+                    return (
+                      <div key={f.folderKey} className="space-y-0.5">
+                        <NavLink
+                          to={`/requirement/${r.id}/${f.folderKey}`}
+                          end={children.length > 0}
+                          className={subNavLinkClass}
+                          title={f.label}
+                          data-testid={`nav-req-${r.id}-${f.folderKey}`}
+                          onClick={onNavigate}
+                        >
+                          <span className="truncate">{f.label}</span>
+                        </NavLink>
+                        {children.map((c) => (
+                          <NavLink
+                            key={c.key}
+                            to={c.to}
+                            className={subNavNestedLinkClass}
+                            title={c.label}
+                            data-testid={`nav-req-${r.id}-${f.folderKey}-${c.key}`}
+                            onClick={onNavigate}
+                          >
+                            <span className="truncate">{c.label}</span>
+                          </NavLink>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </CollapsibleContent>
               </Collapsible>
             );

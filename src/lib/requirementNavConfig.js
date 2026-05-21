@@ -3,6 +3,8 @@
  * Conteúdo editável aqui; rotas usam folderKey na URL (sem dois-pontos).
  */
 
+import { COLETA_LIST_PATH } from "./coletaRoutes";
+
 export const REQ_NAMES = {
   "4": "Requisitos Gerais",
   "5": "Requisitos de Estrutura",
@@ -41,7 +43,18 @@ const FOLDERS = {
     { folderKey: "pr-7-1-7", label: "PR-7.1.7 Atendimento ao Cliente" },
     { folderKey: "pr-7-10", label: "PR-7.10 Trabalho Não Conforme" },
     { folderKey: "pr-7-11", label: "PR-7.11 Controle de Dados e Gestão da Informação" },
-    { folderKey: "pr-7-2", label: "PR-7.2 Calibração de Balanças" },
+    {
+      folderKey: "pr-7-2",
+      label: "PR-7.2 Calibração de Balanças",
+      children: [
+        {
+          key: "coleta",
+          label: "Coleta de dados (RE-7.2A)",
+          to: COLETA_LIST_PATH,
+          requiresColeta: true,
+        },
+      ],
+    },
     { folderKey: "pr-7-2-2", label: "PR-7.2.2 Validação de Métodos" },
     { folderKey: "pr-7-4", label: "PR-7.4 Manuseio de Itens de Calibração" },
     { folderKey: "pr-7-6", label: "PR-7.6 Avaliação da Incerteza de Medição" },
@@ -66,6 +79,12 @@ export function requiresFolderNav(requirementId) {
 
 export function getFoldersForRequirement(requirementId) {
   return FOLDERS[String(requirementId)] || [];
+}
+
+/** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2). */
+export function getFolderNavChildren(folder, { canColeta = false } = {}) {
+  const list = folder?.children || [];
+  return list.filter((c) => !c.requiresColeta || canColeta);
 }
 
 export function getFolderLabel(requirementId, folderKey) {

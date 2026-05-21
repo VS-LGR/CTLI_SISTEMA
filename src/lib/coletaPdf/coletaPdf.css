@@ -1,8 +1,7 @@
 :root {
-  --coleta-form-green: #c6e0b4;
-  --coleta-form-green-dark: #bad4a8;
+  --coleta-form-accent: #e0f2fe;
+  --coleta-form-accent-dark: #bae6fd;
   --coleta-form-border: #787878;
-  --coleta-control-red: #ff0000;
 }
 
 .coleta-pdf-root {
@@ -52,7 +51,7 @@
 .coleta-txt-sec {
   font-size: 0.6em;
   font-weight: bold;
-  background: var(--coleta-form-green);
+  background: var(--coleta-form-accent);
   padding: 0.15em 0.35em;
   width: 100%;
   box-sizing: border-box;
@@ -151,7 +150,7 @@
 }
 
 .coleta-field-box-label {
-  background: var(--coleta-form-green);
+  background: var(--coleta-form-accent);
   font-weight: bold;
   padding: 0.1em 0.2em;
   font-size: 0.55em;
@@ -173,11 +172,6 @@
 
 .coleta-grid-bal .coleta-field-box {
   margin-bottom: 0;
-}
-
-.coleta-control-red {
-  color: var(--coleta-control-red);
-  font-weight: bold;
 }
 
 .coleta-amb-line {
@@ -234,7 +228,7 @@
 .coleta-measure-block .coleta-measure-title {
   font-size: 0.66em;
   margin-bottom: 0.1em;
-  background: var(--coleta-form-green);
+  background: var(--coleta-form-accent);
   padding: 0.08em 0.2em;
   font-weight: bold;
   border: 0.35pt solid var(--coleta-form-border);
@@ -275,7 +269,7 @@
   font-weight: bold;
   font-size: 0.5em;
   line-height: 1.1;
-  background: var(--coleta-form-green-dark);
+  background: var(--coleta-form-accent-dark);
 }
 
 .coleta-cal-table td:first-child,

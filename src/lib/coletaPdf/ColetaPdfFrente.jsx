@@ -178,7 +178,7 @@ export function ColetaPdfFrente({ model, logoUrl }) {
           <span className="coleta-underline-block">{controle.data_calibracao_fmt || "\u00a0"}</span>
         </div>
         <div className="coleta-field-line coleta-txt-body">
-          <span className="coleta-control-red">Pontos de Calibração Solicitados pelo Cliente</span>
+          <span>Pontos de Calibração Solicitados pelo Cliente</span>
           <PontosSolicitadosCheckboxes value={controle.pontos_solicitados} />
         </div>
       </AbsBlock>
