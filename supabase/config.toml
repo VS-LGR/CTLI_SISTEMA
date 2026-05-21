@@ -1,0 +1,23 @@
+# ProcVault — Supabase local / deploy (CLI: npx supabase …)
+# Ligue o projeto: npx supabase link --project-ref SEU_PROJECT_REF
+
+[api]
+enabled = true
+
+[functions]
+# JWT do utilizador é validado pelo código dentro de cada função (requireAdmin / requireProvisioner).
+
+[functions.tenant-manage-technician]
+verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.admin-update-user]
+verify_jwt = false
+
+[functions.admin-delete-user]
+verify_jwt = false
+
+[functions.tenant-backup]
+verify_jwt = false

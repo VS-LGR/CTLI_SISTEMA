@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
+import { getServiceRoleKey } from "../_shared/env.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -70,7 +71,7 @@ async function authGate(
     return { error: jsonResponse({ error: "Forbidden" }, 403) };
   }
 
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const serviceKey = getServiceRoleKey();
   return {
     admin: createClient(supabaseUrl, serviceKey),
     userId: user.id,

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getServiceRoleKey } from "../_shared/env.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -51,7 +52,7 @@ serve(async (req) => {
       });
     }
 
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceKey = getServiceRoleKey();
     const adminClient = createClient(supabaseUrl, serviceKey);
 
     const { error: delErr } = await adminClient.auth.admin.deleteUser(user_id);

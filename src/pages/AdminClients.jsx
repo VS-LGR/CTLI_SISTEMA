@@ -17,7 +17,7 @@ import {
   DEFAULT_COLETA_FORM_TITLE,
   DEFAULT_COLETA_FORM_REVISION,
 } from "@/lib/coletaDocMeta";
-import { fnErrorMessage, toastSupabaseAccessError } from "@/lib/supabaseFunctions";
+import { invokeSupabaseEdgeFunction, toastSupabaseAccessError } from "@/lib/supabaseFunctions";
 
 const AdminClients = () => {
   const { isAdmin, reloadTenants, currentTenantId, selectTenant } = useOutletContext();
@@ -276,28 +276,22 @@ const AdminClients = () => {
     try {
       if (isSupabaseAuthMode) {
         if (editingUserId) {
-          const { data, error } = await supabase.functions.invoke("admin-update-user", {
-            body: {
-              user_id: editingUserId,
-              full_name: uName.trim(),
-              role: uRole,
-              tenant_id: uRole === "admin" ? null : uTenant,
-              email: uEmail.trim(),
-            },
+          await invokeSupabaseEdgeFunction("admin-update-user", {
+            user_id: editingUserId,
+            full_name: uName.trim(),
+            role: uRole,
+            tenant_id: uRole === "admin" ? null : uTenant,
+            email: uEmail.trim(),
           });
-          if (error) throw new Error(await fnErrorMessage(data, error));
           toast.success("Utilizador atualizado");
         } else {
-          const { data, error } = await supabase.functions.invoke("admin-create-user", {
-            body: {
-              email: uEmail.trim(),
-              password: uPassword,
-              full_name: uName.trim(),
-              role: uRole,
-              tenant_id: uRole === "admin" ? null : uTenant,
-            },
+          await invokeSupabaseEdgeFunction("admin-create-user", {
+            email: uEmail.trim(),
+            password: uPassword,
+            full_name: uName.trim(),
+            role: uRole,
+            tenant_id: uRole === "admin" ? null : uTenant,
           });
-          if (error) throw new Error(await fnErrorMessage(data, error));
           toast.success("Utilizador criado");
         }
       } else {
@@ -336,10 +330,7 @@ const AdminClients = () => {
     if (!isSupabaseAuthMode) return;
     if (!window.confirm("Eliminar este utilizador?")) return;
     try {
-      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
-        body: { user_id: userId },
-      });
-      if (error) throw new Error(await fnErrorMessage(data, error));
+      await invokeSupabaseEdgeFunction("admin-delete-user", { user_id: userId });
       toast.success("Utilizador eliminado");
       await load();
     } catch (e) {

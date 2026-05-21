@@ -19,7 +19,7 @@ Segredos na Edge Function `tenant-backup`:
 
 | Segredo | Obrigatório | Descrição |
 |---------|-------------|-----------|
-| `SUPABASE_SERVICE_ROLE_KEY` | Sim | Export/restore com service role. |
+| `CTLI_SERVICE_ROLE_KEY` | Sim | Valor **service_role** (Settings → API). Nome customizado no painel (alternativa legada: `SUPABASE_SERVICE_ROLE_KEY`). |
 | `LEGACY_API_URL` | Opcional | URL base da API de documentos (ex. `https://api.exemplo.com`). |
 | `LEGACY_API_SERVICE_TOKEN` | Opcional | Token de serviço para export/restore de documentos. |
 
@@ -34,7 +34,7 @@ O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`
 ## Supabase (CLI)
 
 1. Aplicar migrações SQL em `supabase/migrations/` ao projeto (Supabase SQL Editor ou `supabase db push` com o CLI ligado ao projeto).
-2. Publicar **todas** as Edge Functions usadas pelo frontend (segredos automáticos `SUPABASE_URL`, `SUPABASE_ANON_KEY` e **`SUPABASE_SERVICE_ROLE_KEY`** em Dashboard → Edge Functions → Secrets):
+2. Publicar **todas** as Edge Functions usadas pelo frontend (segredos automáticos `SUPABASE_URL`, `SUPABASE_ANON_KEY`; adicionar **`CTLI_SERVICE_ROLE_KEY`** em Dashboard → Edge Functions → Secrets):
 
 ```bash
 supabase functions deploy admin-create-user admin-update-user admin-delete-user tenant-manage-technician tenant-backup
@@ -60,8 +60,8 @@ supabase functions deploy admin-create-user admin-update-user admin-delete-user 
 | Sintoma | Causa provável |
 |---------|------------------|
 | Erro de permissão / RLS ao criar ambiente | Sessão não é `profiles.role = 'admin'` ou env Supabase incorreto. |
-| Criação de ambiente OK, falha ao criar utilizador | Edge Functions `admin-create-user` não deployadas ou falta `SUPABASE_SERVICE_ROLE_KEY` nos segredos. |
-| `Failed to send a request to the Edge Function` ao criar técnico ou utilizador | Função não publicada no projeto (`tenant-manage-technician` ou `admin-create-user`) ou falta `SUPABASE_SERVICE_ROLE_KEY`; confirmar `REACT_APP_SUPABASE_URL` aponta ao mesmo projeto. |
+| Criação de ambiente OK, falha ao criar utilizador | Edge Functions `admin-create-user` não deployadas ou falta `CTLI_SERVICE_ROLE_KEY` nos segredos. |
+| `Failed to send a request to the Edge Function` ao criar técnico ou utilizador | Função não publicada no projeto (`tenant-manage-technician` não aparece no painel = falta deploy); confirmar `REACT_APP_SUPABASE_URL` aponta ao mesmo projeto. |
 | Falha ao guardar técnico de campo | Deploy de `tenant-manage-technician` + segredo service role; utilizador deve ser `admin` ou `client` com `tenant_id` válido. |
 | UI sem CRUD completo de clientes | `REACT_APP_USE_MOCK_API=true` ou variáveis Supabase em falta — só está ativo o modo Supabase com URL + chave pública. |
 | Utilizador do cliente não vê o seu ambiente | Verificar `tenant_id` em `profiles`; utilizadores não-CTLI devem ter `tenant_id` definido. |
@@ -80,7 +80,7 @@ npx supabase link --project-ref SEU_PROJECT_REF
 
 O **Project Ref** está em Supabase → Settings → General → Reference ID.
 
-**Segredos:** Supabase → Edge Functions → **Secrets** → criar `SUPABASE_SERVICE_ROLE_KEY` com o valor de Settings → API → **service_role** (secret). Sem isto, criar técnico/utilizador falha com erro 500.
+**Segredos:** Supabase → Edge Functions → **Secrets** → criar **`CTLI_SERVICE_ROLE_KEY`** com o valor de Settings → API → **service_role** (secret). Sem isto, criar técnico/utilizador falha com erro 500.
 
 **Confirmar:** em Edge Functions deve aparecer `tenant-manage-technician`. URL sem deploy: `https://SEU_REF.supabase.co/functions/v1/tenant-manage-technician` → 404.
 

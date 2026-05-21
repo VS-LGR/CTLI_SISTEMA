@@ -1,6 +1,91 @@
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabaseClient";
 
 const EDGE_FN_GENERIC = /failed to send a request to the edge function/i;
+const NOT_FOUND_FN = /not found|404|requested function/i;
+
+function supabasePublicKey() {
+  return (
+    process.env.REACT_APP_SUPABASE_ANON_KEY ||
+    process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY ||
+    ""
+  ).trim();
+}
+
+function deployHint(functionName) {
+  return (
+    `A função "${functionName}" não está disponível no projeto Supabase. ` +
+    "Publique-a: no terminal (pasta frontend) execute .\\scripts\\deploy-edge-functions.ps1 " +
+    "ou npx supabase functions deploy tenant-manage-technician após supabase login e link. " +
+    "Depois, em Edge Functions → Secrets, defina CTLI_SERVICE_ROLE_KEY (valor service_role da API)."
+  );
+}
+
+/**
+ * Invoca Edge Function via fetch (erros HTTP mais claros que functions.invoke).
+ */
+export async function invokeSupabaseEdgeFunction(functionName, body) {
+  if (!supabase) throw new Error("Supabase não configurado (REACT_APP_SUPABASE_URL e chave pública).");
+
+  const baseUrl = (process.env.REACT_APP_SUPABASE_URL || "").replace(/\/$/, "");
+  if (!baseUrl) throw new Error("REACT_APP_SUPABASE_URL em falta.");
+
+  const apikey = supabasePublicKey();
+  if (!apikey) throw new Error("REACT_APP_SUPABASE_ANON_KEY ou REACT_APP_SUPABASE_PUBLISHABLE_KEY em falta.");
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("Sessão expirada. Faça login novamente.");
+
+  const url = `${baseUrl}/functions/v1/${functionName}`;
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body ?? {}),
+    });
+  } catch (netErr) {
+    const msg = netErr?.message || String(netErr);
+    if (EDGE_FN_GENERIC.test(msg)) throw new Error(deployHint(functionName));
+    throw new Error(`${msg} ${deployHint(functionName)}`);
+  }
+
+  let data = null;
+  const text = await res.text();
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text.slice(0, 200) };
+    }
+  }
+
+  if (res.status === 404 || NOT_FOUND_FN.test(text)) {
+    throw new Error(deployHint(functionName));
+  }
+
+  if (!res.ok) {
+    const errMsg = data?.error
+      ? (typeof data.error === "string" ? data.error : JSON.stringify(data.error))
+      : `HTTP ${res.status}`;
+    if (res.status === 401) throw new Error(`${errMsg} Verifique se está autenticado.`);
+    if (res.status === 500 && /service_role|SUPABASE_SERVICE_ROLE/i.test(text)) {
+      throw new Error(`${errMsg} Defina CTLI_SERVICE_ROLE_KEY nos segredos da Edge Function.`);
+    }
+    throw new Error(errMsg);
+  }
+
+  if (data?.error) {
+    throw new Error(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
+  }
+
+  return data;
+}
 
 export async function fnErrorMessage(data, error) {
   if (data?.error) return typeof data.error === "string" ? data.error : JSON.stringify(data.error);
@@ -20,7 +105,7 @@ export async function formatEdgeFunctionError(data, error, functionName) {
   const base = await fnErrorMessage(data, error);
   if (EDGE_FN_GENERIC.test(base)) {
     const fn = functionName || "a Edge Function";
-    return `${base} Publique ${fn} no Supabase (supabase functions deploy) e confirme SUPABASE_SERVICE_ROLE_KEY nos segredos da função.`;
+    return `${base} Publique ${fn} no Supabase (supabase functions deploy) e confirme CTLI_SERVICE_ROLE_KEY nos segredos da função.`;
   }
   return base;
 }
