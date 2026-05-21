@@ -21,15 +21,20 @@ const SIM_NAO = [
   { value: "nao", label: "Não" },
 ];
 
-function SimNaoRow({ label, value, onChange }) {
+function SimNaoRow({ label, value, onChange, disabled }) {
   const gid = label.replace(/\s/g, "-");
   return (
     <div>
       <Label className="text-xs text-slate-600 mb-2 block">{label}</Label>
-      <RadioGroup value={value || ""} onValueChange={onChange} className="flex gap-4">
+      <RadioGroup
+        value={value || ""}
+        onValueChange={onChange}
+        className="flex gap-4"
+        disabled={disabled}
+      >
         {SIM_NAO.map((o) => (
           <div className="flex items-center gap-1.5" key={o.value}>
-            <RadioGroupItem value={o.value} id={`${gid}-${o.value}`} />
+            <RadioGroupItem value={o.value} id={`${gid}-${o.value}`} disabled={disabled} />
             <Label htmlFor={`${gid}-${o.value}`} className="text-sm font-normal cursor-pointer">
               {o.label}
             </Label>
@@ -64,68 +69,93 @@ export default function ColetaVersoForm({ payload, onChange }) {
 
   return (
     <div className="space-y-6 border-t pt-6">
-      <p className="text-center text-sm font-semibold text-slate-800">Verso — Repetitividade com Carga de Substituição</p>
+      <p className="text-center text-sm font-semibold text-slate-800">
+        Verso — Repetitividade com Carga de Substituição
+      </p>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-display">Descrição da Carga</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={verso.descricao_carga || ""}
-            onChange={(e) => setVerso({ descricao_carga: e.target.value })}
-            rows={4}
-            placeholder="Descreva a carga utilizada no ensaio…"
-          />
-        </CardContent>
-      </Card>
+      <label className="flex items-center gap-2 text-sm cursor-pointer justify-center sm:justify-start">
+        <Checkbox
+          checked={!aplicavel}
+          onCheckedChange={(c) => setRep("aplicavel", !c)}
+        />
+        <span>Ensaio de repetitividade com carga de substituição não aplicável</span>
+      </label>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-display">Questões sobre a carga (2.1 – 2.3)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <SimNaoRow
-            label="2.1 A carga possui fácil manuseio?"
-            value={q.facil_manuseio}
-            onChange={(v) => setQuestao("facil_manuseio", v)}
-          />
-          <SimNaoRow
-            label="2.2 A carga possui fácil definição do centro de gravidade?"
-            value={q.facil_centro_gravidade}
-            onChange={(v) => setQuestao("facil_centro_gravidade", v)}
-          />
-          <SimNaoRow
-            label="2.3 A massa da carga é constante durante o ensaio?"
-            value={q.massa_constante}
-            onChange={(v) => setQuestao("massa_constante", v)}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
-          <CardTitle className="text-base font-display">Repetitividade com Carga de Substituição</CardTitle>
-          <label className="flex items-center gap-2 text-sm font-normal cursor-pointer shrink-0">
-            <Checkbox
-              checked={!aplicavel}
-              onCheckedChange={(c) => setRep("aplicavel", !c)}
+      <div
+        className={`space-y-6 ${!aplicavel ? "pointer-events-none opacity-50" : ""}`}
+        aria-disabled={!aplicavel}
+      >
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-display">Descrição da Carga</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={verso.descricao_carga || ""}
+              onChange={(e) => setVerso({ descricao_carga: e.target.value })}
+              rows={4}
+              placeholder="Descreva a carga utilizada no ensaio…"
+              disabled={!aplicavel}
             />
-            Ensaio não aplicável
-          </label>
-        </CardHeader>
-        {aplicavel && (
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-display">Questões sobre a carga (2.1 – 2.3)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <SimNaoRow
+              label="2.1 A carga possui fácil manuseio?"
+              value={q.facil_manuseio}
+              onChange={(v) => setQuestao("facil_manuseio", v)}
+              disabled={!aplicavel}
+            />
+            <SimNaoRow
+              label="2.2 A carga possui fácil definição do centro de gravidade?"
+              value={q.facil_centro_gravidade}
+              onChange={(v) => setQuestao("facil_centro_gravidade", v)}
+              disabled={!aplicavel}
+            />
+            <SimNaoRow
+              label="2.3 A massa da carga é constante durante o ensaio?"
+              value={q.massa_constante}
+              onChange={(v) => setQuestao("massa_constante", v)}
+              disabled={!aplicavel}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-display">
+              Repetitividade com Carga de Substituição
+            </CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <Field label="Formação da carga">
-                <Input value={rep.formacao_carga || ""} onChange={(e) => setRep("formacao_carga", e.target.value)} />
+                <Input
+                  value={rep.formacao_carga || ""}
+                  onChange={(e) => setRep("formacao_carga", e.target.value)}
+                  disabled={!aplicavel}
+                />
               </Field>
               <Field label="Massa específica estimada (kg/m³)">
-                <Input value={rep.massa_especifica_estimada || ""} onChange={(e) => setRep("massa_especifica_estimada", e.target.value)} />
+                <Input
+                  value={rep.massa_especifica_estimada || ""}
+                  onChange={(e) => setRep("massa_especifica_estimada", e.target.value)}
+                  disabled={!aplicavel}
+                />
               </Field>
             </div>
             <Field label="Observações">
-              <Textarea value={rep.observacoes || ""} onChange={(e) => setRep("observacoes", e.target.value)} rows={2} />
+              <Textarea
+                value={rep.observacoes || ""}
+                onChange={(e) => setRep("observacoes", e.target.value)}
+                rows={2}
+                disabled={!aplicavel}
+              />
             </Field>
 
             <div className="overflow-x-auto">
@@ -155,6 +185,7 @@ export default function ColetaVersoForm({ payload, onChange }) {
                           value={row[field] || ""}
                           onChange={(e) => setLinha(def.key, { [field]: e.target.value })}
                           className="h-8 text-xs"
+                          disabled={!aplicavel}
                         />
                       )
                     );
@@ -166,6 +197,7 @@ export default function ColetaVersoForm({ payload, onChange }) {
                             value={row.valor_nominal || ""}
                             onChange={(e) => setLinha(def.key, { valor_nominal: e.target.value })}
                             className="h-8 text-xs"
+                            disabled={!aplicavel}
                           />
                         </td>
                         {[0, 1, 2].map((i) => (
@@ -175,6 +207,7 @@ export default function ColetaVersoForm({ payload, onChange }) {
                                 value={row[`leitura${i + 1}`] || ""}
                                 onChange={(e) => setLinha(def.key, { [`leitura${i + 1}`]: e.target.value })}
                                 className="h-8 text-xs"
+                                disabled={!aplicavel}
                               />
                             ) : (
                               <span className="text-slate-300 block text-center py-2">—</span>
@@ -192,8 +225,8 @@ export default function ColetaVersoForm({ payload, onChange }) {
               </table>
             </div>
           </CardContent>
-        )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

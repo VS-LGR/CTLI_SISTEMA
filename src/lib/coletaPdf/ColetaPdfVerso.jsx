@@ -6,6 +6,30 @@ import { VERSO, SUB_ROW_HEIGHT_EM } from "./layoutSpec";
 
 export function ColetaPdfVerso({ model, logoUrl }) {
   const { verso, footer } = model;
+
+  if (!verso.repetitividadeAplicavel) {
+    return (
+      <section className="coleta-pdf-page">
+        <PdfHeader header={model.header} logoUrl={logoUrl} layout={VERSO.header} />
+        <AbsBlock
+          style={{ position: "absolute", top: "28em", left: "5em", width: "40em", textAlign: "center" }}
+          className="coleta-txt-body"
+        >
+          Ensaio de repetitividade com carga de substituição não aplicável.
+        </AbsBlock>
+        <AbsBlock style={VERSO.footer.left} className="coleta-pdf-footer-line">
+          Cód {footer.code} Ref.: {footer.ref}
+        </AbsBlock>
+        <AbsBlock style={VERSO.footer.center} className="coleta-pdf-footer-line coleta-pdf-footer-center">
+          PÁGINA 2 DE 2
+        </AbsBlock>
+        <AbsBlock style={VERSO.footer.right} className="coleta-pdf-footer-line">
+          Revisão: {footer.revision}
+        </AbsBlock>
+      </section>
+    );
+  }
+
   const q = verso.questoes;
 
   return (

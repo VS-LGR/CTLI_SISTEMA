@@ -71,7 +71,7 @@ export const CAL_TABLE_COLS = {
   ids: { left: 32.2, width: 16.3 },
 };
 
-export const CAL_ROW_HEIGHT_EM = 1.95;
+export const CAL_ROW_HEIGHT_EM = 2.05;
 export const CAL_ROW_START_EM = 2.2;
 
 export const VERSO = {
@@ -83,20 +83,20 @@ export const VERSO = {
   },
   sec1: {
     title: pos(5.62, 0.97, 22, 0.8),
-    box: pos(6.5, 0.97, 48, 11),
+    box: pos(6.5, 0.97, 48, 12),
   },
   sec2: {
-    title: pos(17.9, 0.97, 22, 0.8),
-    q21: pos(20.45, 2.49, 33, 0.9),
-    q22: pos(22.12, 2.49, 33, 0.9),
-    q23: pos(23.79, 2.49, 38, 0.9),
+    title: pos(18.2, 0.97, 22, 0.8),
+    q21: pos(20.85, 2.49, 33, 1.05),
+    q22: pos(22.65, 2.49, 33, 1.05),
+    q23: pos(24.45, 2.49, 38, 1.05),
   },
   sec3: {
-    title: pos(26.42, 0.97, 30, 0.8),
-    table: pos(27.85, 0.97, 48, 39),
+    title: pos(27.1, 0.97, 30, 0.8),
+    table: pos(28.55, 0.97, 48, 39),
   },
-  nota: pos(66.5, 0.97, 48, 1.2),
-  obs: pos(67.89, 0.98, 48, 1.2),
+  nota: pos(67.2, 0.97, 48, 1.2),
+  obs: pos(68.6, 0.98, 48, 1.2),
   footer: {
     left: pos(69.2, 0.5, 14, 0.6),
     center: pos(69.2, 38, 12, 0.6),
@@ -117,4 +117,4 @@ export const SUB_TABLE_COLS = [
   { key: "press", width: 4.2 },
 ];
 
-export const SUB_ROW_HEIGHT_EM = 2.15;
+export const SUB_ROW_HEIGHT_EM = 2.25;

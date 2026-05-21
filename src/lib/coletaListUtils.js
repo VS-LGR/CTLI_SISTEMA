@@ -5,12 +5,28 @@ function norm(s) {
 }
 
 /**
- * @param {Array<Record<string, unknown>>} rows
- * @param {{ query?: string, pdfStatus?: string, date?: string }} filters
+ * @param {Record<string, unknown>} row
+ * @returns {"complete" | "partial" | "pending"}
  */
-export function filterColetaRows(rows, { query = "", pdfStatus = "all", date = "" } = {}) {
+export function coletaCombinedExportStatus(row) {
+  const pdf = Boolean(row?.pdf_downloaded_at);
+  const tsv = Boolean(row?.tsv_downloaded_at);
+  if (pdf && tsv) return "complete";
+  if (pdf || tsv) return "partial";
+  return "pending";
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} rows
+ * @param {{ query?: string, exportStatus?: string, pdfStatus?: string, date?: string }} filters
+ */
+export function filterColetaRows(
+  rows,
+  { query = "", exportStatus = "all", pdfStatus = "all", date = "" } = {},
+) {
   const q = norm(query);
   const d = String(date ?? "").trim();
+  const status = exportStatus !== "all" ? exportStatus : pdfStatus;
 
   return (rows || []).filter((row) => {
     if (q) {
@@ -24,8 +40,12 @@ export function filterColetaRows(rows, { query = "", pdfStatus = "all", date = "
         .join(" ");
       if (!haystack.includes(q)) return false;
     }
-    if (pdfStatus === "downloaded" && !row.pdf_downloaded_at) return false;
-    if (pdfStatus === "pending" && row.pdf_downloaded_at) return false;
+    if (status !== "all") {
+      const combined = coletaCombinedExportStatus(row);
+      if (status === "downloaded" && combined !== "complete") return false;
+      if (status === "pending" && combined !== "pending") return false;
+      if (status === "partial" && combined !== "partial") return false;
+    }
     if (d) {
       const rowDate = row.calibration_date ? String(row.calibration_date).slice(0, 10) : "";
       if (rowDate !== d) return false;
@@ -35,9 +55,10 @@ export function filterColetaRows(rows, { query = "", pdfStatus = "all", date = "
 }
 
 export function hasActiveColetaFilters(filters) {
+  const exportStatus = filters?.exportStatus ?? filters?.pdfStatus;
   return Boolean(
     filters?.query?.trim()
-    || (filters?.pdfStatus && filters.pdfStatus !== "all")
+    || (exportStatus && exportStatus !== "all")
     || filters?.date?.trim(),
   );
 }
@@ -71,20 +92,36 @@ export function coletaDownloadStatus(row, kind) {
 }
 
 /**
+ * @param {Record<string, unknown>} row
+ */
+export function coletaCombinedExportDetail(row) {
+  const pdf = coletaDownloadStatus(row, "pdf");
+  const tsv = coletaDownloadStatus(row, "tsv");
+  const status = coletaCombinedExportStatus(row);
+  const parts = [];
+  if (pdf.downloaded) parts.push(`PDF: ${pdf.labelShort || "baixado"}`);
+  else parts.push("PDF: pendente");
+  if (tsv.downloaded) parts.push(`TXT: ${tsv.labelShort || "baixado"}`);
+  else parts.push("TXT: pendente");
+  return { status, tooltip: parts.join(" · ") };
+}
+
+/**
  * @param {Array<Record<string, unknown>>} rows
  */
 export function coletaKpis(rows) {
   const list = rows || [];
-  let pdfDownloaded = 0;
-  let tsvDownloaded = 0;
+  let exportComplete = 0;
+  let exportPending = 0;
   list.forEach((r) => {
-    if (r.pdf_downloaded_at) pdfDownloaded += 1;
-    if (r.tsv_downloaded_at) tsvDownloaded += 1;
+    const st = coletaCombinedExportStatus(r);
+    if (st === "complete") exportComplete += 1;
+    else if (st === "pending") exportPending += 1;
   });
   return {
     total: list.length,
-    pdfDownloaded,
-    tsvDownloaded,
-    pdfPending: list.length - pdfDownloaded,
+    exportComplete,
+    exportPending,
+    exportPartial: list.length - exportComplete - exportPending,
   };
 }

@@ -88,6 +88,7 @@ export function buildColetaPdfViewModel(
     },
     calibracaoRows,
     verso: {
+      repetitividadeAplicavel: p.verso.repetitividade.aplicavel !== false,
       descricao_carga: p.verso.descricao_carga ?? "",
       questoes: p.verso.questoes_carga,
       repetitividade: p.verso.repetitividade,

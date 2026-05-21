@@ -46,7 +46,7 @@ function sectionTitle(doc, y, text) {
   doc.setFontSize(9);
   doc.text(text, ML, y);
   doc.setFont("helvetica", "normal");
-  return y + 4.5;
+  return y + 5.5;
 }
 
 function underlineField(doc, x, y, label, value, width) {
@@ -90,7 +90,7 @@ function triState(doc, x, y, label, value) {
     doc.text(t, cx, y);
     cx += doc.getTextWidth(t);
   });
-  return y + 3.8;
+  return y + 4.2;
 }
 
 function binaryRow(doc, x, y, label, value) {
@@ -102,7 +102,7 @@ function binaryRow(doc, x, y, label, value) {
     doc.text(t, cx, y);
     cx += doc.getTextWidth(t);
   });
-  return y + 3.8;
+  return y + 4.2;
 }
 
 function drawFrente(doc, model) {
@@ -264,7 +264,7 @@ function drawFrente(doc, model) {
   y = sectionTitle(doc, y, "6) Calibração da Balança");
   doc.setFontSize(8);
   doc.text("Ensaio de Repetitividade", ML + 72, y - 1);
-  y += 2;
+  y += 4;
 
   autoTable(doc, {
     startY: y,
@@ -289,7 +289,7 @@ function drawFrente(doc, model) {
       s(row.rep3),
       s(row.pesos),
     ]),
-    styles: { fontSize: 6.5, cellPadding: 1, lineWidth: 0.1, overflow: "linebreak" },
+    styles: { fontSize: 6.5, cellPadding: 1.4, lineWidth: 0.1, overflow: "linebreak" },
     headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: "bold", fontSize: 6 },
     columnStyles: {
       0: { cellWidth: 8 },
@@ -307,16 +307,38 @@ function drawFrente(doc, model) {
   doc.text("Página 1 de 2", MR, 290, { align: "right" });
 }
 
+function drawVersoFooter(doc, model) {
+  const { footer } = model;
+  doc.setFontSize(7);
+  doc.text(`Cód. ${footer.code}`, ML, 290);
+  doc.text(`Ref. ${footer.ref}`, PAGE_W / 2, 290, { align: "center" });
+  doc.text(footer.revision, MR, 290, { align: "right" });
+  doc.text("Página 2 de 2", MR, 286, { align: "right" });
+}
+
 function drawVerso(doc, model) {
+  if (!model.verso.repetitividadeAplicavel) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(
+      "Ensaio de repetitividade com carga de substituição não aplicável.",
+      PAGE_W / 2,
+      120,
+      { align: "center" },
+    );
+    drawVersoFooter(doc, model);
+    return;
+  }
+
   let y = 24;
   y = sectionTitle(doc, y, "1) Descrição da Carga");
-  const boxH = 22;
+  const boxH = 27;
   doc.rect(ML, y, CW, boxH);
   doc.setFontSize(8);
   const desc = s(model.verso.descricao_carga);
   const lines = doc.splitTextToSize(desc || " ", CW - 4);
   doc.text(lines, ML + 2, y + 4);
-  y += boxH + 5;
+  y += boxH + 8;
 
   y = sectionTitle(doc, y, "2) Questões sobre a Carga");
   const q = model.verso.questoes;
@@ -340,11 +362,11 @@ function drawVerso(doc, model) {
       ],
       40,
     );
-    y += 9;
+    y += 11;
   });
 
   y = sectionTitle(doc, y, "3) Repetitividade com Carga de Substituição");
-  y += 1;
+  y += 3;
 
   autoTable(doc, {
     startY: y,
@@ -372,12 +394,12 @@ function drawVerso(doc, model) {
       s(row.umidade),
       s(row.pressao),
     ]),
-    styles: { fontSize: 6.5, cellPadding: 1, lineWidth: 0.1, halign: "center", valign: "middle" },
+    styles: { fontSize: 6.5, cellPadding: 1.4, lineWidth: 0.1, halign: "center", valign: "middle" },
     headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: "bold", fontSize: 6 },
     theme: "grid",
   });
 
-  y = doc.lastAutoTable.finalY + 4;
+  y = doc.lastAutoTable.finalY + 5;
   doc.setFontSize(6.5);
   doc.text(
     "* NOTA IMPORTANTE: O VALOR CONSIDERADO PARA P1 É O VALOR INDICADO PELA BALANÇA PARA A CARGA EM PESOS-PADRÃO QUE DARÁ PARTIDA AOS LOTES. L = Lote de carga",
@@ -385,17 +407,12 @@ function drawVerso(doc, model) {
     y,
     { maxWidth: CW },
   );
-  y += 8;
+  y += 10;
   doc.setFontSize(8);
   doc.text("Observações:", ML, y);
   underlineField(doc, ML + 22, y, "", model.verso.repetitividade.observacoes, CW - 24);
 
-  const { footer } = model;
-  doc.setFontSize(7);
-  doc.text(`Cód. ${footer.code}`, ML, 290);
-  doc.text(`Ref. ${footer.ref}`, PAGE_W / 2, 290, { align: "center" });
-  doc.text(footer.revision, MR, 290, { align: "right" });
-  doc.text("Página 2 de 2", MR, 286, { align: "right" });
+  drawVersoFooter(doc, model);
 }
 
 /**

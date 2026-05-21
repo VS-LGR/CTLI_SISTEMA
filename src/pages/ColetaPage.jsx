@@ -24,7 +24,7 @@ import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import {
   filterColetaRows,
   hasActiveColetaFilters,
-  coletaDownloadStatus,
+  coletaCombinedExportDetail,
   coletaKpis,
 } from "@/lib/coletaListUtils";
 
@@ -35,7 +35,7 @@ function fmtDmy(iso) {
   return `${d}/${m}/${y}`;
 }
 
-const EMPTY_FILTERS = { query: "", pdfStatus: "all", date: "" };
+const EMPTY_FILTERS = { query: "", exportStatus: "all", date: "" };
 
 const filterFieldClass =
   "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
@@ -66,21 +66,33 @@ function KpiCard({ label, value, icon: Icon, tint = "blue", testId }) {
   );
 }
 
-function DownloadBadge({ row, kind }) {
-  const st = coletaDownloadStatus(row, kind);
-  if (st.downloaded) {
+function ExportDownloadBadge({ row }) {
+  const { status, tooltip } = coletaCombinedExportDetail(row);
+  if (status === "complete") {
     return (
       <Badge
-        className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px] font-normal"
-        title={st.labelShort ? `Baixado em ${st.labelShort}` : "Baixado"}
+        className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px] font-normal whitespace-nowrap"
+        title={tooltip}
       >
         <CheckCircle size={12} className="mr-0.5 inline" weight="fill" />
         Baixado
       </Badge>
     );
   }
+  if (status === "partial") {
+    return (
+      <Badge
+        className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-50 text-[10px] font-normal whitespace-nowrap"
+        title={tooltip}
+      >
+        <FilePdf size={11} className="mr-0.5 inline" />
+        <FileText size={11} className="mr-0.5 inline" />
+        Parcial
+      </Badge>
+    );
+  }
   return (
-    <Badge variant="outline" className="text-slate-500 text-[10px] font-normal">
+    <Badge variant="outline" className="text-slate-500 text-[10px] font-normal whitespace-nowrap" title={tooltip}>
       <Clock size={12} className="mr-0.5 inline" />
       Pendente
     </Badge>
@@ -232,7 +244,7 @@ const ColetaPage = ({ embedded = false }) => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" data-testid="coleta-kpis">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4" data-testid="coleta-kpis">
         <KpiCard
           label={filtersActive ? "Coletas (filtradas)" : "Total de coletas"}
           value={filtersActive ? kpisFiltered.total : kpisAll.total}
@@ -240,25 +252,18 @@ const ColetaPage = ({ embedded = false }) => {
           testId="coleta-kpi-total"
         />
         <KpiCard
-          label="PDF baixados"
-          value={filtersActive ? kpisFiltered.pdfDownloaded : kpisAll.pdfDownloaded}
-          icon={FilePdf}
+          label="Exportações completas"
+          value={filtersActive ? kpisFiltered.exportComplete : kpisAll.exportComplete}
+          icon={CheckCircle}
           tint="green"
-          testId="coleta-kpi-pdf"
+          testId="coleta-kpi-export-complete"
         />
         <KpiCard
-          label="TXT baixados"
-          value={filtersActive ? kpisFiltered.tsvDownloaded : kpisAll.tsvDownloaded}
-          icon={FileText}
-          tint="green"
-          testId="coleta-kpi-tsv"
-        />
-        <KpiCard
-          label="PDF pendentes"
-          value={filtersActive ? kpisFiltered.pdfPending : kpisAll.pdfPending}
+          label="Exportações pendentes"
+          value={filtersActive ? kpisFiltered.exportPending : kpisAll.exportPending}
           icon={Clock}
           tint="amber"
-          testId="coleta-kpi-pdf-pending"
+          testId="coleta-kpi-export-pending"
         />
       </div>
 
@@ -276,26 +281,27 @@ const ColetaPage = ({ embedded = false }) => {
             <Input
               value={filters.query}
               onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
-              placeholder="Buscar por cliente, nº de série, proposta comercial…"
+              placeholder="Buscar por cliente, nº série, nº proposta…"
               className={`${filterFieldClass} pl-10`}
               data-testid="coleta-filter-search"
             />
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center shrink-0">
             <Select
-              value={filters.pdfStatus}
-              onValueChange={(v) => setFilters((f) => ({ ...f, pdfStatus: v }))}
+              value={filters.exportStatus}
+              onValueChange={(v) => setFilters((f) => ({ ...f, exportStatus: v }))}
             >
               <SelectTrigger
                 className={`${filterFieldClass} w-full sm:w-[11.5rem]`}
-                data-testid="coleta-filter-pdf-status"
+                data-testid="coleta-filter-export-status"
               >
-                <SelectValue placeholder="Status PDF" />
+                <SelectValue placeholder="Exportação" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos status</SelectItem>
-                <SelectItem value="downloaded">PDF baixado</SelectItem>
-                <SelectItem value="pending">PDF pendente</SelectItem>
+                <SelectItem value="downloaded">Exportação completa</SelectItem>
+                <SelectItem value="partial">Exportação parcial</SelectItem>
+                <SelectItem value="pending">Exportação pendente</SelectItem>
               </SelectContent>
             </Select>
             <Input
@@ -348,14 +354,14 @@ const ColetaPage = ({ embedded = false }) => {
         </div>
       ) : (
         <div className="border rounded-lg overflow-x-auto" data-testid="coleta-table">
-          <table className="w-full text-sm min-w-[800px]">
+          <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-slate-50 border-b">
               <tr>
                 <th className="text-left p-3 font-medium">Cliente</th>
+                <th className="text-left p-3 font-medium">Proposta</th>
                 <th className="text-left p-3 font-medium">Nº série</th>
                 <th className="text-left p-3 font-medium">Data calibração</th>
-                <th className="text-left p-3 font-medium">PDF</th>
-                <th className="text-left p-3 font-medium">TXT</th>
+                <th className="text-left p-3 font-medium">Exportação</th>
                 <th className="text-left p-3 font-medium">Atualizado</th>
                 <th className="p-3 w-40" />
               </tr>
@@ -364,13 +370,11 @@ const ColetaPage = ({ embedded = false }) => {
               {filteredRows.map((row) => (
                 <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50/50" data-testid={`coleta-row-${row.id}`}>
                   <td className="p-3">{row.client_name || "—"}</td>
+                  <td className="p-3 font-mono text-xs">{row.commercial_proposal_ref || "—"}</td>
                   <td className="p-3 font-mono text-xs">{row.scale_serial || "—"}</td>
                   <td className="p-3">{fmtDmy(row.calibration_date)}</td>
                   <td className="p-3">
-                    <DownloadBadge row={row} kind="pdf" />
-                  </td>
-                  <td className="p-3">
-                    <DownloadBadge row={row} kind="tsv" />
+                    <ExportDownloadBadge row={row} />
                   </td>
                   <td className="p-3 text-slate-500 text-xs">
                     {row.updated_at ? new Date(row.updated_at).toLocaleString("pt-BR") : "—"}
