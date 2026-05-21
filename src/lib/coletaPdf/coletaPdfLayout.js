@@ -97,17 +97,29 @@ export function drawFieldGrid(doc, x, y, totalWidth, cols, fields) {
   return maxY + 2;
 }
 
-/** Título pequeno com fundo verde (bloco ambiente T/U/P). */
-export function drawMeasureTitleBar(doc, x, y, w, text) {
+const MEASURE_BAR_H = 5;
+const MEASURE_VALUE_GAP = 1.2;
+
+/**
+ * Bloco T/U/P: faixa verde com título + linha de valores abaixo (evita sobreposição).
+ * @returns {number} y após o bloco
+ */
+export function drawMeasureBlock(doc, x, y, w, title, valueLine) {
+  const barTop = y;
   doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
-  doc.rect(x, y, w, 4, "F");
+  doc.rect(x, barTop, w, MEASURE_BAR_H, "F");
   doc.setDrawColor(...FORM_COLORS.border);
-  doc.rect(x, y, w, 4, "S");
+  doc.setLineWidth(0.1);
+  doc.rect(x, barTop, w, MEASURE_BAR_H, "S");
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text(text, x + 0.5, y + 2.8);
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text(title, x + 0.5, barTop + 3.6, { maxWidth: w - 2 });
   doc.setFont("helvetica", "normal");
-  return y + 5;
+  doc.setFontSize(7);
+  const valueY = barTop + MEASURE_BAR_H + MEASURE_VALUE_GAP + 2.5;
+  doc.text(valueLine, x + 0.5, valueY, { maxWidth: w - 2 });
+  return valueY + 3.5;
 }
 
 /** Caixa de descrição (verso). */
@@ -126,7 +138,7 @@ export function drawDescricaoBox(doc, x, y, w, h, body) {
 export function drawPlatformDiagrams(doc, x, y, totalW) {
   const gap = 3;
   const w = (totalW - gap * 2) / 3;
-  const h = 14;
+  const h = 12;
   drawRectPlatform(doc, x, y, w, h);
   drawRoundPlatform(doc, x + w + gap, y, w, h);
   drawTruckPlatform(doc, x + 2 * (w + gap), y, w, h);

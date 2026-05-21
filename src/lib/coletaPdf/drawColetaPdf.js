@@ -12,7 +12,7 @@ import {
   drawProposalBox,
   drawFieldGrid,
   drawPlatformDiagrams,
-  drawMeasureTitleBar,
+  drawMeasureBlock,
   drawDescricaoBox,
   tableHeadStyles,
 } from "./coletaPdfLayout";
@@ -59,8 +59,9 @@ function underlineField(doc, x, y, label, value, width) {
   doc.text(lbl, x, y);
   const x0 = x + doc.getTextWidth(lbl);
   const x1 = x + width;
+  const lineY = y + 1.1;
   doc.setDrawColor(...FORM_COLORS.border);
-  doc.line(x0, y + 0.8, x1, y + 0.8);
+  doc.line(x0, lineY, x1, lineY);
   const val = s(value);
   if (val) doc.text(val, x0 + 0.5, y);
 }
@@ -135,6 +136,7 @@ function drawFrente(doc, model) {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
+  doc.setTextColor(...FORM_COLORS.text);
   doc.text("Tipo de balança:", ML, y);
   doc.setFont("helvetica", "normal");
   y = checkboxGroup(
@@ -166,35 +168,54 @@ function drawFrente(doc, model) {
     CW - 28,
   );
   y = drawPlatformDiagrams(doc, ML, y, CW);
+  y += 1;
 
   y = drawSectionBar(doc, ML, y, CW, "3) Condições Ambientais Durante a Calibração");
   const amb = model.ambiente;
   const colR = ML + 98;
+  const colRW = MR - colR;
+  const yAmb = y;
+
   doc.setFontSize(7.5);
-  doc.text("Climatização dos pesos-padrão e termo-baro-higrômetro (1)", ML + 2, y);
-  underlineField(doc, ML + 118, y - 0.5, "", amb.thermoLabel, 70);
-  y += 4;
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text("Climatização dos pesos-padrão e termo-baro-higrômetro (1)", ML + 2, yAmb);
+  underlineField(doc, ML + 118, yAmb, "", amb.thermoLabel, 70);
+  y += 5;
   doc.text("Termo-baro-higrômetro (2)", ML + 2, y);
-  underlineField(doc, ML + 118, y - 0.5, "", amb.thermoLabel2, 70);
-  y += 4;
+  underlineField(doc, ML + 118, y, "", amb.thermoLabel2, 70);
+  y += 5;
   doc.text(`Horário inicial: ${s(amb.horario_inicial)}    Horário final: ${s(amb.horario_final)}`, ML, y);
-  y += 4;
+  y += 5;
   y = triState(doc, ML, y, "A balança foi ajustada ?", amb.balanca_ajustada);
   y = triState(doc, ML, y, "A balança foi nivelada?", amb.balanca_nivelada);
   y = binaryRow(doc, ML, y, "Existe vibração no local?", amb.existe_vibracao);
   y = binaryRow(doc, ML, y, "Existe corrente de ar no local?", amb.existe_corrente_ar);
 
-  let yR = y - 19;
-  yR = drawMeasureTitleBar(doc, colR, yR, 88, "Temperatura (t) corrigida");
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Inicial: ${s(amb.temp_inicial)} °C    Final: ${s(amb.temp_final)} °C`, colR, yR);
-  yR += 5;
-  yR = drawMeasureTitleBar(doc, colR, yR, 88, "Umidade relativa (h) corrigida");
-  doc.text(`Inicial: ${s(amb.umidade_inicial)} %ur    Final: ${s(amb.umidade_final)} %ur`, colR, yR);
-  yR += 5;
-  yR = drawMeasureTitleBar(doc, colR, yR, 88, "Pressão atmosférica (P) corrigida");
-  doc.text(`Inicial: ${s(amb.pressao_inicial)} hPa    Final: ${s(amb.pressao_final)} hPa`, colR, yR);
+  let yR = yAmb;
+  yR = drawMeasureBlock(
+    doc,
+    colR,
+    yR,
+    colRW,
+    "Temperatura (t) corrigida",
+    `Inicial: ${s(amb.temp_inicial)} °C    Final: ${s(amb.temp_final)} °C`,
+  );
+  yR = drawMeasureBlock(
+    doc,
+    colR,
+    yR,
+    colRW,
+    "Umidade relativa (h) corrigida",
+    `Inicial: ${s(amb.umidade_inicial)} %ur    Final: ${s(amb.umidade_final)} %ur`,
+  );
+  yR = drawMeasureBlock(
+    doc,
+    colR,
+    yR,
+    colRW,
+    "Pressão atmosférica (P) corrigida",
+    `Inicial: ${s(amb.pressao_inicial)} hPa    Final: ${s(amb.pressao_final)} hPa`,
+  );
   y = Math.max(y, yR) + 4;
 
   const ySec45 = y;
@@ -210,11 +231,11 @@ function drawFrente(doc, model) {
   y += 5;
 
   const ecc = model.excentricidade;
+  const ctrl = model.controle;
   doc.setFontSize(8);
   doc.text(`Valor Aplicado: ${s(ecc.valor_aplicado)}`, ML, y);
-  const ctrl = model.controle;
   underlineField(doc, ML + 98, y, "Representante do Cliente", ctrl.representante_cliente, 92);
-  y += 5;
+  y += 6;
 
   const th = tableHeadStyles(doc);
   autoTable(doc, {
