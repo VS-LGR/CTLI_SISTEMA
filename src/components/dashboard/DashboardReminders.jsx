@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { NotePencil, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { addDashboardReminder, deleteDashboardReminder } from "@/lib/dashboardApi";
+import { formatApiError } from "@/lib/api";
 
 function formatWhen(iso) {
   if (!iso) return "";
@@ -42,7 +43,8 @@ export default function DashboardReminders({
       toast.success("Lembrete adicionado");
       onChange?.();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || e?.message || "Falha ao guardar");
+      const detail = e?.response?.data?.detail ?? e?.message;
+      toast.error(formatApiError(detail) || "Falha ao guardar");
     } finally {
       setBusy(false);
     }
@@ -59,7 +61,8 @@ export default function DashboardReminders({
       toast.success("Removido");
       onChange?.();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || e?.message || "Falha ao excluir");
+      const detail = e?.response?.data?.detail ?? e?.message;
+      toast.error(formatApiError(detail) || "Falha ao excluir");
     }
   };
 
