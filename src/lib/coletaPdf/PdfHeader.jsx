@@ -26,11 +26,17 @@ export function PdfHeader({ header, logoUrl, layout = FRENTE.header }) {
   );
 }
 
+function fieldLabelDisplay(label) {
+  const t = String(label ?? "").trim();
+  if (!t) return "";
+  return t.endsWith(":") ? t : `${t}:`;
+}
+
 export function FieldLine({ label, value, multiline = false }) {
   const valClass = multiline ? "coleta-underline-block" : "coleta-underline";
   return (
     <div className="coleta-field-line coleta-txt-body">
-      <span>{label}</span>{" "}
+      <span>{fieldLabelDisplay(label)}</span>{" "}
       <span className={valClass}>{value || "\u00a0"}</span>
     </div>
   );

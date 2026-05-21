@@ -7,12 +7,22 @@
 import { COLETA_PDF_BLUE } from "./coletaPdfColors";
 
 export const FORM_COLORS = {
+  sectionBar: COLETA_PDF_BLUE.sectionBar.rgb,
+  sectionBarText: COLETA_PDF_BLUE.sectionBarText.rgb,
   sectionGreen: COLETA_PDF_BLUE.sectionFill.rgb,
   tableHeaderGreen: COLETA_PDF_BLUE.tableHeader.rgb,
   fieldLabelGreen: COLETA_PDF_BLUE.sectionFill.rgb,
   border: COLETA_PDF_BLUE.border.rgb,
+  brand: COLETA_PDF_BLUE.brand.rgb,
   text: COLETA_PDF_BLUE.text.rgb,
 };
+
+/** Rótulo de campo com dois-pontos (ex.: "Representante do Cliente: "). */
+export function fieldLabelWithColon(label) {
+  const t = String(label ?? "").trim();
+  if (!t) return "";
+  return t.endsWith(":") ? `${t} ` : `${t}: `;
+}
 
 const SECTION_BAR_H = 5;
 const SECTION_CONTENT_GAP = 2.5;
@@ -35,16 +45,17 @@ export function tableHeadStyles(doc) {
  */
 export function drawSectionBar(doc, x, y, width, text) {
   const barTop = y;
-  doc.setFillColor(...FORM_COLORS.sectionGreen);
+  doc.setFillColor(...FORM_COLORS.sectionBar);
   doc.rect(x, barTop, width, SECTION_BAR_H, "F");
-  doc.setDrawColor(...FORM_COLORS.border);
-  doc.setLineWidth(0.1);
+  doc.setDrawColor(...FORM_COLORS.brand);
+  doc.setLineWidth(0.12);
   doc.rect(x, barTop, width, SECTION_BAR_H, "S");
-  doc.setTextColor(...FORM_COLORS.text);
+  doc.setTextColor(...FORM_COLORS.sectionBarText);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.text(text, x + 1.5, barTop + 3.6);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(...FORM_COLORS.text);
   return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
 }
 
@@ -61,19 +72,20 @@ export function drawDualSectionBar(
 ) {
   const barTop = y;
   const rightX = x + leftW + gap;
-  doc.setFillColor(...FORM_COLORS.sectionGreen);
+  doc.setFillColor(...FORM_COLORS.sectionBar);
   doc.rect(x, barTop, leftW, SECTION_BAR_H, "F");
   doc.rect(rightX, barTop, rightW, SECTION_BAR_H, "F");
-  doc.setDrawColor(...FORM_COLORS.border);
-  doc.setLineWidth(0.1);
+  doc.setDrawColor(...FORM_COLORS.brand);
+  doc.setLineWidth(0.12);
   doc.rect(x, barTop, leftW, SECTION_BAR_H, "S");
   doc.rect(rightX, barTop, rightW, SECTION_BAR_H, "S");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(...FORM_COLORS.text);
+  doc.setTextColor(...FORM_COLORS.sectionBarText);
   doc.text(leftText, x + 1.5, barTop + 3.6);
   doc.text(rightText, rightX + 1.5, barTop + 3.6);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(...FORM_COLORS.text);
   return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
 }
 

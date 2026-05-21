@@ -15,6 +15,7 @@ import {
   drawFieldGrid,
   drawMeasureBlock,
   drawDescricaoBox,
+  fieldLabelWithColon,
   tableHeadStyles,
 } from "./coletaPdfLayout";
 
@@ -85,7 +86,7 @@ function contentStartY() {
 function underlineField(doc, x, y, label, value, width) {
   doc.setFontSize(8);
   doc.setTextColor(...FORM_COLORS.text);
-  const lbl = `${label} `;
+  const lbl = fieldLabelWithColon(label);
   doc.text(lbl, x, y);
   const x0 = x + doc.getTextWidth(lbl);
   const x1 = x + width;
@@ -161,7 +162,7 @@ function drawFrente(doc, model) {
     { label: "Portaria Inmetro:", value: bal.portaria_inmetro },
     { label: "Capacidade:", value: bal.capacidade },
     { label: "Resolução:", value: bal.resolucao },
-    { label: "Unidade", value: unidadeLabel(bal.unidade) },
+    { label: "Unidade:", value: unidadeLabel(bal.unidade) },
   ]);
 
   doc.setFont("helvetica", "bold");

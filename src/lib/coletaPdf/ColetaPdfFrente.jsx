@@ -157,26 +157,11 @@ export function ColetaPdfFrente({ model, logoUrl }) {
         5) Controle
       </AbsBlock>
       <AbsBlock style={FRENTE.sec5.block} className="coleta-controle-stack">
-        <div className="coleta-field-line">
-          <span>Representante do Cliente</span>
-          <span className="coleta-underline-block">{controle.representante_cliente || "\u00a0"}</span>
-        </div>
-        <div className="coleta-field-line">
-          <span>Conferido e Transcrito por</span>
-          <span className="coleta-underline-block">{controle.conferido_por || "\u00a0"}</span>
-        </div>
-        <div className="coleta-field-line">
-          <span>Número do Certificado Emitido</span>
-          <span className="coleta-underline-block">{controle.numero_certificado || "\u00a0"}</span>
-        </div>
-        <div className="coleta-field-line">
-          <span>Nome do Executor</span>
-          <span className="coleta-underline-block">{controle.nome_executor || "\u00a0"}</span>
-        </div>
-        <div className="coleta-field-line">
-          <span>Data da Calibração</span>
-          <span className="coleta-underline-block">{controle.data_calibracao_fmt || "\u00a0"}</span>
-        </div>
+        <FieldLine label="Representante do Cliente" value={controle.representante_cliente} multiline />
+        <FieldLine label="Conferido e Transcrito por" value={controle.conferido_por} multiline />
+        <FieldLine label="Número do Certificado Emitido" value={controle.numero_certificado} multiline />
+        <FieldLine label="Nome do Executor" value={controle.nome_executor} multiline />
+        <FieldLine label="Data da Calibração" value={controle.data_calibracao_fmt} multiline />
         <div className="coleta-field-line coleta-txt-body">
           <span>Pontos de Calibração Solicitados pelo Cliente</span>
           <PontosSolicitadosCheckboxes value={controle.pontos_solicitados} />

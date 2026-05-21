@@ -2,6 +2,9 @@
   --coleta-form-accent: #dbeafe;
   --coleta-form-accent-dark: #bfdbfe;
   --coleta-form-border: #93c5fd;
+  --coleta-form-section-bar: #3b82f6;
+  --coleta-form-section-text: #ffffff;
+  --coleta-form-section-border: #2563eb;
 }
 
 .coleta-pdf-root {
@@ -51,11 +54,12 @@
 .coleta-txt-sec {
   font-size: 0.6em;
   font-weight: bold;
-  background: var(--coleta-form-accent);
+  background: var(--coleta-form-section-bar);
+  color: var(--coleta-form-section-text);
   padding: 0.15em 0.35em;
   width: 100%;
   box-sizing: border-box;
-  border: 0.35pt solid var(--coleta-form-border);
+  border: 0.35pt solid var(--coleta-form-section-border);
 }
 
 .coleta-txt-title {
