@@ -5,6 +5,22 @@ function norm(s) {
 }
 
 /**
+ * Ficheiros em falta por coleta (0–2: PDF e/ou TXT).
+ * @param {Record<string, unknown>} row
+ */
+export function coletaPendingFileCount(row) {
+  let n = 0;
+  if (!row?.pdf_downloaded_at) n += 1;
+  if (!row?.tsv_downloaded_at) n += 1;
+  return n;
+}
+
+/** @param {Record<string, unknown>} row */
+export function coletaHasPendingExport(row) {
+  return coletaPendingFileCount(row) > 0;
+}
+
+/**
  * @param {Record<string, unknown>} row
  * @returns {"complete" | "partial" | "pending"}
  */
@@ -43,7 +59,7 @@ export function filterColetaRows(
     if (status !== "all") {
       const combined = coletaCombinedExportStatus(row);
       if (status === "downloaded" && combined !== "complete") return false;
-      if (status === "pending" && combined !== "pending") return false;
+      if (status === "pending" && !coletaHasPendingExport(row)) return false;
       if (status === "partial" && combined !== "partial") return false;
     }
     if (d) {
@@ -112,16 +128,15 @@ export function coletaCombinedExportDetail(row) {
 export function coletaKpis(rows) {
   const list = rows || [];
   let exportComplete = 0;
-  let exportPending = 0;
+  let exportPendingFiles = 0;
   list.forEach((r) => {
-    const st = coletaCombinedExportStatus(r);
-    if (st === "complete") exportComplete += 1;
-    else if (st === "pending") exportPending += 1;
+    if (coletaCombinedExportStatus(r) === "complete") exportComplete += 1;
+    exportPendingFiles += coletaPendingFileCount(r);
   });
   return {
     total: list.length,
     exportComplete,
-    exportPending,
-    exportPartial: list.length - exportComplete - exportPending,
+    exportPendingFiles,
+    exportPartial: list.filter((r) => coletaCombinedExportStatus(r) === "partial").length,
   };
 }

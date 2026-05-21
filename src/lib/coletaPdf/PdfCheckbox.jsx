@@ -21,7 +21,7 @@ export function SimNaoPair({ value }) {
 export function TriStateRow({ value, label }) {
   return (
     <span className="coleta-cb-line">
-      {label}{" "}
+      * {label}{" "}
       <Cb checked={value === "sim"}>sim</Cb>
       <Cb checked={value === "nao"}>não</Cb>
       <Cb checked={value === "na"}>não disponível</Cb>
@@ -32,7 +32,7 @@ export function TriStateRow({ value, label }) {
 export function BinaryRow({ value, label }) {
   return (
     <span className="coleta-cb-line">
-      {label}{" "}
+      * {label}{" "}
       <Cb checked={value === "sim"}>sim</Cb>
       <Cb checked={value === "nao"}>não</Cb>
     </span>

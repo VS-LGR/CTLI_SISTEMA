@@ -10,8 +10,11 @@ export function PdfHeader({ header, logoUrl, layout = FRENTE.header }) {
           <img src={logoUrl} alt="" className="coleta-pdf-logo" />
         ) : null}
       </AbsBlock>
-      <AbsBlock style={layout.proposal} className="coleta-txt-proposal">
-        {header.proposalLine}
+      <AbsBlock style={layout.proposal} className="coleta-proposal-box coleta-txt-proposal">
+        <span className="coleta-proposal-label">Referente à Proposta Comercial:</span>
+        <span className="coleta-proposal-value">
+          {header.commercialProposalRef || "\u00a0"}
+        </span>
       </AbsBlock>
       <AbsBlock style={layout.title} className="coleta-txt-title">
         {header.title}

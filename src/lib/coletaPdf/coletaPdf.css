@@ -1,3 +1,10 @@
+:root {
+  --coleta-form-green: #c6e0b4;
+  --coleta-form-green-dark: #bad4a8;
+  --coleta-form-border: #787878;
+  --coleta-control-red: #ff0000;
+}
+
 .coleta-pdf-root {
   font-family: Arial, Helvetica, sans-serif;
   color: #000;
@@ -45,6 +52,11 @@
 .coleta-txt-sec {
   font-size: 0.6em;
   font-weight: bold;
+  background: var(--coleta-form-green);
+  padding: 0.15em 0.35em;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0.35pt solid var(--coleta-form-border);
 }
 
 .coleta-txt-title {
@@ -63,7 +75,25 @@
 .coleta-txt-proposal {
   font-size: 0.55em;
   font-weight: bold;
-  text-align: right;
+}
+
+.coleta-proposal-box {
+  border: 0.35pt solid var(--coleta-form-border);
+  padding: 0.2em 0.35em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.coleta-proposal-label {
+  font-weight: bold;
+}
+
+.coleta-proposal-value {
+  font-weight: normal;
+  min-height: 0.9em;
 }
 
 .coleta-pdf-logo {
@@ -89,19 +119,55 @@
   overflow: hidden;
 }
 
+.coleta-field-box {
+  border: 0.35pt solid var(--coleta-form-border);
+  display: flex;
+  flex-direction: column;
+  min-height: 2.2em;
+  overflow: hidden;
+}
+
+.coleta-field-box-label {
+  background: var(--coleta-form-green);
+  font-weight: bold;
+  padding: 0.1em 0.2em;
+  font-size: 0.55em;
+}
+
+.coleta-field-box-value {
+  padding: 0.15em 0.25em;
+  font-size: 0.6em;
+  flex: 1;
+  word-break: break-word;
+}
+
 .coleta-grid-bal {
   display: grid;
-  grid-template-columns: 10fr 10fr 10fr 10fr 9fr;
-  gap: 0 0.4em;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25em 0.35em;
   width: 100%;
 }
 
-.coleta-grid-bal .coleta-field {
+.coleta-grid-bal .coleta-field-box {
+  margin-bottom: 0;
+}
+
+.coleta-control-red {
+  color: var(--coleta-control-red);
+  font-weight: bold;
+}
+
+.coleta-platform-diagrams {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.2em;
-  margin-bottom: 0.15em;
+  justify-content: space-between;
+  gap: 0.35em;
+  width: 100%;
+}
+
+.coleta-platform-diagram {
+  flex: 1;
+  max-height: 2.6em;
+  width: auto;
 }
 
 .coleta-cb-line {
@@ -136,6 +202,10 @@
 .coleta-measure-block .coleta-measure-title {
   font-size: 0.66em;
   margin-bottom: 0.1em;
+  background: var(--coleta-form-green);
+  padding: 0.08em 0.2em;
+  font-weight: bold;
+  border: 0.35pt solid var(--coleta-form-border);
 }
 
 .coleta-measure-row {
@@ -173,7 +243,7 @@
   font-weight: bold;
   font-size: 0.5em;
   line-height: 1.1;
-  background: #fff;
+  background: var(--coleta-form-green-dark);
 }
 
 .coleta-cal-table td:first-child,

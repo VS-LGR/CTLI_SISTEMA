@@ -259,8 +259,8 @@ const ColetaPage = ({ embedded = false }) => {
           testId="coleta-kpi-export-complete"
         />
         <KpiCard
-          label="Exportações pendentes"
-          value={filtersActive ? kpisFiltered.exportPending : kpisAll.exportPending}
+          label="Arquivos pendentes"
+          value={filtersActive ? kpisFiltered.exportPendingFiles : kpisAll.exportPendingFiles}
           icon={Clock}
           tint="amber"
           testId="coleta-kpi-export-pending"
@@ -301,7 +301,7 @@ const ColetaPage = ({ embedded = false }) => {
                 <SelectItem value="all">Todos status</SelectItem>
                 <SelectItem value="downloaded">Exportação completa</SelectItem>
                 <SelectItem value="partial">Exportação parcial</SelectItem>
-                <SelectItem value="pending">Exportação pendente</SelectItem>
+                <SelectItem value="pending">Com download pendente</SelectItem>
               </SelectContent>
             </Select>
             <Input

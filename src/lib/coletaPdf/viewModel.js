@@ -69,6 +69,7 @@ export function buildColetaPdfViewModel(
     header: {
       title: "COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA",
       codeLine: `Cód. ${meta.code}  Ref. ${meta.ref}  ${meta.revision}`,
+      commercialProposalRef: prop,
       proposalLine: prop
         ? `Referente à Proposta Comercial: ${prop}`
         : "Referente à Proposta Comercial:",

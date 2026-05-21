@@ -10,12 +10,13 @@ import {
 } from "./PdfCheckbox";
 import { unidadeLabel } from "../coletaSchema";
 import { FRENTE, CAL_ROW_HEIGHT_EM } from "./layoutSpec";
+import { ColetaPlatformDiagrams } from "./ColetaPlatformDiagrams";
 
 function BalField({ label, value }) {
   return (
-    <div className="coleta-field coleta-txt-label">
-      <span>{label}</span>
-      <span className="coleta-underline">{value || "\u00a0"}</span>
+    <div className="coleta-field-box coleta-txt-label">
+      <span className="coleta-field-box-label">{label}</span>
+      <span className="coleta-field-box-value">{value || "\u00a0"}</span>
     </div>
   );
 }
@@ -63,6 +64,9 @@ export function ColetaPdfFrente({ model, logoUrl }) {
       </AbsBlock>
       <AbsBlock style={FRENTE.sec2.tipoPlataforma}>
         <TipoPlataformaCheckboxes balanca={balanca} />
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec2.diagrams}>
+        <ColetaPlatformDiagrams />
       </AbsBlock>
 
       <AbsBlock style={FRENTE.sec3.title} className="coleta-txt-sec">
@@ -173,7 +177,7 @@ export function ColetaPdfFrente({ model, logoUrl }) {
           <span className="coleta-underline-block">{controle.data_calibracao_fmt || "\u00a0"}</span>
         </div>
         <div className="coleta-field-line coleta-txt-body">
-          <span>Pontos de Calibração Solicitados pelo Cliente</span>
+          <span className="coleta-control-red">Pontos de Calibração Solicitados pelo Cliente</span>
           <PontosSolicitadosCheckboxes value={controle.pontos_solicitados} />
         </div>
       </AbsBlock>

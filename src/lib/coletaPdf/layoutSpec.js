@@ -35,7 +35,8 @@ export const FRENTE = {
     row1: pos(9.65, 2.25, 47.5, 2.1),
     row2: pos(11.9, 2.25, 47.5, 2.1),
     tipoBalanca: pos(14.5, 0.74, 48.5, 2.2),
-    tipoPlataforma: pos(16.87, 0.74, 48.5, 3.5),
+    tipoPlataforma: pos(16.87, 0.74, 48.5, 2.2),
+    diagrams: pos(19.2, 0.74, 48.5, 2.8),
   },
   sec3: {
     title: pos(20.54, 0.73, 30, 0.8),
