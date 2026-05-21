@@ -75,19 +75,72 @@ export function drawDualSectionBar(
   return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
 }
 
-/** Caixa proposta comercial (canto superior direito). */
-export function drawProposalBox(doc, x, y, w, h, proposalRef) {
+const PROPOSAL_PAD = 1.5;
+const PROPOSAL_LABEL_H = 3.5;
+const PROPOSAL_VALUE_GAP = 1.2;
+const PROPOSAL_LINE_H = 3.2;
+const PROPOSAL_MIN_H = 14;
+const PROPOSAL_MAX_H = 22;
+
+/**
+ * Caixa proposta comercial (altura dinâmica; valor abaixo do rótulo).
+ * @returns {number} altura da caixa em mm
+ */
+export function drawProposalBox(doc, x, y, w, proposalRef) {
+  const innerW = w - PROPOSAL_PAD * 2;
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  const ref = proposalRef ? String(proposalRef) : "";
+  const valueLines = doc.splitTextToSize(ref || " ", innerW);
+  const valueH = Math.max(PROPOSAL_LINE_H, valueLines.length * PROPOSAL_LINE_H);
+  let h =
+    PROPOSAL_PAD + PROPOSAL_LABEL_H + PROPOSAL_VALUE_GAP + valueH + PROPOSAL_PAD;
+  h = Math.min(PROPOSAL_MAX_H, Math.max(PROPOSAL_MIN_H, h));
+
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.2);
   doc.rect(x, y, w, h, "S");
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...FORM_COLORS.text);
-  doc.text("Referente à Proposta Comercial:", x + 1.5, y + 3.5);
+  doc.text("Referente à Proposta Comercial:", x + PROPOSAL_PAD, y + PROPOSAL_PAD + 2.6);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  const ref = proposalRef ? String(proposalRef) : "";
-  doc.text(ref || " ", x + 1.5, y + h - 2, { maxWidth: w - 3 });
+  const valueY = y + PROPOSAL_PAD + PROPOSAL_LABEL_H + PROPOSAL_VALUE_GAP + 2.2;
+  doc.text(valueLines, x + PROPOSAL_PAD, valueY, { maxWidth: innerW });
+  return h;
+}
+
+/**
+ * Linha de equipamento (rótulo + identificação sublinhada) na coluna esquerda da sec. 3.
+ * @returns {number} y após o bloco
+ */
+export function drawEquipamentoRow(doc, x, y, w, label, value) {
+  const padX = 2;
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...FORM_COLORS.text);
+  const labelLines = doc.splitTextToSize(label, w - padX);
+  let cy = y + 2.5;
+  labelLines.forEach((line) => {
+    doc.text(line, x + padX, cy);
+    cy += 3.2;
+  });
+  cy += 0.6;
+  const valY = cy;
+  const lineY = valY + 1.1;
+  doc.setDrawColor(...FORM_COLORS.border);
+  doc.setLineWidth(0.1);
+  doc.line(x + padX, lineY, x + w - padX, lineY);
+  const val = value == null ? "" : String(value).trim();
+  if (val) {
+    const valLines = doc.splitTextToSize(val, w - padX * 2);
+    doc.text(valLines.slice(0, 2), x + padX + 0.5, valY);
+    cy = valY + Math.min(valLines.length, 2) * 3.2;
+  } else {
+    cy = valY + 3.5;
+  }
+  return cy + 1.8;
 }
 
 /** Campo com rótulo verde e área de valor. */

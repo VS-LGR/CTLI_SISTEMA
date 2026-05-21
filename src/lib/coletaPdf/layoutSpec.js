@@ -21,9 +21,9 @@ export function pos(top, left, width, height) {
 export const FRENTE = {
   header: {
     logo: pos(0.5, 0.5, 8, 3.2),
-    proposal: pos(0.5, 40.7, 8.5, 1.3),
-    title: pos(1.6, 10.5, 29, 1.2),
-    code: pos(2.9, 17.5, 15, 0.8),
+    proposal: pos(0.5, 40.7, 8.5, 1.65),
+    title: pos(1.4, 9.2, 28.5, 1.35),
+    code: pos(2.75, 11.5, 24, 0.85),
   },
   sec1: {
     title: pos(4.74, 0.73, 20, 0.8),
@@ -76,9 +76,9 @@ export const CAL_ROW_START_EM = 2.2;
 export const VERSO = {
   header: {
     logo: pos(0.5, 0.5, 8, 3.2),
-    proposal: pos(0.5, 40.7, 8.5, 1.3),
-    title: pos(1.6, 10.5, 29, 1.2),
-    code: pos(2.9, 17.5, 15, 0.8),
+    proposal: pos(0.5, 40.7, 8.5, 1.65),
+    title: pos(1.4, 9.2, 28.5, 1.35),
+    code: pos(2.75, 11.5, 24, 0.85),
   },
   sec1: {
     title: pos(5.62, 0.97, 22, 0.8),

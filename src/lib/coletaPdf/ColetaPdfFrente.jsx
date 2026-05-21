@@ -68,13 +68,15 @@ export function ColetaPdfFrente({ model, logoUrl }) {
         3) Condições Ambientais Durante a Calibração
       </AbsBlock>
       <AbsBlock style={FRENTE.sec3.ambLeft} className="coleta-amb-col">
-        <div className="coleta-txt-label coleta-amb-line">
-          Climatização dos pesos-padrão e termo-baro-higrômetro (1){" "}
-          <span className="coleta-underline">{ambiente.thermoLabel || "\u00a0"}</span>
+        <div className="coleta-equip-row coleta-txt-label">
+          <span className="coleta-equip-label">
+            Climatização dos pesos-padrão e termo-baro-higrômetro (1):
+          </span>
+          <span className="coleta-underline-block">{ambiente.thermoLabel || "\u00a0"}</span>
         </div>
-        <div className="coleta-txt-label coleta-amb-line">
-          Termo-baro-higrômetro (2){" "}
-          <span className="coleta-underline">{ambiente.thermoLabel2 || "\u00a0"}</span>
+        <div className="coleta-equip-row coleta-txt-label">
+          <span className="coleta-equip-label">Termo-baro-higrômetro (2):</span>
+          <span className="coleta-underline-block">{ambiente.thermoLabel2 || "\u00a0"}</span>
         </div>
         <div className="coleta-txt-label coleta-amb-line">
           Horário inicial:{" "}

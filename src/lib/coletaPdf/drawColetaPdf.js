@@ -11,6 +11,7 @@ import {
   drawSectionBar,
   drawDualSectionBar,
   drawProposalBox,
+  drawEquipamentoRow,
   drawFieldGrid,
   drawMeasureBlock,
   drawDescricaoBox,
@@ -30,35 +31,54 @@ function mark(checked) {
   return checked ? "X" : " ";
 }
 
-const HEADER_BAND_H = 22;
+const LOGO_W = 32;
+const LOGO_H = 13;
+const PROP_W = 58;
+const PROP_X = MR - PROP_W;
+const CENTER_X = ML + LOGO_W + 3;
+const CENTER_W = PROP_X - CENTER_X - 3;
+const CENTER_MID = CENTER_X + CENTER_W / 2;
+
+let headerContentStartY = 28;
 
 function drawHeader(doc, model, logoDataUrl) {
   const propRef = model.commercialProposalRef || "";
   const headerTop = 6;
-  drawProposalBox(doc, MR - 58, headerTop, 58, 13, propRef);
 
+  const propH = drawProposalBox(doc, PROP_X, headerTop, PROP_W, propRef);
+
+  let logoBottom = headerTop;
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, "PNG", ML, headerTop, 32, 13);
+      doc.addImage(logoDataUrl, "PNG", ML, headerTop, LOGO_W, LOGO_H);
+      logoBottom = headerTop + LOGO_H;
     } catch {
       /* logo do tenant opcional */
     }
   }
+
   doc.setTextColor(...FORM_COLORS.text);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10.5);
-  const titleY = headerTop + 11;
-  doc.text("COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA", PAGE_W / 2, titleY, {
+  doc.setFontSize(10);
+  const titleY = headerTop + 9;
+  doc.text("COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA", CENTER_MID, titleY, {
     align: "center",
-    maxWidth: PAGE_W - 72,
+    maxWidth: CENTER_W,
   });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.text(model.header.codeLine, PAGE_W / 2, titleY + 5, { align: "center" });
+  doc.text(model.header.codeLine, CENTER_MID, titleY + 4.5, {
+    align: "center",
+    maxWidth: CENTER_W,
+  });
+
+  const titleBottom = titleY + 8;
+  const bandBottom = Math.max(headerTop + propH, logoBottom, titleBottom);
+  headerContentStartY = bandBottom + 4;
 }
 
 function contentStartY() {
-  return HEADER_BAND_H + 5;
+  return headerContentStartY;
 }
 
 function underlineField(doc, x, y, label, value, width) {
@@ -182,24 +202,41 @@ function drawFrente(doc, model) {
   const amb = model.ambiente;
   const colR = ML + 98;
   const colRW = MR - colR;
-  const yAmb = y;
+  const ambLeftW = colR - ML - 3;
+  const yAmbStart = y;
 
+  let yLeft = yAmbStart;
+  yLeft = drawEquipamentoRow(
+    doc,
+    ML,
+    yLeft,
+    ambLeftW,
+    "Climatização dos pesos-padrão e termo-baro-higrômetro (1):",
+    amb.thermoLabel,
+  );
+  yLeft = drawEquipamentoRow(
+    doc,
+    ML,
+    yLeft,
+    ambLeftW,
+    "Termo-baro-higrômetro (2):",
+    amb.thermoLabel2,
+  );
+  yLeft += 1;
   doc.setFontSize(7.5);
   doc.setTextColor(...FORM_COLORS.text);
-  doc.text("Climatização dos pesos-padrão e termo-baro-higrômetro (1)", ML + 2, yAmb);
-  underlineField(doc, ML + 118, yAmb, "", amb.thermoLabel, 70);
-  y += 5;
-  doc.text("Termo-baro-higrômetro (2)", ML + 2, y);
-  underlineField(doc, ML + 118, y, "", amb.thermoLabel2, 70);
-  y += 5;
-  doc.text(`Horário inicial: ${s(amb.horario_inicial)}    Horário final: ${s(amb.horario_final)}`, ML, y);
-  y += 5;
-  y = triState(doc, ML, y, "A balança foi ajustada ?", amb.balanca_ajustada);
-  y = triState(doc, ML, y, "A balança foi nivelada?", amb.balanca_nivelada);
-  y = binaryRow(doc, ML, y, "Existe vibração no local?", amb.existe_vibracao);
-  y = binaryRow(doc, ML, y, "Existe corrente de ar no local?", amb.existe_corrente_ar);
+  doc.text(
+    `Horário inicial: ${s(amb.horario_inicial)}    Horário final: ${s(amb.horario_final)}`,
+    ML + 2,
+    yLeft,
+  );
+  yLeft += 5;
+  yLeft = triState(doc, ML, yLeft, "A balança foi ajustada ?", amb.balanca_ajustada);
+  yLeft = triState(doc, ML, yLeft, "A balança foi nivelada?", amb.balanca_nivelada);
+  yLeft = binaryRow(doc, ML, yLeft, "Existe vibração no local?", amb.existe_vibracao);
+  yLeft = binaryRow(doc, ML, yLeft, "Existe corrente de ar no local?", amb.existe_corrente_ar);
 
-  let yR = yAmb;
+  let yR = yAmbStart;
   yR = drawMeasureBlock(
     doc,
     colR,
@@ -224,7 +261,7 @@ function drawFrente(doc, model) {
     "Pressão atmosférica (P) corrigida",
     `Inicial: ${s(amb.pressao_inicial)} hPa    Final: ${s(amb.pressao_final)} hPa`,
   );
-  y = Math.max(y, yR) + 4;
+  y = Math.max(yLeft, yR) + 4;
 
   y = drawDualSectionBar(
     doc,
