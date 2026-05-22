@@ -5,6 +5,11 @@
 import api, { isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { REQ_NAMES } from "@/lib/requirementNavConfig";
+import {
+  fetchDocumentStatsSupabase,
+  isSupabaseDocumentsEnabled,
+  toggleDocumentPin as toggleDocumentPinApi,
+} from "@/lib/documentsApi";
 
 const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").trim();
 const hasLegacyDashboardApi = Boolean(BACKEND_URL) && !isMockApiMode;
@@ -41,6 +46,58 @@ function emptyDashboardPayload(reminders) {
   };
 }
 
+function buildDashboardFromDocs(docs, reminders) {
+  const by_requirement = {};
+  for (const req of ["4", "5", "6", "7", "8"]) {
+    const sub = docs.filter((d) => String(d.requirement) === req);
+    by_requirement[req] = {
+      name: REQ_NAMES[req] || `Requisito ${req}`,
+      procedimentos: sub.filter((d) => d.section === "procedimento" && d.status === "vigente").length,
+      registros: sub.filter((d) => ["registro", "documento", "assinatura"].includes(d.section) && d.status === "vigente").length,
+      obsoletos: sub.filter((d) => d.status === "obsoleto").length,
+    };
+  }
+  const vigente = docs.filter((d) => d.status === "vigente").length;
+  const obsoleto = docs.filter((d) => d.status === "obsoleto").length;
+  const near = docs
+    .filter((d) => d.review_date && d.status === "vigente")
+    .sort((a, b) => String(a.review_date).localeCompare(String(b.review_date)))
+    .slice(0, 8);
+  const recent = [...docs].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at))).slice(0, 8);
+  const pinned = docs.filter((d) => d.pinned_at).slice(0, 8);
+  return {
+    total_documents: docs.length,
+    by_status: { vigente, obsoleto },
+    near_review: near,
+    by_requirement,
+    recent_documents: recent.map((d) => ({
+      id: d.id,
+      title: d.title,
+      requirement: d.requirement,
+      section: d.section,
+      status: d.status,
+      version: d.version,
+      responsible: d.responsible,
+      updated_at: d.updated_at,
+      created_at: d.created_at,
+      pinned_at: d.pinned_at,
+    })),
+    pinned_documents: pinned.map((d) => ({
+      id: d.id,
+      title: d.title,
+      requirement: d.requirement,
+      section: d.section,
+      status: d.status,
+      version: d.version,
+      responsible: d.responsible,
+      updated_at: d.updated_at,
+      created_at: d.created_at,
+      pinned_at: d.pinned_at,
+    })),
+    reminders,
+  };
+}
+
 async function listRemindersSupabase(tenantId) {
   if (!supabase) throw new Error("Supabase não configurado");
   const { data, error } = await supabase
@@ -55,6 +112,14 @@ async function listRemindersSupabase(tenantId) {
 export function fetchDashboard(tenantId) {
   if (isSupabaseAuthMode) {
     return listRemindersSupabase(tenantId).then(async (reminders) => {
+      if (isSupabaseDocumentsEnabled()) {
+        try {
+          const docs = await fetchDocumentStatsSupabase(tenantId);
+          return { data: buildDashboardFromDocs(docs, reminders) };
+        } catch {
+          return { data: emptyDashboardPayload(reminders) };
+        }
+      }
       if (hasLegacyDashboardApi) {
         try {
           const r = await api.get("/dashboard", { params: { tenant_id: tenantId } });
@@ -118,6 +183,7 @@ export function deleteDashboardReminder(tenantId, reminderId) {
   return api.delete(`/dashboard/reminders/${reminderId}`, { params: { tenant_id: tenantId } });
 }
 
-export function toggleDocumentPin(documentId, pinned) {
+export function toggleDocumentPin(documentId, pinned, userId) {
+  if (isSupabaseDocumentsEnabled()) return toggleDocumentPinApi(documentId, pinned, userId);
   return api.put(`/documents/${documentId}`, { pinned });
 }

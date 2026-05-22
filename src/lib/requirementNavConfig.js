@@ -23,6 +23,9 @@ export const REQ_MENU_ITEMS = [
 ];
 
 const FOLDERS = {
+  "4": [
+    { folderKey: "pr-4-1", label: "PR-4.1 Confidencialidade e Imparcialidade" },
+  ],
   "5": [
     { folderKey: "manual-qualidade", label: "Manual da Qualidade" },
     { folderKey: "politica-qualidade", label: "Política da Qualidade" },

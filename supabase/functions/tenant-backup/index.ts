@@ -12,6 +12,7 @@ const corsHeaders: Record<string, string> = {
 const MANIFEST_VERSION = "1";
 const CADASTRO_BUCKET = "cadastro-certificados";
 const BRANDING_BUCKET = "tenant-branding";
+const DOCUMENTS_BUCKET = "tenant-documents";
 /** ZIP devolvido em base64; acima disto a resposta da Edge Function pode falhar. */
 const MAX_ZIP_BYTES = 5 * 1024 * 1024;
 
@@ -205,6 +206,14 @@ async function buildBackupZip(
   zip.file("cadastros/env_certs.json", JSON.stringify(exported.env_certs, null, 2));
   zip.file("coleta/collections.json", JSON.stringify(exported.coleta, null, 2));
 
+  const { data: tenantDocs, error: docsErr } = await admin
+    .from("tenant_documents")
+    .select("*")
+    .eq("tenant_id", tenantId);
+  if (docsErr) throw new Error(`Export tenant_documents: ${docsErr.message}`);
+  const documents = tenantDocs || [];
+  zip.file("documents/tenant_documents.json", JSON.stringify(documents, null, 2));
+
   let storageFileCount = 0;
   const cadastroFiles = await listStoragePrefix(admin, CADASTRO_BUCKET, `${tenantId}/`);
   for (const f of cadastroFiles) {
@@ -214,6 +223,11 @@ async function buildBackupZip(
   const brandingFiles = await listStoragePrefix(admin, BRANDING_BUCKET, `${tenantId}/`);
   for (const f of brandingFiles) {
     zip.file(`storage/${BRANDING_BUCKET}/${f.path}`, f.data);
+    storageFileCount++;
+  }
+  const documentFiles = await listStoragePrefix(admin, DOCUMENTS_BUCKET, `${tenantId}/`);
+  for (const f of documentFiles) {
+    zip.file(`storage/${DOCUMENTS_BUCKET}/${f.path}`, f.data);
     storageFileCount++;
   }
 
@@ -235,6 +249,7 @@ async function buildBackupZip(
     (exported.weight_items?.length || 0) +
     (exported.env_certs?.length || 0) +
     (exported.coleta?.length || 0) +
+    documents.length +
     (legacy.documents?.length || 0);
 
   const manifest = {
@@ -253,7 +268,8 @@ async function buildBackupZip(
       weight_items: exported.weight_items?.length || 0,
       env_certs: exported.env_certs?.length || 0,
       coleta: exported.coleta?.length || 0,
-      documents: legacy.documents?.length || 0,
+      tenant_documents: documents.length,
+      documents: documents.length + (legacy.documents?.length || 0),
       reminders: legacy.reminders?.length || 0,
       storage_files: storageFileCount,
     },
@@ -274,8 +290,9 @@ async function deleteTenantData(admin: SupabaseClient, tenantId: string) {
   await admin.from("supplier_registrations").delete().eq("tenant_id", tenantId);
   await admin.from("end_customer_registrations").delete().eq("tenant_id", tenantId);
   await admin.from("responsibles").delete().eq("tenant_id", tenantId);
+  await admin.from("tenant_documents").delete().eq("tenant_id", tenantId);
 
-  for (const bucket of [CADASTRO_BUCKET, BRANDING_BUCKET]) {
+  for (const bucket of [CADASTRO_BUCKET, BRANDING_BUCKET, DOCUMENTS_BUCKET]) {
     const files = await listStoragePrefix(admin, bucket, `${tenantId}/`);
     if (files.length) {
       const paths = files.map((f) => `${tenantId}/${f.path}`);
@@ -413,12 +430,22 @@ async function restoreFromZip(
     counts.coleta_restored = rows.length;
   }
 
+  const supabaseDocCounts = await restoreTenantDocuments(admin, tenantId, zip, replace, idMap);
+  counts.documents_restored += supabaseDocCounts.documents_restored;
+
   const storagePaths = Object.keys(zip.files).filter((p) => p.startsWith("storage/"));
   for (const fullPath of storagePaths) {
     const parts = fullPath.split("/");
     if (parts.length < 3) continue;
     const bucket = parts[1];
-    const relPath = parts.slice(2).join("/");
+    let relPath = parts.slice(2).join("/");
+    if (bucket === DOCUMENTS_BUCKET && idMap.size > 0) {
+      const segs = relPath.split("/");
+      if (segs.length > 0 && idMap.has(segs[0])) {
+        segs[0] = idMap.get(segs[0])!;
+        relPath = segs.join("/");
+      }
+    }
     const storagePath = `${tenantId}/${relPath}`;
     const f = zip.file(fullPath);
     if (!f) continue;
@@ -428,9 +455,56 @@ async function restoreFromZip(
   }
 
   const legacyCounts = await restoreLegacy(admin, tenantId, zip, replace, authHeader, replace ? null : idMap);
-  counts.documents_restored = legacyCounts.documents_restored;
+  counts.documents_restored += legacyCounts.documents_restored;
 
   return counts;
+}
+
+async function restoreTenantDocuments(
+  admin: SupabaseClient,
+  tenantId: string,
+  zip: JSZip,
+  replace: boolean,
+  idMap: Map<string, string>,
+): Promise<{ documents_restored: number }> {
+  const docsFile = zip.file("documents/tenant_documents.json");
+  if (!docsFile) return { documents_restored: 0 };
+
+  let rows: Record<string, unknown>[] = JSON.parse(await docsFile.async("string"));
+  if (!rows.length) return { documents_restored: 0 };
+
+  if (replace) {
+    await admin.from("tenant_documents").delete().eq("tenant_id", tenantId);
+    const existingFiles = await listStoragePrefix(admin, DOCUMENTS_BUCKET, `${tenantId}/`);
+    if (existingFiles.length) {
+      const paths = existingFiles.map((f) => `${tenantId}/${f.path}`);
+      await admin.storage.from(DOCUMENTS_BUCKET).remove(paths);
+    }
+  }
+
+  if (!replace) {
+    rows = remapIds(rows, idMap);
+    for (const row of rows) {
+      if (row.storage_path && typeof row.storage_path === "string") {
+        const parts = (row.storage_path as string).split("/");
+        if (parts.length >= 2 && idMap.has(parts[1])) {
+          parts[1] = idMap.get(parts[1])!;
+          row.storage_path = parts.join("/");
+        }
+      }
+    }
+  }
+
+  const payload = rows.map((r) => {
+    const copy = { ...r, tenant_id: tenantId };
+    delete copy.created_at;
+    delete copy.updated_at;
+    return copy;
+  });
+
+  const { error } = await admin.from("tenant_documents").insert(payload);
+  if (error) throw new Error(`tenant_documents: ${error.message}`);
+  return { documents_restored: payload.length };
 }
 
 async function restoreLegacy(

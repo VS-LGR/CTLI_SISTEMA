@@ -1,5 +1,7 @@
 # Deploy (Vercel + Supabase)
 
+Este repositório é o **sistema ProcVault completo** (interface React em `src/`, base de dados e Edge Functions em `supabase/`). O nome da pasta `frontend` é histórico; não depende de outro backend externo para cadastros, coleta, lembretes ou **documentos** (`tenant_documents` + bucket `tenant-documents`).
+
 ## Variáveis de ambiente no Vercel
 
 Defina no painel do projeto Vercel (Settings → Environment Variables):
@@ -8,7 +10,7 @@ Defina no painel do projeto Vercel (Settings → Environment Variables):
 |----------|-------------|-----------|
 | `REACT_APP_SUPABASE_URL` | Sim (modo Supabase) | URL do projeto (Settings → API no Supabase). |
 | `REACT_APP_SUPABASE_ANON_KEY` *ou* `REACT_APP_SUPABASE_PUBLISHABLE_KEY` | Sim (modo Supabase) | Chave **publicável** do painel (`anon` / JWT ou `sb_publishable_…`). Nunca expor `service_role`. |
-| `REACT_APP_BACKEND_URL` | Opcional | URL base da API legada (documentos, etc.); omitir se ainda não existir backend. |
+| `REACT_APP_BACKEND_URL` | Opcional | API legada (importação/transição); **procedimentos e registros usam Supabase** quando `REACT_APP_SUPABASE_URL` + chave pública estão definidos. |
 | `REACT_APP_USE_MOCK_API` | Opcional | `true` apenas para demo local sem Supabase nem API. |
 
 ### Backup (Edge Function `tenant-backup`) — ZIP local
@@ -20,8 +22,10 @@ Segredos na Edge Function `tenant-backup`:
 | Segredo | Obrigatório | Descrição |
 |---------|-------------|-----------|
 | `CTLI_SERVICE_ROLE_KEY` | Sim | Valor **service_role** (Settings → API). Nome customizado no painel (alternativa legada: `SUPABASE_SERVICE_ROLE_KEY`). |
-| `LEGACY_API_URL` | Opcional | URL base da API de documentos (ex. `https://api.exemplo.com`). |
-| `LEGACY_API_SERVICE_TOKEN` | Opcional | Token de serviço para export/restore de documentos. |
+| `LEGACY_API_URL` | Opcional | API antiga de documentos (só se ainda existir dados fora do Supabase). |
+| `LEGACY_API_SERVICE_TOKEN` | Opcional | Token para export/restore legado no ZIP. |
+
+O ZIP inclui **`documents/tenant_documents.json`** e ficheiros em **`storage/tenant-documents/`** (Supabase). A pasta `legacy/` só é preenchida se `LEGACY_API_URL` estiver configurada.
 
 Migrações de backup (por ordem): `20250623000000` (colunas em `tenants`), depois **`20250624000000_tenant_backup_local_only.sql`** — remove tabela `tenant_backup_runs`, cron automático e histórico na nuvem. **Não** é necessário aplicar `20250623100000` (cron na nuvem) se usar só backup local.
 
@@ -54,6 +58,8 @@ supabase functions deploy admin-create-user admin-update-user admin-delete-user 
 6. **Cadastros e anexos:** aplicar também a migração `20250616000000_cadastros_multitenant.sql`, que cria tabelas de fornecedores, **clientes finais** (menu Cadastros → Clientes), colaboradores, certificados e o **bucket** privado `cadastro-certificados` com políticas RLS em `storage.objects`. O primeiro segmento do caminho do ficheiro deve ser o UUID do tenant (`{tenant_id}/weight|env/{cert_id}/{filename}`).
 
 7. **Coleta RE-7.2A:** aplicar `20250618000000_scale_calibration_collections.sql` (papel `tecnico_campo` e tabela de coletas).
+
+8. **Procedimentos e documentos (requisitos 4–8):** aplicar **`20250626000000_tenant_documents.sql`** — tabela `tenant_documents`, bucket privado `tenant-documents`, RLS. Sem esta migração, a listagem e o editor de documentos falham em modo Supabase.
 
 ## Resolução de problemas (criação de ambientes / utilizadores)
 

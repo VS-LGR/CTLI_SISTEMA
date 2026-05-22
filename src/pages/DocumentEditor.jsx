@@ -1,7 +1,15 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import api, { asArray } from "@/lib/api";
 import RichEditor from "@/components/RichEditor";
+import {
+  getDocument, updateDocument, uploadDocumentFile, exportDocumentBlob,
+  downloadOriginalFile, duplicateDocument, toggleDocumentPin as togglePinApi,
+} from "@/lib/documentsApi";
+import { triggerBlobDownload } from "@/lib/documentExport";
+import { docxFileToHtml, isDocxFile } from "@/lib/docxImport";
+import { useAuth } from "@/context/AuthContext";
+import { allowsRichEditor } from "@/lib/documentFolderConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +24,6 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
-import { toggleDocumentPin } from "@/lib/dashboardApi";
 import { REQ_NAMES, buildRequirementListPath } from "@/lib/requirementNavConfig";
 
 const SaveAsDialog = ({ doc, onCreated }) => {
@@ -37,7 +44,7 @@ const SaveAsDialog = ({ doc, onCreated }) => {
     if (!title.trim()) return toast.error("Informe o título");
     setBusy(true);
     try {
-      const { data } = await api.post(`/documents/${doc.id}/duplicate`, {
+      const { data } = await duplicateDocument(doc.id, {
         title: title.trim(),
         version: revision,
         content_html: doc.content_html,
@@ -87,6 +94,9 @@ const SaveAsDialog = ({ doc, onCreated }) => {
 const DocumentEditor = () => {
   const { id } = useParams();
   const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
+  const viewMode = searchParams.get("mode") === "view";
   const [doc, setDoc] = useState(null);
   const [saving, setSaving] = useState(false);
   const [responsibles, setResponsibles] = useState([]);
@@ -94,7 +104,7 @@ const DocumentEditor = () => {
 
   const load = useCallback(async () => {
     try {
-      const { data } = await api.get(`/documents/${id}`);
+      const data = await getDocument(id);
       setDoc(data);
       if (data?.tenant_id) {
         try {
@@ -113,12 +123,12 @@ const DocumentEditor = () => {
   const save = async () => {
     setSaving(true);
     try {
-      const { data } = await api.put(`/documents/${id}`, {
+      const data = await updateDocument(id, {
         title: doc.title, code: doc.code, version: doc.version,
         responsible: doc.responsible, review_date: doc.review_date || null,
         content_html: doc.content_html, status: doc.status,
         folder_key: doc.folder_key ?? null,
-      });
+      }, user?.id);
       setDoc((p) => ({ ...data, content_html: p.content_html }));
       toast.success("Salvo");
     } catch { toast.error("Falha ao salvar"); }
@@ -127,38 +137,32 @@ const DocumentEditor = () => {
 
   const exportFile = async (format) => {
     try {
-      const res = await api.get(`/documents/${id}/export?format=${format}`, { responseType: "blob" });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${doc.title}.${format === "docx" ? "docx" : "pdf"}`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const blob = await exportDocumentBlob(id, format);
+      triggerBlobDownload(blob, `${doc.title}.${format === "docx" ? "docx" : "pdf"}`);
     } catch { toast.error("Falha ao exportar"); }
   };
 
   const downloadOriginal = async () => {
-    const res = await api.get(`/documents/${id}/download`, { responseType: "blob" });
-    const url = URL.createObjectURL(res.data);
-    const a = document.createElement("a"); a.href = url; a.download = doc.file_name || "arquivo"; a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const blob = await downloadOriginalFile(doc);
+      triggerBlobDownload(blob, doc.file_name || "arquivo");
+    } catch { toast.error("Falha ao baixar"); }
   };
 
   const uploadFile = async (file) => {
-    const fd = new FormData(); fd.append("file", file);
     try {
-      const { data } = await api.post(`/documents/${id}/upload`, fd, { headers: { "Content-Type": "multipart/form-data" } });
-      setDoc(data);
-      toast.success(file.name.toLowerCase().endsWith(".docx")
-        ? "Word carregado e conteúdo importado no editor"
-        : "Arquivo anexado");
+      let html = null;
+      if (isDocxFile(file)) html = await docxFileToHtml(file);
+      const data = await uploadDocumentFile(id, file, user?.id, html);
+      setDoc((p) => ({ ...data, content_html: html ?? p.content_html }));
+      toast.success(isDocxFile(file) ? "Word importado para o editor" : "Arquivo anexado");
     } catch { toast.error("Falha no upload"); }
   };
 
   const toggleStatus = async () => {
     const newStatus = doc.status === "vigente" ? "obsoleto" : "vigente";
     try {
-      const { data } = await api.put(`/documents/${id}`, { status: newStatus });
+      const data = await updateDocument(id, { status: newStatus }, user?.id);
       setDoc((p) => ({ ...data, content_html: p.content_html }));
       toast.success(newStatus === "obsoleto" ? "Movido para Obsoletos" : "Reativado");
     } catch { toast.error("Falha ao atualizar"); }
@@ -167,13 +171,16 @@ const DocumentEditor = () => {
   const togglePin = async () => {
     const next = !doc.pinned_at;
     try {
-      const { data } = await toggleDocumentPin(id, next);
+      const data = await togglePinApi(id, next, user?.id);
       setDoc((p) => ({ ...data, content_html: p.content_html }));
       toast.success(next ? "Marcado na dashboard" : "Removido da dashboard");
     } catch { toast.error("Falha ao atualizar pin"); }
   };
 
   if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
+
+  const canEditRich = allowsRichEditor(doc.requirement, doc.folder_key) && doc.section !== "documento" && doc.section !== "assinatura";
+  const readOnly = viewMode || !canEditRich;
 
   return (
     <div className="space-y-6" data-testid="document-editor">
@@ -195,11 +202,20 @@ const DocumentEditor = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <input ref={fileInputRef} type="file" hidden accept=".doc,.docx,.pdf,.txt,.rtf,.odt"
-                 onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
+          {readOnly && canEditRich && (
+            <Button variant="outline" onClick={() => setSearchParams({})}>
+              <PencilSimple size={16} className="mr-1.5" /> Editar
+            </Button>
+          )}
+          {!readOnly && (
+            <input ref={fileInputRef} type="file" hidden accept=".doc,.docx,.pdf,.txt,.rtf,.odt"
+                   onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
+          )}
+          {!readOnly && canEditRich && (
           <Button variant="outline" onClick={() => fileInputRef.current?.click()} data-testid="upload-file-btn">
             <Upload size={16} className="mr-1.5" /> {doc.has_file ? "Substituir arquivo" : "Carregar Word/PDF"}
           </Button>
+          )}
           {doc.has_file && <Button variant="outline" onClick={downloadOriginal} data-testid="download-original-btn"><DownloadSimple size={16} className="mr-1.5" /> Baixar original</Button>}
           <Button variant="outline" onClick={() => exportFile("pdf")} data-testid="export-pdf-btn"><FilePdf size={16} className="mr-1.5" /> PDF</Button>
           <Button variant="outline" onClick={() => exportFile("docx")} data-testid="export-docx-btn"><FileDoc size={16} className="mr-1.5" /> Word</Button>
@@ -218,10 +234,12 @@ const DocumentEditor = () => {
           <Button variant="outline" onClick={toggleStatus} data-testid="toggle-status-btn">
             {doc.status === "vigente" ? <><Archive size={16} className="mr-1.5" /> Obsoleto</> : <><ArrowsClockwise size={16} className="mr-1.5" /> Reativar</>}
           </Button>
-          <SaveAsDialog doc={doc} />
+          {!readOnly && <SaveAsDialog doc={doc} />}
+          {!readOnly && (
           <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="save-doc-btn">
             <FloppyDisk size={16} className="mr-1.5" /> {saving ? "Salvando…" : "Salvar"}
           </Button>
+          )}
         </div>
       </div>
 
@@ -230,22 +248,23 @@ const DocumentEditor = () => {
           <CardContent className="p-5 space-y-4">
             <div>
               <Label className="text-xs uppercase tracking-wider text-slate-500">Título</Label>
-              <Input className="mt-1" value={doc.title} onChange={(e) => setDoc({ ...doc, title: e.target.value })} data-testid="edit-title" />
+              <Input className="mt-1" value={doc.title} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, title: e.target.value })} data-testid="edit-title" />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-slate-500">Revisão</Label>
-              <Input className="mt-1" value={doc.version || ""} onChange={(e) => setDoc({ ...doc, version: e.target.value })} placeholder="Rev. 01" data-testid="edit-revision" />
+              <Input className="mt-1" value={doc.version || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, version: e.target.value })} placeholder="Rev. 01" data-testid="edit-revision" />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-slate-500">Emissão</Label>
-              <Input className="mt-1" type="date" value={doc.code || ""} onChange={(e) => setDoc({ ...doc, code: e.target.value })} data-testid="edit-emission" />
+              <Input className="mt-1" type="date" value={doc.code || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, code: e.target.value })} data-testid="edit-emission" />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-slate-500">Responsável</Label>
               <select
                 value={doc.responsible || ""}
+                disabled={readOnly}
                 onChange={(e) => setDoc({ ...doc, responsible: e.target.value })}
-                className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white disabled:opacity-60"
                 data-testid="edit-responsible"
               >
                 <option value="">Selecione…</option>
@@ -261,7 +280,7 @@ const DocumentEditor = () => {
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-slate-500">Próxima revisão</Label>
-              <Input className="mt-1" type="date" value={doc.review_date || ""} onChange={(e) => setDoc({ ...doc, review_date: e.target.value })} data-testid="edit-review-date" />
+              <Input className="mt-1" type="date" value={doc.review_date || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, review_date: e.target.value })} data-testid="edit-review-date" />
             </div>
             {doc.has_file && (
               <div className="text-xs bg-slate-50 border border-slate-200 rounded-md p-3">
@@ -274,10 +293,18 @@ const DocumentEditor = () => {
         </Card>
 
         <div className="lg:col-span-3">
-          <RichEditor
-            value={doc.content_html}
-            onChange={(html) => setDoc((p) => ({ ...p, content_html: html }))}
-          />
+          {readOnly ? (
+            <Card className="border-slate-200 p-6 prose prose-slate max-w-none min-h-[320px]"
+              dangerouslySetInnerHTML={{ __html: doc.content_html || "<p class='text-slate-500'>Sem conteúdo.</p>" }}
+            />
+          ) : canEditRich ? (
+            <RichEditor
+              value={doc.content_html}
+              onChange={(html) => setDoc((p) => ({ ...p, content_html: html }))}
+            />
+          ) : (
+            <p className="text-sm text-slate-600">Este tipo de documento usa apenas ficheiro anexo — utilize download na lista.</p>
+          )}
         </div>
       </div>
     </div>
