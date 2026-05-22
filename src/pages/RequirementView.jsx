@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useOutletContext, Link, Navigate } from "react-router-dom";
 import api, { asArray } from "@/lib/api";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
@@ -14,6 +14,7 @@ import {
   getVisibleSections,
   isSignaturesFolder,
   isFileOnlyFolder,
+  allowsRichEditor,
 } from "@/lib/documentFolderConfig";
 import {
   listDocuments,
@@ -45,7 +46,6 @@ import { canAccessColeta } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import AssinaturasSection from "@/components/documents/AssinaturasSection";
-import DocumentosOnlySection from "@/components/documents/DocumentosOnlySection";
 
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 
@@ -59,12 +59,15 @@ function filterBySearch(docs, searchQuery) {
 
 const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLabel, onCreated }) => {
   const { user } = useAuth();
+  const fileInputRef = useRef(null);
+  const canImportWord = allowsRichEditor(requirement, folderKey);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [emission, setEmission] = useState("");
   const [revision, setRevision] = useState("1.0");
   const [responsible, setResponsible] = useState("");
   const [reviewDate, setReviewDate] = useState("");
+  const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [responsibles, setResponsibles] = useState([]);
 
@@ -72,6 +75,17 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
     if (!open || !tenantId) return;
     api.get(`/tenants/${tenantId}/responsibles`).then((r) => setResponsibles(asArray(r.data))).catch(() => setResponsibles([]));
   }, [open, tenantId]);
+
+  useEffect(() => {
+    if (!open) {
+      setTitle("");
+      setEmission("");
+      setRevision("1.0");
+      setResponsible("");
+      setReviewDate("");
+      setFile(null);
+    }
+  }, [open]);
 
   const save = async () => {
     if (!title.trim()) return toast.error("Informe o título");
@@ -90,10 +104,22 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
         status: "vigente",
       };
       if (requiresFolderNav(requirement) && folderKey) body.folder_key = folderKey;
-      const data = await createDocument(body, user?.id);
-      toast.success("Documento criado");
+      let data = await createDocument(body, user?.id);
+      if (file) {
+        let html = null;
+        if (canImportWord && isDocxFile(file)) {
+          html = await docxFileToHtml(file);
+        }
+        data = await uploadDocumentFile(data.id, file, user?.id, html);
+      }
+      if (file && canImportWord && isDocxFile(file)) {
+        toast.success("Criado com Word importado — pode editar no editor");
+      } else if (file) {
+        toast.success("Documento criado com arquivo anexado");
+      } else {
+        toast.success("Documento criado");
+      }
       setOpen(false);
-      setTitle("");
       onCreated?.(data);
     } catch {
       toast.error("Falha ao criar");
@@ -110,24 +136,73 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle className="font-display">Novo {sectionLabel || section}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-display">Novo {sectionLabel || section}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-4">
-          <div><Label>Título *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Revisão</Label><Input value={revision} onChange={(e) => setRevision(e.target.value)} /></div>
-            <div><Label>Emissão</Label><Input type="date" value={emission} onChange={(e) => setEmission(e.target.value)} /></div>
+          <div>
+            <Label className="text-xs uppercase tracking-wider text-slate-500">Título *</Label>
+            <Input className="mt-1" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Responsável</Label>
-              <select value={responsible} onChange={(e) => setResponsible(e.target.value)} className="w-full border rounded-md h-10 px-3 text-sm">
+              <Label className="text-xs uppercase tracking-wider text-slate-500">Revisão</Label>
+              <Input className="mt-1" value={revision} onChange={(e) => setRevision(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-slate-500">Emissão</Label>
+              <Input className="mt-1" type="date" value={emission} onChange={(e) => setEmission(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-slate-500">Responsável</Label>
+              <select value={responsible} onChange={(e) => setResponsible(e.target.value)} className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white">
                 <option value="">Selecione…</option>
                 {responsibles.map((r) => (
                   <option key={r.id} value={r.name}>{r.name}</option>
                 ))}
               </select>
             </div>
-            <div><Label>Próxima revisão</Label><Input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} /></div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-slate-500">Próxima revisão</Label>
+              <Input className="mt-1" type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wider text-slate-500">Arquivo (opcional)</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              hidden
+              accept=".doc,.docx,.pdf,.txt,.rtf,.odt"
+              onChange={(e) => {
+                setFile(e.target.files?.[0] || null);
+                e.target.value = "";
+              }}
+            />
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload size={16} className="mr-1.5" /> Selecionar arquivo
+              </Button>
+              {file && (
+                <span className="text-sm text-slate-600 truncate max-w-[220px]" title={file.name}>{file.name}</span>
+              )}
+              {file && (
+                <Button type="button" variant="ghost" size="sm" className="text-slate-500" onClick={() => setFile(null)}>
+                  Remover
+                </Button>
+              )}
+            </div>
+            {canImportWord ? (
+              <p className="text-xs text-slate-500 mt-1.5">
+                Ficheiros Word (.docx) são convertidos para o editor; PDF e outros ficam como anexo.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 mt-1.5">
+                PDF, Word e outros formatos são guardados como ficheiro anexo.
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>
@@ -139,7 +214,7 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
   );
 };
 
-const DocRow = ({ doc, variant, onUpdate, onDelete }) => {
+const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
   const { user } = useAuth();
   const fileInputRef = React.useRef();
   const [busy, setBusy] = useState(false);
@@ -209,10 +284,14 @@ const DocRow = ({ doc, variant, onUpdate, onDelete }) => {
   return (
     <tr className="hover:bg-slate-50 transition" data-testid={`doc-row-${doc.id}`}>
       <td className="px-4 py-3">
-        <Link to={`/document/${doc.id}`} className="font-medium text-sm text-slate-900 hover:text-blue-600">{doc.title}</Link>
+        {fileOnly ? (
+          <span className="font-medium text-sm text-slate-900">{doc.title}</span>
+        ) : (
+          <Link to={`/document/${doc.id}`} className="font-medium text-sm text-slate-900 hover:text-blue-600">{doc.title}</Link>
+        )}
         <div className="text-xs text-slate-500 mt-0.5">
           {doc.code && <span className="font-mono">Emissão: {doc.code}</span>}
-          <span className="ml-2">Rev. {doc.version}</span>
+          <span className={doc.code ? "ml-2" : ""}>Rev. {doc.version}</span>
           {doc.has_file && <Badge variant="outline" className="ml-2 text-[10px] py-0">arquivo</Badge>}
         </div>
       </td>
@@ -226,19 +305,24 @@ const DocRow = ({ doc, variant, onUpdate, onDelete }) => {
               <Upload size={16} />
             </Button>
           )}
-          {isVigente && (
+          {isVigente && fileOnly && doc.has_file && (
+            <Button variant="ghost" size="sm" onClick={downloadOriginal} disabled={busy} title="Download"><DownloadSimple size={16} /></Button>
+          )}
+          {isVigente && !fileOnly && (
             <Button variant="ghost" size="sm" onClick={() => downloadExport("pdf")} title="Exportar PDF"><FilePdf size={16} /></Button>
           )}
-          <Link to={`/document/${doc.id}`} title="Editar">
-            <Button variant="ghost" size="sm"><PencilSimple size={16} /></Button>
-          </Link>
+          {!fileOnly && (
+            <Link to={`/document/${doc.id}`} title="Editar">
+              <Button variant="ghost" size="sm"><PencilSimple size={16} /></Button>
+            </Link>
+          )}
           {isVigente && (
             <Button variant="ghost" size="sm" onClick={toggleStatus} title="Mover para obsoletos"><Archive size={16} /></Button>
           )}
           {!isVigente && (
             <Button variant="ghost" size="sm" onClick={downloadOriginal} title="Download"><DownloadSimple size={16} /></Button>
           )}
-          {isVigente && (
+          {isVigente && !fileOnly && (
             <Button variant="ghost" size="sm" onClick={() => downloadExport("docx")} title="Exportar Word"><FileDoc size={16} /></Button>
           )}
           {!isVigente && (
@@ -255,7 +339,7 @@ const DocRow = ({ doc, variant, onUpdate, onDelete }) => {
   );
 };
 
-const DocTable = ({ docs, variant, onUpdate, onDelete }) => {
+const DocTable = ({ docs, variant, onUpdate, onDelete, fileOnly = false }) => {
   const list = Array.isArray(docs) ? docs : [];
   return (
     <Card className="border-slate-200 overflow-hidden">
@@ -274,7 +358,7 @@ const DocTable = ({ docs, variant, onUpdate, onDelete }) => {
               <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">Nenhum documento aqui ainda.</td></tr>
             )}
             {list.map((d) => (
-              <DocRow key={d.id} doc={d} variant={variant} onUpdate={onUpdate} onDelete={onDelete} />
+              <DocRow key={d.id} doc={d} variant={variant} onUpdate={onUpdate} onDelete={onDelete} fileOnly={fileOnly} />
             ))}
           </tbody>
         </table>
@@ -414,13 +498,15 @@ const RequirementView = () => {
                   className={status === "obsoleto" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
                   onClick={() => setStatus("obsoleto")}>Obsoletos</Button>
               </div>
-              {status === "vigente" && !fileOnly && (
+              {status === "vigente" && !signatures && (
                 <CreateDocDialog
                   tenantId={currentTenantId}
                   requirement={id}
                   folderKey={folderKey}
                   section={section}
-                  sectionLabel={currentSectionMeta?.label}
+                  sectionLabel={
+                    section === "documento" ? "documento" : (currentSectionMeta?.label || section)
+                  }
                   onCreated={onCreated}
                 />
               )}
@@ -444,18 +530,14 @@ const RequirementView = () => {
               onRefresh={load}
               searchQuery={searchQuery}
             />
-          ) : fileOnly ? (
-            <DocumentosOnlySection
-              docs={filteredDocs}
-              tenantId={currentTenantId}
-              requirement={id}
-              folderKey={folderKey}
-              status={status}
-              onRefresh={load}
-              searchQuery={searchQuery}
-            />
           ) : (
-            <DocTable docs={filteredDocs} variant={variant} onUpdate={updateDoc} onDelete={removeDoc} />
+            <DocTable
+              docs={filteredDocs}
+              variant={variant}
+              onUpdate={updateDoc}
+              onDelete={removeDoc}
+              fileOnly={fileOnly}
+            />
           )}
         </TabsContent>
       </Tabs>
