@@ -19,6 +19,7 @@ import {
 import {
   listDocuments,
   createDocument,
+  formatDocumentError,
   updateDocument,
   deleteDocument,
   uploadDocumentFile,
@@ -89,11 +90,12 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
 
   const save = async () => {
     if (!title.trim()) return toast.error("Informe o título");
+    if (!tenantId) return toast.error("Selecione um ambiente no topo.");
     setBusy(true);
     try {
       const body = {
         tenant_id: tenantId,
-        requirement,
+        requirement: String(requirement),
         section,
         title: title.trim(),
         code: emission,
@@ -106,11 +108,19 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
       if (requiresFolderNav(requirement) && folderKey) body.folder_key = folderKey;
       let data = await createDocument(body, user?.id);
       if (file) {
-        let html = null;
-        if (canImportWord && isDocxFile(file)) {
-          html = await docxFileToHtml(file);
+        try {
+          let html = null;
+          if (canImportWord && isDocxFile(file)) {
+            html = await docxFileToHtml(file);
+          }
+          data = await uploadDocumentFile(data.id, file, user?.id, html);
+        } catch (uploadErr) {
+          console.error("[CreateDoc] upload", uploadErr);
+          toast.error(`Documento criado, mas falha no arquivo: ${formatDocumentError(uploadErr)}`);
+          setOpen(false);
+          onCreated?.(data);
+          return;
         }
-        data = await uploadDocumentFile(data.id, file, user?.id, html);
       }
       if (file && canImportWord && isDocxFile(file)) {
         toast.success("Criado com Word importado — pode editar no editor");
@@ -121,8 +131,9 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
       }
       setOpen(false);
       onCreated?.(data);
-    } catch {
-      toast.error("Falha ao criar");
+    } catch (err) {
+      console.error("[CreateDoc]", err);
+      toast.error(formatDocumentError(err));
     } finally {
       setBusy(false);
     }
@@ -396,7 +407,8 @@ const RequirementView = () => {
       if (requiresFolderNav(id) && folderKey) params.folder_key = folderKey;
       const data = await listDocuments(params);
       setDocs(data);
-    } catch {
+    } catch (err) {
+      console.error("[RequirementView] listDocuments", err);
       setDocs([]);
     } finally {
       setLoading(false);

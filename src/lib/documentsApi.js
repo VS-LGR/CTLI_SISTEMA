@@ -7,6 +7,44 @@ import { supabase } from "@/lib/supabaseClient";
 
 export const TENANT_DOCUMENTS_BUCKET = "tenant-documents";
 
+/** Mensagem legível para erros de criação/edição de documentos (Supabase ou API). */
+export function formatDocumentError(err) {
+  if (!err) return "Algo deu errado. Tente novamente.";
+  const msg = err.message || err.error_description || String(err);
+  const code = err.code || err.status;
+
+  if (
+    code === "42P01"
+    || code === "PGRST205"
+    || /Could not find the table.*tenant_documents/i.test(msg)
+    || (/tenant_documents/i.test(msg) && /(schema cache|does not exist|não existe)/i.test(msg))
+  ) {
+    return "Tabela de documentos não encontrada. Aplique a migração 20250626000000_tenant_documents.sql no Supabase.";
+  }
+  if (code === "42501" || /row-level security|permission denied/i.test(msg)) {
+    return "Sem permissão para este ambiente. Confirme o ambiente selecionado no topo ou o perfil (admin/cliente).";
+  }
+  if (code === "23503") {
+    return "Referência inválida (ambiente ou utilizador). Selecione o ambiente e tente de novo.";
+  }
+  if (code === "23514" || /check constraint/i.test(msg)) {
+    return "Dados inválidos (requisito, secção ou estado). Recarregue a página e tente novamente.";
+  }
+  if (code === "PGRST116" || /0 rows/i.test(msg)) {
+    return "Documento não foi gravado (permissão ou configuração). Verifique RLS e migrações no Supabase.";
+  }
+  if (/Configure Supabase|REACT_APP_BACKEND/i.test(msg)) {
+    return msg;
+  }
+  return msg;
+}
+
+function normalizeDateField(value) {
+  if (value == null || value === "") return null;
+  const s = String(value).trim();
+  return s || null;
+}
+
 function mapRow(row) {
   if (!row) return row;
   return {
@@ -47,23 +85,30 @@ async function getDocumentSupabase(id) {
 }
 
 async function createDocumentSupabase(body, userId) {
+  if (!body?.tenant_id) {
+    throw new Error("Selecione um ambiente no topo antes de criar o documento.");
+  }
   const row = {
     tenant_id: body.tenant_id,
     requirement: String(body.requirement),
-    folder_key: body.folder_key || null,
+    folder_key: body.folder_key && String(body.folder_key).trim() ? body.folder_key : null,
     section: body.section,
     title: body.title?.trim() || "",
     code: body.code || "",
     version: body.version || "1.0",
     responsible: body.responsible || "",
-    review_date: body.review_date || null,
+    review_date: normalizeDateField(body.review_date),
     content_html: body.content_html || "",
     status: body.status || "vigente",
     has_file: false,
     created_by: userId || null,
     updated_by: userId || null,
   };
-  const { data, error } = await supabase.from("tenant_documents").insert(row).select("*").single();
+  let { data, error } = await supabase.from("tenant_documents").insert(row).select("*").single();
+  if (error?.code === "23503" && row.created_by) {
+    const retry = { ...row, created_by: null, updated_by: null };
+    ({ data, error } = await supabase.from("tenant_documents").insert(retry).select("*").single());
+  }
   if (error) throw error;
   return mapRow(data);
 }
@@ -135,6 +180,11 @@ async function getDocumentApi(id) {
 }
 
 async function createDocumentApi(body) {
+  if (!isMockApiMode && !(process.env.REACT_APP_BACKEND_URL || "").trim()) {
+    throw new Error(
+      "Documentos requerem Supabase (REACT_APP_SUPABASE_URL + chave) ou REACT_APP_BACKEND_URL.",
+    );
+  }
   const { data } = await api.post("/documents", body);
   return data;
 }
