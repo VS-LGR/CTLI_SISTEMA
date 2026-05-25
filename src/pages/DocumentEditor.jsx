@@ -7,7 +7,7 @@ import {
   downloadOriginalFile, duplicateDocument, toggleDocumentPin as togglePinApi,
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/documentExport";
-import { docxFileToHtml, isDocxFile } from "@/lib/docxImport";
+import { tryConvertDocxToHtml, uploadSuccessMessage } from "@/lib/docxImport";
 import { useAuth } from "@/context/AuthContext";
 import { allowsRichEditor } from "@/lib/documentFolderConfig";
 import { Button } from "@/components/ui/button";
@@ -150,13 +150,25 @@ const DocumentEditor = () => {
   };
 
   const uploadFile = async (file) => {
+    if (!doc) return;
     try {
+      const canImport =
+        allowsRichEditor(doc.requirement, doc.folder_key)
+        && doc.section !== "documento"
+        && doc.section !== "assinatura";
       let html = null;
-      if (isDocxFile(file)) html = await docxFileToHtml(file);
+      let conv = { imported: false, warning: null };
+      if (canImport) {
+        conv = await tryConvertDocxToHtml(file);
+        html = conv.html;
+      }
       const data = await uploadDocumentFile(id, file, user?.id, html);
       setDoc((p) => ({ ...data, content_html: html ?? p.content_html }));
-      toast.success(isDocxFile(file) ? "Word importado para o editor" : "Arquivo anexado");
-    } catch { toast.error("Falha no upload"); }
+      toast.success(uploadSuccessMessage(file, conv));
+    } catch (err) {
+      console.error("[DocumentEditor] upload", err);
+      toast.error(err?.message || "Falha no upload");
+    }
   };
 
   const toggleStatus = async () => {
@@ -212,7 +224,12 @@ const DocumentEditor = () => {
                    onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
           )}
           {!readOnly && canEditRich && (
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()} data-testid="upload-file-btn">
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            data-testid="upload-file-btn"
+            title="Importação para o editor: apenas .docx. .doc antigo fica só como anexo."
+          >
             <Upload size={16} className="mr-1.5" /> {doc.has_file ? "Substituir arquivo" : "Carregar Word/PDF"}
           </Button>
           )}

@@ -28,7 +28,7 @@ import {
   toggleDocumentPin,
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/documentExport";
-import { docxFileToHtml, isDocxFile } from "@/lib/docxImport";
+import { tryConvertDocxToHtml, uploadSuccessMessage } from "@/lib/docxImport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -110,10 +110,17 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
       if (file) {
         try {
           let html = null;
-          if (canImportWord && isDocxFile(file)) {
-            html = await docxFileToHtml(file);
+          let conv = { imported: false, warning: null };
+          if (canImportWord) {
+            conv = await tryConvertDocxToHtml(file);
+            html = conv.html;
           }
           data = await uploadDocumentFile(data.id, file, user?.id, html);
+          if (conv.imported) {
+            toast.success("Criado com Word importado — pode editar no editor");
+          } else {
+            toast.success(`Documento criado. ${uploadSuccessMessage(file, conv)}`);
+          }
         } catch (uploadErr) {
           console.error("[CreateDoc] upload", uploadErr);
           toast.error(`Documento criado, mas falha no arquivo: ${formatDocumentError(uploadErr)}`);
@@ -121,11 +128,6 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
           onCreated?.(data);
           return;
         }
-      }
-      if (file && canImportWord && isDocxFile(file)) {
-        toast.success("Criado com Word importado — pode editar no editor");
-      } else if (file) {
-        toast.success("Documento criado com arquivo anexado");
       } else {
         toast.success("Documento criado");
       }
@@ -207,7 +209,7 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
             </div>
             {canImportWord ? (
               <p className="text-xs text-slate-500 mt-1.5">
-                Ficheiros Word (.docx) são convertidos para o editor; PDF e outros ficam como anexo.
+                Importação para o editor: apenas .docx. Ficheiros .doc antigos, PDF e outros ficam só como anexo.
               </p>
             ) : (
               <p className="text-xs text-slate-500 mt-1.5">
@@ -253,15 +255,19 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
   const uploadFile = async (file) => {
     setBusy(true);
     try {
+      const canImport = allowsRichEditor(doc.requirement, doc.folder_key);
       let contentHtml = null;
-      if (isDocxFile(file)) {
-        contentHtml = await docxFileToHtml(file);
+      let conv = { imported: false, warning: null };
+      if (canImport) {
+        conv = await tryConvertDocxToHtml(file);
+        contentHtml = conv.html;
       }
       const data = await uploadDocumentFile(doc.id, file, user?.id, contentHtml);
-      toast.success(isDocxFile(file) ? "Word importado para o editor" : "Arquivo anexado");
+      toast.success(uploadSuccessMessage(file, conv));
       onUpdate?.(data);
-    } catch {
-      toast.error("Falha no upload");
+    } catch (err) {
+      console.error("[DocRow] upload", err);
+      toast.error(formatDocumentError(err));
     } finally {
       setBusy(false);
     }
