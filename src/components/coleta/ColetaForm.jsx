@@ -17,6 +17,7 @@ import {
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
 import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
+import CalibracaoOrdemTooltip from "@/components/coleta/CalibracaoOrdemTooltip";
 
 function Field({ label, children, className = "" }) {
   return (
@@ -27,11 +28,14 @@ function Field({ label, children, className = "" }) {
   );
 }
 
-function SectionCard({ num, title, children }) {
+function SectionCard({ num, title, children, headerAction }) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-display">{num}) {title}</CardTitle>
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="text-base font-display">{num}) {title}</CardTitle>
+          {headerAction}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>
     </Card>
@@ -203,12 +207,17 @@ export default function ColetaForm({
             />
           </Field>
         )}
-        <RadioRow
-          label="Tipo de plataforma"
-          options={TIPO_PLATAFORMA_OPTIONS}
-          value={payload.balanca.tipo_plataforma}
-          onChange={(v) => setBalanca("tipo_plataforma", v)}
-        />
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <RadioRow
+              label="Tipo de plataforma"
+              options={TIPO_PLATAFORMA_OPTIONS}
+              value={payload.balanca.tipo_plataforma}
+              onChange={(v) => setBalanca("tipo_plataforma", v)}
+            />
+          </div>
+          <CalibracaoOrdemTooltip tipoPlataforma={payload.balanca.tipo_plataforma} />
+        </div>
       </SectionCard>
 
       <SectionCard num="3" title="Condições Ambientais Durante a Calibração">
@@ -334,7 +343,11 @@ export default function ColetaForm({
         </SectionCard>
       </div>
 
-      <SectionCard num="6" title="Calibração da Balança">
+      <SectionCard
+        num="6"
+        title="Calibração da Balança"
+        headerAction={<CalibracaoOrdemTooltip tipoPlataforma={payload.balanca.tipo_plataforma} />}
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse min-w-[800px]">
             <thead>
