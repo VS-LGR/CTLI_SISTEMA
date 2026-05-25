@@ -33,6 +33,18 @@ const webpackConfig = {
       '@': path.resolve(__dirname, 'src'),
     },
     configure: (webpackConfig) => {
+      webpackConfig.resolve = webpackConfig.resolve || {};
+      webpackConfig.resolve.fallback = {
+        ...webpackConfig.resolve.fallback,
+        buffer: require.resolve("buffer/"),
+      };
+      webpackConfig.plugins = webpackConfig.plugins || [];
+      const webpack = require("webpack");
+      webpackConfig.plugins.push(
+        new webpack.ProvidePlugin({
+          Buffer: ["buffer", "Buffer"],
+        }),
+      );
 
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {

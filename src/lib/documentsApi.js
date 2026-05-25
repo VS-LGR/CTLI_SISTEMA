@@ -254,6 +254,15 @@ export async function uploadDocumentFile(docId, file, userId, contentHtml) {
   return uploadFileApi(docId, file);
 }
 
+/** Guarda ArrayBuffer .docx no Storage (editor nativo docx-editor). */
+export async function uploadDocxBuffer(docId, arrayBuffer, fileName, userId, contentHtml) {
+  const name = fileName?.endsWith(".docx") ? fileName : `${(fileName || "documento").replace(/\.[^.]+$/, "")}.docx`;
+  const file = new File([arrayBuffer], name, {
+    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
+  return uploadDocumentFile(docId, file, userId, contentHtml);
+}
+
 export async function downloadOriginalFile(doc) {
   if (isSupabaseDocumentsEnabled()) {
     const url = await signedDownloadUrlSupabase(doc);

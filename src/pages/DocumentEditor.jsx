@@ -1,15 +1,15 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef, lazy, Suspense, useMemo } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import api, { asArray } from "@/lib/api";
-import RichEditor from "@/components/RichEditor";
+import { saveDocxFromEditor } from "@/lib/docxEditorSave";
+import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import {
   getDocument, updateDocument, uploadDocumentFile, exportDocumentBlob,
   downloadOriginalFile, duplicateDocument, toggleDocumentPin as togglePinApi,
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/documentExport";
-import { tryConvertDocxToHtml, uploadSuccessMessage } from "@/lib/docxImport";
+import { isDocxFile, tryConvertDocxToHtml } from "@/lib/docxImport";
 import { useAuth } from "@/context/AuthContext";
-import { allowsRichEditor } from "@/lib/documentFolderConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,18 @@ import {
 import { toast } from "sonner";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
 import { REQ_NAMES, buildRequirementListPath } from "@/lib/requirementNavConfig";
+
+const LazyDocxEditorPanel = lazy(() => import("@/components/documents/DocxEditorPanel"));
+
+const DOCX_EDITOR_FALLBACK = (
+  <div
+    className="flex items-center justify-center min-h-[560px] text-slate-600 text-sm border border-slate-200 rounded-xl bg-white"
+    aria-busy="true"
+    data-testid="docx-editor-loading"
+  >
+    A carregar editor Word…
+  </div>
+);
 
 const SaveAsDialog = ({ doc, onCreated }) => {
   const [open, setOpen] = useState(false);
@@ -100,12 +112,17 @@ const DocumentEditor = () => {
   const [doc, setDoc] = useState(null);
   const [saving, setSaving] = useState(false);
   const [responsibles, setResponsibles] = useState([]);
+  const [reloadToken, setReloadToken] = useState(0);
+  const docxEditorRef = useRef(null);
   const fileInputRef = useRef();
 
   const load = useCallback(async () => {
     try {
       const data = await getDocument(id);
       setDoc(data);
+      if (documentUsesDocxEditor(data)) {
+        scheduleDocxEditorPreload();
+      }
       if (data?.tenant_id) {
         try {
           const r = await api.get(`/tenants/${data.tenant_id}/responsibles`);
@@ -120,23 +137,66 @@ const DocumentEditor = () => {
     load();
   }, [load]);
 
+  const metaPatch = () => ({
+    title: doc.title,
+    code: doc.code,
+    version: doc.version,
+    responsible: doc.responsible,
+    review_date: doc.review_date || null,
+    status: doc.status,
+    folder_key: doc.folder_key ?? null,
+  });
+
   const save = async () => {
     setSaving(true);
     try {
-      const data = await updateDocument(id, {
-        title: doc.title, code: doc.code, version: doc.version,
-        responsible: doc.responsible, review_date: doc.review_date || null,
-        content_html: doc.content_html, status: doc.status,
-        folder_key: doc.folder_key ?? null,
-      }, user?.id);
-      setDoc((p) => ({ ...data, content_html: p.content_html }));
+      let contentHtml = doc.content_html || "";
+      const usesDocx = documentUsesDocxEditor(doc);
+
+      if (usesDocx && docxEditorRef?.current) {
+        const buf = await saveDocxFromEditor(docxEditorRef);
+        if (buf?.byteLength) {
+          const baseName = (doc.file_name || doc.title || "documento").replace(/\.[^.]+$/, "");
+          const file = new File([buf], `${baseName}.docx`, {
+            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          });
+          try {
+            const conv = await tryConvertDocxToHtml(file);
+            if (conv.imported && conv.html) contentHtml = conv.html;
+          } catch { /* preview PDF opcional */ }
+          await uploadDocumentFile(id, file, user?.id, contentHtml);
+          const data = await updateDocument(id, { ...metaPatch(), content_html: contentHtml }, user?.id);
+          setDoc((p) => ({ ...data, content_html: contentHtml || p.content_html }));
+          setReloadToken((t) => t + 1);
+        } else {
+          const data = await updateDocument(id, { ...metaPatch(), content_html: contentHtml }, user?.id);
+          setDoc((p) => ({ ...data, content_html: contentHtml || p.content_html }));
+        }
+      } else {
+        const data = await updateDocument(id, { ...metaPatch(), content_html: contentHtml }, user?.id);
+        setDoc((p) => ({ ...data, content_html: p.content_html }));
+      }
       toast.success("Salvo");
-    } catch { toast.error("Falha ao salvar"); }
-    finally { setSaving(false); }
+    } catch (err) {
+      console.error("[DocumentEditor] save", err);
+      toast.error(err?.message || "Falha ao salvar");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const exportFile = async (format) => {
     try {
+      if (format === "docx" && docxEditorRef?.current) {
+        const buf = await saveDocxFromEditor(docxEditorRef);
+        if (buf?.byteLength) {
+          triggerBlobDownload(
+            new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
+            `${doc.title}.docx`,
+          );
+          return;
+        }
+      }
       const blob = await exportDocumentBlob(id, format);
       triggerBlobDownload(blob, `${doc.title}.${format === "docx" ? "docx" : "pdf"}`);
     } catch { toast.error("Falha ao exportar"); }
@@ -151,20 +211,15 @@ const DocumentEditor = () => {
 
   const uploadFile = async (file) => {
     if (!doc) return;
+    if (!isDocxFile(file)) {
+      toast.error("O editor Word nativo aceita apenas ficheiros .docx");
+      return;
+    }
     try {
-      const canImport =
-        allowsRichEditor(doc.requirement, doc.folder_key)
-        && doc.section !== "documento"
-        && doc.section !== "assinatura";
-      let html = null;
-      let conv = { imported: false, warning: null };
-      if (canImport) {
-        conv = await tryConvertDocxToHtml(file);
-        html = conv.html;
-      }
-      const data = await uploadDocumentFile(id, file, user?.id, html);
-      setDoc((p) => ({ ...data, content_html: html ?? p.content_html }));
-      toast.success(uploadSuccessMessage(file, conv));
+      const data = await uploadDocumentFile(id, file, user?.id, null);
+      setDoc((p) => ({ ...p, ...data }));
+      setReloadToken((t) => t + 1);
+      toast.success("Documento Word carregado no editor");
     } catch (err) {
       console.error("[DocumentEditor] upload", err);
       toast.error(err?.message || "Falha no upload");
@@ -189,10 +244,22 @@ const DocumentEditor = () => {
     } catch { toast.error("Falha ao atualizar pin"); }
   };
 
-  if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
-
-  const canEditRich = allowsRichEditor(doc.requirement, doc.folder_key) && doc.section !== "documento" && doc.section !== "assinatura";
+  const canEditRich = documentUsesDocxEditor(doc);
   const readOnly = viewMode || !canEditRich;
+  const authorName = user?.name || user?.email || "Utilizador";
+
+  const editorPanelProps = useMemo(() => {
+    if (!doc) return null;
+    return {
+      doc,
+      readOnly,
+      author: authorName,
+      reloadToken,
+      editorRef: docxEditorRef,
+    };
+  }, [doc, readOnly, authorName, reloadToken]);
+
+  if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
 
   return (
     <div className="space-y-6" data-testid="document-editor">
@@ -219,8 +286,8 @@ const DocumentEditor = () => {
               <PencilSimple size={16} className="mr-1.5" /> Editar
             </Button>
           )}
-          {!readOnly && (
-            <input ref={fileInputRef} type="file" hidden accept=".doc,.docx,.pdf,.txt,.rtf,.odt"
+          {!readOnly && canEditRich && (
+            <input ref={fileInputRef} type="file" hidden accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                    onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
           )}
           {!readOnly && canEditRich && (
@@ -228,9 +295,9 @@ const DocumentEditor = () => {
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
             data-testid="upload-file-btn"
-            title="Importação para o editor: apenas .docx. .doc antigo fica só como anexo."
+            title="Carregar ou substituir ficheiro .docx no editor"
           >
-            <Upload size={16} className="mr-1.5" /> {doc.has_file ? "Substituir arquivo" : "Carregar Word/PDF"}
+            <Upload size={16} className="mr-1.5" /> {doc.has_file ? "Substituir Word" : "Carregar Word"}
           </Button>
           )}
           {doc.has_file && <Button variant="outline" onClick={downloadOriginal} data-testid="download-original-btn"><DownloadSimple size={16} className="mr-1.5" /> Baixar original</Button>}
@@ -301,23 +368,22 @@ const DocumentEditor = () => {
             </div>
             {doc.has_file && (
               <div className="text-xs bg-slate-50 border border-slate-200 rounded-md p-3">
-                <div className="font-semibold text-slate-700 mb-1">Arquivo original</div>
+                <div className="font-semibold text-slate-700 mb-1">Ficheiro Word</div>
                 <div className="text-slate-600 truncate" title={doc.file_name}>{doc.file_name}</div>
-                <div className="text-[11px] text-slate-500 mt-1">O original é preservado. As edições no editor são salvas separadamente.</div>
+                <div className="text-[11px] text-slate-500 mt-1">Edição nativa .docx (docx-editor). O ficheiro no Storage é atualizado ao salvar.</div>
               </div>
             )}
           </CardContent>
         </Card>
 
         <div className="lg:col-span-3">
-          {readOnly ? (
+          {canEditRich && editorPanelProps ? (
+            <Suspense fallback={DOCX_EDITOR_FALLBACK}>
+              <LazyDocxEditorPanel {...editorPanelProps} />
+            </Suspense>
+          ) : readOnly && doc.content_html ? (
             <Card className="border-slate-200 p-6 prose prose-slate max-w-none min-h-[320px]"
               dangerouslySetInnerHTML={{ __html: doc.content_html || "<p class='text-slate-500'>Sem conteúdo.</p>" }}
-            />
-          ) : canEditRich ? (
-            <RichEditor
-              value={doc.content_html}
-              onChange={(html) => setDoc((p) => ({ ...p, content_html: html }))}
             />
           ) : (
             <p className="text-sm text-slate-600">Este tipo de documento usa apenas ficheiro anexo — utilize download na lista.</p>

@@ -4,32 +4,160 @@
 
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  HeadingLevel,
+} from "docx";
 
 function stripHtml(html) {
   const div = document.createElement("div");
   div.innerHTML = html || "";
-  return div.textContent || "";
+  return (div.textContent || "").trim();
 }
 
-function htmlToParagraphs(html) {
-  const text = stripHtml(html);
-  return text.split(/\n+/).filter(Boolean).map(
-    (line) => new Paragraph({ children: [new TextRun(line)] }),
-  );
+function hasEditableHtml(doc) {
+  return stripHtml(doc?.content_html).length > 0
+    || /<img|<table/i.test(doc?.content_html || "");
+}
+
+function buildExportHtmlBody(doc) {
+  const body = doc.content_html || "<p></p>";
+  return `
+    <h1 style="font-size:18pt;font-weight:bold;margin:0 0 8pt">${escapeHtml(doc.title || "Documento")}</h1>
+    <p style="margin:0 0 16pt;color:#555">Rev. ${escapeHtml(doc.version || "—")} · Emissão: ${escapeHtml(doc.code || "—")}</p>
+    <div class="export-body">${body}</div>
+  `;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function textRunsFromNode(node, inherited = {}) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const t = node.textContent;
+    if (!t) return [];
+    return [
+      new TextRun({
+        text: t,
+        bold: inherited.bold,
+        italics: inherited.italics,
+        underline: inherited.underline ? {} : undefined,
+      }),
+    ];
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return [];
+  const tag = node.tagName?.toLowerCase();
+  const next = { ...inherited };
+  if (tag === "strong" || tag === "b") next.bold = true;
+  if (tag === "em" || tag === "i") next.italics = true;
+  if (tag === "u") next.underline = true;
+  if (tag === "br") return [new TextRun({ break: 1 })];
+  const runs = [];
+  node.childNodes.forEach((c) => {
+    runs.push(...textRunsFromNode(c, next));
+  });
+  return runs;
+}
+
+function paragraphFromElement(el) {
+  const runs = textRunsFromNode(el);
+  const children = runs.length ? runs : [new TextRun("")];
+  const tag = el.tagName?.toLowerCase();
+  if (tag === "h1") return new Paragraph({ heading: HeadingLevel.HEADING_1, children });
+  if (tag === "h2") return new Paragraph({ heading: HeadingLevel.HEADING_2, children });
+  if (tag === "h3") return new Paragraph({ heading: HeadingLevel.HEADING_3, children });
+  if (tag === "blockquote") {
+    return new Paragraph({ children, indent: { left: 720 } });
+  }
+  return new Paragraph({ children });
+}
+
+function tableFromElement(tableEl) {
+  const rows = [];
+  tableEl.querySelectorAll("tr").forEach((tr) => {
+    const cells = [];
+    tr.querySelectorAll("th, td").forEach((cell) => {
+      const runs = textRunsFromNode(cell);
+      cells.push(
+        new TableCell({
+          children: [new Paragraph({ children: runs.length ? runs : [new TextRun("")] })],
+        }),
+      );
+    });
+    if (cells.length) rows.push(new TableRow({ children: cells }));
+  });
+  if (!rows.length) return null;
+  return new Table({
+    rows,
+    width: { size: 100, type: WidthType.PERCENTAGE },
+  });
+}
+
+/** Converte HTML do editor em blocos docx (parágrafos, tabelas). */
+function htmlToDocxBlocks(html) {
+  const div = document.createElement("div");
+  div.innerHTML = html || "";
+  const blocks = [];
+
+  const processElement = (el) => {
+    const tag = el.tagName?.toLowerCase();
+    if (tag === "table") {
+      const t = tableFromElement(el);
+      if (t) blocks.push(t);
+      return;
+    }
+    if (tag === "ul" || tag === "ol") {
+      el.querySelectorAll(":scope > li").forEach((li) => {
+        blocks.push(paragraphFromElement(li));
+      });
+      return;
+    }
+    if (tag === "img") {
+      blocks.push(new Paragraph({
+        children: [new TextRun({ text: `[Imagem: ${el.getAttribute("alt") || "anexo"}]`, italics: true })],
+      }));
+      return;
+    }
+    if (["p", "h1", "h2", "h3", "div", "blockquote"].includes(tag)) {
+      blocks.push(paragraphFromElement(el));
+      return;
+    }
+    el.childNodes.forEach((child) => {
+      if (child.nodeType === Node.ELEMENT_NODE) processElement(child);
+    });
+  };
+
+  div.childNodes.forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const t = node.textContent?.trim();
+      if (t) blocks.push(new Paragraph({ children: [new TextRun(t)] }));
+      return;
+    }
+    if (node.nodeType === Node.ELEMENT_NODE) processElement(node);
+  });
+
+  return blocks.length ? blocks : [new Paragraph({ children: [new TextRun("")] })];
 }
 
 export async function exportDocumentPdf(doc) {
   const wrap = document.createElement("div");
   wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:794px;padding:40px;background:#fff;font-family:Arial,sans-serif;font-size:12px;color:#111;";
-  wrap.innerHTML = `
-    <h1 style="font-size:18px;margin:0 0 8px">${doc.title || "Documento"}</h1>
-    <p style="margin:0 0 16px;color:#555">Rev. ${doc.version || "—"} · Emissão: ${doc.code || "—"}</p>
-    <div>${doc.content_html || "<p></p>"}</div>
-  `;
+  wrap.innerHTML = buildExportHtmlBody(doc);
   document.body.appendChild(wrap);
   try {
-    const canvas = await html2canvas(wrap, { scale: 2, useCORS: true });
+    const canvas = await html2canvas(wrap, { scale: 2, useCORS: true, logging: false });
     const img = canvas.toDataURL("image/png");
     const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
     const pw = pdf.internal.pageSize.getWidth();
@@ -54,16 +182,8 @@ export async function exportDocumentPdf(doc) {
   }
 }
 
-export async function exportDocumentDocx(doc) {
-  if (doc.has_file && doc.storage_path) {
-    const { downloadOriginalFile } = await import("@/lib/documentsApi");
-    try {
-      return downloadOriginalFile(doc);
-    } catch {
-      /* fallback to generated docx */
-    }
-  }
-  const paragraphs = [
+async function exportDocxFromHtml(doc) {
+  const header = [
     new Paragraph({
       children: [new TextRun({ text: doc.title || "Documento", bold: true, size: 28 })],
     }),
@@ -71,10 +191,27 @@ export async function exportDocumentDocx(doc) {
       children: [new TextRun(`Rev. ${doc.version || "—"} · Emissão: ${doc.code || "—"}`)],
     }),
     new Paragraph({ children: [new TextRun("")] }),
-    ...htmlToParagraphs(doc.content_html),
   ];
-  const docx = new Document({ sections: [{ children: paragraphs }] });
+  const body = htmlToDocxBlocks(doc.content_html);
+  const docx = new Document({ sections: [{ children: [...header, ...body] }] });
   return Packer.toBlob(docx);
+}
+
+export async function exportDocumentDocx(doc) {
+  if (hasEditableHtml(doc)) {
+    try {
+      return await exportDocxFromHtml(doc);
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[documentExport] falhou", err);
+      }
+    }
+  }
+  if (doc.has_file && doc.storage_path) {
+    const { downloadOriginalFile } = await import("@/lib/documentsApi");
+    return downloadOriginalFile(doc);
+  }
+  return exportDocxFromHtml(doc);
 }
 
 export function triggerBlobDownload(blob, filename) {

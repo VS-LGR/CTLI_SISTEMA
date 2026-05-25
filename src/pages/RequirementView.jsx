@@ -28,7 +28,8 @@ import {
   toggleDocumentPin,
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/documentExport";
-import { tryConvertDocxToHtml, uploadSuccessMessage } from "@/lib/docxImport";
+import { isDocxFile, tryConvertDocxToHtml, uploadSuccessMessage } from "@/lib/docxImport";
+import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -60,6 +61,7 @@ function filterBySearch(docs, searchQuery) {
 
 const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLabel, onCreated }) => {
   const { user } = useAuth();
+  const nav = useNavigate();
   const fileInputRef = useRef(null);
   const canImportWord = allowsRichEditor(requirement, folderKey);
   const [open, setOpen] = useState(false);
@@ -109,6 +111,15 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
       let data = await createDocument(body, user?.id);
       if (file) {
         try {
+          if (canImportWord && isDocxFile(file)) {
+            scheduleDocxEditorPreload();
+            data = await uploadDocumentFile(data.id, file, user?.id, null);
+            setOpen(false);
+            toast.success("Abrindo editor Word…");
+            onCreated?.(data);
+            nav(`/document/${data.id}`);
+            return;
+          }
           let html = null;
           let conv = { imported: false, warning: null };
           if (canImportWord) {
@@ -116,11 +127,10 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
             html = conv.html;
           }
           data = await uploadDocumentFile(data.id, file, user?.id, html);
-          if (conv.imported) {
-            toast.success("Criado com Word importado — pode editar no editor");
-          } else {
-            toast.success(`Documento criado. ${uploadSuccessMessage(file, conv)}`);
-          }
+          setOpen(false);
+          toast.success(`Documento criado. ${uploadSuccessMessage(file, conv)}`);
+          onCreated?.(data);
+          return;
         } catch (uploadErr) {
           console.error("[CreateDoc] upload", uploadErr);
           toast.error(`Documento criado, mas falha no arquivo: ${formatDocumentError(uploadErr)}`);
@@ -128,11 +138,14 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
           onCreated?.(data);
           return;
         }
-      } else {
-        toast.success("Documento criado");
       }
+      toast.success("Documento criado");
       setOpen(false);
       onCreated?.(data);
+      if (canImportWord) {
+        scheduleDocxEditorPreload();
+        nav(`/document/${data.id}`);
+      }
     } catch (err) {
       console.error("[CreateDoc]", err);
       toast.error(formatDocumentError(err));
@@ -209,7 +222,7 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
             </div>
             {canImportWord ? (
               <p className="text-xs text-slate-500 mt-1.5">
-                Importação para o editor: apenas .docx. Ficheiros .doc antigos, PDF e outros ficam só como anexo.
+                Editor Word nativo: envie .docx para abrir no editor. .doc antigo, PDF e outros ficam só como anexo.
               </p>
             ) : (
               <p className="text-xs text-slate-500 mt-1.5">
@@ -229,10 +242,13 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
 
 const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
   const { user } = useAuth();
+  const nav = useNavigate();
   const fileInputRef = React.useRef();
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const isVigente = variant === "vigente";
+  const usesDocxEditor = documentUsesDocxEditor(doc);
+  const prefetchEditor = usesDocxEditor ? scheduleDocxEditorPreload : undefined;
 
   const downloadExport = async (format) => {
     try {
@@ -256,6 +272,14 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
     setBusy(true);
     try {
       const canImport = allowsRichEditor(doc.requirement, doc.folder_key);
+      if (canImport && isDocxFile(file)) {
+        scheduleDocxEditorPreload();
+        const data = await uploadDocumentFile(doc.id, file, user?.id, null);
+        toast.success("Word carregado no editor");
+        onUpdate?.(data);
+        nav(`/document/${doc.id}`);
+        return;
+      }
       let contentHtml = null;
       let conv = { imported: false, warning: null };
       if (canImport) {
@@ -304,7 +328,14 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
         {fileOnly ? (
           <span className="font-medium text-sm text-slate-900">{doc.title}</span>
         ) : (
-          <Link to={`/document/${doc.id}`} className="font-medium text-sm text-slate-900 hover:text-blue-600">{doc.title}</Link>
+          <Link
+            to={`/document/${doc.id}`}
+            className="font-medium text-sm text-slate-900 hover:text-blue-600"
+            onMouseEnter={prefetchEditor}
+            onFocus={prefetchEditor}
+          >
+            {doc.title}
+          </Link>
         )}
         <div className="text-xs text-slate-500 mt-0.5">
           {doc.code && <span className="font-mono">Emissão: {doc.code}</span>}
@@ -329,7 +360,7 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
             <Button variant="ghost" size="sm" onClick={() => downloadExport("pdf")} title="Exportar PDF"><FilePdf size={16} /></Button>
           )}
           {!fileOnly && (
-            <Link to={`/document/${doc.id}`} title="Editar">
+            <Link to={`/document/${doc.id}`} title="Editar" onMouseEnter={prefetchEditor} onFocus={prefetchEditor}>
               <Button variant="ghost" size="sm"><PencilSimple size={16} /></Button>
             </Link>
           )}

@@ -82,6 +82,28 @@ code, pre, .font-mono {
 .tiptap-editor u { text-decoration: underline; }
 .tiptap-editor a { color: #2563EB; text-decoration: underline; }
 .tiptap-editor blockquote { border-left: 3px solid #CBD5E1; padding-left: 1rem; color: #475569; font-style: italic; margin: 0.75rem 0; }
+.tiptap-editor table,
+.tiptap-editor table.doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    font-size: 0.9rem;
+}
+.tiptap-editor th,
+.tiptap-editor td {
+    border: 1px solid #CBD5E1;
+    padding: 0.5rem 0.65rem;
+    vertical-align: top;
+}
+.tiptap-editor th {
+    background: #F8FAFC;
+    font-weight: 600;
+}
+.tiptap-editor img {
+    max-width: 100%;
+    height: auto;
+    margin: 0.5rem 0;
+}
 .tiptap-editor.is-empty:before {
     content: attr(data-placeholder);
     color: #94A3B8;
@@ -101,6 +123,18 @@ code, pre, .font-mono {
 @keyframes fadein {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* docx-editor.dev — host do editor nativo Word */
+.docx-editor-host {
+    display: flex;
+    flex-direction: column;
+    min-height: 560px;
+    width: 100%;
+}
+.docx-editor-host > * {
+    flex: 1 1 auto;
+    min-height: 520px;
 }
 
 @layer base {

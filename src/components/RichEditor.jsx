@@ -3,10 +3,16 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import Typography from "@tiptap/extension-typography";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
 import {
   TextB, TextItalic, TextUnderline, ListBullets, ListNumbers,
   TextHOne, TextHTwo, TextHThree, Quotes, LinkSimple,
-  ArrowCounterClockwise, ArrowClockwise,
+  ArrowCounterClockwise, ArrowClockwise, Table as TableIcon,
 } from "@phosphor-icons/react";
 
 const ToolbarButton = ({ active, onClick, title, children, testId }) => (
@@ -29,6 +35,12 @@ const RichEditor = ({ value, onChange, placeholder = "Comece a escrever o docume
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: "underline text-blue-600" } }),
+      Typography,
+      Image.configure({ inline: true, allowBase64: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: value || "",
     editorProps: {
@@ -46,9 +58,10 @@ const RichEditor = ({ value, onChange, placeholder = "Comece a escrever o docume
 
   useEffect(() => {
     if (!editor) return;
+    const next = value || "";
     const current = editor.getHTML();
-    if ((value || "") !== current && (value || "") !== "") {
-      editor.commands.setContent(value || "", false);
+    if (next !== current) {
+      editor.commands.setContent(next, { emitUpdate: false });
     }
   }, [value, editor]);
 
@@ -68,6 +81,14 @@ const RichEditor = ({ value, onChange, placeholder = "Comece a escrever o docume
         <ToolbarButton testId="ed-ul" title="Lista" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}><ListBullets size={18} /></ToolbarButton>
         <ToolbarButton testId="ed-ol" title="Lista numerada" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListNumbers size={18} /></ToolbarButton>
         <ToolbarButton testId="ed-quote" title="Citação" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quotes size={18} /></ToolbarButton>
+        <div className="w-px h-6 bg-slate-200 mx-1" />
+        <ToolbarButton
+          testId="ed-table"
+          title="Inserir tabela 3×3"
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        >
+          <TableIcon size={18} />
+        </ToolbarButton>
         <div className="w-px h-6 bg-slate-200 mx-1" />
         <ToolbarButton testId="ed-link" title="Link" active={editor.isActive("link")} onClick={() => {
           const prev = editor.getAttributes("link").href;
