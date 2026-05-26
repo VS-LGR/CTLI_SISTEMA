@@ -208,17 +208,12 @@ export default function ColetaForm({
             />
           </Field>
         )}
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex-1 min-w-[200px]">
-            <RadioRow
-              label="Tipo de plataforma"
-              options={TIPO_PLATAFORMA_OPTIONS}
-              value={payload.balanca.tipo_plataforma}
-              onChange={(v) => setBalanca("tipo_plataforma", v)}
-            />
-          </div>
-          <CalibracaoOrdemTooltip tipoPlataforma={payload.balanca.tipo_plataforma} />
-        </div>
+        <RadioRow
+          label="Tipo de plataforma"
+          options={TIPO_PLATAFORMA_OPTIONS}
+          value={payload.balanca.tipo_plataforma}
+          onChange={(v) => setBalanca("tipo_plataforma", v)}
+        />
       </SectionCard>
 
       <SectionCard num="3" title="Condições Ambientais Durante a Calibração">
@@ -288,7 +283,11 @@ export default function ColetaForm({
       </SectionCard>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <SectionCard num="4" title="Ensaio de Excentricidade">
+        <SectionCard
+          num="4"
+          title="Ensaio de Excentricidade"
+          headerAction={<CalibracaoOrdemTooltip tipoPlataforma={payload.balanca.tipo_plataforma} />}
+        >
           <Field label="Valor Aplicado">
             <Input
               value={payload.excentricidade.valor_aplicado}
