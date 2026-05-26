@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -277,6 +278,13 @@ export default function ColetaForm({
         <RadioRow label="A balança foi nivelada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_nivelada} onChange={(v) => setAmbiente("balanca_nivelada", v)} />
         <RadioRow label="Existe vibração no local?" options={BINARY_OPTIONS} value={payload.ambiente.existe_vibracao} onChange={(v) => setAmbiente("existe_vibracao", v)} />
         <RadioRow label="Existe corrente de ar no local?" options={BINARY_OPTIONS} value={payload.ambiente.existe_corrente_ar} onChange={(v) => setAmbiente("existe_corrente_ar", v)} />
+        <Field label="Observações">
+          <Textarea
+            value={payload.ambiente.observacoes || ""}
+            onChange={(e) => setAmbiente("observacoes", e.target.value)}
+            rows={2}
+          />
+        </Field>
       </SectionCard>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -346,7 +354,6 @@ export default function ColetaForm({
       <SectionCard
         num="6"
         title="Calibração da Balança"
-        headerAction={<CalibracaoOrdemTooltip tipoPlataforma={payload.balanca.tipo_plataforma} />}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse min-w-[800px]">

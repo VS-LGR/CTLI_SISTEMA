@@ -70,7 +70,7 @@ export default function ColetaVersoForm({ payload, onChange }) {
   return (
     <div className="space-y-6 border-t pt-6">
       <p className="text-center text-sm font-semibold text-slate-800">
-        Verso — Repetitividade com Carga de Substituição
+        Verso — Repetitividade com Lote de Carga
       </p>
 
       <label className="flex items-center gap-2 text-sm cursor-pointer justify-center sm:justify-start">
@@ -78,7 +78,7 @@ export default function ColetaVersoForm({ payload, onChange }) {
           checked={!aplicavel}
           onCheckedChange={(c) => setRep("aplicavel", !c)}
         />
-        <span>Ensaio de repetitividade com carga de substituição não aplicável</span>
+        <span>Ensaio de repetitividade com lote de carga não aplicável</span>
       </label>
 
       <div
@@ -129,7 +129,7 @@ export default function ColetaVersoForm({ payload, onChange }) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-display">
-              Repetitividade com Carga de Substituição
+              Repetitividade com Lote de Carga
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

@@ -192,6 +192,7 @@ export function emptyColetaPayload() {
       balanca_nivelada: "",
       existe_vibracao: "",
       existe_corrente_ar: "",
+      observacoes: "",
     },
     excentricidade: {
       valor_aplicado: "",

@@ -97,6 +97,34 @@ function underlineField(doc, x, y, label, value, width) {
   if (val) doc.text(val, x0 + 0.5, y);
 }
 
+function drawMultilineField(doc, x, y, label, value, width, maxLines = 2) {
+  doc.setFontSize(7.5);
+  doc.setTextColor(...FORM_COLORS.text);
+
+  const lbl = fieldLabelWithColon(label);
+  doc.text(lbl, x, y);
+  const x0 = x + doc.getTextWidth(lbl);
+  const x1 = x + width;
+
+  const underlineY = y + 1.0;
+  doc.setDrawColor(...FORM_COLORS.border);
+  doc.setLineWidth(0.1);
+  doc.line(x0, underlineY, x1, underlineY);
+
+  const rawVal = s(value);
+  const valText = rawVal ? rawVal : " ";
+  const valWidth = Math.max(10, width - (x0 - x) - 1);
+  const lines = doc.splitTextToSize(valText, valWidth);
+  const take = lines.length ? lines.slice(0, maxLines) : [" "];
+
+  const lineStep = 3.2;
+  take.forEach((line, i) => {
+    doc.text(line, x0 + 0.5, y + i * lineStep);
+  });
+
+  return y + (take.length - 1) * lineStep + 6;
+}
+
 function checkboxGroup(doc, x, y, items, maxWidth = CW) {
   doc.setFontSize(7.5);
   let cx = x;
@@ -265,6 +293,8 @@ function drawFrente(doc, model) {
   );
   y = Math.max(yLeft, yR) + 4;
 
+  y = drawMultilineField(doc, ML, y, "Observações", amb.observacoes, CW, 2) + 1;
+
   y = drawDualSectionBar(
     doc,
     ML,
@@ -387,7 +417,7 @@ function drawVerso(doc, model) {
     doc.setFontSize(10);
     doc.setTextColor(...FORM_COLORS.text);
     doc.text(
-      "Ensaio de repetitividade com carga de substituição não aplicável.",
+      "Ensaio de repetitividade com lote de carga não aplicável.",
       PAGE_W / 2,
       120,
       { align: "center" },
@@ -427,7 +457,7 @@ function drawVerso(doc, model) {
     y += 11;
   });
 
-  y = drawSectionBar(doc, ML, y, CW, "3) Repetitividade com Carga de Substituição");
+  y = drawSectionBar(doc, ML, y, CW, "3) Repetitividade com Lote de Carga");
   y += 3;
 
   const th = tableHeadStyles(doc);
