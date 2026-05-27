@@ -391,7 +391,7 @@ const Layout = () => {
           </div>
         </header>
 
-        <main className="relative flex-1 p-4 sm:p-6 lg:p-8 fade-in min-w-0 max-w-full">
+        <main className="relative flex-1 p-4 sm:p-6 lg:p-8 fade-in min-w-0 max-w-full overflow-x-hidden">
           {tenantSwitching && (
             <div
               className="absolute inset-0 z-20 flex items-center justify-center bg-white/75 backdrop-blur-sm"

@@ -125,7 +125,7 @@ const Dashboard = () => {
           <CardHeader className="pb-2">
             <CardTitle className="font-display text-lg">Distribuição por requisito</CardTitle>
           </CardHeader>
-          <CardContent className="min-w-0">
+          <CardContent className="min-w-0 overflow-hidden">
             <DocumentDistributionPie byRequirement={data?.by_requirement || {}} />
           </CardContent>
         </Card>

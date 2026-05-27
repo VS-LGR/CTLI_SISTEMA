@@ -159,7 +159,7 @@ const CadastrosPage = () => {
   const sectionTitle = getCadastroSectionLabel(activeSection);
 
   return (
-    <div className="space-y-6" data-testid="cadastros-page">
+    <div className="space-y-6 min-w-0" data-testid="cadastros-page">
       <div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Gestão</div>
         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">{sectionTitle}</h1>

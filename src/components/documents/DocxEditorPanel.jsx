@@ -75,7 +75,7 @@ function DocxEditorPanel({
 
   return (
     <div
-      className="docx-editor-host border border-slate-200 rounded-xl overflow-hidden bg-white min-h-[560px]"
+      className="docx-editor-host border border-slate-200 rounded-xl overflow-hidden bg-white min-h-[560px] w-full min-w-0"
       data-testid="docx-editor-panel"
     >
       <DocxEditor

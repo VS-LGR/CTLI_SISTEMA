@@ -262,9 +262,9 @@ const DocumentEditor = () => {
   if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
 
   return (
-    <div className="space-y-6" data-testid="document-editor">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
+    <div className="space-y-6 min-w-0" data-testid="document-editor">
+      <div className="flex items-start justify-between gap-3 flex-wrap min-w-0">
+        <div className="min-w-0 flex-1 basis-full sm:basis-auto">
           <div className="text-xs text-slate-500 flex items-center gap-1.5">
             <Link to={buildRequirementListPath(doc.requirement, doc.folder_key)} className="hover:text-blue-600 inline-flex items-center gap-1"><ArrowLeft size={12} /> Voltar para {doc.requirement}. {REQ_NAMES[String(doc.requirement)]}</Link>
           </div>
@@ -280,7 +280,7 @@ const DocumentEditor = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto min-w-0">
           {readOnly && canEditRich && (
             <Button variant="outline" onClick={() => setSearchParams({})}>
               <PencilSimple size={16} className="mr-1.5" /> Editar

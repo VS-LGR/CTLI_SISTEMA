@@ -500,7 +500,7 @@ const RequirementView = () => {
   };
 
   return (
-    <div className="space-y-6" data-testid={`req-view-${id}`}>
+    <div className="space-y-6 min-w-0" data-testid={`req-view-${id}`}>
       <div>
         <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
           <Link to="/dashboard" className="hover:text-blue-600">Início</Link>

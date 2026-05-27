@@ -131,6 +131,8 @@ code, pre, .font-mono {
     flex-direction: column;
     min-height: 560px;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
 }
 .docx-editor-host > * {
     flex: 1 1 auto;
