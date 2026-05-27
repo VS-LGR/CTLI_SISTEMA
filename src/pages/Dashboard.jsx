@@ -7,8 +7,10 @@ import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  FileText, FolderSimple, CheckCircle, XCircle, Scales, PushPin, NotePencil,
+  FileText, FolderSimple, CheckCircle, XCircle, Scales, PushPin, NotePencil, X, Info,
 } from "@phosphor-icons/react";
+import { consumeTenantSwitchNotice } from "@/lib/tenantSwitchNotice";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import DocumentDistributionPie from "@/components/dashboard/DocumentDistributionPie";
 import DashboardRecentDocs from "@/components/dashboard/DashboardRecentDocs";
 import DashboardReminders from "@/components/dashboard/DashboardReminders";
@@ -41,6 +43,13 @@ const Dashboard = () => {
   const { currentTenantId, currentTenant, tenants } = useOutletContext();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [switchNotice, setSwitchNotice] = useState(null);
+
+  useEffect(() => {
+    const notice = consumeTenantSwitchNotice();
+    if (notice?.name) setSwitchNotice(notice);
+    else setSwitchNotice(null);
+  }, [currentTenantId]);
 
   const load = useCallback(() => {
     if (!currentTenantId) {
@@ -95,6 +104,25 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8 min-w-0" data-testid="dashboard">
+      {switchNotice && (
+        <Alert className="border-blue-300 bg-blue-50 text-blue-950">
+          <Info size={18} className="text-blue-600" />
+          <AlertTitle className="font-display text-blue-950">Ambiente alterado</AlertTitle>
+          <AlertDescription className="text-blue-900/90 pr-8">
+            A pré-visualizar: <strong>{switchNotice.name}</strong>. Os documentos e ficheiros listados
+            abaixo pertencem apenas a este cliente — confirme o ambiente antes de editar ou exportar.
+          </AlertDescription>
+          <button
+            type="button"
+            onClick={() => setSwitchNotice(null)}
+            className="absolute right-3 top-3 rounded-md p-1 text-blue-700 hover:bg-blue-100"
+            aria-label="Fechar aviso"
+          >
+            <X size={16} />
+          </button>
+        </Alert>
+      )}
+
       <div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Visão geral</div>
         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Dashboard</h1>

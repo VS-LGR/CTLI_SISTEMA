@@ -20,7 +20,7 @@ import {
 import { invokeSupabaseEdgeFunction, toastSupabaseAccessError } from "@/lib/supabaseFunctions";
 
 const AdminClients = () => {
-  const { isAdmin, reloadTenants, currentTenantId, selectTenant } = useOutletContext();
+  const { isAdmin, reloadTenants, currentTenantId, selectTenant, requestAdminTenantSwitch } = useOutletContext();
   const [tenants, setTenants] = useState([]);
   const [adminProfiles, setAdminProfiles] = useState([]);
   const [users, setUsers] = useState({});
@@ -794,7 +794,13 @@ const AdminClients = () => {
                 </TabsContent>
               </Tabs>
 
-              <Button variant="outline" size="sm" className="w-full mt-4" onClick={() => selectTenant(t.id)} data-testid={`enter-tenant-${t.id}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-4"
+                onClick={() => (requestAdminTenantSwitch || selectTenant)(t.id)}
+                data-testid={`enter-tenant-${t.id}`}
+              >
                 Entrar no ambiente
               </Button>
             </CardContent>

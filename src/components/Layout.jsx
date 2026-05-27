@@ -22,6 +22,8 @@ import {
   requiresFolderNav,
 } from "@/lib/requirementNavConfig";
 import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
+import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
+import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
 
 const REQ_ICONS = {
   "4": ListChecks,
@@ -89,6 +91,22 @@ const Layout = () => {
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";
   const technicianNav = isTechnicianOnlyNav(user?.role);
+
+  const {
+    confirmOpen: tenantConfirmOpen,
+    setConfirmOpen: setTenantConfirmOpen,
+    switching: tenantSwitching,
+    currentTenant: switchCurrentTenant,
+    pendingTenant: switchPendingTenant,
+    requestSwitch: requestAdminTenantSwitch,
+    cancelSwitch: cancelTenantSwitch,
+    confirmSwitch: confirmTenantSwitch,
+  } = useAdminTenantSwitch({
+    navigate,
+    selectTenant,
+    currentTenantId,
+    tenants,
+  });
 
   const closeMobileNav = () => setMobileNavOpen(false);
 
@@ -353,7 +371,7 @@ const Layout = () => {
                   {tenants.map((t) => (
                     <DropdownMenuItem
                       key={t.id}
-                      onClick={() => selectTenant(t.id)}
+                      onClick={() => requestAdminTenantSwitch(t.id)}
                       data-testid={`tenant-option-${t.id}`}
                       className={t.id === currentTenantId ? "bg-blue-50 text-blue-700" : ""}
                     >
@@ -373,10 +391,43 @@ const Layout = () => {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 fade-in min-w-0 max-w-full">
-          <Outlet context={{ tenants, currentTenant, currentTenantId, isAdmin, reloadTenants: loadTenants, selectTenant }} />
+        <main className="relative flex-1 p-4 sm:p-6 lg:p-8 fade-in min-w-0 max-w-full">
+          {tenantSwitching && (
+            <div
+              className="absolute inset-0 z-20 flex items-center justify-center bg-white/75 backdrop-blur-sm"
+              aria-busy="true"
+              aria-live="polite"
+            >
+              <span className="text-sm text-slate-600">A mudar de ambiente…</span>
+            </div>
+          )}
+          <Outlet
+            context={{
+              tenants,
+              currentTenant,
+              currentTenantId,
+              isAdmin,
+              reloadTenants: loadTenants,
+              selectTenant,
+              requestAdminTenantSwitch,
+            }}
+          />
         </main>
       </div>
+
+      {isAdmin && (
+        <TenantSwitchConfirmDialog
+          open={tenantConfirmOpen}
+          onOpenChange={(open) => {
+            if (!open) cancelTenantSwitch();
+            else setTenantConfirmOpen(true);
+          }}
+          currentTenant={switchCurrentTenant}
+          pendingTenant={switchPendingTenant}
+          onConfirm={confirmTenantSwitch}
+          busy={tenantSwitching}
+        />
+      )}
     </div>
   );
 };
