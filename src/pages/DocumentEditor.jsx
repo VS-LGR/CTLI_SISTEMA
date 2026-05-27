@@ -327,22 +327,22 @@ const DocumentEditor = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <Card className="lg:col-span-1 border-slate-200 h-fit">
-          <CardContent className="p-5 space-y-4">
-            <div>
+      <div className="space-y-6">
+        <Card className="border-slate-200">
+          <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+            <div className="min-w-0">
               <Label className="text-xs uppercase tracking-wider text-slate-500">Título</Label>
               <Input className="mt-1" value={doc.title} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, title: e.target.value })} data-testid="edit-title" />
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs uppercase tracking-wider text-slate-500">Revisão</Label>
               <Input className="mt-1" value={doc.version || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, version: e.target.value })} placeholder="Rev. 01" data-testid="edit-revision" />
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs uppercase tracking-wider text-slate-500">Emissão</Label>
               <Input className="mt-1" type="date" value={doc.code || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, code: e.target.value })} data-testid="edit-emission" />
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs uppercase tracking-wider text-slate-500">Responsável</Label>
               <select
                 value={doc.responsible || ""}
@@ -362,12 +362,12 @@ const DocumentEditor = () => {
                 )}
               </select>
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs uppercase tracking-wider text-slate-500">Próxima revisão</Label>
               <Input className="mt-1" type="date" value={doc.review_date || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, review_date: e.target.value })} data-testid="edit-review-date" />
             </div>
             {doc.has_file && (
-              <div className="text-xs bg-slate-50 border border-slate-200 rounded-md p-3">
+              <div className="text-xs bg-slate-50 border border-slate-200 rounded-md p-3 sm:col-span-2 xl:col-span-5 min-w-0">
                 <div className="font-semibold text-slate-700 mb-1">Ficheiro Word</div>
                 <div className="text-slate-600 truncate" title={doc.file_name}>{doc.file_name}</div>
                 <div className="text-[11px] text-slate-500 mt-1">Edição nativa .docx (docx-editor). O ficheiro no Storage é atualizado ao salvar.</div>
@@ -376,7 +376,7 @@ const DocumentEditor = () => {
           </CardContent>
         </Card>
 
-        <div className="lg:col-span-3">
+        <div className="w-full min-w-0">
           {canEditRich && editorPanelProps ? (
             <Suspense fallback={DOCX_EDITOR_FALLBACK}>
               <LazyDocxEditorPanel {...editorPanelProps} />
