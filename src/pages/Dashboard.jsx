@@ -2,12 +2,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { fetchDashboard } from "@/lib/dashboardApi";
-import { canAccessColeta, canManageDashboardReminders, isCtliAdmin } from "@/lib/roles";
-import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
+import { canManageDashboardReminders, isCtliAdmin } from "@/lib/roles";
+import { getVisibleDashboardShortcuts } from "@/lib/dashboardShortcuts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
-  FileText, FolderSimple, CheckCircle, XCircle, Scales, PushPin, NotePencil, X, Info,
+  FolderSimple, PushPin, NotePencil, X, Info,
 } from "@phosphor-icons/react";
 import { consumeTenantSwitchNotice } from "@/lib/tenantSwitchNotice";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -15,28 +14,7 @@ import DocumentDistributionPie from "@/components/dashboard/DocumentDistribution
 import DashboardRecentDocs from "@/components/dashboard/DashboardRecentDocs";
 import DashboardReminders from "@/components/dashboard/DashboardReminders";
 import DashboardPinnedDocs from "@/components/dashboard/DashboardPinnedDocs";
-
-const KpiCard = ({ label, value, icon: Icon, tint = "blue", testId }) => {
-  const tones = {
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
-    green: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    red: "bg-red-50 text-red-700 border-red-100",
-    amber: "bg-amber-50 text-amber-700 border-amber-100",
-  };
-  return (
-    <Card className="border-slate-200" data-testid={testId}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{label}</div>
-            <div className="text-3xl font-display font-bold tracking-tight text-slate-900 mt-2">{value}</div>
-          </div>
-          <div className={`p-2.5 rounded-md border ${tones[tint]}`}><Icon size={18} weight="duotone" /></div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+import DashboardShortcutCard from "@/components/dashboard/DashboardShortcutCard";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -94,13 +72,11 @@ const Dashboard = () => {
 
   if (loading) return <div className="text-slate-600">Carregando dashboard…</div>;
 
-  const total = data?.total_documents || 0;
-  const vigentes = data?.by_status?.vigente || 0;
-  const obsoletos = data?.by_status?.obsoleto || 0;
   const pinned = data?.pinned_documents || [];
   const recent = data?.recent_documents || [];
   const reminders = data?.reminders || [];
   const showReminders = canManageDashboardReminders(user?.role);
+  const shortcuts = getVisibleDashboardShortcuts(user?.role);
 
   return (
     <div className="space-y-8 min-w-0" data-testid="dashboard">
@@ -127,42 +103,21 @@ const Dashboard = () => {
         <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Visão geral</div>
         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Dashboard</h1>
         <p className="text-sm text-slate-600 mt-1">
-          Indicadores documentais do ambiente <span className="font-medium text-slate-800">{currentTenant?.name}</span>.
+          Atalhos e visão documental do ambiente <span className="font-medium text-slate-800">{currentTenant?.name}</span>.
         </p>
       </div>
 
-      {canAccessColeta(user?.role) && (
-        <Card className="border-blue-200 bg-blue-50/40">
-          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="p-2 rounded-md bg-blue-600 text-white shrink-0">
-                <Scales size={22} weight="duotone" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="font-display font-semibold text-slate-900">Coleta RE-7.2A</h2>
-                <p className="text-sm text-slate-600 mt-0.5">
-                  Formulário de calibração de balança — PR-7.2 Registros.
-                </p>
-              </div>
-            </div>
-            <Button asChild className="bg-blue-600 hover:bg-blue-700 shrink-0 w-full sm:w-auto">
-              <Link to={COLETA_LIST_PATH}>Abrir coletas</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard testId="kpi-total" label="Total de documentos" value={total} icon={FileText} tint="blue" />
-        <KpiCard testId="kpi-vigentes" label="Vigentes" value={vigentes} icon={CheckCircle} tint="green" />
-        <KpiCard testId="kpi-obsoletos" label="Obsoletos" value={obsoletos} icon={XCircle} tint="red" />
-        <KpiCard
-          testId="kpi-pinned"
-          label="Documentos marcados"
-          value={pinned.length}
-          icon={PushPin}
-          tint="amber"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 min-w-0">
+        {shortcuts.map((s) => (
+          <DashboardShortcutCard
+            key={s.id}
+            id={s.id}
+            label={s.label}
+            to={s.to}
+            active={s.active}
+            disabledReason={s.disabledReason}
+          />
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0">
