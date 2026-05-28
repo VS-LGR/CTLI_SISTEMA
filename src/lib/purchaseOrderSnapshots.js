@@ -34,13 +34,14 @@ export function buildClientEnvironmentSnapshot(tenant) {
   };
 }
 
-export function buildEmployeeSnapshot(row, signatureUrl = null) {
+export function buildEmployeeSnapshot(row, { signatureUrl = null, customLabel = null } = {}) {
   if (!row) return {};
   return {
     id: row.id,
     full_name: row.full_name || "",
     job_role: row.job_role || "",
     job_role_label: jobRoleLabel(row.job_role),
+    custom_label: customLabel || null,
     signature_storage_path: row.signature_storage_path || "",
     signature_url: signatureUrl || null,
   };

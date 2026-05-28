@@ -32,6 +32,7 @@ export default function PurchaseOrderInspectionForm({
   employees = [],
   weightCerts = [],
   readOnly = false,
+  isNewOrder = false,
 }) {
   const set = (patch) => onChange?.({ ...inspection, ...patch });
 
@@ -143,20 +144,32 @@ export default function PurchaseOrderInspectionForm({
           </select>
         </div>
 
+        {isNewOrder && (
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            Guarde o pedido na aba Dados antes de registar a inspeção no servidor.
+          </p>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label>Responsável pela inspeção</Label>
-            <select
-              value={inspection?.inspection_responsible_id || ""}
-              disabled={readOnly}
-              onChange={(e) => set({ inspection_responsible_id: e.target.value || null })}
-              className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
-            >
-              <option value="">Selecione…</option>
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>{e.full_name}</option>
-              ))}
-            </select>
+            {employees.length === 0 ? (
+              <p className="text-xs text-slate-500 mt-1">
+                Cadastre colaboradores em Cadastros para selecionar o responsável.
+              </p>
+            ) : (
+              <select
+                value={inspection?.inspection_responsible_id || ""}
+                disabled={readOnly}
+                onChange={(e) => set({ inspection_responsible_id: e.target.value || null })}
+                className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+              >
+                <option value="">Selecione…</option>
+                {employees.map((e) => (
+                  <option key={e.id} value={e.id}>{e.full_name}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <Label>Data da inspeção</Label>

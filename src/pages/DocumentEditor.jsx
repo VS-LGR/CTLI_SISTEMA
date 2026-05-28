@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useState, useRef, lazy, Suspense, useMemo } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import api, { asArray } from "@/lib/api";
-import { saveDocxFromEditor } from "@/lib/docxEditorSave";
+import { saveDocxFromEditor, printDocxFromEditor } from "@/lib/docxEditorSave";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import {
   getDocument, updateDocument, uploadDocumentFile, exportDocumentBlob,
   downloadOriginalFile, duplicateDocument, toggleDocumentPin as togglePinApi,
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/documentExport";
-import { isDocxFile, tryConvertDocxToHtml } from "@/lib/docxImport";
+import { isDocxFile, isDocxFileName } from "@/lib/docxImport";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,7 +150,7 @@ const DocumentEditor = () => {
   const save = async () => {
     setSaving(true);
     try {
-      let contentHtml = doc.content_html || "";
+      const contentHtml = doc.content_html || "";
       const usesDocx = documentUsesDocxEditor(doc);
 
       if (usesDocx && docxEditorRef?.current) {
@@ -160,17 +160,13 @@ const DocumentEditor = () => {
           const file = new File([buf], `${baseName}.docx`, {
             type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
           });
-          try {
-            const conv = await tryConvertDocxToHtml(file);
-            if (conv.imported && conv.html) contentHtml = conv.html;
-          } catch { /* preview PDF opcional */ }
-          await uploadDocumentFile(id, file, user?.id, contentHtml);
-          const data = await updateDocument(id, { ...metaPatch(), content_html: contentHtml }, user?.id);
-          setDoc((p) => ({ ...data, content_html: contentHtml || p.content_html }));
+          await uploadDocumentFile(id, file, user?.id, null);
+          const data = await updateDocument(id, metaPatch(), user?.id);
+          setDoc((p) => ({ ...data, content_html: p.content_html }));
           setReloadToken((t) => t + 1);
         } else {
-          const data = await updateDocument(id, { ...metaPatch(), content_html: contentHtml }, user?.id);
-          setDoc((p) => ({ ...data, content_html: contentHtml || p.content_html }));
+          const data = await updateDocument(id, metaPatch(), user?.id);
+          setDoc((p) => ({ ...data, content_html: p.content_html }));
         }
       } else {
         const data = await updateDocument(id, { ...metaPatch(), content_html: contentHtml }, user?.id);
@@ -187,6 +183,13 @@ const DocumentEditor = () => {
 
   const exportFile = async (format) => {
     try {
+      if (format === "pdf" && canEditRich && printDocxFromEditor(docxEditorRef)) {
+        toast.info(
+          "Na janela de impressão, escolha «Guardar como PDF» para exportar com cabeçalho e rodapé do Word.",
+          { duration: 6000 },
+        );
+        return;
+      }
       if (format === "docx" && docxEditorRef?.current) {
         const buf = await saveDocxFromEditor(docxEditorRef);
         if (buf?.byteLength) {
@@ -199,6 +202,12 @@ const DocumentEditor = () => {
       }
       const blob = await exportDocumentBlob(id, format);
       triggerBlobDownload(blob, `${doc.title}.${format === "docx" ? "docx" : "pdf"}`);
+      if (format === "pdf" && doc.has_file && isDocxFileName(doc.file_name, doc.file_mime)) {
+        toast.info(
+          "Este PDF foi gerado a partir do texto do documento e pode não incluir o cabeçalho Word. Para fidelidade total, use PDF no editor do documento.",
+          { duration: 7000 },
+        );
+      }
     } catch { toast.error("Falha ao exportar"); }
   };
 
@@ -370,7 +379,10 @@ const DocumentEditor = () => {
               <div className="text-xs bg-slate-50 border border-slate-200 rounded-md p-3 sm:col-span-2 xl:col-span-5 min-w-0">
                 <div className="font-semibold text-slate-700 mb-1">Ficheiro Word</div>
                 <div className="text-slate-600 truncate" title={doc.file_name}>{doc.file_name}</div>
-                <div className="text-[11px] text-slate-500 mt-1">Edição nativa .docx (docx-editor). O ficheiro no Storage é atualizado ao salvar.</div>
+                <div className="text-[11px] text-slate-500 mt-1">
+                  Edição nativa .docx com cabeçalho e rodapé Word. O ficheiro no Storage é atualizado ao salvar.
+                  Exportação PDF com layout completo: use o botão PDF nesta página (impressão do editor).
+                </div>
               </div>
             )}
           </CardContent>

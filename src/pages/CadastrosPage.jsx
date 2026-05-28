@@ -17,7 +17,6 @@ import { toast } from "sonner";
 import {
   JOB_ROLES,
   EDUCATION_LEVELS,
-  SUPERVISOR_ELIGIBLE_JOB_ROLES,
   jobLabel,
   generateEmployeeRegistrationCode,
   CADASTRO_STORAGE_BUCKET,
@@ -472,7 +471,7 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
   const [rg, setRg] = useState("");
   const [rgIss, setRgIss] = useState("");
   const [adm, setAdm] = useState(todayIso());
-  const [job, setJob] = useState("operador");
+  const [job, setJob] = useState("auxiliar_tecnico");
   const [edu, setEdu] = useState("medio_completo");
   const [supId, setSupId] = useState("");
   const [sigFile, setSigFile] = useState(null);
@@ -482,7 +481,7 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
     setEditing(null);
     setCode(generateEmployeeRegistrationCode());
     setFullName(""); setCpf(""); setRg(""); setRgIss("");
-    setAdm(todayIso()); setJob("operador"); setEdu("medio_completo"); setSupId("");
+    setAdm(todayIso()); setJob("auxiliar_tecnico"); setEdu("medio_completo"); setSupId("");
     setSigFile(null);
     setSigPath("");
   };
@@ -543,12 +542,10 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
     else { toast.success("Removido"); onRefresh(); }
   };
 
-  const others = rows.filter((r) => !editing || r.id !== editing.id);
-  const leadership = others.filter((r) => SUPERVISOR_ELIGIBLE_JOB_ROLES.includes(r.job_role));
-  const supervisorCandidates = (leadership.length > 0 ? leadership : others)
+  const supervisorCandidates = rows
+    .filter((r) => !editing || r.id !== editing.id)
     .slice()
     .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "", "pt"));
-  const showLeadershipHint = others.length > 0 && leadership.length === 0;
 
   return (
     <Card className="border-slate-200">
@@ -625,16 +622,6 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
                     <option key={x.id} value={x.id}>{x.full_name} ({x.registration_code})</option>
                   ))}
                 </select>
-                {supervisorCandidates.length === 0 && (
-                  <p className="text-xs text-slate-500 mt-1">
-                    Cadastre primeiro um colaborador (de preferência com cargo Supervisor) para poder atribuir supervisor direto.
-                  </p>
-                )}
-                {showLeadershipHint && (
-                  <p className="text-xs text-slate-500 mt-1">
-                    Recomendado: cargo Supervisor, Coordenador, Gerente ou Diretoria.
-                  </p>
-                )}
               </div>
               <div>
                 <Label>Assinatura (imagem PNG/JPG)</Label>

@@ -8,10 +8,17 @@ export const DOCUMENT_SECTIONS = {
   registro: { id: "registro", label: "Registros" },
   documento: { id: "documento", label: "Documentos" },
   assinatura: { id: "assinatura", label: "Assinaturas" },
+  pedidos_compra: { id: "pedidos_compra", label: "Pedidos de compra" },
 };
 
 /** Pastas com regras especiais (requisito 5). Requisito 4 pr-4-1 usa default (procedimento + registro). */
 const FOLDER_MODES = {
+  "pr-6-6": {
+    sections: ["procedimento", "registro", "pedidos_compra"],
+    defaultSection: "procedimento",
+    richEditor: true,
+    purchaseOrders: true,
+  },
   "manual-qualidade": { sections: ["procedimento"], defaultSection: "procedimento", richEditor: true },
   "documentacao-legal": { sections: ["documento"], defaultSection: "documento", richEditor: false, fileOnly: true },
   "estrutura-organizacional": { sections: ["registro"], defaultSection: "registro", richEditor: true },
@@ -27,10 +34,16 @@ const DEFAULT_MODE = {
 
 export function getFolderDocumentMode(requirementId, folderKey) {
   const rid = String(requirementId);
-  if (rid === "5" && folderKey && FOLDER_MODES[folderKey]) {
-    return { ...FOLDER_MODES[folderKey] };
+  if (folderKey && FOLDER_MODES[folderKey]) {
+    if (rid === "5" || (rid === "6" && folderKey === "pr-6-6")) {
+      return { ...FOLDER_MODES[folderKey] };
+    }
   }
   return { ...DEFAULT_MODE };
+}
+
+export function isPurchaseOrdersFolder(requirementId, folderKey) {
+  return String(requirementId) === "6" && folderKey === "pr-6-6";
 }
 
 export function getVisibleSections(requirementId, folderKey) {

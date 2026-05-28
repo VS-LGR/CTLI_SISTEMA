@@ -29,7 +29,7 @@ export function buildPedidoCompraPdfViewModel(order) {
     header: {
       title: order.title || "Pedido de Compra",
       orderNumber: formatOrderNumber(order.order_number, order.order_year),
-      code: order.document_code || "RE-6.6B",
+      code: order.document_code || "RE-6.6E",
       revision: order.document_revision || "00",
       reference: order.document_reference || "PR-6.6",
       issueDate: fmtDate(order.issue_date),
@@ -92,8 +92,18 @@ export function buildPedidoCompraPdfViewModel(order) {
       observations: snapField(order, "observations"),
     },
     signatures: {
-      technicalManager: signatures.technical_manager || {},
-      purchase: signatures.purchase || {},
+      technicalManager: {
+        ...(signatures.technical_manager || {}),
+        roleLabel: signatures.technical_manager?.custom_label
+          || order.signature_slot_1_label
+          || "Gerente Técnico",
+      },
+      purchase: {
+        ...(signatures.purchase || {}),
+        roleLabel: signatures.purchase?.custom_label
+          || order.signature_slot_2_label
+          || "Compras",
+      },
     },
     inspection: order.inspection
       ? {

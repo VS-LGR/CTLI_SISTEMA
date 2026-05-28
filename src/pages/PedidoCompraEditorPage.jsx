@@ -12,9 +12,12 @@ import {
   transitionStatus,
   saveInspection,
   syncSignatures,
+  duplicatePurchaseOrder,
 } from "@/lib/purchaseOrdersApi";
 import { exportPedidoCompraPdf } from "@/lib/pedidosCompraExport";
-import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
+import { PR_66_PEDIDOS_PATH, PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
+import { jobLabel } from "@/lib/cadastroConstants";
+import { getServiceFieldConfig } from "@/lib/purchaseOrderTypes";
 import {
   PURCHASE_ORDER_TYPES,
   PURCHASE_ORDER_STATUSES,
@@ -34,7 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FloppyDisk, FilePdf } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, FilePdf, Copy } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PurchaseOrderServicesEditor from "@/components/purchaseOrders/PurchaseOrderServicesEditor";
 import PurchaseOrderInspectionForm from "@/components/purchaseOrders/PurchaseOrderInspectionForm";
@@ -70,11 +73,20 @@ function initialForm(type, tenantId, year, orderNum) {
     observations: DEFAULT_OBSERVATIONS,
     discount: 0,
     taxes_mode: "incluso",
-    document_code: "RE-6.6B",
+    document_code: "RE-6.6E",
     document_revision: "00",
     document_reference: "PR-6.6",
+    signature_slot_1_label: "Gerente Técnico",
+    signature_slot_2_label: "Compras",
   };
 }
+
+function employeeOptionLabel(e) {
+  const role = e.job_role ? jobLabel(e.job_role) : "";
+  return role ? `${e.full_name} (${role})` : e.full_name;
+}
+
+const SLOT2_PRESETS = ["Compras", "Gerente da Qualidade", "Vendas"];
 
 export default function PedidoCompraEditorPage() {
   const { id } = useParams();
@@ -119,7 +131,7 @@ export default function PedidoCompraEditorPage() {
       setInspection(data.inspection || emptyInspection());
     } catch {
       toast.error("Pedido não encontrado");
-      nav(PEDIDOS_LIST_PATH);
+      nav(PR_66_PEDIDOS_PATH);
     } finally {
       setLoading(false);
     }
@@ -189,6 +201,8 @@ export default function PedidoCompraEditorPage() {
         await syncSignatures(saved.id, {
           technicalManagerId: form.technical_manager_id,
           purchaseResponsibleId: form.purchase_responsible_id,
+          slot1Label: form.signature_slot_1_label,
+          slot2Label: form.signature_slot_2_label,
         });
         toast.success("Pedido criado");
         nav(`/pedidos-compra/${saved.id}`, { replace: true });
@@ -197,6 +211,8 @@ export default function PedidoCompraEditorPage() {
         await syncSignatures(id, {
           technicalManagerId: form.technical_manager_id,
           purchaseResponsibleId: form.purchase_responsible_id,
+          slot1Label: form.signature_slot_1_label,
+          slot2Label: form.signature_slot_2_label,
         });
         toast.success("Salvo");
         setForm({ ...saved, discount: saved.discount ?? 0 });
@@ -235,6 +251,17 @@ export default function PedidoCompraEditorPage() {
     }
   };
 
+  const dupOrder = async () => {
+    if (!window.confirm("Duplicar este pedido com novo número?")) return;
+    try {
+      const copy = await duplicatePurchaseOrder(id);
+      toast.success("Pedido duplicado");
+      nav(`/pedidos-compra/${copy.id}`, { replace: true });
+    } catch (e) {
+      toast.error(e.message || "Falha ao duplicar");
+    }
+  };
+
   const exportPdf = async () => {
     try {
       const full = isNew ? null : await getPurchaseOrder(id);
@@ -263,6 +290,8 @@ export default function PedidoCompraEditorPage() {
 
   const billing = form?.client_environment_data_snapshot || {};
   const supplier = form?.supplier_data_snapshot || {};
+  const fieldCfg = form?.type ? getServiceFieldConfig(form.type) : null;
+  const employees = cadastro.employees || [];
 
   if (!canAccessPurchaseOrders(user?.role)) {
     return <div className="text-slate-600">Sem permissão.</div>;
@@ -278,8 +307,8 @@ export default function PedidoCompraEditorPage() {
     <div className="space-y-6 min-w-0" data-testid="pedido-compra-editor">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to={PEDIDOS_LIST_PATH} className="text-xs text-slate-500 hover:text-blue-600 inline-flex items-center gap-1">
-            <ArrowLeft size={12} /> Voltar à lista
+          <Link to={PR_66_PEDIDOS_PATH} className="text-xs text-slate-500 hover:text-blue-600 inline-flex items-center gap-1">
+            <ArrowLeft size={12} /> Voltar ao PR-6.6
           </Link>
           <h1 className="font-display text-2xl font-bold text-slate-900 mt-1">
             {isNew ? "Novo pedido" : formatOrderNumber(form.order_number, form.order_year)}
@@ -293,9 +322,14 @@ export default function PedidoCompraEditorPage() {
             </Button>
           )}
           {!isNew && (
-            <Button variant="outline" onClick={exportPdf}>
-              <FilePdf size={16} className="mr-1" /> PDF
-            </Button>
+            <>
+              <Button variant="outline" onClick={dupOrder}>
+                <Copy size={16} className="mr-1" /> Duplicar
+              </Button>
+              <Button variant="outline" onClick={exportPdf}>
+                <FilePdf size={16} className="mr-1" /> PDF
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -329,6 +363,16 @@ export default function PedidoCompraEditorPage() {
 
           <TabsContent value="dados" className="space-y-4 mt-4">
             <Card className="border-slate-200">
+              <CardHeader className="pb-2"><CardTitle className="text-base">Cabeçalho do documento</CardTitle></CardHeader>
+              <CardContent className="p-5 pt-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div><Label>Código (RE)</Label><Input className="mt-1" value={form.document_code || ""} disabled={readOnly} onChange={(e) => patchForm({ document_code: e.target.value })} /></div>
+                <div><Label>Referência (PR)</Label><Input className="mt-1" value={form.document_reference || ""} disabled={readOnly} onChange={(e) => patchForm({ document_reference: e.target.value })} /></div>
+                <div><Label>Revisão</Label><Input className="mt-1" value={form.document_revision || ""} disabled={readOnly} onChange={(e) => patchForm({ document_revision: e.target.value })} /></div>
+                <div><Label>Emissão</Label><Input type="date" className="mt-1" value={form.issue_date || ""} disabled={readOnly} onChange={(e) => patchForm({ issue_date: e.target.value })} /></div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200">
               <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label>Nº pedido</Label>
@@ -351,8 +395,7 @@ export default function PedidoCompraEditorPage() {
                   </div>
                 </div>
                 <div><Label>Data pedido</Label><Input type="date" className="mt-1" value={form.order_date || ""} disabled={readOnly} onChange={(e) => patchForm({ order_date: e.target.value })} /></div>
-                <div><Label>Emissão</Label><Input type="date" className="mt-1" value={form.issue_date || ""} disabled={readOnly} onChange={(e) => patchForm({ issue_date: e.target.value })} /></div>
-                <div><Label>Título</Label><Input className="mt-1" value={form.title || ""} disabled={readOnly} onChange={(e) => patchForm({ title: e.target.value })} /></div>
+                <div className="sm:col-span-2"><Label>Título</Label><Input className="mt-1" value={form.title || ""} disabled={readOnly} onChange={(e) => patchForm({ title: e.target.value })} /></div>
               </CardContent>
             </Card>
 
@@ -398,34 +441,55 @@ export default function PedidoCompraEditorPage() {
                 <div><Label>Frete por conta</Label><Input className="mt-1" value={form.freight_responsibility} disabled={readOnly} onChange={(e) => patchForm({ freight_responsibility: e.target.value })} /></div>
                 <div><Label>Transportadora / Telefone</Label><Input className="mt-1" value={form.carrier_info} disabled={readOnly} onChange={(e) => patchForm({ carrier_info: e.target.value })} /></div>
                 <div><Label>Conforme cotação nº</Label><Input className="mt-1" value={form.quotation_number} disabled={readOnly} onChange={(e) => patchForm({ quotation_number: e.target.value })} /></div>
-                <div><Label>Período de execução</Label><Input className="mt-1" value={form.execution_period} disabled={readOnly} onChange={(e) => patchForm({ execution_period: e.target.value })} /></div>
+                {!fieldCfg?.hideExecutionPeriod && (
+                  <div><Label>Período de execução</Label><Input className="mt-1" value={form.execution_period} disabled={readOnly} onChange={(e) => patchForm({ execution_period: e.target.value })} /></div>
+                )}
                 <div className="sm:col-span-2"><Label>Observações</Label><Input className="mt-1" value={form.observations} disabled={readOnly} onChange={(e) => patchForm({ observations: e.target.value })} /></div>
               </CardContent>
             </Card>
 
             <Card className="border-slate-200">
               <CardHeader><CardTitle className="text-base">Responsáveis</CardTitle></CardHeader>
-              <CardContent className="grid sm:grid-cols-3 gap-4">
+              <CardContent className="space-y-4">
+                {employees.length === 0 && (
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                    Cadastre colaboradores em Cadastros para preencher os responsáveis e assinaturas do pedido.
+                  </p>
+                )}
                 <div>
                   <Label>Enviado por</Label>
                   <select className="w-full border rounded-md h-10 px-3 mt-1 text-sm" value={form.requested_by_id || ""} disabled={readOnly} onChange={(e) => patchForm({ requested_by_id: e.target.value })}>
                     <option value="">—</option>
-                    {cadastro.employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                    {employees.map((e) => <option key={e.id} value={e.id}>{employeeOptionLabel(e)}</option>)}
                   </select>
                 </div>
-                <div>
-                  <Label>Gerente técnico *</Label>
-                  <select className="w-full border rounded-md h-10 px-3 mt-1 text-sm" value={form.technical_manager_id || ""} disabled={readOnly} onChange={(e) => patchForm({ technical_manager_id: e.target.value })}>
-                    <option value="">—</option>
-                    {cadastro.employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label>Compras *</Label>
-                  <select className="w-full border rounded-md h-10 px-3 mt-1 text-sm" value={form.purchase_responsible_id || ""} disabled={readOnly} onChange={(e) => patchForm({ purchase_responsible_id: e.target.value })}>
-                    <option value="">—</option>
-                    {cadastro.employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
-                  </select>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Rótulo assinatura 1 *</Label>
+                    <Input value={form.signature_slot_1_label || ""} disabled={readOnly} onChange={(e) => patchForm({ signature_slot_1_label: e.target.value })} />
+                    <Label>Colaborador *</Label>
+                    <select className="w-full border rounded-md h-10 px-3 text-sm" value={form.technical_manager_id || ""} disabled={readOnly} onChange={(e) => patchForm({ technical_manager_id: e.target.value })}>
+                      <option value="">Selecione…</option>
+                      {employees.map((e) => <option key={e.id} value={e.id}>{employeeOptionLabel(e)}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Rótulo assinatura 2 *</Label>
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {SLOT2_PRESETS.map((preset) => (
+                        <Button key={preset} type="button" variant="outline" size="sm" className="h-7 text-xs" disabled={readOnly}
+                          onClick={() => patchForm({ signature_slot_2_label: preset })}>
+                          {preset}
+                        </Button>
+                      ))}
+                    </div>
+                    <Input value={form.signature_slot_2_label || ""} disabled={readOnly} onChange={(e) => patchForm({ signature_slot_2_label: e.target.value })} />
+                    <Label>Colaborador *</Label>
+                    <select className="w-full border rounded-md h-10 px-3 text-sm" value={form.purchase_responsible_id || ""} disabled={readOnly} onChange={(e) => patchForm({ purchase_responsible_id: e.target.value })}>
+                      <option value="">Selecione…</option>
+                      {employees.map((e) => <option key={e.id} value={e.id}>{employeeOptionLabel(e)}</option>)}
+                    </select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -450,9 +514,10 @@ export default function PedidoCompraEditorPage() {
               type={form.type}
               inspection={inspection}
               onChange={setInspection}
-              employees={cadastro.employees}
+              employees={employees}
               weightCerts={cadastro.weightCerts}
               readOnly={readOnly}
+              isNewOrder={isNew}
             />
             {!readOnly && !isNew && (
               <Button onClick={saveInsp} variant="outline">Guardar inspeção</Button>

@@ -149,9 +149,11 @@ function buildOrderPayload(form, tenantId, items) {
     taxes_mode: form.taxes_mode || "incluso",
     subtotal,
     final_value,
-    document_code: form.document_code || "RE-6.6B",
+    document_code: form.document_code || "RE-6.6E",
     document_revision: form.document_revision || "00",
     document_reference: form.document_reference || "PR-6.6",
+    signature_slot_1_label: form.signature_slot_1_label || "Gerente Técnico",
+    signature_slot_2_label: form.signature_slot_2_label || "Compras",
   };
 }
 
@@ -265,19 +267,24 @@ export async function saveInspection(purchaseOrderId, inspection) {
   return getPurchaseOrder(purchaseOrderId);
 }
 
-export async function syncSignatures(purchaseOrderId, { technicalManagerId, purchaseResponsibleId }) {
+export async function syncSignatures(purchaseOrderId, {
+  technicalManagerId,
+  purchaseResponsibleId,
+  slot1Label = "Gerente Técnico",
+  slot2Label = "Compras",
+}) {
   const employees = [];
   if (technicalManagerId) {
     const { data } = await supabase.from("employee_registrations").select("*").eq("id", technicalManagerId).single();
-    if (data) employees.push({ role: "technical_manager", employee: data });
+    if (data) employees.push({ role: "technical_manager", employee: data, customLabel: slot1Label });
   }
   if (purchaseResponsibleId) {
     const { data } = await supabase.from("employee_registrations").select("*").eq("id", purchaseResponsibleId).single();
-    if (data) employees.push({ role: "purchase", employee: data });
+    if (data) employees.push({ role: "purchase", employee: data, customLabel: slot2Label });
   }
 
-  for (const { role, employee } of employees) {
-    const snap = buildEmployeeSnapshot(employee);
+  for (const { role, employee, customLabel } of employees) {
+    const snap = buildEmployeeSnapshot(employee, { customLabel });
     await supabase.from("purchase_order_signatures").upsert(
       {
         purchase_order_id: purchaseOrderId,
@@ -303,10 +310,18 @@ export async function duplicatePurchaseOrder(id) {
       status: "rascunho",
       supplier_data_snapshot: src.supplier_data_snapshot,
       client_environment_data_snapshot: src.client_environment_data_snapshot,
+      signature_slot_1_label: src.signature_slot_1_label || "Gerente Técnico",
+      signature_slot_2_label: src.signature_slot_2_label || "Compras",
     },
     src.items,
   );
-  return copy;
+  await syncSignatures(copy.id, {
+    technicalManagerId: src.technical_manager_id,
+    purchaseResponsibleId: src.purchase_responsible_id,
+    slot1Label: src.signature_slot_1_label || "Gerente Técnico",
+    slot2Label: src.signature_slot_2_label || "Compras",
+  });
+  return getPurchaseOrder(copy.id);
 }
 
 export async function deletePurchaseOrder(id) {

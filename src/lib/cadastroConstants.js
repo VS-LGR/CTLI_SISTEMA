@@ -1,24 +1,17 @@
 /** Valores alinhados ao CHECK em `employee_registrations` (migration cadastros). */
 
-/** Cargos recomendados como supervisor direto de outro colaborador */
-export const SUPERVISOR_ELIGIBLE_JOB_ROLES = [
-  "supervisor",
-  "coordenador",
-  "gerente",
-  "diretoria",
-];
-
 export const JOB_ROLES = [
-  { value: "operador", label: "Operador" },
-  { value: "tecnico", label: "Técnico" },
-  { value: "supervisor", label: "Supervisor" },
-  { value: "coordenador", label: "Coordenador" },
-  { value: "gerente", label: "Gerente" },
-  { value: "diretoria", label: "Diretoria" },
-  { value: "administrativo", label: "Administrativo" },
-  { value: "auxiliar", label: "Auxiliar" },
-  { value: "estagiario", label: "Estagiário" },
-  { value: "outro", label: "Outro" },
+  { value: "motorista", label: "Motorista" },
+  { value: "auxiliar_administrativo", label: "Auxiliar Administrativo" },
+  { value: "compras", label: "Compras" },
+  { value: "vendas", label: "Vendas" },
+  { value: "compras_vendas", label: "Compras e Vendas" },
+  { value: "auxiliar_tecnico", label: "Auxiliar Técnico" },
+  { value: "tecnico_em_balancas", label: "Técnico em Balanças" },
+  { value: "gerente_qualidade", label: "Gerente da Qualidade" },
+  { value: "gerente_tecnico", label: "Gerente Técnico" },
+  { value: "signatario", label: "Signatário" },
+  { value: "diretor", label: "Diretor" },
 ];
 
 export const EDUCATION_LEVELS = [

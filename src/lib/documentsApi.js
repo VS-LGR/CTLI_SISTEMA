@@ -276,8 +276,14 @@ export async function downloadOriginalFile(doc) {
 export async function exportDocumentBlob(docId, format) {
   if (isSupabaseDocumentsEnabled()) {
     const { exportDocumentPdf, exportDocumentDocx } = await import("@/lib/documentExport");
+    const { isDocxFileName } = await import("@/lib/docxImport");
     const doc = await getDocumentSupabase(docId);
-    if (format === "pdf") return exportDocumentPdf(doc);
+    if (format === "pdf") {
+      const pdfHeaderDisclaimer = Boolean(
+        doc.has_file && isDocxFileName(doc.file_name, doc.file_mime),
+      );
+      return exportDocumentPdf(doc, { pdfHeaderDisclaimer });
+    }
     return exportDocumentDocx(doc);
   }
   return exportBlobApi(docId, format);

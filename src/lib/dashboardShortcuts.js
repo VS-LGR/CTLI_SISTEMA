@@ -1,7 +1,7 @@
 import { canAccessColeta, canAccessPurchaseOrders } from "@/lib/roles";
 import { getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
-import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
+import { PR_66_PEDIDOS_PATH } from "@/lib/pedidosCompraRoutes";
 
 /** Atalhos da dashboard — atualizar `to` e `enabled` quando rotas forem definidas. */
 export const DASHBOARD_SHORTCUTS = [
@@ -16,7 +16,7 @@ export const DASHBOARD_SHORTCUTS = [
   {
     id: "pedidos-compra",
     label: "Pedidos de Compra",
-    to: PEDIDOS_LIST_PATH,
+    to: PR_66_PEDIDOS_PATH,
     enabled: true,
     requiresPurchaseOrders: true,
   },

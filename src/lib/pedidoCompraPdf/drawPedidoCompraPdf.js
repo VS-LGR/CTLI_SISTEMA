@@ -26,7 +26,7 @@ function serviceColumns(type) {
         { header: "Material", dataKey: "material" },
         { header: "Identificação", dataKey: "identificationCodes" },
         { header: "Valor nominal", dataKey: "nominalValues" },
-        { header: "Classe", dataKey: "classText" },
+        { header: "Erro e Incerteza Máx. Permitida", dataKey: "maxErrorUncertainty" },
         ...commonEnd,
       ];
     case "calibracao_termo_baro_higrometro":
@@ -35,6 +35,8 @@ function serviceColumns(type) {
         { header: "Equipamento", dataKey: "equipment" },
         { header: "Identificação", dataKey: "identificationCodes" },
         { header: "Grandeza", dataKey: "magnitude" },
+        { header: "Valores nominais aprox.", dataKey: "nominalValues" },
+        { header: "Erro e Incerteza Máx. Permitida", dataKey: "maxErrorUncertainty" },
         ...commonEnd,
       ];
     case "compra_pesos":
@@ -43,16 +45,16 @@ function serviceColumns(type) {
         { header: "Equipamento", dataKey: "equipment" },
         { header: "Material", dataKey: "material" },
         { header: "Identificação", dataKey: "identificationCodes" },
-        { header: "Valor nominal", dataKey: "nominalValues" },
-        { header: "Classe", dataKey: "classText" },
+        { header: "Valores nominais aprox.", dataKey: "nominalValues" },
+        { header: "Erro e Incerteza Máx. Permitida", dataKey: "hiringCriteria" },
         ...commonEnd,
       ];
     case "compra_termo_baro_higrometro":
       return [
         { header: "Item", dataKey: "itemNumber" },
         { header: "Grandeza", dataKey: "magnitude" },
-        { header: "Faixa", dataKey: "rangeText" },
-        { header: "Resolução", dataKey: "acceptableResolution" },
+        { header: "Valores nominais aprox.", dataKey: "minimumReadingRange" },
+        { header: "Erro e Incerteza Máx. Permitida", dataKey: "acceptableResolution" },
         ...commonEnd,
       ];
     case "auditoria_interna":
@@ -91,26 +93,39 @@ function drawWatermark(doc, text) {
 }
 
 function drawHeader(doc, model, logoDataUrl, yStart = 8) {
-  let y = yStart;
+  const y = yStart;
+  const rightX = MR - 2;
+  const centerX = PAGE_W / 2;
+
   if (logoDataUrl) {
     try {
       doc.addImage(logoDataUrl, "PNG", ML, y, LOGO_W, LOGO_H);
     } catch { /* optional */ }
   }
+
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setTextColor(...TEXT);
-  doc.text(model.header.title, PAGE_W / 2, y + 8, { align: "center", maxWidth: MR - ML - 40 });
-  doc.setFontSize(8);
+  doc.text(model.header.title || "Pedido de Compra", centerX, y + 7, { align: "center", maxWidth: 90 });
+
+  doc.setFontSize(9);
+  doc.text(`Nº do Pedido: ${model.header.orderNumber}`, centerX, y + 14, { align: "center" });
+
   doc.setFont("helvetica", "normal");
-  doc.text(
-    `${model.header.code}  Rev.: ${model.header.revision}  |  ${model.header.reference}  |  Pedido nº ${model.header.orderNumber}`,
-    PAGE_W / 2,
-    y + 14,
-    { align: "center" },
-  );
-  doc.text(`Emissão: ${model.header.issueDate}  |  Data pedido: ${model.header.orderDate}`, PAGE_W / 2, y + 19, { align: "center" });
-  return y + 24;
+  doc.setFontSize(8);
+  let ry = y + 4;
+  const metaLines = [
+    `Cód.: ${model.header.code}`,
+    `Ref.: ${model.header.reference}`,
+    `Rev.: ${model.header.revision}`,
+    `Emissão: ${model.header.issueDate}`,
+  ];
+  for (const line of metaLines) {
+    doc.text(line, rightX, ry, { align: "right" });
+    ry += 4.5;
+  }
+
+  return Math.max(y + LOGO_H + 2, ry + 2, y + 20);
 }
 
 function drawTwoColBlock(doc, y, leftTitle, leftLines, rightTitle, rightLines) {
@@ -223,8 +238,14 @@ export function drawPedidoCompraPdf(order, { logoDataUrl } = {}) {
   const sigW = (MR - ML) / 2 - 4;
   doc.line(ML, y + 12, ML + sigW, y + 12);
   doc.line(ML + sigW + 8, y + 12, MR, y + 12);
-  doc.text(model.signatures.technicalManager.full_name || "Gerente Técnico", ML + sigW / 2, y + 16, { align: "center" });
-  doc.text(model.signatures.purchase.full_name || "Compras", ML + sigW + 8 + sigW / 2, y + 16, { align: "center" });
+  const sig1Label = model.signatures.technicalManager.roleLabel || "Gerente Técnico";
+  const sig2Label = model.signatures.purchase.roleLabel || "Compras";
+  doc.setFontSize(7);
+  doc.text(sig1Label, ML + sigW / 2, y + 14, { align: "center" });
+  doc.text(sig2Label, ML + sigW + 8 + sigW / 2, y + 14, { align: "center" });
+  doc.setFontSize(8);
+  doc.text(model.signatures.technicalManager.full_name || "—", ML + sigW / 2, y + 18, { align: "center" });
+  doc.text(model.signatures.purchase.full_name || "—", ML + sigW + 8 + sigW / 2, y + 18, { align: "center" });
 
   if (model.inspection) {
     y += 22;

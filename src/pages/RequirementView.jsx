@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useNavigate, useOutletContext, Link, Navigate } from "react-router-dom";
+import { useParams, useNavigate, useOutletContext, Link, Navigate, useSearchParams } from "react-router-dom";
 import api, { asArray } from "@/lib/api";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
 import {
@@ -15,7 +15,9 @@ import {
   isSignaturesFolder,
   isFileOnlyFolder,
   allowsRichEditor,
+  isPurchaseOrdersFolder,
 } from "@/lib/documentFolderConfig";
+import PurchaseOrdersListPanel from "@/components/purchaseOrders/PurchaseOrdersListPanel";
 import {
   listDocuments,
   createDocument,
@@ -29,6 +31,7 @@ import {
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/documentExport";
 import { isDocxFile, tryConvertDocxToHtml, uploadSuccessMessage } from "@/lib/docxImport";
+import { downloadProcedureTemplateDocx } from "@/lib/procedureTemplateDocx";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +92,20 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
       setFile(null);
     }
   }, [open]);
+
+  const downloadTemplate = async () => {
+    try {
+      const ok = await downloadProcedureTemplateDocx();
+      if (!ok) {
+        toast.info(
+          "Modelo institucional não está no servidor. Peça ao administrador o ficheiro .docx Trevo ou use o seu modelo local.",
+          { duration: 7000 },
+        );
+      }
+    } catch {
+      toast.error("Falha ao descarregar modelo");
+    }
+  };
 
   const save = async () => {
     if (!title.trim()) return toast.error("Informe o título");
@@ -221,9 +238,15 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
               )}
             </div>
             {canImportWord ? (
-              <p className="text-xs text-slate-500 mt-1.5">
-                Editor Word nativo: envie .docx para abrir no editor. .doc antigo, PDF e outros ficam só como anexo.
-              </p>
+              <div className="mt-1.5 space-y-1.5">
+                <p className="text-xs text-slate-500">
+                  Editor Word nativo: envie .docx para abrir no editor (cabeçalho e rodapé preservados).
+                  .doc antigo, PDF e outros ficam só como anexo.
+                </p>
+                <Button type="button" variant="link" size="sm" className="h-auto p-0 text-blue-600" onClick={downloadTemplate}>
+                  <DownloadSimple size={14} className="mr-1" /> Modelo Word (Trevo)
+                </Button>
+              </div>
             ) : (
               <p className="text-xs text-slate-500 mt-1.5">
                 PDF, Word e outros formatos são guardados como ficheiro anexo.
@@ -252,6 +275,12 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
 
   const downloadExport = async (format) => {
     try {
+      if (format === "pdf" && usesDocxEditor && doc.has_file) {
+        toast.info(
+          "Para PDF com cabeçalho Word, abra o documento e use o botão PDF no editor (impressão).",
+          { duration: 6000 },
+        );
+      }
       const blob = await exportDocumentBlob(doc.id, format);
       triggerBlobDownload(blob, `${doc.title}.${format === "docx" ? "docx" : "pdf"}`);
     } catch {
@@ -417,13 +446,18 @@ const DocTable = ({ docs, variant, onUpdate, onDelete, fileOnly = false }) => {
 
 const RequirementView = () => {
   const { id, folderKey } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
   const folderMode = getFolderDocumentMode(id, folderKey);
   const visibleSections = getVisibleSections(id, folderKey);
   const defaultSection = folderMode.defaultSection;
+  const tabFromUrl = searchParams.get("tab");
+  const initialSection = tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)
+    ? tabFromUrl
+    : defaultSection;
 
-  const [section, setSection] = useState(defaultSection);
+  const [section, setSection] = useState(initialSection);
   const [status, setStatus] = useState("vigente");
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -460,6 +494,12 @@ const RequirementView = () => {
     }
   }, [id, folderKey, visibleSections, section, defaultSection]);
 
+  useEffect(() => {
+    if (tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)) {
+      setSection(tabFromUrl);
+    }
+  }, [tabFromUrl, visibleSections]);
+
   const filteredDocs = useMemo(() => filterBySearch(docs, searchQuery), [docs, searchQuery]);
 
   if (requiresFolderNav(id) && !folderKey && first) {
@@ -481,6 +521,7 @@ const RequirementView = () => {
     String(id) === COLETA_REQ_ID && folderKey === COLETA_FOLDER_KEY && section === "registro" && canAccessColeta(user?.role);
   const signatures = isSignaturesFolder(id, folderKey);
   const fileOnly = isFileOnlyFolder(id, folderKey);
+  const purchaseOrdersTab = isPurchaseOrdersFolder(id, folderKey) && section === "pedidos_compra";
   const variant = status === "vigente" ? "vigente" : "obsoleto";
   const currentSectionMeta = visibleSections.find((s) => s.id === section);
 
@@ -517,7 +558,7 @@ const RequirementView = () => {
         <p className="text-sm text-slate-600 mt-1">Ambiente: <span className="font-medium">{currentTenant?.name}</span></p>
       </div>
 
-      {!isColetaRegistro && (
+      {!isColetaRegistro && !purchaseOrdersTab && (
         <div className="relative max-w-md">
           <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input
@@ -537,7 +578,7 @@ const RequirementView = () => {
             ))}
           </TabsList>
 
-          {!isColetaRegistro && !signatures && (
+          {!isColetaRegistro && !signatures && !purchaseOrdersTab && (
             <div className="flex items-center gap-2 flex-wrap">
               <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5">
                 <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
@@ -564,7 +605,9 @@ const RequirementView = () => {
         </div>
 
         <TabsContent value={section} className="mt-4">
-          {isColetaRegistro ? (
+          {purchaseOrdersTab ? (
+            <PurchaseOrdersListPanel tenantId={currentTenantId} tenant={currentTenant} />
+          ) : isColetaRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta…</div>}>
               <ColetaPage embedded />
             </Suspense>

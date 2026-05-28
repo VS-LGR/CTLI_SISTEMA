@@ -5,6 +5,23 @@ import { downloadOriginalFile } from "@/lib/documentsApi";
 import { getBlankDocxBuffer } from "@/lib/blankDocx";
 import { isDocxFileName } from "@/lib/docxImport";
 
+function useCompactViewport() {
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 768px)").matches;
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const onChange = () => setCompact(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return compact;
+}
+
 /**
  * Editor nativo .docx ([docx-editor.dev](https://www.docx-editor.dev)).
  * Carrega o ficheiro do Storage ou um documento vazio.
@@ -21,6 +38,8 @@ function DocxEditorPanel({
   const [buffer, setBuffer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const compact = useCompactViewport();
+  const initialZoom = compact ? 0.85 : 1;
 
   const loadBuffer = useCallback(async () => {
     if (!doc) return;
@@ -75,12 +94,12 @@ function DocxEditorPanel({
 
   return (
     <div
-      className="docx-editor-host border border-slate-200 rounded-xl overflow-hidden bg-white min-h-[560px] w-full min-w-0"
+      className="docx-editor-host border border-slate-200 rounded-xl bg-white w-full min-w-0"
       data-testid="docx-editor-panel"
     >
       <DocxEditor
         ref={editorRef}
-        key={`${doc?.id}-${reloadToken}-${buffer.byteLength}`}
+        key={`${doc?.id}-${reloadToken}`}
         documentBuffer={buffer}
         documentName={doc?.title || "Documento"}
         author={author || "Utilizador"}
@@ -88,7 +107,10 @@ function DocxEditorPanel({
         mode={readOnly ? "viewing" : "editing"}
         showToolbar={!readOnly}
         showZoomControl
-        className="min-h-[560px]"
+        showMarginGuides
+        showRuler={!readOnly}
+        initialZoom={initialZoom}
+        className="min-h-[min(75vh,820px)] w-full"
         onError={(err) => {
           console.error("[DocxEditor]", err);
           setError(err?.message || "Erro no editor");

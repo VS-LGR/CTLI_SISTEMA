@@ -129,14 +129,17 @@ code, pre, .font-mono {
 .docx-editor-host {
     display: flex;
     flex-direction: column;
-    min-height: 560px;
+    min-height: min(80vh, 900px);
     width: 100%;
     min-width: 0;
     max-width: 100%;
+    overflow: auto;
 }
 .docx-editor-host > * {
     flex: 1 1 auto;
-    min-height: 520px;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
 }
 
 @layer base {

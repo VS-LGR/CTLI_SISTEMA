@@ -27,9 +27,16 @@ function hasEditableHtml(doc) {
     || /<img|<table/i.test(doc?.content_html || "");
 }
 
-function buildExportHtmlBody(doc) {
+function buildExportHtmlBody(doc, { pdfHeaderDisclaimer = false } = {}) {
   const body = doc.content_html || "<p></p>";
+  const disclaimer = pdfHeaderDisclaimer
+    ? `<p style="margin:0 0 12pt;padding:8pt;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:10pt">
+        Nota: esta exportação PDF não inclui o cabeçalho nem o rodapé do ficheiro Word original.
+        Abra o documento no editor e use o botão PDF (impressão), ou exporte o ficheiro .docx.
+      </p>`
+    : "";
   return `
+    ${disclaimer}
     <h1 style="font-size:18pt;font-weight:bold;margin:0 0 8pt">${escapeHtml(doc.title || "Documento")}</h1>
     <p style="margin:0 0 16pt;color:#555">Rev. ${escapeHtml(doc.version || "—")} · Emissão: ${escapeHtml(doc.code || "—")}</p>
     <div class="export-body">${body}</div>
@@ -151,10 +158,10 @@ function htmlToDocxBlocks(html) {
   return blocks.length ? blocks : [new Paragraph({ children: [new TextRun("")] })];
 }
 
-export async function exportDocumentPdf(doc) {
+export async function exportDocumentPdf(doc, options = {}) {
   const wrap = document.createElement("div");
   wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:794px;padding:40px;background:#fff;font-family:Arial,sans-serif;font-size:12px;color:#111;";
-  wrap.innerHTML = buildExportHtmlBody(doc);
+  wrap.innerHTML = buildExportHtmlBody(doc, options);
   document.body.appendChild(wrap);
   try {
     const canvas = await html2canvas(wrap, { scale: 2, useCORS: true, logging: false });
@@ -198,6 +205,11 @@ async function exportDocxFromHtml(doc) {
 }
 
 export async function exportDocumentDocx(doc) {
+  const { isDocxFileName } = await import("@/lib/docxImport");
+  if (doc.has_file && isDocxFileName(doc.file_name, doc.file_mime)) {
+    const { downloadOriginalFile } = await import("@/lib/documentsApi");
+    return downloadOriginalFile(doc);
+  }
   if (hasEditableHtml(doc)) {
     try {
       return await exportDocxFromHtml(doc);

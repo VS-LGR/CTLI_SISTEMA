@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash } from "@phosphor-icons/react";
-import { emptyPurchaseOrderItem, getTypeMeta } from "@/lib/purchaseOrderTypes";
+import { emptyPurchaseOrderItem, getTypeMeta, getServiceFieldConfig } from "@/lib/purchaseOrderTypes";
 import { recalcItem } from "@/lib/purchaseOrderCalculations";
 import { ENV_EQUIPMENT_TYPES } from "@/lib/cadastroConstants";
 import PurchaseOrderItemsFooter from "./PurchaseOrderItemsFooter";
@@ -28,6 +28,7 @@ export default function PurchaseOrderServicesEditor({
   readOnly = false,
 }) {
   const meta = getTypeMeta(type);
+  const fieldCfg = getServiceFieldConfig(type);
 
   const setItems = (next) => onChange?.(next.map((it, i) => recalcItem({ ...it, item_number: i + 1 })));
 
@@ -111,8 +112,8 @@ export default function PurchaseOrderServicesEditor({
                   <th className="p-2">Equipamento</th>
                   <th className="p-2">Material</th>
                   <th className="p-2">Código(s)</th>
-                  <th className="p-2">Valor nominal / faixa</th>
-                  <th className="p-2">Classe / erro</th>
+                  <th className="p-2">{fieldCfg.columns.nominalLabel}</th>
+                  <th className="p-2">{fieldCfg.columns.errorLabel}</th>
                 </>
               )}
               {(type === "calibracao_termo_baro_higrometro" || type === "compra_termo_baro_higrometro") && (
@@ -120,8 +121,8 @@ export default function PurchaseOrderServicesEditor({
                   <th className="p-2">Equipamento</th>
                   <th className="p-2">Código</th>
                   <th className="p-2">Grandeza</th>
-                  <th className="p-2">Valores / faixa</th>
-                  <th className="p-2">Resolução / erro</th>
+                  <th className="p-2">{fieldCfg.columns.nominalLabel}</th>
+                  <th className="p-2">{fieldCfg.columns.errorLabel}</th>
                 </>
               )}
               {type === "auditoria_interna" && (
@@ -153,18 +154,18 @@ export default function PurchaseOrderServicesEditor({
                     <td className="p-2">{cell(idx, "equipment")}</td>
                     <td className="p-2">{cell(idx, "material")}</td>
                     <td className="p-2">
-                      {type === "calibracao_pesos_padrao" && !readOnly ? (
+                      {fieldCfg.showWeightPicker && !readOnly && (
                         <select
-                          className="w-full border rounded h-9 px-1 text-xs"
+                          className="w-full border rounded h-9 px-1 text-xs mb-1"
                           value=""
                           onChange={(e) => e.target.value && applyWeight(idx, e.target.value)}
                         >
-                          <option value="">+ peso cadastrado</option>
+                          <option value="">+ importar do cadastro</option>
                           {weights.map((w) => (
                             <option key={w.id} value={w.id}>{weightLabel(w)}</option>
                           ))}
                         </select>
-                      ) : null}
+                      )}
                       {cell(idx, "identification_codes")}
                     </td>
                     <td className="p-2">{cell(idx, "nominal_values")}</td>

@@ -130,6 +130,27 @@ export function emptyPurchaseOrderItem(itemNumber = 1) {
   };
 }
 
+/** Rótulos e visibilidade de campos por tipo de serviço. */
+export function getServiceFieldConfig(typeId) {
+  const isPesos = typeId === "calibracao_pesos_padrao" || typeId === "compra_pesos";
+  const isThermo = typeId === "calibracao_termo_baro_higrometro" || typeId === "compra_termo_baro_higrometro";
+  const isCalibPesos = typeId === "calibracao_pesos_padrao";
+
+  return {
+    hideExecutionPeriod: isCalibPesos,
+    codeFreeTextOnly: isCalibPesos,
+    showWeightPicker: isCalibPesos,
+    columns: {
+      nominalLabel: isThermo || isPesos
+        ? "Valores nominais aproximados a serem calibrados"
+        : "Valor nominal / faixa",
+      errorLabel: isThermo || isPesos
+        ? "Erro e Incerteza Máxima Permitida"
+        : "Classe / erro",
+    },
+  };
+}
+
 export function emptyInspection() {
   return {
     received_matches_order: null,

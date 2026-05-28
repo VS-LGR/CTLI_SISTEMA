@@ -1,3 +1,9 @@
+/**
+ * Conversão .docx → HTML via Mammoth (apenas corpo do documento).
+ * Cabeçalhos e rodapés Word (w:header / w:footer) NÃO são importados.
+ * Procedimentos com editor nativo (@eigenpal) devem usar o .docx no Storage, não content_html.
+ * Ver docs/DOCX-PROCEDIMENTOS.md
+ */
 import mammoth from "mammoth";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -8,6 +14,9 @@ const MAMMOTH_STYLE_MAP = [
   "p[style-name='Heading 3'] => h3:fresh",
   "p[style-name='Title'] => h1:fresh",
   "p[style-name='Subtitle'] => h2:fresh",
+  "p[style-name='Normal'] => p:fresh",
+  "p[style-name='List Paragraph'] => p:fresh",
+  "r[style-name='Strong'] => strong",
   "b => strong",
   "i => em",
   "u => u",
@@ -52,6 +61,8 @@ export function normalizeHtmlForEditor(html) {
   out = out.replace(/<o:p[^>]*>[\s\S]*?<\/o:p>/gi, "");
   out = out.replace(/<\/?o:[^>]+>/gi, "");
   out = out.replace(/<span[^>]*>\s*<\/span>/gi, "");
+  out = out.replace(/(<table[^>]*)\sstyle="[^"]*mso-[^"]*"/gi, "$1");
+  out = out.replace(/(<td[^>]*|<th[^>]*)\sstyle="[^"]*mso-[^"]*"/gi, "$1");
   out = out.replace(/\sstyle="[^"]*mso-[^"]*"/gi, "");
   out = out.replace(/<table(?![^>]*class=)/gi, '<table class="doc-table"');
   out = out.replace(/<img([^>]+)>/gi, (m, attrs) => {
