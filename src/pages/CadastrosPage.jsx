@@ -43,6 +43,18 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
+async function uploadEmployeeSignature(tenantId, employeeId, file) {
+  if (!file) return null;
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${tenantId}/signatures/${employeeId}/${Date.now()}_${safe}`;
+  const { error } = await supabase.storage.from(CADASTRO_STORAGE_BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type || undefined,
+  });
+  if (error) throw error;
+  return path;
+}
+
 async function uploadCertificateFile(tenantId, kind, certId, file) {
   if (!file) return null;
   const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -463,12 +475,16 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
   const [job, setJob] = useState("operador");
   const [edu, setEdu] = useState("medio_completo");
   const [supId, setSupId] = useState("");
+  const [sigFile, setSigFile] = useState(null);
+  const [sigPath, setSigPath] = useState("");
 
   const reset = () => {
     setEditing(null);
     setCode(generateEmployeeRegistrationCode());
     setFullName(""); setCpf(""); setRg(""); setRgIss("");
     setAdm(todayIso()); setJob("operador"); setEdu("medio_completo"); setSupId("");
+    setSigFile(null);
+    setSigPath("");
   };
 
   useEffect(() => {
@@ -492,12 +508,24 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
     };
     try {
       if (editing) {
-        const { error } = await supabase.from("employee_registrations").update(payload).eq("id", editing.id);
+        let signaturePath = editing.signature_storage_path || sigPath;
+        if (sigFile) {
+          if (editing.signature_storage_path) await removeStoragePath(editing.signature_storage_path);
+          signaturePath = await uploadEmployeeSignature(tenantId, editing.id, sigFile);
+        }
+        const { error } = await supabase.from("employee_registrations").update({
+          ...payload,
+          signature_storage_path: signaturePath || null,
+        }).eq("id", editing.id);
         if (error) throw error;
         toast.success("Atualizado");
       } else {
-        const { error } = await supabase.from("employee_registrations").insert(payload);
+        const { data, error } = await supabase.from("employee_registrations").insert(payload).select("id").single();
         if (error) throw error;
+        if (sigFile && data?.id) {
+          const signaturePath = await uploadEmployeeSignature(tenantId, data.id, sigFile);
+          await supabase.from("employee_registrations").update({ signature_storage_path: signaturePath }).eq("id", data.id);
+        }
         toast.success("Cadastrado");
       }
       setOpen(false);
@@ -556,6 +584,8 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
                       setFullName(r.full_name); setCpf(r.cpf); setRg(r.rg); setRgIss(r.rg_issuer);
                       setAdm(fmtIsoDate(r.admission_date)); setJob(r.job_role); setEdu(r.education_level);
                       setSupId(r.supervisor_id || "");
+                      setSigPath(r.signature_storage_path || "");
+                      setSigFile(null);
                       setOpen(true);
                     }}><PencilSimple size={16} /></Button>
                     <Button variant="ghost" size="sm" className="text-red-600" onClick={() => remove(r)}><Trash size={16} /></Button>
@@ -604,6 +634,18 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
                   <p className="text-xs text-slate-500 mt-1">
                     Recomendado: cargo Supervisor, Coordenador, Gerente ou Diretoria.
                   </p>
+                )}
+              </div>
+              <div>
+                <Label>Assinatura (imagem PNG/JPG)</Label>
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="mt-1"
+                  onChange={(e) => setSigFile(e.target.files?.[0] || null)}
+                />
+                {sigPath && !sigFile && (
+                  <p className="text-xs text-slate-500 mt-1">Assinatura guardada no servidor.</p>
                 )}
               </div>
             </div>

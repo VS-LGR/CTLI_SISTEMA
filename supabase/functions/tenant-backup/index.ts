@@ -186,6 +186,7 @@ async function buildBackupZip(
     weight_items: () => admin.from("standard_weight_items").select("*").eq("tenant_id", tenantId),
     env_certs: () => admin.from("environment_sensor_certificates").select("*").eq("tenant_id", tenantId),
     coleta: () => admin.from("scale_calibration_collections").select("*").eq("tenant_id", tenantId),
+    purchase_orders: () => admin.from("purchase_orders").select("*").eq("tenant_id", tenantId),
   };
 
   const exported: Record<string, unknown[]> = {};
@@ -205,6 +206,29 @@ async function buildBackupZip(
   zip.file("cadastros/weight_items.json", JSON.stringify(exported.weight_items, null, 2));
   zip.file("cadastros/env_certs.json", JSON.stringify(exported.env_certs, null, 2));
   zip.file("coleta/collections.json", JSON.stringify(exported.coleta, null, 2));
+
+  const poIds = (exported.purchase_orders || []).map((r: { id: string }) => r.id);
+  let poItems: unknown[] = [];
+  let poInspections: unknown[] = [];
+  let poSignatures: unknown[] = [];
+  if (poIds.length) {
+    const [itemsRes, inspRes, sigsRes] = await Promise.all([
+      admin.from("purchase_order_items").select("*").in("purchase_order_id", poIds),
+      admin.from("purchase_order_inspections").select("*").in("purchase_order_id", poIds),
+      admin.from("purchase_order_signatures").select("*").in("purchase_order_id", poIds),
+    ]);
+    if (itemsRes.error) throw new Error(`Export purchase_order_items: ${itemsRes.error.message}`);
+    if (inspRes.error) throw new Error(`Export purchase_order_inspections: ${inspRes.error.message}`);
+    if (sigsRes.error) throw new Error(`Export purchase_order_signatures: ${sigsRes.error.message}`);
+    poItems = itemsRes.data || [];
+    poInspections = inspRes.data || [];
+    poSignatures = sigsRes.data || [];
+  }
+  zip.folder("pedidos_compra");
+  zip.file("pedidos_compra/orders.json", JSON.stringify(exported.purchase_orders, null, 2));
+  zip.file("pedidos_compra/items.json", JSON.stringify(poItems, null, 2));
+  zip.file("pedidos_compra/inspections.json", JSON.stringify(poInspections, null, 2));
+  zip.file("pedidos_compra/signatures.json", JSON.stringify(poSignatures, null, 2));
 
   const { data: tenantDocs, error: docsErr } = await admin
     .from("tenant_documents")
@@ -249,6 +273,8 @@ async function buildBackupZip(
     (exported.weight_items?.length || 0) +
     (exported.env_certs?.length || 0) +
     (exported.coleta?.length || 0) +
+    (exported.purchase_orders?.length || 0) +
+    poItems.length +
     documents.length +
     (legacy.documents?.length || 0);
 
@@ -268,6 +294,8 @@ async function buildBackupZip(
       weight_items: exported.weight_items?.length || 0,
       env_certs: exported.env_certs?.length || 0,
       coleta: exported.coleta?.length || 0,
+      purchase_orders: exported.purchase_orders?.length || 0,
+      purchase_order_items: poItems.length,
       tenant_documents: documents.length,
       documents: documents.length + (legacy.documents?.length || 0),
       reminders: legacy.reminders?.length || 0,
@@ -281,6 +309,14 @@ async function buildBackupZip(
 }
 
 async function deleteTenantData(admin: SupabaseClient, tenantId: string) {
+  const { data: poRows } = await admin.from("purchase_orders").select("id").eq("tenant_id", tenantId);
+  const poIds = (poRows || []).map((r: { id: string }) => r.id);
+  if (poIds.length) {
+    await admin.from("purchase_order_signatures").delete().in("purchase_order_id", poIds);
+    await admin.from("purchase_order_items").delete().in("purchase_order_id", poIds);
+    await admin.from("purchase_order_inspections").delete().in("purchase_order_id", poIds);
+  }
+  await admin.from("purchase_orders").delete().eq("tenant_id", tenantId);
   await admin.from("scale_calibration_collections").delete().eq("tenant_id", tenantId);
   await admin.from("standard_weight_items").delete().eq("tenant_id", tenantId);
   await admin.from("weight_standard_certificates").delete().eq("tenant_id", tenantId);
@@ -377,6 +413,10 @@ async function restoreFromZip(
   let weightItems = await readJson("cadastros/weight_items.json");
   let envCerts = await readJson("cadastros/env_certs.json");
   let coleta = await readJson("coleta/collections.json");
+  let purchaseOrders = await readJson("pedidos_compra/orders.json");
+  let poItems = await readJson("pedidos_compra/items.json");
+  let poInspections = await readJson("pedidos_compra/inspections.json");
+  let poSignatures = await readJson("pedidos_compra/signatures.json");
 
   if (!replace) {
     responsibles = remapIds(responsibles, idMap);
@@ -387,14 +427,48 @@ async function restoreFromZip(
     weightItems = remapIds(weightItems, idMap);
     envCerts = remapIds(envCerts, idMap);
     coleta = remapIds(coleta, idMap);
+    purchaseOrders = remapIds(purchaseOrders, idMap);
+    poItems = remapIds(poItems, idMap);
+    poInspections = remapIds(poInspections, idMap);
+    poSignatures = remapIds(poSignatures, idMap);
     for (const row of employees) applyIdMap(row, idMap);
     for (const row of weightItems) applyIdMap(row, idMap);
+    for (const row of purchaseOrders) {
+      if (row.supplier_id && idMap.has(row.supplier_id as string)) {
+        row.supplier_id = idMap.get(row.supplier_id as string);
+      }
+      for (const fk of ["requested_by_id", "technical_manager_id", "purchase_responsible_id"]) {
+        if (row[fk] && idMap.has(row[fk] as string)) row[fk] = idMap.get(row[fk] as string);
+      }
+    }
+    for (const row of poItems) {
+      if (row.purchase_order_id && idMap.has(row.purchase_order_id as string)) {
+        row.purchase_order_id = idMap.get(row.purchase_order_id as string);
+      }
+    }
+    for (const row of poInspections) {
+      if (row.purchase_order_id && idMap.has(row.purchase_order_id as string)) {
+        row.purchase_order_id = idMap.get(row.purchase_order_id as string);
+      }
+      if (row.inspection_responsible_id && idMap.has(row.inspection_responsible_id as string)) {
+        row.inspection_responsible_id = idMap.get(row.inspection_responsible_id as string);
+      }
+    }
+    for (const row of poSignatures) {
+      if (row.purchase_order_id && idMap.has(row.purchase_order_id as string)) {
+        row.purchase_order_id = idMap.get(row.purchase_order_id as string);
+      }
+      if (row.employee_id && idMap.has(row.employee_id as string)) {
+        row.employee_id = idMap.get(row.employee_id as string);
+      }
+    }
   }
 
   const counts = {
     responsibles_restored: 0,
     cadastros_restored: 0,
     coleta_restored: 0,
+    purchase_orders_restored: 0,
     storage_files_restored: 0,
     documents_restored: 0,
   };
@@ -428,6 +502,29 @@ async function restoreFromZip(
     const { error } = await admin.from("scale_calibration_collections").insert(rows);
     if (error) throw new Error(`coleta: ${error.message}`);
     counts.coleta_restored = rows.length;
+  }
+
+  if (purchaseOrders.length) {
+    const rows = purchaseOrders.map((r: Record<string, unknown>) => ({
+      ...r,
+      tenant_id: tenantId,
+      client_environment_id: tenantId,
+    }));
+    const { error } = await admin.from("purchase_orders").insert(rows);
+    if (error) throw new Error(`purchase_orders: ${error.message}`);
+    counts.purchase_orders_restored = rows.length;
+  }
+  if (poItems.length) {
+    const { error } = await admin.from("purchase_order_items").insert(poItems);
+    if (error) throw new Error(`purchase_order_items: ${error.message}`);
+  }
+  if (poInspections.length) {
+    const { error } = await admin.from("purchase_order_inspections").insert(poInspections);
+    if (error) throw new Error(`purchase_order_inspections: ${error.message}`);
+  }
+  if (poSignatures.length) {
+    const { error } = await admin.from("purchase_order_signatures").insert(poSignatures);
+    if (error) throw new Error(`purchase_order_signatures: ${error.message}`);
   }
 
   const supabaseDocCounts = await restoreTenantDocuments(admin, tenantId, zip, replace, idMap);

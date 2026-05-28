@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
-  Buildings, CaretRight, ClipboardText, List,
+  Buildings, CaretRight, ClipboardText, List, ShoppingCart,
 } from "@phosphor-icons/react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -14,7 +14,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, canAccessColeta } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, canAccessColeta, canAccessPurchaseOrders } from "@/lib/roles";
+import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -149,6 +150,12 @@ const Layout = () => {
       {!technicianNav && (
         <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard" onClick={onNavigate}>
           <House size={18} weight="duotone" /> Dashboard
+        </NavLink>
+      )}
+
+      {!technicianNav && canAccessPurchaseOrders(user?.role) && (
+        <NavLink to={PEDIDOS_LIST_PATH} className={navLinkClass} data-testid="nav-pedidos-compra" onClick={onNavigate}>
+          <ShoppingCart size={18} weight="duotone" /> Pedidos de Compra
         </NavLink>
       )}
 

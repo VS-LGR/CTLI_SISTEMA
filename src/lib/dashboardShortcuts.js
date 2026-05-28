@@ -1,6 +1,7 @@
-import { canAccessColeta } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders } from "@/lib/roles";
 import { getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
+import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 
 /** Atalhos da dashboard — atualizar `to` e `enabled` quando rotas forem definidas. */
 export const DASHBOARD_SHORTCUTS = [
@@ -12,7 +13,13 @@ export const DASHBOARD_SHORTCUTS = [
     requiresColeta: true,
   },
   { id: "propostas", label: "Propostas", enabled: false },
-  { id: "pedidos-compra", label: "Pedidos de Compra", enabled: false },
+  {
+    id: "pedidos-compra",
+    label: "Pedidos de Compra",
+    to: PEDIDOS_LIST_PATH,
+    enabled: true,
+    requiresPurchaseOrders: true,
+  },
   { id: "solicitacao-orcamento", label: "Solicitação de Orçamento", enabled: false },
   {
     id: "termo-baro-higro",
@@ -56,6 +63,15 @@ export function getVisibleDashboardShortcuts(role) {
         label: item.label,
         active: false,
         disabledReason: "Sem permissão para aceder à coleta",
+      };
+    }
+
+    if (item.requiresPurchaseOrders && !canAccessPurchaseOrders(role)) {
+      return {
+        id: item.id,
+        label: item.label,
+        active: false,
+        disabledReason: "Sem permissão para pedidos de compra",
       };
     }
 

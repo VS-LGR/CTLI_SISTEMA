@@ -10,12 +10,15 @@ import DocumentEditor from "@/pages/DocumentEditor";
 import AdminClients from "@/pages/AdminClients";
 import BackupView from "@/pages/BackupView";
 import CadastrosPage from "@/pages/CadastrosPage";
-import { canAccessColeta, isTechnicianOnlyNav } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, isTechnicianOnlyNav } from "@/lib/roles";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
+import { PEDIDOS_LIST_PATH, PEDIDOS_NEW_PATH, pedidoEditorPath } from "@/lib/pedidosCompraRoutes";
 import "@/App.css";
 
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
+const PedidosCompraPage = lazy(() => import("@/pages/PedidosCompraPage"));
+const PedidoCompraEditorPage = lazy(() => import("@/pages/PedidoCompraEditorPage"));
 
 const coletaSuspenseFallback = (
   <div className="p-8 text-center text-slate-500 text-sm">A carregar…</div>
@@ -27,7 +30,7 @@ const ColetaLegacyRedirect = () => {
   return <Navigate to={coletaEditorPath(id)} replace />;
 };
 
-const Protected = ({ children, adminOnly = false, coletaOnly = false }) => {
+const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOrdersOnly = false }) => {
   const { user } = useAuth();
   const loc = useLocation();
   if (user === null) {
@@ -40,6 +43,9 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false }) => {
     return <Navigate to="/dashboard" replace />;
   }
   if (coletaOnly && !canAccessColeta(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (purchaseOrdersOnly && !canAccessPurchaseOrders(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (isTechnicianOnlyNav(user.role) && !isColetaPath(loc.pathname)) {
@@ -102,6 +108,36 @@ const App = () => (
             />
             <Route path="/coleta" element={<Navigate to={COLETA_LIST_PATH} replace />} />
             <Route path="/coleta/:id" element={<ColetaLegacyRedirect />} />
+            <Route
+              path={PEDIDOS_LIST_PATH}
+              element={(
+                <Protected purchaseOrdersOnly>
+                  <Suspense fallback={coletaSuspenseFallback}>
+                    <PedidosCompraPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path={PEDIDOS_NEW_PATH}
+              element={(
+                <Protected purchaseOrdersOnly>
+                  <Suspense fallback={coletaSuspenseFallback}>
+                    <PedidoCompraEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path={`${PEDIDOS_LIST_PATH}/:id`}
+              element={(
+                <Protected purchaseOrdersOnly>
+                  <Suspense fallback={coletaSuspenseFallback}>
+                    <PedidoCompraEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
             <Route path="/requirement/:id/:folderKey" element={<RequirementView />} />
             <Route path="/requirement/:id" element={<RequirementView />} />
             <Route path="/document/:id" element={<DocumentEditor />} />

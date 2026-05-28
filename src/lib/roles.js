@@ -19,6 +19,17 @@ export const isCtliAdmin = (role) => role === "admin";
 export const canAccessColeta = (role) =>
   ["admin", "client", "tecnico_campo"].includes(role);
 
+/** Pedidos de compra: admin, cliente, gerentes e administrativo/vendas. */
+export const canAccessPurchaseOrders = (role) =>
+  [
+    "admin",
+    "client",
+    "diretor",
+    "gerente_qualidade",
+    "gerente_tecnico",
+    "administrativo_vendas",
+  ].includes(role);
+
 export const canManageTechnicians = (role) =>
   role === "admin" || role === "client";
 

@@ -42,6 +42,17 @@ const AdminClients = () => {
   const [tColetaCode, setTColetaCode] = useState(DEFAULT_COLETA_FORM_CODE);
   const [tColetaTitle, setTColetaTitle] = useState(DEFAULT_COLETA_FORM_TITLE);
   const [tColetaRev, setTColetaRev] = useState(DEFAULT_COLETA_FORM_REVISION);
+  const [tLegalName, setTLegalName] = useState("");
+  const [tTradeName, setTTradeName] = useState("");
+  const [tBillingAddress, setTBillingAddress] = useState("");
+  const [tBillingCep, setTBillingCep] = useState("");
+  const [tBillingCity, setTBillingCity] = useState("");
+  const [tBillingState, setTBillingState] = useState("");
+  const [tBillingPhone, setTBillingPhone] = useState("");
+  const [tBillingEmail, setTBillingEmail] = useState("");
+  const [tBillingCnpj, setTBillingCnpj] = useState("");
+  const [tBillingIe, setTBillingIe] = useState("");
+  const [tEnvResponsible, setTEnvResponsible] = useState("");
 
   const [uTenant, setUTenant] = useState("");
   const [uName, setUName] = useState("");
@@ -65,7 +76,32 @@ const AdminClients = () => {
     setTColetaCode(DEFAULT_COLETA_FORM_CODE);
     setTColetaTitle(DEFAULT_COLETA_FORM_TITLE);
     setTColetaRev(DEFAULT_COLETA_FORM_REVISION);
+    setTLegalName("");
+    setTTradeName("");
+    setTBillingAddress("");
+    setTBillingCep("");
+    setTBillingCity("");
+    setTBillingState("");
+    setTBillingPhone("");
+    setTBillingEmail("");
+    setTBillingCnpj("");
+    setTBillingIe("");
+    setTEnvResponsible("");
   };
+
+  const billingPatch = () => ({
+    legal_name: tLegalName.trim(),
+    trade_name: tTradeName.trim(),
+    billing_address: tBillingAddress.trim(),
+    billing_cep: tBillingCep.trim(),
+    billing_city: tBillingCity.trim(),
+    billing_state: tBillingState.trim(),
+    billing_phone: tBillingPhone.trim(),
+    billing_email: tBillingEmail.trim(),
+    billing_cnpj: tBillingCnpj.trim(),
+    billing_state_registration: tBillingIe.trim(),
+    environment_responsible_name: tEnvResponsible.trim(),
+  });
 
   const resetUserForm = () => {
     setEditingUserId(null);
@@ -180,6 +216,7 @@ const AdminClients = () => {
             coleta_form_code: tColetaCode.trim() || DEFAULT_COLETA_FORM_CODE,
             coleta_form_title: tColetaTitle.trim() || DEFAULT_COLETA_FORM_TITLE,
             coleta_form_revision: tColetaRev.trim() || DEFAULT_COLETA_FORM_REVISION,
+            ...billingPatch(),
           };
           if (logoPath) patch.logo_storage_path = logoPath;
           const { error } = await supabase.from("tenants").update(patch).eq("id", editingTenantId);
@@ -195,6 +232,7 @@ const AdminClients = () => {
               coleta_form_code: tColetaCode.trim() || DEFAULT_COLETA_FORM_CODE,
               coleta_form_title: tColetaTitle.trim() || DEFAULT_COLETA_FORM_TITLE,
               coleta_form_revision: tColetaRev.trim() || DEFAULT_COLETA_FORM_REVISION,
+              ...billingPatch(),
             })
             .select("id")
             .single();
@@ -231,6 +269,17 @@ const AdminClients = () => {
     setTColetaCode(t.coleta_form_code || DEFAULT_COLETA_FORM_CODE);
     setTColetaTitle(t.coleta_form_title || DEFAULT_COLETA_FORM_TITLE);
     setTColetaRev(t.coleta_form_revision || DEFAULT_COLETA_FORM_REVISION);
+    setTLegalName(t.legal_name || "");
+    setTTradeName(t.trade_name || "");
+    setTBillingAddress(t.billing_address || "");
+    setTBillingCep(t.billing_cep || "");
+    setTBillingCity(t.billing_city || "");
+    setTBillingState(t.billing_state || "");
+    setTBillingPhone(t.billing_phone || "");
+    setTBillingEmail(t.billing_email || "");
+    setTBillingCnpj(t.billing_cnpj || "");
+    setTBillingIe(t.billing_state_registration || "");
+    setTEnvResponsible(t.environment_responsible_name || "");
     setTLogoPreview("");
     if (t.logo_storage_path) {
       const { data } = await supabase.storage.from(TENANT_BRANDING_BUCKET).createSignedUrl(t.logo_storage_path, 3600);
@@ -616,6 +665,24 @@ const AdminClients = () => {
                     {tLogoPreview && (
                       <img src={tLogoPreview} alt="Pré-visualização do logo" className="mt-2 h-16 w-auto object-contain border rounded p-1 bg-white" />
                     )}
+                  </div>
+                )}
+                {isSupabaseAuthMode && editingTenantId && (
+                  <div className="border-t pt-3 space-y-3">
+                    <Label className="text-slate-700 font-medium">Dados para faturamento (pedidos de compra)</Label>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <div><Label className="text-xs">Razão social</Label><Input value={tLegalName} onChange={(e) => setTLegalName(e.target.value)} /></div>
+                      <div><Label className="text-xs">Nome fantasia</Label><Input value={tTradeName} onChange={(e) => setTTradeName(e.target.value)} /></div>
+                      <div className="sm:col-span-2"><Label className="text-xs">Endereço</Label><Input value={tBillingAddress} onChange={(e) => setTBillingAddress(e.target.value)} /></div>
+                      <div><Label className="text-xs">CEP</Label><Input value={tBillingCep} onChange={(e) => setTBillingCep(e.target.value)} /></div>
+                      <div><Label className="text-xs">Cidade</Label><Input value={tBillingCity} onChange={(e) => setTBillingCity(e.target.value)} /></div>
+                      <div><Label className="text-xs">UF</Label><Input value={tBillingState} onChange={(e) => setTBillingState(e.target.value)} /></div>
+                      <div><Label className="text-xs">Telefone</Label><Input value={tBillingPhone} onChange={(e) => setTBillingPhone(e.target.value)} /></div>
+                      <div><Label className="text-xs">E-mail</Label><Input value={tBillingEmail} onChange={(e) => setTBillingEmail(e.target.value)} /></div>
+                      <div><Label className="text-xs">CNPJ</Label><Input value={tBillingCnpj} onChange={(e) => setTBillingCnpj(e.target.value)} /></div>
+                      <div><Label className="text-xs">Inscrição estadual</Label><Input value={tBillingIe} onChange={(e) => setTBillingIe(e.target.value)} /></div>
+                      <div className="sm:col-span-2"><Label className="text-xs">Responsável pelo ambiente</Label><Input value={tEnvResponsible} onChange={(e) => setTEnvResponsible(e.target.value)} /></div>
+                    </div>
                   </div>
                 )}
               </div>
