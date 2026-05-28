@@ -8,7 +8,7 @@
 | `/pedidos-compra/nova` | Novo pedido (seleção de tipo) |
 | `/pedidos-compra/:id` | Editor completo |
 
-Definições em `src/lib/pedidosCompraRoutes.js`. Rotas registadas em `src/App.js` (lazy). Atalho na dashboard e item no menu lateral (`Layout.jsx`).
+Definições em `src/lib/pedidosCompraRoutes.js`. Rotas registadas em `src/App.js` (lazy). Acesso principal via PR-6.6 (`PR_66_PEDIDOS_PATH`) e atalho na dashboard.
 
 ## Permissões
 
@@ -40,6 +40,9 @@ Migração: `supabase/migrations/20250627000000_tenant_billing_purchase_orders.s
 
 - `PedidosCompraPage.jsx` — lista
 - `PedidoCompraEditorPage.jsx` — editor (tabs: dados, serviços, inspeção, status)
+- `PurchaseOrderStatusPanel.jsx` — stepper + ações de próximo passo (sem grelha de 9 estados)
+- `purchaseOrderStatusFlow.js` — etapas visuais e rótulos das transições
+- `purchaseOrderInspectionFields.js` — perguntas de inspeção partilhadas (formulário + PDF)
 - `components/purchaseOrders/` — tabela de serviços dinâmica, rodapé de totais, inspeção
 - `hooks/usePurchaseOrderCadastroData.js` — cadastros em paralelo
 
@@ -48,7 +51,14 @@ Migração: `supabase/migrations/20250627000000_tenant_billing_purchase_orders.s
 - Fornecedores → snapshot no pedido
 - Tenant (ambiente) → dados de faturamento (Admin → editar ambiente)
 - Colaboradores → responsáveis + assinatura (`CadastrosPage` → colaboradores)
-- Pesos / certificados / termo → autopreenchimento na tabela de serviços
+- Pesos / certificados / termo → importação parcial na tabela (código do peso preenchido manualmente)
+- Assinatura 2: presets **Compras** ou **Gerente da Qualidade** (sem Vendas)
+
+## PDF
+
+- Título fixo: **Pedido de compras**; tipo de serviço abaixo do título
+- **Emissão** no cabeçalho = versão do formulário (`RE-6.6E Rev. 00`), não data
+- Inspeção: todas as perguntas do tipo, com respostas Sim/Não e responsável
 
 ## Workflow de status
 

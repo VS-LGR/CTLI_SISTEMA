@@ -120,12 +120,12 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0">
-        <Card className="lg:col-span-2 border-slate-200 min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0 items-start">
+        <Card className="lg:col-span-2 border-slate-200 min-w-0 self-start">
           <CardHeader className="pb-2">
             <CardTitle className="font-display text-lg">Distribuição por requisito</CardTitle>
           </CardHeader>
-          <CardContent className="min-w-0 overflow-hidden">
+          <CardContent className="min-w-0 overflow-hidden pt-0 pb-4">
             <DocumentDistributionPie byRequirement={data?.by_requirement || {}} />
           </CardContent>
         </Card>

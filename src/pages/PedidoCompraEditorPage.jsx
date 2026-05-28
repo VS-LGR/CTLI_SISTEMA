@@ -20,16 +20,15 @@ import { jobLabel } from "@/lib/cadastroConstants";
 import { getServiceFieldConfig } from "@/lib/purchaseOrderTypes";
 import {
   PURCHASE_ORDER_TYPES,
-  PURCHASE_ORDER_STATUSES,
   DEFAULT_OBSERVATIONS,
   emptyPurchaseOrderItem,
   emptyInspection,
   getTitleForType,
   formatOrderNumber,
   canEditOrder,
-  canTransitionStatus,
   statusLabel,
 } from "@/lib/purchaseOrderTypes";
+import PurchaseOrderStatusPanel from "@/components/purchaseOrders/PurchaseOrderStatusPanel";
 import { buildSupplierSnapshot } from "@/lib/purchaseOrderSnapshots";
 import { formatDisplayValue } from "@/lib/purchaseOrderCalculations";
 import { Button } from "@/components/ui/button";
@@ -64,7 +63,7 @@ function initialForm(type, tenantId, year, orderNum) {
     purchase_responsible_id: "",
     status: "rascunho",
     order_date: todayIso(),
-    issue_date: todayIso(),
+    issue_date: null,
     payment_terms: "",
     freight_responsibility: "",
     carrier_info: "",
@@ -86,7 +85,7 @@ function employeeOptionLabel(e) {
   return role ? `${e.full_name} (${role})` : e.full_name;
 }
 
-const SLOT2_PRESETS = ["Compras", "Gerente da Qualidade", "Vendas"];
+const SLOT2_PRESETS = ["Compras", "Gerente da Qualidade"];
 
 export default function PedidoCompraEditorPage() {
   const { id } = useParams();
@@ -226,10 +225,6 @@ export default function PedidoCompraEditorPage() {
   };
 
   const changeStatus = async (newStatus) => {
-    if (!canTransitionStatus(form.status, newStatus)) {
-      toast.error("Transição de status não permitida");
-      return;
-    }
     try {
       const updated = await transitionStatus(id, newStatus);
       setForm((f) => ({ ...f, status: updated.status }));
@@ -282,7 +277,7 @@ export default function PedidoCompraEditorPage() {
           });
         }
       }
-      await exportPedidoCompraPdf(full, { logoDataUrl });
+      await exportPedidoCompraPdf(full, { logoDataUrl, employees });
     } catch (e) {
       toast.error(e.message || "Falha no PDF");
     }
@@ -368,7 +363,14 @@ export default function PedidoCompraEditorPage() {
                 <div><Label>Código (RE)</Label><Input className="mt-1" value={form.document_code || ""} disabled={readOnly} onChange={(e) => patchForm({ document_code: e.target.value })} /></div>
                 <div><Label>Referência (PR)</Label><Input className="mt-1" value={form.document_reference || ""} disabled={readOnly} onChange={(e) => patchForm({ document_reference: e.target.value })} /></div>
                 <div><Label>Revisão</Label><Input className="mt-1" value={form.document_revision || ""} disabled={readOnly} onChange={(e) => patchForm({ document_revision: e.target.value })} /></div>
-                <div><Label>Emissão</Label><Input type="date" className="mt-1" value={form.issue_date || ""} disabled={readOnly} onChange={(e) => patchForm({ issue_date: e.target.value })} /></div>
+                <div>
+                  <Label>Emissão (versão do formulário)</Label>
+                  <Input
+                    className="mt-1 bg-slate-50"
+                    readOnly
+                    value={`${form.document_code || "RE-6.6E"} Rev. ${form.document_revision ?? "00"}`}
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -525,21 +527,11 @@ export default function PedidoCompraEditorPage() {
           </TabsContent>
 
           <TabsContent value="status" className="mt-4">
-            <Card className="border-slate-200">
-              <CardContent className="p-5 flex flex-wrap gap-2">
-                {PURCHASE_ORDER_STATUSES.map((s) => (
-                  <Button
-                    key={s.id}
-                    variant={form.status === s.id ? "default" : "outline"}
-                    size="sm"
-                    disabled={isNew || !canTransitionStatus(form.status, s.id)}
-                    onClick={() => !isNew && changeStatus(s.id)}
-                  >
-                    {s.label}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
+            <PurchaseOrderStatusPanel
+              status={form.status}
+              isNew={isNew}
+              onTransition={changeStatus}
+            />
           </TabsContent>
         </Tabs>
       )}

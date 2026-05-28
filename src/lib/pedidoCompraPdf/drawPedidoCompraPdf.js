@@ -106,10 +106,17 @@ function drawHeader(doc, model, logoDataUrl, yStart = 8) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(...TEXT);
-  doc.text(model.header.title || "Pedido de Compra", centerX, y + 7, { align: "center", maxWidth: 90 });
+  doc.text(model.header.displayTitle || "Pedido de compras", centerX, y + 6, { align: "center", maxWidth: 90 });
 
+  if (model.header.typeLabel) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(model.header.typeLabel, centerX, y + 11, { align: "center", maxWidth: 95 });
+  }
+
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text(`Nº do Pedido: ${model.header.orderNumber}`, centerX, y + 14, { align: "center" });
+  doc.text(`Nº do Pedido: ${model.header.orderNumber}`, centerX, y + (model.header.typeLabel ? 16 : 14), { align: "center" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
@@ -118,7 +125,7 @@ function drawHeader(doc, model, logoDataUrl, yStart = 8) {
     `Cód.: ${model.header.code}`,
     `Ref.: ${model.header.reference}`,
     `Rev.: ${model.header.revision}`,
-    `Emissão: ${model.header.issueDate}`,
+    `Emissão: ${model.header.issueEmission}`,
   ];
   for (const line of metaLines) {
     doc.text(line, rightX, ry, { align: "right" });
@@ -155,16 +162,10 @@ function drawTwoColBlock(doc, y, leftTitle, leftLines, rightTitle, rightLines) {
   return y + 36;
 }
 
-export function drawPedidoCompraPdf(order, { logoDataUrl } = {}) {
-  const model = buildPedidoCompraPdfViewModel(order);
+export function drawPedidoCompraPdf(order, { logoDataUrl, employees = [] } = {}) {
+  const model = buildPedidoCompraPdfViewModel(order, { employees });
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = drawHeader(doc, model, logoDataUrl);
-
-  if (model.header.serviceTypeLabel) {
-    doc.setFontSize(7.5);
-    doc.text(model.header.serviceTypeLabel, ML, y);
-    y += 5;
-  }
 
   y = drawTwoColBlock(
     doc,
@@ -247,13 +248,27 @@ export function drawPedidoCompraPdf(order, { logoDataUrl } = {}) {
   doc.text(model.signatures.technicalManager.full_name || "—", ML + sigW / 2, y + 18, { align: "center" });
   doc.text(model.signatures.purchase.full_name || "—", ML + sigW + 8 + sigW / 2, y + 18, { align: "center" });
 
-  if (model.inspection) {
+  if (model.inspectionLines?.length) {
     y += 22;
+    if (y > 250) {
+      doc.addPage();
+      y = drawHeader(doc, model, logoDataUrl, 6) + 4;
+    }
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
     doc.text("Inspeção de recebimento", ML, y);
-    y += 4;
+    y += 5;
     doc.setFont("helvetica", "normal");
-    doc.text(`Resultado: ${model.inspection.result}  |  Data: ${model.inspection.date}`, ML, y);
+    doc.setFontSize(7);
+    for (const line of model.inspectionLines) {
+      if (y > 275) {
+        doc.addPage();
+        y = drawHeader(doc, model, logoDataUrl, 6) + 4;
+      }
+      const wrapped = doc.splitTextToSize(`${line.label}: ${line.value}`, MR - ML);
+      doc.text(wrapped, ML, y);
+      y += wrapped.length * 3.5 + 1;
+    }
   }
 
   if (model.isDraft) drawWatermark(doc, "RASCUNHO");

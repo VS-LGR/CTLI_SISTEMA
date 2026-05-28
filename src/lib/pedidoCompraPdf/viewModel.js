@@ -1,4 +1,5 @@
 import { formatDisplayValue, formatCurrencyBRL } from "../purchaseOrderCalculations";
+import { buildInspectionPdfLines } from "../purchaseOrderInspectionFields";
 import { formatOrderNumber, getTypeMeta } from "../purchaseOrderTypes";
 
 function fmtDate(d) {
@@ -13,7 +14,13 @@ function snapField(obj, key) {
   return formatDisplayValue(obj?.[key]);
 }
 
-export function buildPedidoCompraPdfViewModel(order) {
+function formatIssueEmission(order) {
+  const code = order.document_code || "RE-6.6E";
+  const rev = order.document_revision ?? "00";
+  return `${code} Rev. ${rev}`;
+}
+
+export function buildPedidoCompraPdfViewModel(order, { employees = [] } = {}) {
   const supplier = order.supplier_data_snapshot || {};
   const billing = order.client_environment_data_snapshot || {};
   const typeMeta = getTypeMeta(order.type);
@@ -27,14 +34,14 @@ export function buildPedidoCompraPdfViewModel(order) {
   return {
     isDraft: order.status === "rascunho",
     header: {
-      title: order.title || "Pedido de Compra",
+      displayTitle: "Pedido de compras",
+      typeLabel: typeMeta?.serviceTypeLabel || "",
       orderNumber: formatOrderNumber(order.order_number, order.order_year),
       code: order.document_code || "RE-6.6E",
       revision: order.document_revision || "00",
       reference: order.document_reference || "PR-6.6",
-      issueDate: fmtDate(order.issue_date),
+      issueEmission: formatIssueEmission(order),
       orderDate: fmtDate(order.order_date),
-      serviceTypeLabel: typeMeta?.serviceTypeLabel || "",
     },
     supplier: {
       company: snapField(supplier, "company"),
@@ -105,13 +112,9 @@ export function buildPedidoCompraPdfViewModel(order) {
           || "Compras",
       },
     },
-    inspection: order.inspection
-      ? {
-          result: formatDisplayValue(order.inspection.result),
-          date: fmtDate(order.inspection.inspection_date),
-          notes: formatDisplayValue(order.inspection.notes),
-        }
-      : null,
+    inspectionLines: order.inspection
+      ? buildInspectionPdfLines(order.type, order.inspection, employees)
+      : [],
     type: order.type,
   };
 }

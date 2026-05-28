@@ -53,7 +53,10 @@ export default function DocumentDistributionPie({ byRequirement = {} }) {
       className="flex flex-col lg:flex-row lg:items-center gap-4 min-w-0 w-full"
       data-testid="dashboard-pie-chart"
     >
-      <ChartContainer className="mx-auto w-full max-w-full lg:max-w-none lg:flex-1">
+      <ChartContainer
+        heightClass="h-[200px] sm:h-[220px]"
+        className="mx-auto w-full max-w-full lg:max-w-none lg:flex-1"
+      >
         {({ width, height }) => {
           const { innerRadius, outerRadius } = pieRadii(width, height);
           return (

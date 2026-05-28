@@ -6,10 +6,10 @@ function fileSlug(order) {
 }
 
 /** Carrega jsPDF só ao exportar. */
-export async function exportPedidoCompraPdf(order, { logoDataUrl } = {}) {
+export async function exportPedidoCompraPdf(order, { logoDataUrl, employees = [] } = {}) {
   const { drawPedidoCompraPdf } = await import(
     /* webpackChunkName: "pedido-compra-pdf" */ "./pedidoCompraPdf/drawPedidoCompraPdf"
   );
-  const doc = drawPedidoCompraPdf(order, { logoDataUrl });
+  const doc = drawPedidoCompraPdf(order, { logoDataUrl, employees });
   doc.save(`${fileSlug(order)}.pdf`);
 }

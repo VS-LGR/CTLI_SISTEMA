@@ -49,7 +49,6 @@ export default function PurchaseOrderServicesEditor({
     updateItem(idx, {
       equipment: "Peso-Padrão",
       material: cert?.material || "",
-      identification_codes: w.identification || "",
       nominal_values: `${w.nominal_value || ""} ${w.unit || ""}`.trim(),
       class_text: cert?.class || "",
       linked_weight_ids: [w.id],
@@ -165,6 +164,9 @@ export default function PurchaseOrderServicesEditor({
                             <option key={w.id} value={w.id}>{weightLabel(w)}</option>
                           ))}
                         </select>
+                      )}
+                      {fieldCfg.showWeightPicker && !readOnly && (
+                        <p className="text-[10px] text-slate-500 mb-1">Preencha o código manualmente após importar.</p>
                       )}
                       {cell(idx, "identification_codes")}
                     </td>
