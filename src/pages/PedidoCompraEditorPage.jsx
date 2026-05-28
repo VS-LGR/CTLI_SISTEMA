@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams, useOutletContext, useLocation } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams, useOutletContext } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { canAccessPurchaseOrders } from "@/lib/roles";
@@ -78,9 +78,7 @@ function initialForm(type, tenantId, year, orderNum) {
 
 export default function PedidoCompraEditorPage() {
   const { id } = useParams();
-  const location = useLocation();
-  /** Rota dedicada /pedidos-compra/nova não expõe :id — tratar pathname também */
-  const isNew = !id || id === "nova" || location.pathname.endsWith("/nova");
+  const isNew = id === "nova";
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
@@ -129,12 +127,9 @@ export default function PedidoCompraEditorPage() {
 
   useEffect(() => {
     if (!currentTenantId) return;
-    // #region agent log
-    fetch("http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ba3289" }, body: JSON.stringify({ sessionId: "ba3289", hypothesisId: "A", location: "PedidoCompraEditorPage.jsx:mount", message: "editor route resolved", data: { paramId: id ?? null, pathname: location.pathname, isNew }, timestamp: Date.now() }) }).catch(() => {});
-    // #endregion
     if (isNew) loadNew();
     else loadExisting();
-  }, [isNew, currentTenantId, loadNew, loadExisting, id, location.pathname]);
+  }, [isNew, currentTenantId, loadNew, loadExisting]);
 
   useEffect(() => {
     if (!form || !cadastro.tenant || isNew === false) return;

@@ -472,7 +472,7 @@ const AdminClients = () => {
                 <IdentificationCard size={16} className="mr-1.5" /> Novo responsável
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">
                   {editingRespId ? "Editar responsável" : "Novo responsável"}
@@ -543,7 +543,7 @@ const AdminClients = () => {
                 <UserPlus size={16} className="mr-1.5" /> Novo usuário
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">{editingUserId ? "Editar usuário" : "Novo usuário"}</DialogTitle>
               </DialogHeader>
@@ -624,11 +624,11 @@ const AdminClients = () => {
                 <Plus size={16} className="mr-1.5" /> Novo ambiente
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[calc(100vw-2rem)] max-w-lg sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">{editingTenantId ? "Editar ambiente" : "Novo ambiente"}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-3">
+              <div className="space-y-3 min-w-0">
                 <div>
                   <Label>Nome *</Label>
                   <Input value={tName} onChange={(e) => setTName(e.target.value)} data-testid="tenant-name-input" />
@@ -643,16 +643,16 @@ const AdminClients = () => {
                 </div>
                 <div>
                   <Label className="text-slate-700 font-medium">Formulário RE-7.2A</Label>
-                  <div className="grid sm:grid-cols-3 gap-2 mt-2">
-                    <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                    <div className="min-w-0">
                       <Label className="text-xs">Código</Label>
                       <Input value={tColetaCode} onChange={(e) => setTColetaCode(e.target.value)} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <Label className="text-xs">Título</Label>
                       <Input value={tColetaTitle} onChange={(e) => setTColetaTitle(e.target.value)} />
                     </div>
-                    <div>
+                    <div className="min-w-0 sm:col-span-2 lg:col-span-1">
                       <Label className="text-xs">Revisão / data</Label>
                       <Input value={tColetaRev} onChange={(e) => setTColetaRev(e.target.value)} />
                     </div>
@@ -670,18 +670,53 @@ const AdminClients = () => {
                 {isSupabaseAuthMode && editingTenantId && (
                   <div className="border-t pt-3 space-y-3">
                     <Label className="text-slate-700 font-medium">Dados para faturamento (pedidos de compra)</Label>
-                    <div className="grid sm:grid-cols-2 gap-2">
-                      <div><Label className="text-xs">Razão social</Label><Input value={tLegalName} onChange={(e) => setTLegalName(e.target.value)} /></div>
-                      <div><Label className="text-xs">Nome fantasia</Label><Input value={tTradeName} onChange={(e) => setTTradeName(e.target.value)} /></div>
-                      <div className="sm:col-span-2"><Label className="text-xs">Endereço</Label><Input value={tBillingAddress} onChange={(e) => setTBillingAddress(e.target.value)} /></div>
-                      <div><Label className="text-xs">CEP</Label><Input value={tBillingCep} onChange={(e) => setTBillingCep(e.target.value)} /></div>
-                      <div><Label className="text-xs">Cidade</Label><Input value={tBillingCity} onChange={(e) => setTBillingCity(e.target.value)} /></div>
-                      <div><Label className="text-xs">UF</Label><Input value={tBillingState} onChange={(e) => setTBillingState(e.target.value)} /></div>
-                      <div><Label className="text-xs">Telefone</Label><Input value={tBillingPhone} onChange={(e) => setTBillingPhone(e.target.value)} /></div>
-                      <div><Label className="text-xs">E-mail</Label><Input value={tBillingEmail} onChange={(e) => setTBillingEmail(e.target.value)} /></div>
-                      <div><Label className="text-xs">CNPJ</Label><Input value={tBillingCnpj} onChange={(e) => setTBillingCnpj(e.target.value)} /></div>
-                      <div><Label className="text-xs">Inscrição estadual</Label><Input value={tBillingIe} onChange={(e) => setTBillingIe(e.target.value)} /></div>
-                      <div className="sm:col-span-2"><Label className="text-xs">Responsável pelo ambiente</Label><Input value={tEnvResponsible} onChange={(e) => setTEnvResponsible(e.target.value)} /></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+                      <div className="min-w-0">
+                        <Label className="text-xs">Razão social</Label>
+                        <Input value={tLegalName} onChange={(e) => setTLegalName(e.target.value)} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="text-xs">Nome fantasia</Label>
+                        <Input value={tTradeName} onChange={(e) => setTTradeName(e.target.value)} />
+                      </div>
+                      <div className="min-w-0 sm:col-span-2">
+                        <Label className="text-xs">Endereço</Label>
+                        <Input value={tBillingAddress} onChange={(e) => setTBillingAddress(e.target.value)} />
+                      </div>
+                      <div className="min-w-0 sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="min-w-0">
+                          <Label className="text-xs">CEP</Label>
+                          <Input value={tBillingCep} onChange={(e) => setTBillingCep(e.target.value)} />
+                        </div>
+                        <div className="min-w-0">
+                          <Label className="text-xs">Cidade</Label>
+                          <Input value={tBillingCity} onChange={(e) => setTBillingCity(e.target.value)} />
+                        </div>
+                        <div className="min-w-0">
+                          <Label className="text-xs">UF</Label>
+                          <Input value={tBillingState} onChange={(e) => setTBillingState(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="text-xs">Telefone</Label>
+                        <Input value={tBillingPhone} onChange={(e) => setTBillingPhone(e.target.value)} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="text-xs">E-mail</Label>
+                        <Input value={tBillingEmail} onChange={(e) => setTBillingEmail(e.target.value)} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="text-xs">CNPJ</Label>
+                        <Input value={tBillingCnpj} onChange={(e) => setTBillingCnpj(e.target.value)} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="text-xs">Inscrição estadual</Label>
+                        <Input value={tBillingIe} onChange={(e) => setTBillingIe(e.target.value)} />
+                      </div>
+                      <div className="min-w-0 sm:col-span-2">
+                        <Label className="text-xs">Responsável pelo ambiente</Label>
+                        <Input value={tEnvResponsible} onChange={(e) => setTEnvResponsible(e.target.value)} />
+                      </div>
                     </div>
                   </div>
                 )}
