@@ -12,7 +12,7 @@ import BackupView from "@/pages/BackupView";
 import CadastrosPage from "@/pages/CadastrosPage";
 import { canAccessColeta, canAccessPurchaseOrders, isTechnicianOnlyNav } from "@/lib/roles";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
-import { PEDIDOS_LIST_PATH, PEDIDOS_NEW_PATH, pedidoEditorPath } from "@/lib/pedidosCompraRoutes";
+import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import "@/App.css";
 
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
@@ -114,16 +114,6 @@ const App = () => (
                 <Protected purchaseOrdersOnly>
                   <Suspense fallback={coletaSuspenseFallback}>
                     <PedidosCompraPage />
-                  </Suspense>
-                </Protected>
-              )}
-            />
-            <Route
-              path={PEDIDOS_NEW_PATH}
-              element={(
-                <Protected purchaseOrdersOnly>
-                  <Suspense fallback={coletaSuspenseFallback}>
-                    <PedidoCompraEditorPage />
                   </Suspense>
                 </Protected>
               )}
