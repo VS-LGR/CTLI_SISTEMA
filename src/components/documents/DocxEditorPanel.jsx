@@ -12,9 +12,10 @@ import { relayoutDocxEditor } from "@/lib/docxEditorSave";
 function DocxEditorPanel({
   doc,
   readOnly = false,
-  forceViewing = false,
+  documentMode = "viewing",
   author,
   editorRef: editorRefProp,
+  hostRef: hostRefProp,
   reloadToken = 0,
   onDirtyChange,
   onOriginalBufferLoaded,
@@ -22,7 +23,8 @@ function DocxEditorPanel({
 }) {
   const internalRef = useRef(null);
   const editorRef = editorRefProp || internalRef;
-  const hostRef = useRef(null);
+  const internalHostRef = useRef(null);
+  const hostRef = hostRefProp || internalHostRef;
   const [buffer, setBuffer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -75,9 +77,9 @@ function DocxEditorPanel({
     } else {
       hostRef.current?.classList.remove("docx-printing");
     }
-  }, [printMode]);
+  }, [printMode, hostRef]);
 
-  const editing = !readOnly && !forceViewing && !printMode;
+  const editing = !readOnly && documentMode === "editing" && !printMode;
   const editorMode = editing ? "editing" : "viewing";
 
   if (loading) {
@@ -112,11 +114,11 @@ function DocxEditorPanel({
     >
       <DocxEditor
         ref={editorRef}
-        key={`${doc?.id}-${reloadToken}`}
+        key={`${doc?.id}-${reloadToken}-${documentMode}`}
         documentBuffer={buffer}
         documentName={doc?.title || "Documento"}
         author={author || "Utilizador"}
-        readOnly={!editing}
+        readOnly={readOnly || !editing}
         mode={editorMode}
         showToolbar={editing}
         showZoomControl
@@ -146,7 +148,7 @@ export default React.memo(DocxEditorPanel, (prev, next) => (
   && prev.doc?.has_file === next.doc?.has_file
   && prev.doc?.file_name === next.doc?.file_name
   && prev.readOnly === next.readOnly
-  && prev.forceViewing === next.forceViewing
+  && prev.documentMode === next.documentMode
   && prev.printMode === next.printMode
   && prev.author === next.author
   && prev.reloadToken === next.reloadToken

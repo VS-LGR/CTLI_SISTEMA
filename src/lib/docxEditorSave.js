@@ -1,15 +1,8 @@
 import { saveDocxWithFidelity } from "@/lib/docxSaveFidelity";
 
-/** Gravação simples (legacy). Preferir saveDocxWithFidelity. */
-export async function saveDocxFromEditor(editorRef, options = {}) {
-  if (!editorRef?.current?.save) return null;
-  const selective = options.selective !== false;
-  return editorRef.current.save(selective ? { selective: true } : { selective: false });
-}
-
 export { saveDocxWithFidelity };
 
-/** Abre impressão do editor (PDF fiel). Opcional: callback antes de print. */
+/** Abre impressão do editor (PDF fiel). */
 export function printDocxFromEditor(editorRef, { onBeforePrint } = {}) {
   if (!editorRef?.current?.print) return false;
   try {

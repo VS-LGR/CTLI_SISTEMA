@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useOutletContext, Link, Navigate, useSearchParams } from "react-router-dom";
-import api, { asArray } from "@/lib/api";
+import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
 import {
   REQ_NAMES,
@@ -32,7 +32,6 @@ import {
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/documentExport";
 import { isDocxFile, tryConvertDocxToHtml, uploadSuccessMessage } from "@/lib/docxImport";
-import { downloadProcedureTemplateDocx } from "@/lib/procedureTemplateDocx";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,7 +79,7 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
 
   useEffect(() => {
     if (!open || !tenantId) return;
-    api.get(`/tenants/${tenantId}/responsibles`).then((r) => setResponsibles(asArray(r.data))).catch(() => setResponsibles([]));
+    loadTenantResponsibles(tenantId).then(setResponsibles).catch(() => setResponsibles([]));
   }, [open, tenantId]);
 
   useEffect(() => {
@@ -93,20 +92,6 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
       setFile(null);
     }
   }, [open]);
-
-  const downloadTemplate = async () => {
-    try {
-      const ok = await downloadProcedureTemplateDocx();
-      if (!ok) {
-        toast.info(
-          "Modelo institucional não está no servidor. Peça ao administrador o ficheiro .docx Trevo ou use o seu modelo local.",
-          { duration: 7000 },
-        );
-      }
-    } catch {
-      toast.error("Falha ao descarregar modelo");
-    }
-  };
 
   const save = async () => {
     if (!title.trim()) return toast.error("Informe o título");
@@ -242,15 +227,10 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
               )}
             </div>
             {canImportWord ? (
-              <div className="mt-1.5 space-y-1.5">
-                <p className="text-xs text-slate-500">
-                  Editor Word nativo: envie .docx para abrir no editor (cabeçalho e rodapé preservados).
-                  .doc antigo, PDF e outros ficam só como anexo.
-                </p>
-                <Button type="button" variant="link" size="sm" className="h-auto p-0 text-blue-600" onClick={downloadTemplate}>
-                  <DownloadSimple size={14} className="mr-1" /> Modelo Word (Trevo)
-                </Button>
-              </div>
+              <p className="text-xs text-slate-500 mt-1.5">
+                Editor Word nativo: envie .docx para abrir no editor (cabeçalho e rodapé preservados).
+                .doc antigo, PDF e outros ficam só como anexo.
+              </p>
             ) : (
               <p className="text-xs text-slate-500 mt-1.5">
                 PDF, Word e outros formatos são guardados como ficheiro anexo.
@@ -453,11 +433,11 @@ const DocTable = ({ docs, variant, onUpdate, onDelete, fileOnly = false }) => {
 
 const RequirementView = () => {
   const { id, folderKey } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
-  const folderMode = getFolderDocumentMode(id, folderKey);
-  const visibleSections = getVisibleSections(id, folderKey);
+  const folderMode = useMemo(() => getFolderDocumentMode(id, folderKey), [id, folderKey]);
+  const visibleSections = useMemo(() => getVisibleSections(id, folderKey), [id, folderKey]);
   const defaultSection = folderMode.defaultSection;
   const tabFromUrl = searchParams.get("tab");
   const initialSection = tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)
@@ -505,7 +485,17 @@ const RequirementView = () => {
     if (tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)) {
       setSection(tabFromUrl);
     }
-  }, [tabFromUrl, visibleSections]);
+  }, [tabFromUrl, id, folderKey, visibleSections]);
+
+  const onTabChange = useCallback((next) => {
+    setSection(next);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (next === defaultSection) p.delete("tab");
+      else p.set("tab", next);
+      return p;
+    }, { replace: true });
+  }, [defaultSection, setSearchParams]);
 
   const filteredDocs = useMemo(() => filterBySearch(docs, searchQuery), [docs, searchQuery]);
 
@@ -579,7 +569,7 @@ const RequirementView = () => {
         </div>
       )}
 
-      <Tabs value={section} onValueChange={setSection}>
+      <Tabs value={section} onValueChange={onTabChange}>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <TabsList className="bg-white border border-slate-200">
             {visibleSections.map((s) => (

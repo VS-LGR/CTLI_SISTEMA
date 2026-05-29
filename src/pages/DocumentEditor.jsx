@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef, lazy, Suspense, useMemo } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
-import api, { asArray } from "@/lib/api";
+import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
 import { saveDocxWithFidelity, printDocxFromEditor } from "@/lib/docxEditorSave";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import {
@@ -114,7 +114,7 @@ const DocumentEditor = () => {
   const [responsibles, setResponsibles] = useState([]);
   const [reloadToken, setReloadToken] = useState(0);
   const [docxDirty, setDocxDirty] = useState(false);
-  const [docxEditMode, setDocxEditMode] = useState(false);
+  const [wordDocumentMode, setWordDocumentMode] = useState("viewing");
   const [printMode, setPrintMode] = useState(false);
   const docxEditorRef = useRef(null);
   const originalDocxBufferRef = useRef(null);
@@ -129,8 +129,7 @@ const DocumentEditor = () => {
       }
       if (data?.tenant_id) {
         try {
-          const r = await api.get(`/tenants/${data.tenant_id}/responsibles`);
-          setResponsibles(asArray(r.data));
+          setResponsibles(await loadTenantResponsibles(data.tenant_id));
         } catch { setResponsibles([]); }
       }
     }
@@ -268,6 +267,7 @@ const DocumentEditor = () => {
       const data = await uploadDocumentFile(id, file, user?.id, null);
       setDoc((p) => ({ ...p, ...data }));
       setDocxDirty(false);
+      setWordDocumentMode("viewing");
       setReloadToken((t) => t + 1);
       toast.success(
         "Documento Word carregado. A formatação original mantém-se até editar e salvar.",
@@ -301,14 +301,14 @@ const DocumentEditor = () => {
   const readOnly = viewMode || !canEditRich;
   const authorName = user?.name || user?.email || "Utilizador";
 
-  const forceViewing = canEditRich && doc?.has_file && !docxEditMode && !readOnly;
+  const activeWordMode = readOnly ? "viewing" : wordDocumentMode;
 
   const editorPanelProps = useMemo(() => {
     if (!doc) return null;
     return {
       doc,
       readOnly,
-      forceViewing,
+      documentMode: activeWordMode,
       printMode,
       author: authorName,
       reloadToken,
@@ -317,10 +317,10 @@ const DocumentEditor = () => {
       onOriginalBufferLoaded: (ab) => {
         originalDocxBufferRef.current = ab ? ab.slice(0) : null;
         setDocxDirty(false);
-        setDocxEditMode(!doc.has_file);
+        setWordDocumentMode(doc.has_file ? "viewing" : "editing");
       },
     };
-  }, [doc, readOnly, forceViewing, printMode, authorName, reloadToken]);
+  }, [doc, readOnly, activeWordMode, printMode, authorName, reloadToken]);
 
   if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
 
@@ -455,12 +455,12 @@ const DocumentEditor = () => {
         </Card>
 
         <div className="w-full min-w-0">
-          {canEditRich && forceViewing && (
+          {canEditRich && !readOnly && doc.has_file && wordDocumentMode === "viewing" && (
             <div className="flex justify-end mb-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setDocxEditMode(true)}
+                onClick={() => setWordDocumentMode("editing")}
                 data-testid="docx-start-edit-btn"
               >
                 <PencilSimple size={16} className="mr-1.5" /> Editar Word
