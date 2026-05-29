@@ -1,7 +1,8 @@
-import { canAccessColeta, canAccessPurchaseOrders } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests } from "@/lib/roles";
 import { getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { PR_66_PEDIDOS_PATH } from "@/lib/pedidosCompraRoutes";
+import { PR_66_QUOTATION_PATH } from "@/lib/quotationRequestsRoutes";
 
 /** Atalhos da dashboard — atualizar `to` e `enabled` quando rotas forem definidas. */
 export const DASHBOARD_SHORTCUTS = [
@@ -20,7 +21,13 @@ export const DASHBOARD_SHORTCUTS = [
     enabled: true,
     requiresPurchaseOrders: true,
   },
-  { id: "solicitacao-orcamento", label: "Solicitação de Orçamento", enabled: false },
+  {
+    id: "solicitacao-orcamento",
+    label: "Solicitação de Orçamento",
+    to: PR_66_QUOTATION_PATH,
+    enabled: true,
+    requiresQuotationRequests: true,
+  },
   {
     id: "termo-baro-higro",
     label: "Termo-Baro-Higrometros",
@@ -72,6 +79,15 @@ export function getVisibleDashboardShortcuts(role) {
         label: item.label,
         active: false,
         disabledReason: "Sem permissão para pedidos de compra",
+      };
+    }
+
+    if (item.requiresQuotationRequests && !canAccessQuotationRequests(role)) {
+      return {
+        id: item.id,
+        label: item.label,
+        active: false,
+        disabledReason: "Sem permissão para solicitações de orçamento",
       };
     }
 

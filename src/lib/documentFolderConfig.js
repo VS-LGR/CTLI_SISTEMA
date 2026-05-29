@@ -9,15 +9,17 @@ export const DOCUMENT_SECTIONS = {
   documento: { id: "documento", label: "Documentos" },
   assinatura: { id: "assinatura", label: "Assinaturas" },
   pedidos_compra: { id: "pedidos_compra", label: "Pedidos de compra" },
+  solicitacoes_orcamento: { id: "solicitacoes_orcamento", label: "Solicitações de orçamento" },
 };
 
 /** Pastas com regras especiais (requisito 5). Requisito 4 pr-4-1 usa default (procedimento + registro). */
 const FOLDER_MODES = {
   "pr-6-6": {
-    sections: ["procedimento", "registro", "pedidos_compra"],
+    sections: ["procedimento", "registro", "pedidos_compra", "solicitacoes_orcamento"],
     defaultSection: "procedimento",
     richEditor: true,
     purchaseOrders: true,
+    quotationRequests: true,
   },
   "manual-qualidade": { sections: ["procedimento"], defaultSection: "procedimento", richEditor: true },
   "documentacao-legal": { sections: ["documento"], defaultSection: "documento", richEditor: false, fileOnly: true },
@@ -43,6 +45,10 @@ export function getFolderDocumentMode(requirementId, folderKey) {
 }
 
 export function isPurchaseOrdersFolder(requirementId, folderKey) {
+  return String(requirementId) === "6" && folderKey === "pr-6-6";
+}
+
+export function isQuotationRequestsFolder(requirementId, folderKey) {
   return String(requirementId) === "6" && folderKey === "pr-6-6";
 }
 

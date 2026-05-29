@@ -10,15 +10,18 @@ import DocumentEditor from "@/pages/DocumentEditor";
 import AdminClients from "@/pages/AdminClients";
 import BackupView from "@/pages/BackupView";
 import CadastrosPage from "@/pages/CadastrosPage";
-import { canAccessColeta, canAccessPurchaseOrders, isTechnicianOnlyNav } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, isTechnicianOnlyNav } from "@/lib/roles";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
+import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import "@/App.css";
 
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
 const PedidosCompraPage = lazy(() => import("@/pages/PedidosCompraPage"));
 const PedidoCompraEditorPage = lazy(() => import("@/pages/PedidoCompraEditorPage"));
+const QuotationRequestsPage = lazy(() => import("@/pages/QuotationRequestsPage"));
+const QuotationRequestEditorPage = lazy(() => import("@/pages/QuotationRequestEditorPage"));
 
 const coletaSuspenseFallback = (
   <div className="p-8 text-center text-slate-500 text-sm">A carregar…</div>
@@ -30,7 +33,7 @@ const ColetaLegacyRedirect = () => {
   return <Navigate to={coletaEditorPath(id)} replace />;
 };
 
-const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOrdersOnly = false }) => {
+const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false }) => {
   const { user } = useAuth();
   const loc = useLocation();
   if (user === null) {
@@ -46,6 +49,9 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOr
     return <Navigate to="/dashboard" replace />;
   }
   if (purchaseOrdersOnly && !canAccessPurchaseOrders(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (quotationRequestsOnly && !canAccessQuotationRequests(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (isTechnicianOnlyNav(user.role) && !isColetaPath(loc.pathname)) {
@@ -124,6 +130,26 @@ const App = () => (
                 <Protected purchaseOrdersOnly>
                   <Suspense fallback={coletaSuspenseFallback}>
                     <PedidoCompraEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path={QUOTATION_LIST_PATH}
+              element={(
+                <Protected quotationRequestsOnly>
+                  <Suspense fallback={coletaSuspenseFallback}>
+                    <QuotationRequestsPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path={`${QUOTATION_LIST_PATH}/:id`}
+              element={(
+                <Protected quotationRequestsOnly>
+                  <Suspense fallback={coletaSuspenseFallback}>
+                    <QuotationRequestEditorPage />
                   </Suspense>
                 </Protected>
               )}

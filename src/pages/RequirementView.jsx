@@ -18,6 +18,7 @@ import {
   isPurchaseOrdersFolder,
 } from "@/lib/documentFolderConfig";
 import PurchaseOrdersListPanel from "@/components/purchaseOrders/PurchaseOrdersListPanel";
+import QuotationRequestsListPanel from "@/components/quotationRequests/QuotationRequestsListPanel";
 import {
   listDocuments,
   createDocument,
@@ -528,6 +529,8 @@ const RequirementView = () => {
   const signatures = isSignaturesFolder(id, folderKey);
   const fileOnly = isFileOnlyFolder(id, folderKey);
   const purchaseOrdersTab = isPurchaseOrdersFolder(id, folderKey) && section === "pedidos_compra";
+  const quotationRequestsTab = isPurchaseOrdersFolder(id, folderKey) && section === "solicitacoes_orcamento";
+  const moduleTab = purchaseOrdersTab || quotationRequestsTab;
   const variant = status === "vigente" ? "vigente" : "obsoleto";
   const currentSectionMeta = visibleSections.find((s) => s.id === section);
 
@@ -564,7 +567,7 @@ const RequirementView = () => {
         <p className="text-sm text-slate-600 mt-1">Ambiente: <span className="font-medium">{currentTenant?.name}</span></p>
       </div>
 
-      {!isColetaRegistro && !purchaseOrdersTab && (
+      {!isColetaRegistro && !moduleTab && (
         <div className="relative max-w-md">
           <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input
@@ -584,7 +587,7 @@ const RequirementView = () => {
             ))}
           </TabsList>
 
-          {!isColetaRegistro && !signatures && !purchaseOrdersTab && (
+          {!isColetaRegistro && !signatures && !moduleTab && (
             <div className="flex items-center gap-2 flex-wrap">
               <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5">
                 <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
@@ -613,6 +616,8 @@ const RequirementView = () => {
         <TabsContent value={section} className="mt-4">
           {purchaseOrdersTab ? (
             <PurchaseOrdersListPanel tenantId={currentTenantId} tenant={currentTenant} />
+          ) : quotationRequestsTab ? (
+            <QuotationRequestsListPanel tenantId={currentTenantId} tenant={currentTenant} />
           ) : isColetaRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta…</div>}>
               <ColetaPage embedded />

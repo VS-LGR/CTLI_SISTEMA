@@ -30,6 +30,9 @@ export const canAccessPurchaseOrders = (role) =>
     "administrativo_vendas",
   ].includes(role);
 
+/** Solicitações de orçamento — mesmos papéis que pedidos de compra. */
+export const canAccessQuotationRequests = canAccessPurchaseOrders;
+
 export const canManageTechnicians = (role) =>
   role === "admin" || role === "client";
 
