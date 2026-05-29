@@ -12,16 +12,10 @@ import { orderFinal, orderSubtotal } from "@/lib/purchaseOrderCalculations";
 
 const MAGNITUDES = ["Temperatura", "Umidade", "Pressão atmosférica"];
 
-function weightLabel(w) {
-  return `${w.identification || "—"} — ${w.nominal_value || ""} ${w.unit || ""}`.trim();
-}
-
 export default function PurchaseOrderServicesEditor({
   type,
   items,
   onChange,
-  weights = [],
-  weightCerts = [],
   envCerts = [],
   orderMeta,
   onOrderMetaChange,
@@ -41,20 +35,6 @@ export default function PurchaseOrderServicesEditor({
   const addRow = () => setItems([...items, emptyPurchaseOrderItem(items.length + 1)]);
 
   const removeRow = (idx) => setItems(items.filter((_, i) => i !== idx));
-
-  const applyWeight = (idx, weightId) => {
-    const w = weights.find((x) => x.id === weightId);
-    if (!w) return;
-    const cert = weightCerts.find((c) => c.id === w.weight_certificate_id);
-    updateItem(idx, {
-      equipment: "Peso-Padrão",
-      material: cert?.material || "",
-      nominal_values: `${w.nominal_value || ""} ${w.unit || ""}`.trim(),
-      class_text: cert?.class || "",
-      linked_weight_ids: [w.id],
-      linked_certificate_ids: cert ? [cert.id] : [],
-    });
-  };
 
   const applyEnvCert = (idx, certId) => {
     const c = envCerts.find((x) => x.id === certId);
@@ -152,24 +132,7 @@ export default function PurchaseOrderServicesEditor({
                   <>
                     <td className="p-2">{cell(idx, "equipment")}</td>
                     <td className="p-2">{cell(idx, "material")}</td>
-                    <td className="p-2">
-                      {fieldCfg.showWeightPicker && !readOnly && (
-                        <select
-                          className="w-full border rounded h-9 px-1 text-xs mb-1"
-                          value=""
-                          onChange={(e) => e.target.value && applyWeight(idx, e.target.value)}
-                        >
-                          <option value="">+ importar do cadastro</option>
-                          {weights.map((w) => (
-                            <option key={w.id} value={w.id}>{weightLabel(w)}</option>
-                          ))}
-                        </select>
-                      )}
-                      {fieldCfg.showWeightPicker && !readOnly && (
-                        <p className="text-[10px] text-slate-500 mb-1">Preencha o código manualmente após importar.</p>
-                      )}
-                      {cell(idx, "identification_codes")}
-                    </td>
+                    <td className="p-2">{cell(idx, "identification_codes")}</td>
                     <td className="p-2">{cell(idx, "nominal_values")}</td>
                     <td className="p-2">{cell(idx, type === "compra_pesos" ? "hiring_criteria" : "max_error_uncertainty")}</td>
                   </>

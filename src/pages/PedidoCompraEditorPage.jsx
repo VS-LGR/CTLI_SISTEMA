@@ -25,7 +25,6 @@ import {
   emptyInspection,
   getTitleForType,
   formatOrderNumber,
-  canEditOrder,
   statusLabel,
 } from "@/lib/purchaseOrderTypes";
 import PurchaseOrderStatusPanel from "@/components/purchaseOrders/PurchaseOrderStatusPanel";
@@ -102,7 +101,7 @@ export default function PedidoCompraEditorPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
 
-  const readOnly = form ? !canEditOrder(form.status) : false;
+  const readOnly = false;
 
   const loadNew = useCallback(async () => {
     const type = searchParams.get("type") || "";
@@ -277,7 +276,14 @@ export default function PedidoCompraEditorPage() {
           });
         }
       }
-      await exportPedidoCompraPdf(full, { logoDataUrl, employees });
+      const orderForPdf = {
+        ...full,
+        inspection: full.inspection ?? inspection,
+      };
+      if (!full.inspection && inspection?.result) {
+        toast.info("Inspeção ainda não guardada — incluída no PDF do formulário.");
+      }
+      await exportPedidoCompraPdf(orderForPdf, { logoDataUrl, employees });
     } catch (e) {
       toast.error(e.message || "Falha no PDF");
     }
@@ -328,6 +334,14 @@ export default function PedidoCompraEditorPage() {
           )}
         </div>
       </div>
+
+      {!isNew && form.type && (
+        <PurchaseOrderStatusPanel
+          status={form.status}
+          isNew={false}
+          onTransition={changeStatus}
+        />
+      )}
 
       {isNew && !form.type && (
         <Card className="border-slate-200">
@@ -502,8 +516,6 @@ export default function PedidoCompraEditorPage() {
               type={form.type}
               items={items}
               onChange={setItems}
-              weights={cadastro.weights}
-              weightCerts={cadastro.weightCerts}
               envCerts={cadastro.envCerts}
               orderMeta={form}
               onOrderMetaChange={patchForm}

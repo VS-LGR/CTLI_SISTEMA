@@ -3,7 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { canAccessPurchaseOrders } from "@/lib/roles";
-import { listPurchaseOrders, deletePurchaseOrder, duplicatePurchaseOrder } from "@/lib/purchaseOrdersApi";
+import {
+  listPurchaseOrders,
+  deletePurchaseOrder,
+  duplicatePurchaseOrder,
+  transitionStatus,
+} from "@/lib/purchaseOrdersApi";
+import { usePurchaseOrderCadastroData } from "@/hooks/usePurchaseOrderCadastroData";
+import PurchaseOrderStatusPanel from "@/components/purchaseOrders/PurchaseOrderStatusPanel";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { exportPedidoCompraPdf } from "@/lib/pedidosCompraExport";
 import { PEDIDOS_NEW_PATH, pedidoEditorPath } from "@/lib/pedidosCompraRoutes";
 import {
@@ -19,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, CaretDown, PencilSimple, Trash, FilePdf, Copy } from "@phosphor-icons/react";
+import { Plus, CaretDown, PencilSimple, Trash, FilePdf, Copy, ArrowsClockwise } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
@@ -34,6 +47,10 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ type: "all", status: "all", year: String(new Date().getFullYear()) });
+  const [statusDialogRow, setStatusDialogRow] = useState(null);
+  const [statusChanging, setStatusChanging] = useState(false);
+  const cadastro = usePurchaseOrderCadastroData(tenantId);
+  const employees = cadastro.employees || [];
 
   const load = useCallback(async () => {
     if (!tenantId || !isSupabaseAuthMode) {
@@ -90,7 +107,7 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
       }
       const { getPurchaseOrder } = await import("@/lib/purchaseOrdersApi");
       const full = await getPurchaseOrder(row.id);
-      await exportPedidoCompraPdf(full, { logoDataUrl });
+      await exportPedidoCompraPdf(full, { logoDataUrl, employees });
     } catch (e) {
       toast.error(e.message || "Falha ao exportar PDF");
     }
@@ -104,6 +121,21 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
       nav(pedidoEditorPath(copy.id));
     } catch (e) {
       toast.error(e.message || "Falha ao duplicar");
+    }
+  };
+
+  const changeStatus = async (newStatus) => {
+    if (!statusDialogRow) return;
+    setStatusChanging(true);
+    try {
+      await transitionStatus(statusDialogRow.id, newStatus);
+      toast.success(`Status: ${statusLabel(newStatus)}`);
+      setStatusDialogRow(null);
+      load();
+    } catch (e) {
+      toast.error(e.message || "Falha ao alterar status");
+    } finally {
+      setStatusChanging(false);
     }
   };
 
@@ -188,7 +220,18 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
                   </td>
                   <td className="p-3">{r.order_date || "—"}</td>
                   <td className="p-3">{formatCurrencyBRL(r.final_value)}</td>
-                  <td className="p-3"><Badge variant="outline">{statusLabel(r.status)}</Badge></td>
+                  <td className="p-3">
+                    <button
+                      type="button"
+                      className="inline-flex"
+                      onClick={() => setStatusDialogRow(r)}
+                      title="Alterar status"
+                    >
+                      <Badge variant="outline" className="cursor-pointer hover:bg-slate-100">
+                        {statusLabel(r.status)}
+                      </Badge>
+                    </button>
+                  </td>
                   <td className="p-3 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -197,6 +240,9 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => nav(pedidoEditorPath(r.id))}>
                           <PencilSimple size={16} className="mr-2" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setStatusDialogRow(r)}>
+                          <ArrowsClockwise size={16} className="mr-2" /> Alterar status
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => exportPdf(r)}>
                           <FilePdf size={16} className="mr-2" /> PDF
@@ -216,6 +262,28 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
           </table>
         </div>
       )}
+
+      <Dialog open={Boolean(statusDialogRow)} onOpenChange={(open) => !open && setStatusDialogRow(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Alterar status — {statusDialogRow
+                ? formatOrderNumber(statusDialogRow.order_number, statusDialogRow.order_year)
+                : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {statusDialogRow && (
+            <PurchaseOrderStatusPanel
+              bare
+              compact
+              status={statusDialogRow.status}
+              isNew={false}
+              disabled={statusChanging}
+              onTransition={changeStatus}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

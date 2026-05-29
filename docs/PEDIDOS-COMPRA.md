@@ -39,8 +39,9 @@ Migração: `supabase/migrations/20250627000000_tenant_billing_purchase_orders.s
 ## UI
 
 - `PedidosCompraPage.jsx` — lista
-- `PedidoCompraEditorPage.jsx` — editor (tabs: dados, serviços, inspeção, status)
-- `PurchaseOrderStatusPanel.jsx` — stepper + ações de próximo passo (sem grelha de 9 estados)
+- `PurchaseOrdersListPanel.jsx` — listagem PR-6.6 com alteração de status (badge ou menu)
+- `PedidoCompraEditorPage.jsx` — editor (tabs: dados, serviços, inspeção, status); painel de status no topo
+- `PurchaseOrderStatusPanel.jsx` — stepper + ações de próximo passo
 - `purchaseOrderStatusFlow.js` — etapas visuais e rótulos das transições
 - `purchaseOrderInspectionFields.js` — perguntas de inspeção partilhadas (formulário + PDF)
 - `components/purchaseOrders/` — tabela de serviços dinâmica, rodapé de totais, inspeção
@@ -51,20 +52,30 @@ Migração: `supabase/migrations/20250627000000_tenant_billing_purchase_orders.s
 - Fornecedores → snapshot no pedido
 - Tenant (ambiente) → dados de faturamento (Admin → editar ambiente)
 - Colaboradores → responsáveis + assinatura (`CadastrosPage` → colaboradores)
-- Pesos / certificados / termo → importação parcial na tabela (código do peso preenchido manualmente)
+- Calibração de pesos-padrão: **todos os campos da linha de serviço são manuais** (sem import do cadastro de pesos)
+- Calibração termo/barómetro: import opcional de equipamento na tabela
 - Assinatura 2: presets **Compras** ou **Gerente da Qualidade** (sem Vendas)
 
 ## PDF
 
 - Título fixo: **Pedido de compras**; tipo de serviço abaixo do título
 - **Emissão** no cabeçalho = versão do formulário (`RE-6.6E Rev. 00`), não data
-- Inspeção: todas as perguntas do tipo, com respostas Sim/Não e responsável
+- Ordem: complementos → **inspeção de recebimento** → assinaturas
+- Inspeção: todas as perguntas do tipo (respostas Sim/Não, resultado, responsável, data)
+- Export no editor inclui inspeção do formulário antes de «Guardar inspeção»; persistir na BD recomendado
 
 ## Workflow de status
 
 `rascunho` → `aguardando_aprovacao_tecnica` → `aprovado_tecnicamente` → `enviado_fornecedor` → `aguardando_recebimento` → (`recebido_parcialmente` \| `recebido` \| `reprovado_recebimento`) \| `cancelado`
 
-Após `recebido` / `reprovado_recebimento` / `cancelado`: edição bloqueada (`canEditOrder`).
+**Edição** permitida em qualquer status.
+
+**Reabertura** de estados finais:
+
+- `recebido` / `reprovado_recebimento` → `aguardando_recebimento`
+- `cancelado` → `rascunho`
+
+**Alterar status** na listagem (clique no badge ou menu «Alterar status») ou no topo do editor (tab Status mantém o mesmo painel).
 
 ## Backup tenant
 
@@ -72,10 +83,9 @@ Após `recebido` / `reprovado_recebimento` / `cancelado`: edição bloqueada (`c
 
 ## QA manual sugerido
 
-1. Criar pedido de cada um dos 6 tipos; verificar autopreenchimento a partir de cadastros.
-2. Salvar e reabrir — snapshots de fornecedor/ambiente imutáveis face ao cadastro.
-3. Transições de status e bloqueio pós-recebimento.
-4. Inspeção por tipo; guardar resultado.
-5. Exportar PDF em rascunho (watermark) e após aprovação técnica.
-6. Lista: filtros, duplicar, PDF, mobile (cards sem overflow horizontal).
-7. Admin: dados de faturamento no ambiente; assinatura no colaborador.
+1. Criar pedido de calibração de pesos — códigos só manual; termo com import de equipamento.
+2. Salvar e reabrir — snapshots imutáveis.
+3. Transições de status na lista e no editor; reabrir pedido recebido.
+4. Editar pedido concluído (recebido).
+5. Inspeção → guardar → PDF com secção completa; export sem guardar inspeção no editor.
+6. Lista: filtros, duplicar, PDF, alterar status.

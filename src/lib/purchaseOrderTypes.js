@@ -50,12 +50,10 @@ const STATUS_TRANSITIONS = {
   enviado_fornecedor: ["aguardando_recebimento", "cancelado"],
   aguardando_recebimento: ["recebido_parcialmente", "recebido", "reprovado_recebimento", "cancelado"],
   recebido_parcialmente: ["recebido", "reprovado_recebimento"],
-  recebido: [],
-  reprovado_recebimento: [],
-  cancelado: [],
+  recebido: ["aguardando_recebimento"],
+  reprovado_recebimento: ["aguardando_recebimento"],
+  cancelado: ["rascunho"],
 };
-
-const LOCKED_EDIT_STATUSES = new Set(["recebido", "reprovado_recebimento", "cancelado"]);
 
 export function getTypeMeta(typeId) {
   return PURCHASE_ORDER_TYPES.find((t) => t.id === typeId) || null;
@@ -82,8 +80,8 @@ export function canTransitionStatus(from, to) {
   return (STATUS_TRANSITIONS[from] || []).includes(to);
 }
 
-export function canEditOrder(status) {
-  return !LOCKED_EDIT_STATUSES.has(status);
+export function canEditOrder(_status) {
+  return true;
 }
 
 export function canExportFinal(status) {
@@ -139,7 +137,6 @@ export function getServiceFieldConfig(typeId) {
   return {
     hideExecutionPeriod: isCalibPesos,
     codeFreeTextOnly: isCalibPesos,
-    showWeightPicker: isCalibPesos,
     columns: {
       nominalLabel: isThermo || isPesos
         ? "Valores nominais aproximados a serem calibrados"

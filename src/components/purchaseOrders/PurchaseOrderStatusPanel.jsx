@@ -15,14 +15,15 @@ export default function PurchaseOrderStatusPanel({
   isNew,
   onTransition,
   disabled = false,
+  compact = false,
+  bare = false,
 }) {
   const currentStep = getFlowStepIndex(status);
   const help = getStatusHelp(status);
   const actions = getNextStatusActions(status);
 
-  return (
-    <Card className="border-slate-200">
-      <CardContent className="p-5 space-y-5">
+  const inner = (
+    <div className={bare ? "space-y-5" : "p-5 space-y-5"}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Estado atual</span>
           <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-800 border border-blue-200 px-3 py-1 text-sm font-semibold">
@@ -36,6 +37,7 @@ export default function PurchaseOrderStatusPanel({
           </p>
         )}
 
+        {!compact && (
         <nav aria-label="Fluxo do pedido" className="min-w-0 overflow-x-auto pb-1">
           <ol className="flex items-center gap-0 min-w-max sm:min-w-0 sm:flex-wrap">
             {PURCHASE_ORDER_FLOW_STEPS.map((step, i) => {
@@ -77,6 +79,7 @@ export default function PurchaseOrderStatusPanel({
             })}
           </ol>
         </nav>
+        )}
 
         {isNew ? (
           <p className="text-sm text-slate-500">Guarde o pedido para alterar o status.</p>
@@ -108,7 +111,13 @@ export default function PurchaseOrderStatusPanel({
         ) : (
           <p className="text-sm text-slate-500">Não há transições disponíveis neste estado.</p>
         )}
-      </CardContent>
+    </div>
+  );
+
+  if (bare) return inner;
+  return (
+    <Card className="border-slate-200">
+      <CardContent className="p-0">{inner}</CardContent>
     </Card>
   );
 }

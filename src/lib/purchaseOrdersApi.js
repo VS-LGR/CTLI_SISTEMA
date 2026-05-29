@@ -8,6 +8,7 @@ import {
 import { orderFinal, recalcItem } from "@/lib/purchaseOrderCalculations";
 import {
   DEFAULT_OBSERVATIONS,
+  canTransitionStatus,
   getTitleForType,
 } from "@/lib/purchaseOrderTypes";
 
@@ -230,6 +231,15 @@ export async function refreshSnapshotsFromCadastro(orderId, { supplierId, tenant
 }
 
 export async function transitionStatus(id, newStatus) {
+  const { data: current, error: fetchErr } = await supabase
+    .from("purchase_orders")
+    .select("status")
+    .eq("id", id)
+    .single();
+  if (fetchErr) throw fetchErr;
+  if (!canTransitionStatus(current.status, newStatus)) {
+    throw new Error("Transição de status não permitida");
+  }
   const { error } = await supabase.from("purchase_orders").update({ status: newStatus }).eq("id", id);
   if (error) throw error;
   return getPurchaseOrder(id);

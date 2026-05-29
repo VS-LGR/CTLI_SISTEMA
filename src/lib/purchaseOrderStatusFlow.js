@@ -17,9 +17,9 @@ const STATUS_HELP = {
   enviado_fornecedor: "Pedido enviado ao fornecedor. Aguarde o recebimento dos itens.",
   aguardando_recebimento: "Itens a caminho ou aguardando conferência. Preencha a inspeção antes de encerrar.",
   recebido_parcialmente: "Parte dos itens recebida. Conclua ou reprove conforme necessário.",
-  recebido: "Pedido concluído com sucesso. Edição bloqueada.",
-  reprovado_recebimento: "Recebimento reprovado. Edição bloqueada.",
-  cancelado: "Pedido cancelado. Edição bloqueada.",
+  recebido: "Pedido concluído. Pode reabrir para aguardando recebimento se precisar corrigir.",
+  reprovado_recebimento: "Recebimento reprovado. Pode reabrir para aguardando recebimento.",
+  cancelado: "Pedido cancelado. Pode reabrir para rascunho.",
 };
 
 const ACTION_LABELS = {
@@ -51,6 +51,16 @@ export function getStatusHelp(status) {
   return STATUS_HELP[status] || "";
 }
 
+function getActionLabel(fromStatus, target) {
+  if (target === "aguardando_recebimento" && (fromStatus === "recebido" || fromStatus === "reprovado_recebimento")) {
+    return "Reabrir — aguardando recebimento";
+  }
+  if (target === "rascunho" && fromStatus === "cancelado") {
+    return "Reabrir — rascunho";
+  }
+  return ACTION_LABELS[target] || statusLabel(target);
+}
+
 export function getFlowStepIndex(status) {
   const idx = PURCHASE_ORDER_FLOW_STEPS.findIndex((s) => s.statuses.includes(status));
   return idx >= 0 ? idx : 0;
@@ -70,7 +80,7 @@ export function getNextStatusActions(currentStatus) {
   });
   const actions = allowed.map((target) => ({
     target,
-    label: ACTION_LABELS[target] || statusLabel(target),
+    label: getActionLabel(currentStatus, target),
     variant: target === "cancelado" ? "destructive" : "primary",
   }));
 

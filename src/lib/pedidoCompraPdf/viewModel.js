@@ -112,6 +112,7 @@ export function buildPedidoCompraPdfViewModel(order, { employees = [] } = {}) {
           || "Compras",
       },
     },
+    hasInspection: Boolean(order.inspection),
     inspectionLines: order.inspection
       ? buildInspectionPdfLines(order.type, order.inspection, employees)
       : [],

@@ -232,7 +232,39 @@ export function drawPedidoCompraPdf(order, { logoDataUrl, employees = [] } = {})
   }
 
   y += 4;
+
+  if (model.hasInspection) {
+    if (y > 200) {
+      doc.addPage();
+      y = drawHeader(doc, model, logoDataUrl, 6) + 4;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("Inspeção de recebimento", ML, y);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    const inspLines = model.inspectionLines?.length
+      ? model.inspectionLines
+      : [{ label: "Dados", value: "—" }];
+    for (const line of inspLines) {
+      if (y > 265) {
+        doc.addPage();
+        y = drawHeader(doc, model, logoDataUrl, 6) + 4;
+      }
+      const wrapped = doc.splitTextToSize(`${line.label}: ${line.value}`, MR - ML);
+      doc.text(wrapped, ML, y);
+      y += wrapped.length * 3.5 + 1;
+    }
+    y += 4;
+  }
+
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  if (y > 250) {
+    doc.addPage();
+    y = drawHeader(doc, model, logoDataUrl, 6) + 4;
+  }
   doc.text("Assinaturas", ML, y);
   y += 8;
   doc.setFont("helvetica", "normal");
@@ -247,29 +279,6 @@ export function drawPedidoCompraPdf(order, { logoDataUrl, employees = [] } = {})
   doc.setFontSize(8);
   doc.text(model.signatures.technicalManager.full_name || "—", ML + sigW / 2, y + 18, { align: "center" });
   doc.text(model.signatures.purchase.full_name || "—", ML + sigW + 8 + sigW / 2, y + 18, { align: "center" });
-
-  if (model.inspectionLines?.length) {
-    y += 22;
-    if (y > 250) {
-      doc.addPage();
-      y = drawHeader(doc, model, logoDataUrl, 6) + 4;
-    }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text("Inspeção de recebimento", ML, y);
-    y += 5;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    for (const line of model.inspectionLines) {
-      if (y > 275) {
-        doc.addPage();
-        y = drawHeader(doc, model, logoDataUrl, 6) + 4;
-      }
-      const wrapped = doc.splitTextToSize(`${line.label}: ${line.value}`, MR - ML);
-      doc.text(wrapped, ML, y);
-      y += wrapped.length * 3.5 + 1;
-    }
-  }
 
   if (model.isDraft) drawWatermark(doc, "RASCUNHO");
 
