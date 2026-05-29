@@ -3,7 +3,7 @@ import { CheckCircle, Circle } from "@phosphor-icons/react";
 import { QUOTATION_REQUEST_TYPES } from "@/lib/quotationRequestTypes";
 import { cn } from "@/lib/utils";
 
-export default function QuotationRequestTypeSelector({ sections, onToggle }) {
+export default function QuotationRequestTypeSelector({ sections, onSelect }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {QUOTATION_REQUEST_TYPES.map((typeMeta) => {
@@ -13,7 +13,7 @@ export default function QuotationRequestTypeSelector({ sections, onToggle }) {
           <button
             key={typeMeta.id}
             type="button"
-            onClick={() => onToggle(typeMeta.id, !selected)}
+            onClick={() => onSelect(typeMeta.id)}
             className={cn(
               "flex items-start gap-3 p-4 rounded-xl border text-left transition-colors min-w-0",
               selected

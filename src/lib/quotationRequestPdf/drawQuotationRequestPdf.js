@@ -122,17 +122,6 @@ export function drawQuotationRequestPdf(request, { logoDataUrl } = {}) {
     ["Contato", model.supplier.contact],
   ]);
 
-  y = ensureSpace(doc, y, 20, model, logoDataUrl);
-  y = drawSectionTitle(doc, y, "Tipo(s) de Solicitação de Orçamento");
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  for (const t of model.typeChecklist) {
-    y = ensureSpace(doc, y, 6, model, logoDataUrl);
-    doc.text(`${t.checked ? "☑" : "☐"} ${t.label}`, ML + 2, y);
-    y += 5;
-  }
-  y += 2;
-
   for (const sec of model.sections) {
     y = ensureSpace(doc, y, 25, model, logoDataUrl);
     y = drawSectionTitle(doc, y, sec.title);

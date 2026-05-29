@@ -1,5 +1,5 @@
 import { displayValue, formatDateBr, formatRequestNumber } from "@/lib/quotationRequestDisplay";
-import { getItemColumns, getTypeMeta, QUOTATION_REQUEST_TYPES } from "@/lib/quotationRequestTypes";
+import { getItemColumns, getTypeMeta } from "@/lib/quotationRequestTypes";
 
 function snapField(obj, key) {
   return displayValue(obj?.[key]);
@@ -25,14 +25,6 @@ export function buildQuotationRequestPdfViewModel(request) {
   const supplier = request.supplier_data_snapshot || {};
   const sentBy = request.sent_by_data_snapshot || {};
   const selectedTypes = (request.sections || []).filter((s) => s.is_selected);
-
-  const typeChecklist = QUOTATION_REQUEST_TYPES.map((t) => {
-    const sec = (request.sections || []).find((s) => s.type === t.id);
-    return {
-      label: t.pdfCheckboxLabel,
-      checked: !!sec?.is_selected,
-    };
-  });
 
   const sections = selectedTypes.map((sec) => {
     const meta = getTypeMeta(sec.type);
@@ -87,7 +79,6 @@ export function buildQuotationRequestPdfViewModel(request) {
       email: snapField(supplier, "email"),
       contact: snapField(supplier, "contact"),
     },
-    typeChecklist,
     sections,
     notes: displayValue(request.notes),
   };

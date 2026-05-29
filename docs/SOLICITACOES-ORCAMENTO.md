@@ -27,12 +27,12 @@ Módulo PR-6.6 para criar, editar, listar e exportar solicitações de orçament
 
 `rascunho` → `aguardando_envio` → `enviada_fornecedor` → `orcamento_recebido` → `em_analise` → `aprovada` | `reprovada` | `cancelada`
 
-Após conversão em pedido(s) de compra: `convertida_pedido_compra` (automático quando todos os tipos convertíveis foram convertidos).
+Após conversão em pedido de compra: `convertida_pedido_compra` (automático quando o tipo convertível foi convertido).
 
 ## Conversão → Pedido de Compra
 
 - Disponível **apenas** com status `aprovada`
-- **Um pedido de compra por tipo convertível** selecionado na solicitação
+- **Um pedido de compra por solicitação** (cada solicitação trata de um único tipo)
 - `treinamento` não gera pedido (sem equivalente em RE-6.6E)
 - Campo «Conforme Cotação Nº» no pedido recebe o nº da solicitação (`001/2026`)
 - Pedidos criados em `rascunho` — valores, pagamento e assinaturas são preenchidos no editor do pedido
@@ -54,12 +54,22 @@ Após conversão em pedido(s) de compra: `convertida_pedido_compra` (automático
 - **Ambiente (tenant):** solicitante — snapshot em `client_environment_data_snapshot`
 - **Fornecedores:** `supplier_registrations`
 - **Colaboradores:** «Enviado por»
-- **Calibração/aquisição de pesos:** preenchimento manual (sem import do cadastro)
-- **Termo-baro-higrômetro:** importação em calibração/aquisição TBH
+- **Itens de equipamento (pesos, TBH, etc.):** preenchimento manual — **sem importação** do cadastro de equipamentos
+
+## PR-6.6 — abas de documentos
+
+Procedimentos, Pedidos de compra e Solicitações de orçamento. A aba **Registros** foi removida: os registros do requisito 6 são as próprias solicitações de orçamento e pedidos de compra.
+
+## Seleção de tipo
+
+Cada solicitação permite **apenas um tipo** de orçamento por vez (seleção exclusiva na aba «Tipo e conteúdo»).
 
 ## PDF
 
 - Cabeçalho: logo, título, DATA, Nº, Cód./Ref./Rev./Emissão do modelo
+- Solicitante e fornecedor (snapshots)
+- **Conteúdo por tipo selecionado** (PEP, tabelas de itens, etc.) — sem checklist repetido de todos os tipos
+- Observações gerais (se houver)
 - Snapshots apenas (documentos antigos não mudam se cadastro for alterado)
 - Watermark **RASCUNHO** em status rascunho
 - `displayValue()` evita `#N/D`, `undefined`, `null`, `NaN`

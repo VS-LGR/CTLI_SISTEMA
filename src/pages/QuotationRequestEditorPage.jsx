@@ -23,6 +23,7 @@ import {
 import {
   buildInitialSections,
   emptyQuotationRequestItem,
+  normalizeSingleSelectedSections,
   QUOTATION_REQUEST_TYPES,
 } from "@/lib/quotationRequestTypes";
 import { validateQuotationRequest } from "@/lib/quotationRequestValidations";
@@ -129,11 +130,15 @@ export default function QuotationRequestEditorPage() {
     try {
       const data = await getQuotationRequest(id);
       setForm(data);
-      setSections(data.sections?.length ? data.sections : buildInitialSections());
-      setItems(data.items || []);
+      const rawSections = data.sections?.length ? data.sections : buildInitialSections();
+      const normalizedSections = normalizeSingleSelectedSections(rawSections);
+      setSections(normalizedSections);
+      const keptType = normalizedSections.find((s) => s.is_selected)?.type;
+      setItems(keptType ? (data.items || []).filter((it) => it.section_type === keptType) : []);
       setConversions(data.conversions || []);
+      const selected = normalizedSections.filter((s) => s.is_selected);
       const exp = {};
-      (data.sections || []).filter((s) => s.is_selected).forEach((s) => { exp[s.type] = true; });
+      selected.forEach((s, i) => { exp[s.type] = i === 0; });
       setExpandedTypes(exp);
     } catch {
       toast.error("Solicitação não encontrada");
@@ -182,21 +187,19 @@ export default function QuotationRequestEditorPage() {
     });
   };
 
-  const toggleType = (typeId, checked) => {
-    setSections((prev) => prev.map((s) => (s.type === typeId ? { ...s, is_selected: checked } : s)));
-    setExpandedTypes((prev) => ({ ...prev, [typeId]: checked }));
-    if (checked) {
-      setActiveTab("conteudo");
-      if (!items.some((it) => it.section_type === typeId)) {
-        const meta = QUOTATION_REQUEST_TYPES.find((t) => t.id === typeId);
-        if (meta?.isTableType) {
-          setItems((prev) => [...prev, emptyQuotationRequestItem(typeId, 1)]);
-        }
+  const selectType = (typeId) => {
+    setSections((prev) => prev.map((s) => ({ ...s, is_selected: s.type === typeId })));
+    setExpandedTypes({ [typeId]: true });
+    setActiveTab("conteudo");
+    setItems((prev) => {
+      const forType = prev.filter((it) => it.section_type === typeId);
+      const meta = QUOTATION_REQUEST_TYPES.find((t) => t.id === typeId);
+      if (meta?.isTableType && !forType.length) {
+        return [emptyQuotationRequestItem(typeId, 1)];
       }
-    }
+      return forType;
+    });
   };
-
-  const selectedCount = useMemo(() => sections.filter((s) => s.is_selected).length, [sections]);
 
   const conversionState = useMemo(
     () => (form ? getQuotationConversionState({ ...form, sections }, conversions) : null),
@@ -207,30 +210,35 @@ export default function QuotationRequestEditorPage() {
     if (!id || id === "nova") return;
     const data = await getQuotationRequest(id);
     setForm(data);
-    setSections(data.sections?.length ? data.sections : buildInitialSections());
+    setSections(data.sections?.length ? normalizeSingleSelectedSections(data.sections) : buildInitialSections());
     setItems(data.items || []);
     setConversions(data.conversions || []);
   }, [id]);
 
   const save = async () => {
-    const err = validateQuotationRequest(form, sections, items);
+    const sectionsToSave = normalizeSingleSelectedSections(sections);
+    const selectedType = sectionsToSave.find((s) => s.is_selected)?.type;
+    const itemsToSave = selectedType ? items.filter((it) => it.section_type === selectedType) : items;
+
+    const err = validateQuotationRequest(form, sectionsToSave, itemsToSave);
     if (err) {
       toast.error(err);
       if (!form.supplier_id || !form.sent_by_id) setActiveTab("geral");
-      else if (selectedCount === 0) setActiveTab("conteudo");
+      else if (!selectedType) setActiveTab("conteudo");
       return;
     }
     setSaving(true);
     try {
       if (isNew) {
-        const saved = await createQuotationRequest(currentTenantId, form, sections, items);
+        const saved = await createQuotationRequest(currentTenantId, form, sectionsToSave, itemsToSave);
         toast.success("Solicitação criada");
         nav(quotationEditorPath(saved.id), { replace: true });
       } else {
-        const saved = await updateQuotationRequest(id, { ...form, tenant_id: currentTenantId }, sections, items);
+        const saved = await updateQuotationRequest(id, { ...form, tenant_id: currentTenantId }, sectionsToSave, itemsToSave);
         setForm(saved);
-        setSections(saved.sections);
-        setItems(saved.items);
+        setSections(normalizeSingleSelectedSections(saved.sections));
+        const kept = saved.sections?.find((s) => s.is_selected)?.type;
+        setItems(kept ? (saved.items || []).filter((it) => it.section_type === kept) : []);
         toast.success("Salvo");
       }
     } catch (e) {
@@ -302,7 +310,7 @@ export default function QuotationRequestEditorPage() {
             <Link to={PR_66_QUOTATION_PATH} className="text-xs text-slate-500 hover:text-blue-600 inline-flex items-center gap-1">
               <ArrowLeft size={12} /> Voltar às solicitações
             </Link>
-            <h1 className="font-display text-2xl font-bold text-slate-900 truncate">
+            <h1 className="font-display text-2xl font-bold text-slate-900 truncate min-w-0">
               {isNew ? "Nova solicitação de orçamento" : formatRequestNumber(form.request_number, form.request_year)}
             </h1>
             <p className="text-xs text-slate-500">
@@ -357,12 +365,7 @@ export default function QuotationRequestEditorPage() {
         <TabsList className="w-full sm:w-auto flex flex-wrap h-auto gap-1 bg-white border border-slate-200 p-1 rounded-lg">
           <TabsTrigger value="geral" className="flex-1 sm:flex-none">Dados gerais</TabsTrigger>
           <TabsTrigger value="conteudo" className="flex-1 sm:flex-none">
-            Tipos e conteúdo
-            {selectedCount > 0 && (
-              <span className="ml-1.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5">
-                {selectedCount}
-              </span>
-            )}
+            Tipo e conteúdo
           </TabsTrigger>
           {!isNew && <TabsTrigger value="status" className="flex-1 sm:flex-none">Fluxo e status</TabsTrigger>}
         </TabsList>
@@ -482,20 +485,20 @@ export default function QuotationRequestEditorPage() {
         <TabsContent value="conteudo" className="space-y-5 mt-5">
           <Card className="border-slate-200">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Tipos de solicitação</CardTitle>
+              <CardTitle className="text-base">Tipo de solicitação</CardTitle>
               <p className="text-sm text-slate-500 font-normal mt-1">
-                Selecione um ou mais tipos. O preenchimento técnico aparece abaixo.
+                Escolha um tipo. O preenchimento técnico aparece abaixo.
               </p>
             </CardHeader>
             <CardContent>
-              <QuotationRequestTypeSelector sections={sections} onToggle={toggleType} />
+              <QuotationRequestTypeSelector sections={sections} onSelect={selectType} />
             </CardContent>
           </Card>
 
           {selectedSections.length === 0 ? (
             <div className="text-center py-10 px-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50">
               <p className="text-sm text-slate-600">Nenhum tipo selecionado.</p>
-              <p className="text-xs text-slate-500 mt-1">Marque pelo menos um tipo acima para preencher os dados técnicos.</p>
+              <p className="text-xs text-slate-500 mt-1">Selecione um tipo acima para preencher os dados técnicos.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -504,7 +507,6 @@ export default function QuotationRequestEditorPage() {
                   key={sec.type}
                   section={sec}
                   items={items}
-                  cadastro={cadastro}
                   expanded={expandedTypes[sec.type] !== false}
                   onToggleExpand={() => setExpandedTypes((prev) => ({ ...prev, [sec.type]: !prev[sec.type] }))}
                   onSectionChange={(patch) => {

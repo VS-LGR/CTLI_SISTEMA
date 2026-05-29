@@ -60,7 +60,8 @@ export function validateQuotationRequest(form, sections, items, { forExport = fa
   if (!form.sent_by_id) return "Selecione quem envia (colaborador)";
 
   const selected = (sections || []).filter((s) => s.is_selected);
-  if (!selected.length) return "Selecione pelo menos um tipo de solicitação";
+  if (!selected.length) return "Selecione um tipo de solicitação";
+  if (selected.length > 1) return "Selecione apenas um tipo de solicitação por vez";
 
   for (const sec of selected) {
     const meta = getTypeMeta(sec.type);

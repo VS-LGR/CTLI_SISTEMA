@@ -15,7 +15,7 @@ export const DOCUMENT_SECTIONS = {
 /** Pastas com regras especiais (requisito 5). Requisito 4 pr-4-1 usa default (procedimento + registro). */
 const FOLDER_MODES = {
   "pr-6-6": {
-    sections: ["procedimento", "registro", "pedidos_compra", "solicitacoes_orcamento"],
+    sections: ["procedimento", "pedidos_compra", "solicitacoes_orcamento"],
     defaultSection: "procedimento",
     richEditor: true,
     purchaseOrders: true,

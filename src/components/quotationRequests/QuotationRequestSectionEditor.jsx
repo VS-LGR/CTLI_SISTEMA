@@ -12,7 +12,6 @@ export default function QuotationRequestSectionEditor({
   onSectionChange,
   onItemsChange,
   readOnly = false,
-  cadastro,
   expanded = true,
   onToggleExpand,
 }) {
@@ -22,11 +21,11 @@ export default function QuotationRequestSectionEditor({
   const header = (
     <button
       type="button"
-      className="w-full flex items-center justify-between gap-3 text-left"
+      className="w-full flex items-center justify-between gap-3 text-left min-w-0"
       onClick={onToggleExpand}
     >
       <div>
-        <CardTitle className="text-base font-semibold text-slate-900">{meta?.label}</CardTitle>
+        <CardTitle className="text-base font-semibold text-slate-900 break-words">{meta?.label}</CardTitle>
         <p className="text-xs text-slate-500 mt-0.5">Clique para {expanded ? "recolher" : "expandir"} o preenchimento</p>
       </div>
       {expanded ? <CaretUp size={18} className="text-slate-400 shrink-0" /> : <CaretDown size={18} className="text-slate-400 shrink-0" />}
@@ -81,7 +80,6 @@ export default function QuotationRequestSectionEditor({
               onItemsChange([...other, ...next.map((it) => ({ ...it, section_type: section.type }))]);
             }}
             readOnly={readOnly}
-            cadastro={cadastro}
           />
         </CardContent>
       )}

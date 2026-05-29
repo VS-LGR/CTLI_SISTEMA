@@ -12,43 +12,36 @@ export const QUOTATION_REQUEST_TYPES = [
   {
     id: "ensaio_proficiencia",
     label: "Aquisição de Ensaio de Proficiência",
-    pdfCheckboxLabel: "Aquisição de Ensaio de Proficiência",
     isTableType: false,
   },
   {
     id: "auditoria_interna",
     label: "Aquisição de Auditoria Interna",
-    pdfCheckboxLabel: "Aquisição de Auditoria Interna",
     isTableType: true,
   },
   {
     id: "calibracao_termo_baro_higrometro",
     label: "Calibração de Thermo Baro Higrômetro RBC",
-    pdfCheckboxLabel: "Calibração de Thermo Baro Higrômetro RBC",
     isTableType: true,
   },
   {
     id: "calibracao_pesos_padrao",
     label: "Calibração de Pesos Padrão RBC",
-    pdfCheckboxLabel: "Calibração de Pesos Padrão RBC",
     isTableType: true,
   },
   {
     id: "treinamento",
     label: "Aquisição de Treinamento",
-    pdfCheckboxLabel: "Aquisição de Treinamento",
     isTableType: true,
   },
   {
     id: "aquisicao_termo_baro_higrometro",
     label: "Aquisição de Thermo Baro Higrômetro RBC",
-    pdfCheckboxLabel: "Aquisição de Thermo Baro Higrômetro RBC",
     isTableType: true,
   },
   {
     id: "aquisicao_pesos_padrao",
     label: "Aquisição de Pesos Padrão RBC",
-    pdfCheckboxLabel: "Aquisição de Pesos Padrão RBC",
     isTableType: true,
   },
 ];
@@ -161,6 +154,14 @@ export function buildInitialSections() {
   return QUOTATION_REQUEST_TYPES.map((t) => emptyTypeSection(t.id));
 }
 
+/** Garante no máximo um tipo selecionado (solicitação = um orçamento por vez). */
+export function normalizeSingleSelectedSections(sections) {
+  const selected = (sections || []).filter((s) => s.is_selected);
+  if (selected.length <= 1) return sections || [];
+  const keepType = selected[0].type;
+  return sections.map((s) => ({ ...s, is_selected: s.type === keepType }));
+}
+
 /** Colunas da tabela de itens por tipo (UI + PDF). */
 export function getItemColumns(typeId) {
   switch (typeId) {
@@ -216,6 +217,3 @@ export function getItemColumns(typeId) {
   }
 }
 
-export function usesEnvCertPicker(typeId) {
-  return typeId === "calibracao_termo_baro_higrometro" || typeId === "aquisicao_termo_baro_higrometro";
-}
