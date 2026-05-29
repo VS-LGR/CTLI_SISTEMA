@@ -1,8 +1,10 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
-import { usesEnvCertPicker, usesWeightPicker } from "@/lib/quotationRequestTypes";
+import { Database } from "@phosphor-icons/react";
 import { defaultOimlCriteria } from "@/lib/quotationRequestDefaults";
 import { ENV_EQUIPMENT_TYPES } from "@/lib/cadastroConstants";
+import { usesEnvCertPicker, usesWeightPicker } from "@/lib/quotationRequestTypes";
+import { selectClass } from "@/components/quotationRequests/QuotationRequestItemsTable";
 
 function envTypeLabel(v) {
   return ENV_EQUIPMENT_TYPES.find((t) => t.value === v)?.label || v || "";
@@ -57,11 +59,14 @@ export default function QuotationEquipmentPicker({ sectionType, cadastro, onImpo
   };
 
   return (
-    <div className="flex flex-wrap items-end gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-      <Label className="text-xs text-slate-600 w-full">Importar do cadastro</Label>
+    <div className="rounded-lg border border-dashed border-blue-200 bg-blue-50/40 p-4 space-y-3">
+      <Label className="text-xs font-semibold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
+        <Database size={14} /> Importar do cadastro
+      </Label>
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2">
       {showWeights && (
         <select
-          className="h-9 border border-slate-200 rounded-md px-2 text-sm bg-white min-w-[200px]"
+          className={`${selectClass} sm:min-w-[220px] flex-1`}
           defaultValue=""
           onChange={(e) => {
             if (e.target.value) importWeight(e.target.value);
@@ -76,7 +81,7 @@ export default function QuotationEquipmentPicker({ sectionType, cadastro, onImpo
       )}
       {showEnv && (
         <select
-          className="h-9 border border-slate-200 rounded-md px-2 text-sm bg-white min-w-[200px]"
+          className={`${selectClass} sm:min-w-[220px] flex-1`}
           defaultValue=""
           onChange={(e) => {
             if (e.target.value) importEnvCert(e.target.value);
@@ -89,6 +94,7 @@ export default function QuotationEquipmentPicker({ sectionType, cadastro, onImpo
           ))}
         </select>
       )}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useOutletContext } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { canAccessQuotationRequests } from "@/lib/roles";
@@ -30,12 +30,14 @@ import { DOCUMENT_MODEL_ISSUE_DATE } from "@/lib/quotationRequestDefaults";
 import { formatRequestNumber } from "@/lib/quotationRequestDisplay";
 import QuotationRequestStatusPanel from "@/components/quotationRequests/QuotationRequestStatusPanel";
 import QuotationRequestSectionEditor from "@/components/quotationRequests/QuotationRequestSectionEditor";
+import QuotationRequestTypeSelector from "@/components/quotationRequests/QuotationRequestTypeSelector";
+import { selectClass } from "@/components/quotationRequests/QuotationRequestItemsTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FloppyDisk, FilePdf, Copy } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, FilePdf, Copy, Buildings, Truck } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
@@ -70,6 +72,25 @@ function employeeOptionLabel(e) {
   return role ? `${e.full_name} (${role})` : e.full_name;
 }
 
+function PartyPreview({ icon: Icon, title, lines }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 space-y-2 min-w-0">
+      <div className="flex items-center gap-2 text-slate-700">
+        <Icon size={18} className="text-blue-600 shrink-0" />
+        <span className="text-xs font-semibold uppercase tracking-wide">{title}</span>
+      </div>
+      <dl className="space-y-1.5 text-sm">
+        {lines.map(({ label, value }) => (
+          <div key={label} className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 min-w-0">
+            <dt className="text-slate-500 shrink-0">{label}</dt>
+            <dd className="text-slate-800 break-words">{value || "—"}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 export default function QuotationRequestEditorPage() {
   const { id } = useParams();
   const isNew = id === "nova";
@@ -83,7 +104,8 @@ export default function QuotationRequestEditorPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("dados");
+  const [activeTab, setActiveTab] = useState("geral");
+  const [expandedTypes, setExpandedTypes] = useState({});
 
   const loadNew = useCallback(async () => {
     const year = new Date().getFullYear();
@@ -104,6 +126,9 @@ export default function QuotationRequestEditorPage() {
       setForm(data);
       setSections(data.sections?.length ? data.sections : buildInitialSections());
       setItems(data.items || []);
+      const exp = {};
+      (data.sections || []).filter((s) => s.is_selected).forEach((s) => { exp[s.type] = true; });
+      setExpandedTypes(exp);
     } catch {
       toast.error("Solicitação não encontrada");
       nav(PR_66_QUOTATION_PATH);
@@ -153,18 +178,26 @@ export default function QuotationRequestEditorPage() {
 
   const toggleType = (typeId, checked) => {
     setSections((prev) => prev.map((s) => (s.type === typeId ? { ...s, is_selected: checked } : s)));
-    if (checked && !items.some((it) => it.section_type === typeId)) {
-      const meta = QUOTATION_REQUEST_TYPES.find((t) => t.id === typeId);
-      if (meta?.isTableType) {
-        setItems((prev) => [...prev, emptyQuotationRequestItem(typeId, 1)]);
+    setExpandedTypes((prev) => ({ ...prev, [typeId]: checked }));
+    if (checked) {
+      setActiveTab("conteudo");
+      if (!items.some((it) => it.section_type === typeId)) {
+        const meta = QUOTATION_REQUEST_TYPES.find((t) => t.id === typeId);
+        if (meta?.isTableType) {
+          setItems((prev) => [...prev, emptyQuotationRequestItem(typeId, 1)]);
+        }
       }
     }
   };
+
+  const selectedCount = useMemo(() => sections.filter((s) => s.is_selected).length, [sections]);
 
   const save = async () => {
     const err = validateQuotationRequest(form, sections, items);
     if (err) {
       toast.error(err);
+      if (!form.supplier_id || !form.sent_by_id) setActiveTab("geral");
+      else if (selectedCount === 0) setActiveTab("conteudo");
       return;
     }
     setSaving(true);
@@ -237,156 +270,235 @@ export default function QuotationRequestEditorPage() {
 
   const selectedSections = sections.filter((s) => s.is_selected);
   const client = form.client_environment_data_snapshot || {};
+  const supplier = form.supplier_data_snapshot || {};
+  const sentBy = form.sent_by_data_snapshot || {};
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to={PR_66_QUOTATION_PATH}><ArrowLeft size={20} /></Link>
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 truncate">
-              {isNew ? "Nova solicitação" : formatRequestNumber(form.request_number, form.request_year)}
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5 min-w-0" data-testid="quotation-request-editor">
+      {/* Cabeçalho */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 space-y-1">
+            <Link to={PR_66_QUOTATION_PATH} className="text-xs text-slate-500 hover:text-blue-600 inline-flex items-center gap-1">
+              <ArrowLeft size={12} /> Voltar às solicitações
+            </Link>
+            <h1 className="font-display text-2xl font-bold text-slate-900 truncate">
+              {isNew ? "Nova solicitação de orçamento" : formatRequestNumber(form.request_number, form.request_year)}
             </h1>
-            <p className="text-xs text-slate-500">RE-6.6C · Emissão do modelo 30/06/2025</p>
+            <p className="text-xs text-slate-500">
+              {form.document_code} · {form.document_reference} · Rev. {form.document_revision} · Emissão do modelo 30/06/2025
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={exportPdf}>
+              <FilePdf size={16} className="mr-1.5" /> PDF
+            </Button>
+            {!isNew && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const copy = await duplicateQuotationRequest(id);
+                    nav(quotationEditorPath(copy.id));
+                  } catch (e) {
+                    toast.error(e.message);
+                  }
+                }}
+              >
+                <Copy size={16} className="mr-1.5" /> Duplicar
+              </Button>
+            )}
+            <Button size="sm" onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+              <FloppyDisk size={16} className="mr-1.5" /> {saving ? "Salvando…" : "Salvar"}
+            </Button>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={exportPdf}><FilePdf size={16} className="mr-1.5" /> PDF</Button>
-          {!isNew && (
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  const copy = await duplicateQuotationRequest(id);
-                  nav(quotationEditorPath(copy.id));
-                } catch (e) {
-                  toast.error(e.message);
-                }
-              }}
-            >
-              <Copy size={16} className="mr-1.5" /> Duplicar
-            </Button>
-          )}
-          <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
-            <FloppyDisk size={16} className="mr-1.5" /> {saving ? "Salvando…" : "Salvar"}
-          </Button>
-        </div>
+
+        <QuotationRequestStatusPanel
+          layout="inline"
+          status={form.status}
+          isNew={isNew}
+          onTransition={onStatusTransition}
+          disabled={saving}
+        />
       </div>
 
-      <QuotationRequestStatusPanel status={form.status} isNew={isNew} onTransition={onStatusTransition} disabled={saving} />
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="dados">Dados</TabsTrigger>
-          <TabsTrigger value="tipos">Tipos</TabsTrigger>
-          {selectedSections.map((s) => (
-            <TabsTrigger key={s.type} value={s.type}>
-              {QUOTATION_REQUEST_TYPES.find((t) => t.id === s.type)?.label.split(" ").slice(0, 2).join(" ")}
-            </TabsTrigger>
-          ))}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
+        <TabsList className="w-full sm:w-auto flex flex-wrap h-auto gap-1 bg-white border border-slate-200 p-1 rounded-lg">
+          <TabsTrigger value="geral" className="flex-1 sm:flex-none">Dados gerais</TabsTrigger>
+          <TabsTrigger value="conteudo" className="flex-1 sm:flex-none">
+            Tipos e conteúdo
+            {selectedCount > 0 && (
+              <span className="ml-1.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5">
+                {selectedCount}
+              </span>
+            )}
+          </TabsTrigger>
+          {!isNew && <TabsTrigger value="status" className="flex-1 sm:flex-none">Fluxo e status</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="dados" className="space-y-4 mt-4">
+        <TabsContent value="geral" className="space-y-4 mt-5">
           <Card className="border-slate-200">
-            <CardHeader><CardTitle className="text-base">Identificação</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <Label>Número</Label>
-                <Input type="number" min={1} value={form.request_number} onChange={(e) => patchForm({ request_number: Number(e.target.value) })} />
-              </div>
-              <div>
-                <Label>Ano</Label>
-                <Input type="number" value={form.request_year} onChange={(e) => patchForm({ request_year: Number(e.target.value) })} />
-              </div>
-              <div>
-                <Label>Data da solicitação</Label>
-                <Input type="date" value={form.request_date || ""} onChange={(e) => patchForm({ request_date: e.target.value })} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardHeader><CardTitle className="text-base">Solicitante (ambiente)</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
-              <div><span className="text-slate-500">Razão Social:</span> {client.legal_name || "—"}</div>
-              <div><span className="text-slate-500">CNPJ:</span> {client.cnpj || "—"}</div>
-              <div className="sm:col-span-2"><span className="text-slate-500">Endereço:</span> {client.address || "—"}</div>
-              <div><span className="text-slate-500">Fone:</span> {client.phone || "—"}</div>
-              <div><span className="text-slate-500">E-mail:</span> {client.email || "—"}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Fornecedor</Label>
-                <select
-                  className="w-full h-10 border border-slate-200 rounded-md px-3 mt-1 text-sm bg-white"
-                  value={form.supplier_id || ""}
-                  onChange={(e) => onSupplierChange(e.target.value)}
-                >
-                  <option value="">Selecione…</option>
-                  {cadastro.suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>Enviado por</Label>
-                <select
-                  className="w-full h-10 border border-slate-200 rounded-md px-3 mt-1 text-sm bg-white"
-                  value={form.sent_by_id || ""}
-                  onChange={(e) => onSentByChange(e.target.value)}
-                >
-                  <option value="">Selecione…</option>
-                  {cadastro.employees.map((e) => (
-                    <option key={e.id} value={e.id}>{employeeOptionLabel(e)}</option>
-                  ))}
-                </select>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Identificação da solicitação</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="sm:col-span-2">
+                <Label className="text-xs text-slate-500">Nº da solicitação</Label>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-24 h-10 font-mono"
+                    value={form.request_number}
+                    onChange={(e) => patchForm({ request_number: Number(e.target.value) })}
+                  />
+                  <span className="text-slate-400 font-medium">/</span>
+                  <Input
+                    type="number"
+                    className="w-24 h-10 font-mono"
+                    value={form.request_year}
+                    onChange={(e) => patchForm({ request_year: Number(e.target.value) })}
+                  />
+                  <span className="text-sm text-slate-500 hidden sm:inline">
+                    → {formatRequestNumber(form.request_number, form.request_year)}
+                  </span>
+                </div>
               </div>
               <div className="sm:col-span-2">
-                <Label>Observações</Label>
-                <textarea
-                  className="mt-1 w-full min-h-[72px] border border-slate-200 rounded-md px-3 py-2 text-sm"
-                  value={form.notes || ""}
-                  onChange={(e) => patchForm({ notes: e.target.value })}
+                <Label className="text-xs text-slate-500">Data da solicitação</Label>
+                <Input
+                  type="date"
+                  className="mt-1.5 h-10"
+                  value={form.request_date || ""}
+                  onChange={(e) => patchForm({ request_date: e.target.value })}
                 />
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="tipos" className="mt-4 space-y-3">
-          {sections.map((sec) => (
-            <label key={sec.type} className="flex items-start gap-3 p-3 border border-slate-200 rounded-lg bg-white cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={!!sec.is_selected}
-                onChange={(e) => toggleType(sec.type, e.target.checked)}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Fornecedor e envio</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-xs text-slate-500">Fornecedor *</Label>
+                  <select
+                    className={`${selectClass} mt-1.5`}
+                    value={form.supplier_id || ""}
+                    onChange={(e) => onSupplierChange(e.target.value)}
+                  >
+                    <option value="">Selecione o fornecedor…</option>
+                    {cadastro.suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500">Enviado por *</Label>
+                  <select
+                    className={`${selectClass} mt-1.5`}
+                    value={form.sent_by_id || ""}
+                    onChange={(e) => onSentByChange(e.target.value)}
+                  >
+                    <option value="">Selecione o colaborador…</option>
+                    {cadastro.employees.map((e) => (
+                      <option key={e.id} value={e.id}>{employeeOptionLabel(e)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500">Observações gerais</Label>
+                  <textarea
+                    className="mt-1.5 w-full min-h-[80px] border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    value={form.notes || ""}
+                    placeholder="Informações adicionais para o PDF…"
+                    onChange={(e) => patchForm({ notes: e.target.value })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4">
+              <PartyPreview
+                icon={Buildings}
+                title="Solicitante"
+                lines={[
+                  { label: "Razão social", value: client.legal_name },
+                  { label: "CNPJ", value: client.cnpj },
+                  { label: "Endereço", value: client.address },
+                  { label: "Contato", value: [client.phone, client.email].filter(Boolean).join(" · ") },
+                  { label: "Enviado por", value: sentBy.full_name },
+                ]}
               />
-              <span className="text-sm font-medium text-slate-800">
-                {QUOTATION_REQUEST_TYPES.find((t) => t.id === sec.type)?.label}
-              </span>
-            </label>
-          ))}
+              {form.supplier_id && (
+                <PartyPreview
+                  icon={Truck}
+                  title="Fornecedor (pré-visualização)"
+                  lines={[
+                    { label: "Empresa", value: supplier.company },
+                    { label: "CNPJ", value: supplier.cnpj },
+                    { label: "Endereço", value: supplier.address },
+                    { label: "Contato", value: [supplier.contact, supplier.phone, supplier.email].filter(Boolean).join(" · ") },
+                  ]}
+                />
+              )}
+            </div>
+          </div>
         </TabsContent>
 
-        {selectedSections.map((sec) => (
-          <TabsContent key={sec.type} value={sec.type} className="mt-4">
-            <QuotationRequestSectionEditor
-              section={sec}
-              items={items}
-              cadastro={cadastro}
-              onSectionChange={(patch) => {
-                setSections((prev) => prev.map((s) => (s.type === sec.type ? { ...s, ...patch } : s)));
-              }}
-              onItemsChange={setItems}
+        <TabsContent value="conteudo" className="space-y-5 mt-5">
+          <Card className="border-slate-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Tipos de solicitação</CardTitle>
+              <p className="text-sm text-slate-500 font-normal mt-1">
+                Selecione um ou mais tipos. O preenchimento técnico aparece abaixo.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <QuotationRequestTypeSelector sections={sections} onToggle={toggleType} />
+            </CardContent>
+          </Card>
+
+          {selectedSections.length === 0 ? (
+            <div className="text-center py-10 px-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50">
+              <p className="text-sm text-slate-600">Nenhum tipo selecionado.</p>
+              <p className="text-xs text-slate-500 mt-1">Marque pelo menos um tipo acima para preencher os dados técnicos.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {selectedSections.map((sec) => (
+                <QuotationRequestSectionEditor
+                  key={sec.type}
+                  section={sec}
+                  items={items}
+                  cadastro={cadastro}
+                  expanded={expandedTypes[sec.type] !== false}
+                  onToggleExpand={() => setExpandedTypes((prev) => ({ ...prev, [sec.type]: !prev[sec.type] }))}
+                  onSectionChange={(patch) => {
+                    setSections((prev) => prev.map((s) => (s.type === sec.type ? { ...s, ...patch } : s)));
+                  }}
+                  onItemsChange={setItems}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {!isNew && (
+          <TabsContent value="status" className="mt-5">
+            <QuotationRequestStatusPanel
+              layout="full"
+              status={form.status}
+              isNew={false}
+              onTransition={onStatusTransition}
+              disabled={saving}
             />
           </TabsContent>
-        ))}
+        )}
       </Tabs>
     </div>
   );
