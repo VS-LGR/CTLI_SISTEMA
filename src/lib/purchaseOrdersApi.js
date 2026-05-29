@@ -155,21 +155,30 @@ function buildOrderPayload(form, tenantId, items) {
     document_reference: form.document_reference || "PR-6.6",
     signature_slot_1_label: form.signature_slot_1_label || "Gerente Técnico",
     signature_slot_2_label: form.signature_slot_2_label || "Compras",
+    quotation_request_id: form.quotation_request_id || null,
   };
 }
 
 export async function createPurchaseOrder(tenantId, form, items = []) {
   assertSupabasePurchaseOrders();
-  const tenant = await loadTenant(tenantId);
-  const supplier = await loadSupplier(form.supplier_id);
+  const preserveSnapshots = !!form.preserveSnapshots;
+  const hasClientSnap = Object.keys(form.client_environment_data_snapshot || {}).length > 0;
+  const hasSupplierSnap = Object.keys(form.supplier_data_snapshot || {}).length > 0;
+  const tenant = (!preserveSnapshots || !hasClientSnap) ? await loadTenant(tenantId) : null;
+  const supplier = (!preserveSnapshots || !hasSupplierSnap) ? await loadSupplier(form.supplier_id) : null;
 
   const enrichedForm = {
     ...form,
-    client_environment_id: tenantId,
-    client_environment_data_snapshot: buildClientEnvironmentSnapshot(tenant),
-    supplier_data_snapshot: supplier ? buildSupplierSnapshot(supplier) : (form.supplier_data_snapshot || {}),
+    client_environment_id: form.client_environment_id || tenantId,
+    client_environment_data_snapshot: preserveSnapshots && hasClientSnap
+      ? form.client_environment_data_snapshot
+      : buildClientEnvironmentSnapshot(tenant),
+    supplier_data_snapshot: preserveSnapshots && hasSupplierSnap
+      ? form.supplier_data_snapshot
+      : (supplier ? buildSupplierSnapshot(supplier) : (form.supplier_data_snapshot || {})),
     title: form.title || getTitleForType(form.type),
   };
+  delete enrichedForm.preserveSnapshots;
 
   const dbItems = mapItemsForDb(items);
   const payload = buildOrderPayload(enrichedForm, tenantId, dbItems);

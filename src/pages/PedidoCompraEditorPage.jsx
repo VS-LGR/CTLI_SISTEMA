@@ -16,6 +16,7 @@ import {
 } from "@/lib/purchaseOrdersApi";
 import { exportPedidoCompraPdf } from "@/lib/pedidosCompraExport";
 import { PR_66_PEDIDOS_PATH, PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
+import { quotationEditorPath } from "@/lib/quotationRequestsRoutes";
 import { jobLabel } from "@/lib/cadastroConstants";
 import { getServiceFieldConfig } from "@/lib/purchaseOrderTypes";
 import {
@@ -35,7 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FloppyDisk, FilePdf, Copy } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, FilePdf, Copy, ArrowSquareOut } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PurchaseOrderServicesEditor from "@/components/purchaseOrders/PurchaseOrderServicesEditor";
 import PurchaseOrderInspectionForm from "@/components/purchaseOrders/PurchaseOrderInspectionForm";
@@ -315,6 +316,15 @@ export default function PedidoCompraEditorPage() {
             {isNew ? "Novo pedido" : formatOrderNumber(form.order_number, form.order_year)}
           </h1>
           <p className="text-sm text-slate-600">{statusLabel(form.status)}</p>
+          {form.quotation_request_id && (
+            <Link
+              to={quotationEditorPath(form.quotation_request_id)}
+              className="inline-flex items-center gap-1.5 text-sm text-blue-700 hover:underline mt-1"
+            >
+              Origem: Solicitação {form.quotation_number || "—"}
+              <ArrowSquareOut size={14} />
+            </Link>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {!readOnly && (

@@ -16,7 +16,7 @@ const STATUS_HELP = {
   em_analise: "Orçamento em análise interna.",
   aprovada: "Solicitação aprovada.",
   reprovada: "Solicitação reprovada.",
-  convertida_pedido_compra: "Convertida em pedido de compra (fase 2).",
+  convertida_pedido_compra: "Convertida em pedido de compra.",
   cancelada: "Solicitação cancelada.",
 };
 

@@ -71,11 +71,20 @@ const STATUS_TRANSITIONS = {
   enviada_fornecedor: ["orcamento_recebido", "cancelada"],
   orcamento_recebido: ["em_analise", "cancelada"],
   em_analise: ["aprovada", "reprovada", "cancelada"],
-  aprovada: ["convertida_pedido_compra", "cancelada"],
+  aprovada: ["cancelada"],
   reprovada: ["rascunho", "cancelada"],
   convertida_pedido_compra: [],
   cancelada: ["rascunho"],
 };
+
+export function canTransitionToConvertedPurchaseOrder(from) {
+  return from === "aprovada";
+}
+
+export function canTransitionStatus(from, to) {
+  if (to === "convertida_pedido_compra") return false;
+  return (STATUS_TRANSITIONS[from] || []).includes(to);
+}
 
 export function getTypeMeta(typeId) {
   return QUOTATION_REQUEST_TYPES.find((t) => t.id === typeId) || null;
@@ -83,10 +92,6 @@ export function getTypeMeta(typeId) {
 
 export function statusLabel(status) {
   return QUOTATION_REQUEST_STATUSES.find((s) => s.id === status)?.label || status || "—";
-}
-
-export function canTransitionStatus(from, to) {
-  return (STATUS_TRANSITIONS[from] || []).includes(to);
 }
 
 export function canExportDraft(status) {
@@ -209,10 +214,6 @@ export function getItemColumns(typeId) {
     default:
       return [];
   }
-}
-
-export function usesWeightPicker(typeId) {
-  return typeId === "calibracao_pesos_padrao" || typeId === "aquisicao_pesos_padrao";
 }
 
 export function usesEnvCertPicker(typeId) {

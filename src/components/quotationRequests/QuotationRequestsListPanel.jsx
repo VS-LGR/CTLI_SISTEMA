@@ -13,6 +13,7 @@ import {
 import { useQuotationCadastroData } from "@/hooks/useQuotationCadastroData";
 import QuotationRequestStatusPanel from "@/components/quotationRequests/QuotationRequestStatusPanel";
 import QuotationStatusBadge from "@/components/quotationRequests/QuotationStatusBadge";
+import QuotationConvertDialog from "@/components/quotationRequests/QuotationConvertDialog";
 import { selectClass } from "@/components/quotationRequests/QuotationRequestItemsTable";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -31,7 +32,7 @@ import { Label } from "@/components/ui/label";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, CaretDown, PencilSimple, Trash, FilePdf, Copy, ArrowsClockwise, Funnel } from "@phosphor-icons/react";
+import { Plus, CaretDown, PencilSimple, Trash, FilePdf, Copy, ArrowsClockwise, Funnel, ShoppingCart } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
@@ -61,6 +62,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
     supplierId: "",
   });
   const [statusDialogRow, setStatusDialogRow] = useState(null);
+  const [convertDialogRow, setConvertDialogRow] = useState(null);
   const [statusChanging, setStatusChanging] = useState(false);
   const cadastro = useQuotationCadastroData(tenantId);
 
@@ -274,8 +276,12 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
                       <DropdownMenuItem onClick={() => setStatusDialogRow(row)}>
                         <ArrowsClockwise size={16} className="mr-2" /> Alterar status
                       </DropdownMenuItem>
-                      <DropdownMenuItem disabled title="Em breve">
-                        Converter em Pedido de Compra
+                      <DropdownMenuItem
+                        disabled={row.status !== "aprovada"}
+                        title={row.status !== "aprovada" ? "Requer status Aprovada" : undefined}
+                        onClick={() => row.status === "aprovada" && setConvertDialogRow(row)}
+                      >
+                        <ShoppingCart size={16} className="mr-2" /> Converter em Pedido de Compra
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-red-600" onClick={() => remove(row)}>
                         <Trash size={16} className="mr-2" /> Excluir
@@ -307,6 +313,14 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
           )}
         </DialogContent>
       </Dialog>
+
+      <QuotationConvertDialog
+        open={!!convertDialogRow}
+        onOpenChange={(o) => !o && setConvertDialogRow(null)}
+        quotationId={convertDialogRow?.id}
+        userId={user?.id}
+        onConverted={() => load()}
+      />
     </div>
   );
 }

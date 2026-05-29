@@ -21,6 +21,8 @@ Migração: `supabase/migrations/20250627000000_tenant_billing_purchase_orders.s
 - **tenants**: campos `legal_name`, `trade_name`, `billing_*`, `environment_responsible_name`
 - **employee_registrations**: `signature_storage_path`
 - **purchase_orders**, **purchase_order_items**, **purchase_order_inspections**, **purchase_order_signatures**
+- **purchase_orders.quotation_request_id** — origem quando criado a partir de solicitação de orçamento
+- **quotation_request_conversions** — ligação N:1 por tipo (migração `20250630000000_quotation_po_conversion.sql`)
 - RLS via `cadastro_tenant_access(tenant_id)`
 - Função `next_purchase_order_number(tenant_id, year)`
 
@@ -32,6 +34,7 @@ Migração: `supabase/migrations/20250627000000_tenant_billing_purchase_orders.s
 | `purchaseOrderCalculations.js` | Totais, `formatDisplayValue` |
 | `purchaseOrderSnapshots.js` | Snapshots fornecedor/ambiente/colaborador |
 | `purchaseOrdersApi.js` | CRUD, inspeção, status, duplicar, assinaturas |
+| `quotationToPurchaseOrder.js` | Mapeamento solicitação → pedido (conversão) |
 | `pedidosCompraExport.js` | Export PDF (chunk lazy) |
 | `pedidoCompraPdf/viewModel.js` | View model só com snapshots |
 | `pedidoCompraPdf/drawPedidoCompraPdf.js` | jsPDF + autoTable, 6 layouts de colunas, watermark RASCUNHO |
@@ -55,6 +58,15 @@ Migração: `supabase/migrations/20250627000000_tenant_billing_purchase_orders.s
 - Calibração de pesos-padrão: **todos os campos da linha de serviço são manuais** (sem import do cadastro de pesos)
 - Calibração termo/barómetro: import opcional de equipamento na tabela
 - Assinatura 2: presets **Compras** ou **Gerente da Qualidade** (sem Vendas)
+
+## Origem em solicitação de orçamento
+
+Pedidos gerados pela conversão (RE-6.6C → RE-6.6E):
+
+- `quotation_request_id` e «Conforme cotação nº» preenchidos automaticamente
+- Snapshots de fornecedor/ambiente herdados da solicitação
+- Serviços mapeados por tipo; valores financeiros ficam a zero para preenchimento manual
+- Link «Origem: Solicitação …» no editor do pedido
 
 ## PDF
 
@@ -89,3 +101,4 @@ Migração: `supabase/migrations/20250627000000_tenant_billing_purchase_orders.s
 4. Editar pedido concluído (recebido).
 5. Inspeção → guardar → PDF com secção completa; export sem guardar inspeção no editor.
 6. Lista: filtros, duplicar, PDF, alterar status.
+7. Converter solicitação aprovada → pedido(s); verificar link de origem e campo cotação.

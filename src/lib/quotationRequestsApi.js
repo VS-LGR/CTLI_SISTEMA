@@ -6,8 +6,15 @@ import {
   buildSupplierSnapshot,
   mergeSentByIntoClientSnapshot,
 } from "@/lib/quotationRequestSnapshots";
-import { canTransitionStatus, buildInitialSections } from "@/lib/quotationRequestTypes";
+import { canTransitionStatus, canTransitionToConvertedPurchaseOrder, buildInitialSections } from "@/lib/quotationRequestTypes";
 import { DOCUMENT_MODEL_ISSUE_DATE } from "@/lib/quotationRequestDefaults";
+import { createPurchaseOrder, suggestNextOrderNumber } from "@/lib/purchaseOrdersApi";
+import {
+  getQuotationConversionState,
+  mapQuotationHeaderToPoForm,
+  mapQuotationItemsToPoItems,
+  mapQuotationSectionToPoType,
+} from "@/lib/quotationToPurchaseOrder";
 
 export function assertSupabaseQuotationRequests() {
   if (!isSupabaseAuthMode) {
@@ -71,16 +78,18 @@ export async function getQuotationRequest(id) {
     .single();
   if (error) throw error;
 
-  const [sectionsRes, itemsRes, attRes, histRes] = await Promise.all([
+  const [sectionsRes, itemsRes, attRes, histRes, convRes] = await Promise.all([
     supabase.from("quotation_request_type_sections").select("*").eq("quotation_request_id", id).order("type"),
     supabase.from("quotation_request_items").select("*").eq("quotation_request_id", id).order("section_type").order("item_number"),
     supabase.from("quotation_request_attachments").select("*").eq("quotation_request_id", id).order("created_at", { ascending: false }),
     supabase.from("quotation_request_status_history").select("*").eq("quotation_request_id", id).order("changed_at", { ascending: false }),
+    supabase.from("quotation_request_conversions").select("*, purchase_order:purchase_order_id(id, order_number, order_year, type, status)").eq("quotation_request_id", id).order("created_at"),
   ]);
   if (sectionsRes.error) throw sectionsRes.error;
   if (itemsRes.error) throw itemsRes.error;
   if (attRes.error) throw attRes.error;
   if (histRes.error) throw histRes.error;
+  if (convRes.error) throw convRes.error;
 
   return {
     ...request,
@@ -88,6 +97,7 @@ export async function getQuotationRequest(id) {
     items: itemsRes.data || [],
     attachments: attRes.data || [],
     status_history: histRes.data || [],
+    conversions: convRes.data || [],
   };
 }
 
@@ -280,20 +290,99 @@ async function recordStatusHistory(requestId, oldStatus, newStatus, changedById,
   });
 }
 
-export async function transitionQuotationStatus(id, newStatus, { userId, notes } = {}) {
+export async function transitionQuotationStatus(id, newStatus, { userId, notes, allowConversion = false } = {}) {
   const { data: current, error: fetchErr } = await supabase
     .from("quotation_requests")
     .select("status")
     .eq("id", id)
     .single();
   if (fetchErr) throw fetchErr;
-  if (!canTransitionStatus(current.status, newStatus)) {
+  const allowed = allowConversion && newStatus === "convertida_pedido_compra"
+    ? canTransitionToConvertedPurchaseOrder(current.status)
+    : canTransitionStatus(current.status, newStatus);
+  if (!allowed) {
     throw new Error("Transição de status não permitida");
   }
   const { error } = await supabase.from("quotation_requests").update({ status: newStatus }).eq("id", id);
   if (error) throw error;
   await recordStatusHistory(id, current.status, newStatus, userId, notes);
   return getQuotationRequest(id);
+}
+
+export async function listQuotationConversions(quotationRequestId) {
+  assertSupabaseQuotationRequests();
+  const { data, error } = await supabase
+    .from("quotation_request_conversions")
+    .select("*, purchase_order:purchase_order_id(id, order_number, order_year, type, status)")
+    .eq("quotation_request_id", quotationRequestId)
+    .order("created_at");
+  if (error) throw error;
+  return data || [];
+}
+
+export async function convertQuotationToPurchaseOrders(quotationId, { userId } = {}) {
+  assertSupabaseQuotationRequests();
+  const quotation = await getQuotationRequest(quotationId);
+  const conversionState = getQuotationConversionState(quotation, quotation.conversions);
+
+  if (quotation.status !== "aprovada") {
+    throw new Error("A conversão só é permitida para solicitações com status Aprovada.");
+  }
+  if (!quotation.supplier_id) {
+    throw new Error("Informe o fornecedor na solicitação antes de converter.");
+  }
+  if (!conversionState.pending.length) {
+    throw new Error("Não há tipos pendentes de conversão nesta solicitação.");
+  }
+
+  const year = new Date().getFullYear();
+  const createdOrders = [];
+  let firstPoId = quotation.converted_purchase_order_id || null;
+
+  for (const sectionType of conversionState.pending) {
+    const poType = mapQuotationSectionToPoType(sectionType);
+    if (!poType) continue;
+
+    const section = (quotation.sections || []).find((s) => s.type === sectionType);
+    const poItems = mapQuotationItemsToPoItems(sectionType, section, quotation.items);
+    if (!poItems.length) {
+      throw new Error(`Tipo ${sectionType}: não há conteúdo para converter em pedido de compra.`);
+    }
+
+    const orderNumber = await suggestNextOrderNumber(quotation.tenant_id, year);
+    const poForm = mapQuotationHeaderToPoForm(quotation, poType, { orderNumber, orderYear: year });
+    const order = await createPurchaseOrder(quotation.tenant_id, poForm, poItems);
+
+    const { error: convErr } = await supabase.from("quotation_request_conversions").insert({
+      quotation_request_id: quotationId,
+      purchase_order_id: order.id,
+      section_type: sectionType,
+    });
+    if (convErr) throw convErr;
+
+    if (!firstPoId) firstPoId = order.id;
+    createdOrders.push({ sectionType, order });
+  }
+
+  if (firstPoId && !quotation.converted_purchase_order_id) {
+    await supabase.from("quotation_requests").update({ converted_purchase_order_id: firstPoId }).eq("id", quotationId);
+  }
+
+  const updated = await getQuotationRequest(quotationId);
+  const finalState = getQuotationConversionState(updated, updated.conversions);
+  if (finalState.fullyConverted) {
+    await transitionQuotationStatus(quotationId, "convertida_pedido_compra", {
+      userId,
+      notes: "Conversão em pedido(s) de compra",
+      allowConversion: true,
+    });
+    return {
+      purchaseOrders: createdOrders,
+      quotation: await getQuotationRequest(quotationId),
+    };
+  }
+
+  return { purchaseOrders: createdOrders, quotation: updated };
 }
 
 export async function duplicateQuotationRequest(id) {

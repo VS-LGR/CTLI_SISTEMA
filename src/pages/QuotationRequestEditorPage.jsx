@@ -31,13 +31,16 @@ import { formatRequestNumber } from "@/lib/quotationRequestDisplay";
 import QuotationRequestStatusPanel from "@/components/quotationRequests/QuotationRequestStatusPanel";
 import QuotationRequestSectionEditor from "@/components/quotationRequests/QuotationRequestSectionEditor";
 import QuotationRequestTypeSelector from "@/components/quotationRequests/QuotationRequestTypeSelector";
+import QuotationConvertDialog from "@/components/quotationRequests/QuotationConvertDialog";
+import QuotationGeneratedOrdersCard from "@/components/quotationRequests/QuotationGeneratedOrdersCard";
+import { getQuotationConversionState } from "@/lib/quotationToPurchaseOrder";
 import { selectClass } from "@/components/quotationRequests/QuotationRequestItemsTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FloppyDisk, FilePdf, Copy, Buildings, Truck } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, FilePdf, Copy, Buildings, Truck, ShoppingCart } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
@@ -106,6 +109,8 @@ export default function QuotationRequestEditorPage() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("geral");
   const [expandedTypes, setExpandedTypes] = useState({});
+  const [conversions, setConversions] = useState([]);
+  const [convertOpen, setConvertOpen] = useState(false);
 
   const loadNew = useCallback(async () => {
     const year = new Date().getFullYear();
@@ -126,6 +131,7 @@ export default function QuotationRequestEditorPage() {
       setForm(data);
       setSections(data.sections?.length ? data.sections : buildInitialSections());
       setItems(data.items || []);
+      setConversions(data.conversions || []);
       const exp = {};
       (data.sections || []).filter((s) => s.is_selected).forEach((s) => { exp[s.type] = true; });
       setExpandedTypes(exp);
@@ -191,6 +197,20 @@ export default function QuotationRequestEditorPage() {
   };
 
   const selectedCount = useMemo(() => sections.filter((s) => s.is_selected).length, [sections]);
+
+  const conversionState = useMemo(
+    () => (form ? getQuotationConversionState({ ...form, sections }, conversions) : null),
+    [form, sections, conversions],
+  );
+
+  const reloadQuotation = useCallback(async () => {
+    if (!id || id === "nova") return;
+    const data = await getQuotationRequest(id);
+    setForm(data);
+    setSections(data.sections?.length ? data.sections : buildInitialSections());
+    setItems(data.items || []);
+    setConversions(data.conversions || []);
+  }, [id]);
 
   const save = async () => {
     const err = validateQuotationRequest(form, sections, items);
@@ -293,6 +313,15 @@ export default function QuotationRequestEditorPage() {
             <Button variant="outline" size="sm" onClick={exportPdf}>
               <FilePdf size={16} className="mr-1.5" /> PDF
             </Button>
+            {!isNew && conversionState?.canConvert && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConvertOpen(true)}
+              >
+                <ShoppingCart size={16} className="mr-1.5" /> Converter em PO
+              </Button>
+            )}
             {!isNew && (
               <Button
                 variant="outline"
@@ -489,7 +518,7 @@ export default function QuotationRequestEditorPage() {
         </TabsContent>
 
         {!isNew && (
-          <TabsContent value="status" className="mt-5">
+          <TabsContent value="status" className="mt-5 space-y-4">
             <QuotationRequestStatusPanel
               layout="full"
               status={form.status}
@@ -497,9 +526,25 @@ export default function QuotationRequestEditorPage() {
               onTransition={onStatusTransition}
               disabled={saving}
             />
+            <QuotationGeneratedOrdersCard conversions={conversions} />
           </TabsContent>
         )}
       </Tabs>
+
+      <QuotationConvertDialog
+        open={convertOpen}
+        onOpenChange={setConvertOpen}
+        quotationId={id}
+        userId={user?.id}
+        onConverted={async (result) => {
+          if (result?.quotation) {
+            setForm(result.quotation);
+            setConversions(result.quotation.conversions || []);
+          } else {
+            await reloadQuotation();
+          }
+        }}
+      />
     </div>
   );
 }

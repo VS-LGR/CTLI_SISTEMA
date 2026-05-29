@@ -27,14 +27,34 @@ Módulo PR-6.6 para criar, editar, listar e exportar solicitações de orçament
 
 `rascunho` → `aguardando_envio` → `enviada_fornecedor` → `orcamento_recebido` → `em_analise` → `aprovada` | `reprovada` | `cancelada`
 
-Conversão para Pedido de Compra: **fase 2** (`converted_purchase_order_id` reservado; botão desabilitado na UI).
+Após conversão em pedido(s) de compra: `convertida_pedido_compra` (automático quando todos os tipos convertíveis foram convertidos).
+
+## Conversão → Pedido de Compra
+
+- Disponível **apenas** com status `aprovada`
+- **Um pedido de compra por tipo convertível** selecionado na solicitação
+- `treinamento` não gera pedido (sem equivalente em RE-6.6E)
+- Campo «Conforme Cotação Nº» no pedido recebe o nº da solicitação (`001/2026`)
+- Pedidos criados em `rascunho` — valores, pagamento e assinaturas são preenchidos no editor do pedido
+- Ligação bidirecional: `quotation_request_conversions` + `purchase_orders.quotation_request_id`
+- Re-conversão é idempotente (não duplica tipos já convertidos)
+
+| Solicitação | Pedido de compra |
+|-------------|------------------|
+| ensaio_proficiencia | ensaio_proficiencia |
+| auditoria_interna | auditoria_interna |
+| calibracao_termo_baro_higrometro | calibracao_termo_baro_higrometro |
+| calibracao_pesos_padrao | calibracao_pesos_padrao |
+| aquisicao_termo_baro_higrometro | compra_termo_baro_higrometro |
+| aquisicao_pesos_padrao | compra_pesos |
+| treinamento | *(sem equivalente)* |
 
 ## Cadastros reutilizados
 
 - **Ambiente (tenant):** solicitante — snapshot em `client_environment_data_snapshot`
 - **Fornecedores:** `supplier_registrations`
 - **Colaboradores:** «Enviado por»
-- **Pesos padrão / certificados:** importação em calibração/aquisição de pesos
+- **Calibração/aquisição de pesos:** preenchimento manual (sem import do cadastro)
 - **Termo-baro-higrômetro:** importação em calibração/aquisição TBH
 
 ## PDF
@@ -48,8 +68,10 @@ Conversão para Pedido de Compra: **fase 2** (`converted_purchase_order_id` rese
 
 | Ficheiro | Função |
 |----------|--------|
-| `supabase/migrations/20250629000000_quotation_requests.sql` | Schema |
-| `src/lib/quotationRequestsApi.js` | CRUD Supabase |
+| `supabase/migrations/20250629000000_quotation_requests.sql` | Schema solicitações |
+| `supabase/migrations/20250630000000_quotation_po_conversion.sql` | Ponte solicitação ↔ pedido |
+| `src/lib/quotationRequestsApi.js` | CRUD Supabase + conversão |
+| `src/lib/quotationToPurchaseOrder.js` | Mapeamento QR → PO |
 | `src/lib/quotationRequestTypes.js` | Tipos, status, colunas |
 | `src/lib/quotationRequestPdf/` | Export PDF jsPDF |
 | `src/components/quotationRequests/` | UI |
@@ -63,16 +85,4 @@ Aplicar no Supabase:
 supabase db push
 ```
 
-## Mapeamento futuro → Pedido de Compra (fase 2)
-
-| Solicitação | Pedido de compra |
-|-------------|------------------|
-| ensaio_proficiencia | ensaio_proficiencia |
-| auditoria_interna | auditoria_interna |
-| calibracao_termo_baro_higrometro | calibracao_termo_baro_higrometro |
-| calibracao_pesos_padrao | calibracao_pesos_padrao |
-| aquisicao_termo_baro_higrometro | compra_termo_baro_higrometro |
-| aquisicao_pesos_padrao | compra_pesos |
-| treinamento | *(sem equivalente — manual)* |
-
-Campo «Conforme Cotação Nº» no pedido pode receber `001/2026` da solicitação.
+*(Inclui `20250630000000_quotation_po_conversion.sql` para a ponte com pedidos de compra.)*
