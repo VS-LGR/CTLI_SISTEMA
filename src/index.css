@@ -142,6 +142,54 @@ code, pre, .font-mono {
     width: 100%;
 }
 
+/* Evita clipping de camadas absolutas no cabeçalho Word */
+.docx-editor-host [class*="page"],
+.docx-editor-host [class*="Page"],
+.docx-editor-host [class*="header"],
+.docx-editor-host [class*="Header"] {
+    overflow: visible;
+}
+
+/* Impressão / PDF — fundo branco, sem chrome do editor */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .docx-editor-host,
+    .docx-editor-host * {
+        visibility: visible;
+    }
+    .docx-editor-host {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: #fff !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+.docx-editor-host.docx-printing [class*="toolbar"],
+.docx-editor-host.docx-printing [class*="Toolbar"],
+.docx-editor-host.docx-printing [class*="ruler"],
+.docx-editor-host.docx-printing [class*="Ruler"] {
+    display: none !important;
+}
+
+@media print {
+    .docx-editor-host [class*="toolbar"],
+    .docx-editor-host [class*="Toolbar"],
+    .docx-editor-host [class*="ruler"],
+    .docx-editor-host [class*="Ruler"],
+    .docx-editor-host [class*="resize"],
+    .docx-editor-host [class*="handle"],
+    .docx-editor-host [class*="Handle"] {
+        display: none !important;
+    }
+}
+
 @layer base {
     [data-debug-wrapper="true"] { display: contents !important; }
 }

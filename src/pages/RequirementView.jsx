@@ -132,7 +132,10 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
             scheduleDocxEditorPreload();
             data = await uploadDocumentFile(data.id, file, user?.id, null);
             setOpen(false);
-            toast.success("Abrindo editor Word…");
+            toast.success(
+              "Ficheiro guardado. A formatação Word é preservada ao editar se usar Salvar; evite reimportar via HTML.",
+              { duration: 6000 },
+            );
             onCreated?.(data);
             nav(`/document/${data.id}`);
             return;
@@ -304,7 +307,10 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
       if (canImport && isDocxFile(file)) {
         scheduleDocxEditorPreload();
         const data = await uploadDocumentFile(doc.id, file, user?.id, null);
-        toast.success("Word carregado no editor");
+        toast.success(
+          "Ficheiro guardado. A formatação Word é preservada ao editar se usar Salvar; evite reimportar via HTML.",
+          { duration: 6000 },
+        );
         onUpdate?.(data);
         nav(`/document/${doc.id}`);
         return;

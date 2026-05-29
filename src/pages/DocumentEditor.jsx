@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef, lazy, Suspense, useMemo } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import api, { asArray } from "@/lib/api";
-import { saveDocxFromEditor, printDocxFromEditor } from "@/lib/docxEditorSave";
+import { saveDocxWithFidelity, printDocxFromEditor } from "@/lib/docxEditorSave";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import {
   getDocument, updateDocument, uploadDocumentFile, exportDocumentBlob,
@@ -113,7 +113,11 @@ const DocumentEditor = () => {
   const [saving, setSaving] = useState(false);
   const [responsibles, setResponsibles] = useState([]);
   const [reloadToken, setReloadToken] = useState(0);
+  const [docxDirty, setDocxDirty] = useState(false);
+  const [docxEditMode, setDocxEditMode] = useState(false);
+  const [printMode, setPrintMode] = useState(false);
   const docxEditorRef = useRef(null);
+  const originalDocxBufferRef = useRef(null);
   const fileInputRef = useRef();
 
   const load = useCallback(async () => {
@@ -154,25 +158,39 @@ const DocumentEditor = () => {
       const usesDocx = documentUsesDocxEditor(doc);
 
       if (usesDocx && docxEditorRef?.current) {
-        const buf = await saveDocxFromEditor(docxEditorRef);
-        if (buf?.byteLength) {
+        const result = await saveDocxWithFidelity(docxEditorRef, originalDocxBufferRef.current, {
+          dirty: docxDirty,
+        });
+
+        if (result.skipped) {
+          const data = await updateDocument(id, metaPatch(), user?.id);
+          setDoc((p) => ({ ...data, content_html: p.content_html }));
+          toast.success("Metadados salvos (ficheiro Word inalterado)");
+        } else if (result.headerRegression || result.error) {
+          toast.error(result.error || "Falha ao preservar cabeçalho Word");
+          return;
+        } else if (result.buffer?.byteLength) {
           const baseName = (doc.file_name || doc.title || "documento").replace(/\.[^.]+$/, "");
-          const file = new File([buf], `${baseName}.docx`, {
+          const file = new File([result.buffer], `${baseName}.docx`, {
             type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
           });
           await uploadDocumentFile(id, file, user?.id, null);
+          originalDocxBufferRef.current = result.buffer.slice(0);
+          setDocxDirty(false);
           const data = await updateDocument(id, metaPatch(), user?.id);
           setDoc((p) => ({ ...data, content_html: p.content_html }));
           setReloadToken((t) => t + 1);
+          toast.success("Salvo — cabeçalho Word preservado");
         } else {
           const data = await updateDocument(id, metaPatch(), user?.id);
           setDoc((p) => ({ ...data, content_html: p.content_html }));
+          toast.success("Metadados salvos");
         }
       } else {
         const data = await updateDocument(id, { ...metaPatch(), content_html: contentHtml }, user?.id);
         setDoc((p) => ({ ...data, content_html: p.content_html }));
+        toast.success("Salvo");
       }
-      toast.success("Salvo");
     } catch (err) {
       console.error("[DocumentEditor] save", err);
       toast.error(err?.message || "Falha ao salvar");
@@ -183,20 +201,42 @@ const DocumentEditor = () => {
 
   const exportFile = async (format) => {
     try {
-      if (format === "pdf" && canEditRich && printDocxFromEditor(docxEditorRef)) {
+      if (format === "pdf" && canEditRich && docxEditorRef?.current?.print) {
+        setPrintMode(true);
+        await new Promise((r) => window.requestAnimationFrame(r));
+        printDocxFromEditor(docxEditorRef);
+        window.setTimeout(() => setPrintMode(false), 2000);
         toast.info(
-          "Na janela de impressão, escolha «Guardar como PDF» para exportar com cabeçalho e rodapé do Word.",
-          { duration: 6000 },
+          "Na janela de impressão, escolha «Guardar como PDF» com fundo branco e margens padrão.",
+          { duration: 7000 },
         );
         return;
       }
-      if (format === "docx" && docxEditorRef?.current) {
-        const buf = await saveDocxFromEditor(docxEditorRef);
-        if (buf?.byteLength) {
+      if (format === "docx" && canEditRich && doc.has_file && !docxDirty) {
+        await downloadOriginal();
+        toast.success("Ficheiro Word original descarregado");
+        return;
+      }
+      if (format === "docx" && canEditRich && docxEditorRef?.current) {
+        const result = await saveDocxWithFidelity(docxEditorRef, originalDocxBufferRef.current, {
+          dirty: docxDirty,
+        });
+        if (result.skipped && doc.has_file) {
+          await downloadOriginal();
+          return;
+        }
+        if (result.buffer?.byteLength) {
           triggerBlobDownload(
-            new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
+            new Blob([result.buffer], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
             `${doc.title}.docx`,
           );
+          if (docxDirty) {
+            toast.info("Exportado com alterações do editor (cabeçalho validado).");
+          }
+          return;
+        }
+        if (result.error) {
+          toast.error(result.error);
           return;
         }
       }
@@ -227,8 +267,12 @@ const DocumentEditor = () => {
     try {
       const data = await uploadDocumentFile(id, file, user?.id, null);
       setDoc((p) => ({ ...p, ...data }));
+      setDocxDirty(false);
       setReloadToken((t) => t + 1);
-      toast.success("Documento Word carregado no editor");
+      toast.success(
+        "Documento Word carregado. A formatação original mantém-se até editar e salvar.",
+        { duration: 5000 },
+      );
     } catch (err) {
       console.error("[DocumentEditor] upload", err);
       toast.error(err?.message || "Falha no upload");
@@ -257,16 +301,26 @@ const DocumentEditor = () => {
   const readOnly = viewMode || !canEditRich;
   const authorName = user?.name || user?.email || "Utilizador";
 
+  const forceViewing = canEditRich && doc?.has_file && !docxEditMode && !readOnly;
+
   const editorPanelProps = useMemo(() => {
     if (!doc) return null;
     return {
       doc,
       readOnly,
+      forceViewing,
+      printMode,
       author: authorName,
       reloadToken,
       editorRef: docxEditorRef,
+      onDirtyChange: setDocxDirty,
+      onOriginalBufferLoaded: (ab) => {
+        originalDocxBufferRef.current = ab ? ab.slice(0) : null;
+        setDocxDirty(false);
+        setDocxEditMode(!doc.has_file);
+      },
     };
-  }, [doc, readOnly, authorName, reloadToken]);
+  }, [doc, readOnly, forceViewing, printMode, authorName, reloadToken]);
 
   if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
 
@@ -309,9 +363,17 @@ const DocumentEditor = () => {
             <Upload size={16} className="mr-1.5" /> {doc.has_file ? "Substituir Word" : "Carregar Word"}
           </Button>
           )}
-          {doc.has_file && <Button variant="outline" onClick={downloadOriginal} data-testid="download-original-btn"><DownloadSimple size={16} className="mr-1.5" /> Baixar original</Button>}
-          <Button variant="outline" onClick={() => exportFile("pdf")} data-testid="export-pdf-btn"><FilePdf size={16} className="mr-1.5" /> PDF</Button>
-          <Button variant="outline" onClick={() => exportFile("docx")} data-testid="export-docx-btn"><FileDoc size={16} className="mr-1.5" /> Word</Button>
+          {doc.has_file && (
+            <Button variant="outline" onClick={downloadOriginal} data-testid="download-original-btn" title="Ficheiro intacto do Storage">
+              <DownloadSimple size={16} className="mr-1.5" /> Baixar original
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => exportFile("pdf")} data-testid="export-pdf-btn" title="Impressão do editor (PDF fiel)">
+            <FilePdf size={16} className="mr-1.5" /> PDF
+          </Button>
+          <Button variant="outline" onClick={() => exportFile("docx")} data-testid="export-docx-btn" title={docxDirty ? "Exportar versão editada" : "Descarrega original se não houve edição"}>
+            <FileDoc size={16} className="mr-1.5" /> {docxDirty ? "Word (editado)" : "Word"}
+          </Button>
           <Button
             variant="outline"
             onClick={togglePin}
@@ -380,8 +442,12 @@ const DocumentEditor = () => {
                 <div className="font-semibold text-slate-700 mb-1">Ficheiro Word</div>
                 <div className="text-slate-600 truncate" title={doc.file_name}>{doc.file_name}</div>
                 <div className="text-[11px] text-slate-500 mt-1">
-                  Edição nativa .docx com cabeçalho e rodapé Word. O ficheiro no Storage é atualizado ao salvar.
-                  Exportação PDF com layout completo: use o botão PDF nesta página (impressão do editor).
+                  Edição nativa .docx. «Baixar original» = ficheiro do upload.
+                  Salvar usa gravação seletiva e valida cabeçalho/rodapé Word.
+                  PDF: impressão do editor (fundo branco).
+                  {docxDirty && (
+                    <span className="block mt-1 text-amber-700 font-medium">Alterações pendentes no Word.</span>
+                  )}
                 </div>
               </div>
             )}
@@ -389,6 +455,18 @@ const DocumentEditor = () => {
         </Card>
 
         <div className="w-full min-w-0">
+          {canEditRich && forceViewing && (
+            <div className="flex justify-end mb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDocxEditMode(true)}
+                data-testid="docx-start-edit-btn"
+              >
+                <PencilSimple size={16} className="mr-1.5" /> Editar Word
+              </Button>
+            </div>
+          )}
           {canEditRich && editorPanelProps ? (
             <Suspense fallback={DOCX_EDITOR_FALLBACK}>
               <LazyDocxEditorPanel {...editorPanelProps} />
