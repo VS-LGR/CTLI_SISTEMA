@@ -1,4 +1,6 @@
 import React, { Suspense, lazy } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import RouteErrorFallback from "@/components/RouteErrorFallback";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
@@ -12,7 +14,7 @@ import "@/App.css";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const RequirementView = lazy(() => import("@/pages/RequirementView"));
-const DocumentEditor = lazy(() => import("@/pages/DocumentEditor"));
+const DocumentEditor = lazyWithRetry(() => import("@/pages/DocumentEditor"));
 const AdminClients = lazy(() => import("@/pages/AdminClients"));
 const BackupView = lazy(() => import("@/pages/BackupView"));
 const CadastrosPage = lazy(() => import("@/pages/CadastrosPage"));
@@ -179,6 +181,7 @@ const App = () => (
             />
             <Route
               path="/document/:id"
+              errorElement={<RouteErrorFallback title="Não foi possível abrir o documento" />}
               element={(
                 <Suspense fallback={pageSuspenseFallback}>
                   <DocumentEditor />

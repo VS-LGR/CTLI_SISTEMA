@@ -2,14 +2,25 @@ import { allowsRichEditor } from "@/lib/documentFolderConfig";
 
 let chunkPromise = null;
 
-/** Carrega o chunk do DocxEditorPanel (idempotente). */
+function loadDocxEditorChunk() {
+  return import(
+    /* webpackPrefetch: true */
+    /* webpackChunkName: "docx-editor" */
+    "@/components/documents/DocxEditorPanel"
+  );
+}
+
+/** Carrega o chunk do DocxEditorPanel (idempotente, com retry após falha de rede/cache). */
 export function preloadDocxEditorPanel() {
   if (!chunkPromise) {
-    chunkPromise = import(
-      /* webpackPrefetch: true */
-      /* webpackChunkName: "docx-editor" */
-      "@/components/documents/DocxEditorPanel"
-    );
+    chunkPromise = loadDocxEditorChunk().catch((err) => {
+      chunkPromise = null;
+      return new Promise((resolve, reject) => {
+        window.setTimeout(() => {
+          loadDocxEditorChunk().then(resolve).catch(reject);
+        }, 400);
+      });
+    });
   }
   return chunkPromise;
 }
