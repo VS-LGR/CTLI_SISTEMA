@@ -141,7 +141,7 @@ const DocumentEditor = () => {
   }, [load]);
 
   useEffect(() => {
-    if (!doc) return;
+    if (!doc?.id) return;
     setDocxDirty(false);
     setWordDocumentMode(viewMode ? "viewing" : "editing");
   }, [doc?.id, reloadToken, viewMode]);

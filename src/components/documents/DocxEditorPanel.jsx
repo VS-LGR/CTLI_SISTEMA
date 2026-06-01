@@ -40,45 +40,53 @@ function DocxEditorPanel({
     });
   }, [editorRef]);
 
-  const docId = doc?.id;
-  const docHasFile = doc?.has_file;
-  const docFileName = doc?.file_name;
-  const docFileMime = doc?.file_mime;
-
-  const loadBuffer = useCallback(async () => {
-    if (!doc) return;
-    setLoading(true);
-    setError(null);
-    dirtySentRef.current = false;
-    onDirtyChangeRef.current?.(false);
-    try {
-      if (doc.has_file && isDocxFileName(doc.file_name, doc.file_mime)) {
-        const blob = await downloadOriginalFile(doc);
-        const ab = await blob.arrayBuffer();
-        setBuffer(ab);
-        onOriginalBufferLoadedRef.current?.(ab);
-      } else if (doc.has_file) {
-        setError("Este ficheiro não é .docx. Faça upload de um documento Word (.docx).");
-        setBuffer(null);
-        onOriginalBufferLoadedRef.current?.(null);
-      } else {
-        const blank = await getBlankDocxBuffer();
-        setBuffer(blank);
-        onOriginalBufferLoadedRef.current?.(blank);
-      }
-    } catch (e) {
-      console.error("[DocxEditorPanel] load", e);
-      setError(e?.message || "Falha ao carregar o documento");
-      setBuffer(null);
-      onOriginalBufferLoadedRef.current?.(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [doc, docId, docHasFile, docFileName, docFileMime]);
+  const docRef = useRef(doc);
+  docRef.current = doc;
 
   useEffect(() => {
-    loadBuffer();
-  }, [loadBuffer, reloadToken]);
+    let cancelled = false;
+    const currentDoc = docRef.current;
+    if (!currentDoc) return undefined;
+
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      dirtySentRef.current = false;
+      onDirtyChangeRef.current?.(false);
+      try {
+        if (currentDoc.has_file && isDocxFileName(currentDoc.file_name, currentDoc.file_mime)) {
+          const blob = await downloadOriginalFile(currentDoc);
+          const ab = await blob.arrayBuffer();
+          if (cancelled) return;
+          setBuffer(ab);
+          onOriginalBufferLoadedRef.current?.(ab);
+        } else if (currentDoc.has_file) {
+          if (cancelled) return;
+          setError("Este ficheiro não é .docx. Faça upload de um documento Word (.docx).");
+          setBuffer(null);
+          onOriginalBufferLoadedRef.current?.(null);
+        } else {
+          const blank = await getBlankDocxBuffer();
+          if (cancelled) return;
+          setBuffer(blank);
+          onOriginalBufferLoadedRef.current?.(blank);
+        }
+      } catch (e) {
+        if (cancelled) return;
+        console.error("[DocxEditorPanel] load", e);
+        setError(e?.message || "Falha ao carregar o documento");
+        setBuffer(null);
+        onOriginalBufferLoadedRef.current?.(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [doc?.id, doc?.has_file, doc?.file_name, doc?.file_mime, reloadToken]);
 
   useEffect(() => {
     if (printMode) {
