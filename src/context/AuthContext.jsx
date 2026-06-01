@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import api, { formatApiError, isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, [applySupabaseSession, refreshMe]);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     if (isMockApiMode || !isSupabaseAuthMode) {
       try {
         const { data } = await api.post("/auth/login", { email, password });
@@ -133,9 +133,9 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       return { ok: false, error: e?.message || "Falha no login" };
     }
-  };
+  }, [applySupabaseSession]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (isMockApiMode || !isSupabaseAuthMode) {
       try { await api.post("/auth/logout"); } catch (_) { /* ignore */ }
     } else {
@@ -145,7 +145,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("pv_current_tenant");
     setCurrentTenantId(null);
     setUser(false);
-  };
+  }, []);
 
   const selectTenant = useCallback((tid) => {
     setCurrentTenantId(tid);
@@ -153,8 +153,20 @@ export const AuthProvider = ({ children }) => {
     else localStorage.removeItem("pv_current_tenant");
   }, []);
 
+  const contextValue = useMemo(
+    () => ({
+      user,
+      login,
+      logout,
+      refreshMe,
+      currentTenantId,
+      selectTenant,
+    }),
+    [user, currentTenantId, selectTenant, refreshMe, login, logout],
+  );
+
   return (
-    <AuthCtx.Provider value={{ user, login, logout, refreshMe, currentTenantId, selectTenant }}>
+    <AuthCtx.Provider value={contextValue}>
       {children}
     </AuthCtx.Provider>
   );

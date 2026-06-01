@@ -3,8 +3,10 @@ import { DocxEditor } from "@eigenpal/docx-editor-react";
 import "@eigenpal/docx-editor-react/styles.css";
 import { downloadOriginalFile } from "@/lib/documentsApi";
 import { getBlankDocxBuffer } from "@/lib/blankDocx";
-import { isDocxFileName } from "@/lib/docxImport";
+import { isDocxFileName } from "@/lib/docxFileUtils";
 import { relayoutDocxEditor } from "@/lib/docxEditorSave";
+
+const RELAYOUT_DEBOUNCE_MS = 100;
 
 /**
  * Editor nativo .docx ([docx-editor.dev](https://www.docx-editor.dev)).
@@ -31,17 +33,42 @@ function DocxEditorPanel({
   const dirtySentRef = useRef(false);
   const onDirtyChangeRef = useRef(onDirtyChange);
   const onOriginalBufferLoadedRef = useRef(onOriginalBufferLoaded);
+  const mountedRef = useRef(true);
+  const hasAutoFocusedRef = useRef(false);
+  const relayoutTimerRef = useRef(null);
   onDirtyChangeRef.current = onDirtyChange;
   onOriginalBufferLoadedRef.current = onOriginalBufferLoaded;
 
   const scheduleRelayout = useCallback(() => {
-    window.requestAnimationFrame(() => {
-      relayoutDocxEditor(editorRef);
-    });
+    if (relayoutTimerRef.current) {
+      window.clearTimeout(relayoutTimerRef.current);
+    }
+    relayoutTimerRef.current = window.setTimeout(() => {
+      relayoutTimerRef.current = null;
+      if (mountedRef.current) {
+        relayoutDocxEditor(editorRef);
+      }
+    }, RELAYOUT_DEBOUNCE_MS);
   }, [editorRef]);
 
   const docRef = useRef(doc);
   docRef.current = doc;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    hasAutoFocusedRef.current = false;
+    const ref = editorRef;
+    return () => {
+      mountedRef.current = false;
+      if (relayoutTimerRef.current) {
+        window.clearTimeout(relayoutTimerRef.current);
+        relayoutTimerRef.current = null;
+      }
+      try {
+        ref.current?.blur?.();
+      } catch { /* optional */ }
+    };
+  }, [editorRef]);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +76,7 @@ function DocxEditorPanel({
     if (!currentDoc) return undefined;
 
     const run = async () => {
+      if (!mountedRef.current) return;
       setLoading(true);
       setError(null);
       dirtySentRef.current = false;
@@ -57,28 +85,28 @@ function DocxEditorPanel({
         if (currentDoc.has_file && isDocxFileName(currentDoc.file_name, currentDoc.file_mime)) {
           const blob = await downloadOriginalFile(currentDoc);
           const ab = await blob.arrayBuffer();
-          if (cancelled) return;
+          if (cancelled || !mountedRef.current) return;
           setBuffer(ab);
           onOriginalBufferLoadedRef.current?.(ab);
         } else if (currentDoc.has_file) {
-          if (cancelled) return;
+          if (cancelled || !mountedRef.current) return;
           setError("Este ficheiro não é .docx. Faça upload de um documento Word (.docx).");
           setBuffer(null);
           onOriginalBufferLoadedRef.current?.(null);
         } else {
           const blank = await getBlankDocxBuffer();
-          if (cancelled) return;
+          if (cancelled || !mountedRef.current) return;
           setBuffer(blank);
           onOriginalBufferLoadedRef.current?.(blank);
         }
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled || !mountedRef.current) return;
         console.error("[DocxEditorPanel] load", e);
         setError(e?.message || "Falha ao carregar o documento");
         setBuffer(null);
         onOriginalBufferLoadedRef.current?.(null);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && mountedRef.current) setLoading(false);
       }
     };
 
@@ -100,12 +128,15 @@ function DocxEditorPanel({
   const editorMode = editing ? "editing" : "viewing";
 
   useEffect(() => {
-    if (!editing || !buffer || loading) return;
+    if (!editing || !buffer || loading || hasAutoFocusedRef.current) return;
+    hasAutoFocusedRef.current = true;
     const frameId = window.requestAnimationFrame(() => {
-      editorRef.current?.focus?.();
+      if (mountedRef.current) {
+        editorRef.current?.focus?.();
+      }
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [editing, buffer, loading, documentMode, reloadToken, editorRef]);
+  }, [editing, buffer, loading, editorRef]);
 
   if (loading) {
     return (
@@ -161,7 +192,9 @@ function DocxEditorPanel({
         onFontsLoaded={() => scheduleRelayout()}
         onError={(err) => {
           console.error("[DocxEditor]", err);
-          setError(err?.message || "Erro no editor");
+          if (mountedRef.current) {
+            setError(err?.message || "Erro no editor");
+          }
         }}
       />
     </div>
@@ -172,6 +205,7 @@ export default React.memo(DocxEditorPanel, (prev, next) => (
   prev.doc?.id === next.doc?.id
   && prev.doc?.has_file === next.doc?.has_file
   && prev.doc?.file_name === next.doc?.file_name
+  && prev.doc?.title === next.doc?.title
   && prev.readOnly === next.readOnly
   && prev.documentMode === next.documentMode
   && prev.printMode === next.printMode

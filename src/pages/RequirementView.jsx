@@ -30,8 +30,9 @@ import {
   downloadOriginalFile,
   toggleDocumentPin,
 } from "@/lib/documentsApi";
-import { triggerBlobDownload } from "@/lib/documentExport";
-import { isDocxFile, tryConvertDocxToHtml, uploadSuccessMessage } from "@/lib/docxImport";
+import { triggerBlobDownload } from "@/lib/blobDownload";
+import { tryConvertDocxToHtml } from "@/lib/docxImport";
+import { isDocxFile, uploadSuccessMessage } from "@/lib/docxFileUtils";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

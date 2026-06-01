@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { startTransition, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { setTenantSwitchNotice } from "@/lib/tenantSwitchNotice";
 
@@ -45,7 +45,9 @@ export function useAdminTenantSwitch({
     setSwitching(true);
     selectTenant(pendingTenantId);
     setTenantSwitchNotice(nextName);
-    navigate("/dashboard", { replace: true });
+    startTransition(() => {
+      navigate("/dashboard", { replace: true });
+    });
     toast.success(`Ambiente alterado: ${nextName}`);
 
     window.setTimeout(() => {

@@ -61,8 +61,29 @@ function storagePath(tenantId, docId, fileName) {
 
 // —— Supabase ——
 
+const LIST_DOCUMENT_COLUMNS = [
+  "id",
+  "tenant_id",
+  "requirement",
+  "folder_key",
+  "section",
+  "title",
+  "code",
+  "version",
+  "responsible",
+  "review_date",
+  "status",
+  "has_file",
+  "file_name",
+  "file_mime",
+  "storage_path",
+  "pinned_at",
+  "updated_at",
+  "created_at",
+].join(", ");
+
 async function listDocumentsSupabase(params) {
-  let q = supabase.from("tenant_documents").select("*").eq("tenant_id", params.tenant_id);
+  let q = supabase.from("tenant_documents").select(LIST_DOCUMENT_COLUMNS).eq("tenant_id", params.tenant_id);
   if (params.requirement) q = q.eq("requirement", String(params.requirement));
   if (params.section) q = q.eq("section", params.section);
   if (params.status) q = q.eq("status", params.status);
@@ -276,7 +297,7 @@ export async function downloadOriginalFile(doc) {
 export async function exportDocumentBlob(docId, format) {
   if (isSupabaseDocumentsEnabled()) {
     const { exportDocumentPdf, exportDocumentDocx } = await import("@/lib/documentExport");
-    const { isDocxFileName } = await import("@/lib/docxImport");
+    const { isDocxFileName } = await import("@/lib/docxFileUtils");
     const doc = await getDocumentSupabase(docId);
     if (format === "pdf") {
       const pdfHeaderDisclaimer = Boolean(

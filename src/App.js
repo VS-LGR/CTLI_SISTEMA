@@ -4,18 +4,18 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
-import RequirementView from "@/pages/RequirementView";
-import DocumentEditor from "@/pages/DocumentEditor";
-import AdminClients from "@/pages/AdminClients";
-import BackupView from "@/pages/BackupView";
-import CadastrosPage from "@/pages/CadastrosPage";
 import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, isTechnicianOnlyNav } from "@/lib/roles";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import "@/App.css";
 
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const RequirementView = lazy(() => import("@/pages/RequirementView"));
+const DocumentEditor = lazy(() => import("@/pages/DocumentEditor"));
+const AdminClients = lazy(() => import("@/pages/AdminClients"));
+const BackupView = lazy(() => import("@/pages/BackupView"));
+const CadastrosPage = lazy(() => import("@/pages/CadastrosPage"));
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
 const PedidosCompraPage = lazy(() => import("@/pages/PedidosCompraPage"));
@@ -23,7 +23,7 @@ const PedidoCompraEditorPage = lazy(() => import("@/pages/PedidoCompraEditorPage
 const QuotationRequestsPage = lazy(() => import("@/pages/QuotationRequestsPage"));
 const QuotationRequestEditorPage = lazy(() => import("@/pages/QuotationRequestEditorPage"));
 
-const coletaSuspenseFallback = (
+const pageSuspenseFallback = (
   <div className="p-8 text-center text-slate-500 text-sm">A carregar…</div>
 );
 
@@ -81,12 +81,19 @@ const App = () => (
             }
           >
             <Route path="/" element={<HomeRedirect />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route
+              path="/dashboard"
+              element={(
+                <Suspense fallback={pageSuspenseFallback}>
+                  <Dashboard />
+                </Suspense>
+              )}
+            />
             <Route
               path="/requirement/7/pr-7-2/coleta"
               element={(
                 <Protected coletaOnly>
-                  <Suspense fallback={coletaSuspenseFallback}>
+                  <Suspense fallback={pageSuspenseFallback}>
                     <ColetaPage />
                   </Suspense>
                 </Protected>
@@ -96,7 +103,7 @@ const App = () => (
               path="/requirement/7/pr-7-2/coleta/nova"
               element={(
                 <Protected coletaOnly>
-                  <Suspense fallback={coletaSuspenseFallback}>
+                  <Suspense fallback={pageSuspenseFallback}>
                     <ColetaEditorPage />
                   </Suspense>
                 </Protected>
@@ -106,7 +113,7 @@ const App = () => (
               path="/requirement/7/pr-7-2/coleta/:id"
               element={(
                 <Protected coletaOnly>
-                  <Suspense fallback={coletaSuspenseFallback}>
+                  <Suspense fallback={pageSuspenseFallback}>
                     <ColetaEditorPage />
                   </Suspense>
                 </Protected>
@@ -118,7 +125,7 @@ const App = () => (
               path={PEDIDOS_LIST_PATH}
               element={(
                 <Protected purchaseOrdersOnly>
-                  <Suspense fallback={coletaSuspenseFallback}>
+                  <Suspense fallback={pageSuspenseFallback}>
                     <PedidosCompraPage />
                   </Suspense>
                 </Protected>
@@ -128,7 +135,7 @@ const App = () => (
               path={`${PEDIDOS_LIST_PATH}/:id`}
               element={(
                 <Protected purchaseOrdersOnly>
-                  <Suspense fallback={coletaSuspenseFallback}>
+                  <Suspense fallback={pageSuspenseFallback}>
                     <PedidoCompraEditorPage />
                   </Suspense>
                 </Protected>
@@ -138,7 +145,7 @@ const App = () => (
               path={QUOTATION_LIST_PATH}
               element={(
                 <Protected quotationRequestsOnly>
-                  <Suspense fallback={coletaSuspenseFallback}>
+                  <Suspense fallback={pageSuspenseFallback}>
                     <QuotationRequestsPage />
                   </Suspense>
                 </Protected>
@@ -148,19 +155,63 @@ const App = () => (
               path={`${QUOTATION_LIST_PATH}/:id`}
               element={(
                 <Protected quotationRequestsOnly>
-                  <Suspense fallback={coletaSuspenseFallback}>
+                  <Suspense fallback={pageSuspenseFallback}>
                     <QuotationRequestEditorPage />
                   </Suspense>
                 </Protected>
               )}
             />
-            <Route path="/requirement/:id/:folderKey" element={<RequirementView />} />
-            <Route path="/requirement/:id" element={<RequirementView />} />
-            <Route path="/document/:id" element={<DocumentEditor />} />
-            <Route path="/backup" element={<BackupView />} />
+            <Route
+              path="/requirement/:id/:folderKey"
+              element={(
+                <Suspense fallback={pageSuspenseFallback}>
+                  <RequirementView />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/requirement/:id"
+              element={(
+                <Suspense fallback={pageSuspenseFallback}>
+                  <RequirementView />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/document/:id"
+              element={(
+                <Suspense fallback={pageSuspenseFallback}>
+                  <DocumentEditor />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/backup"
+              element={(
+                <Suspense fallback={pageSuspenseFallback}>
+                  <BackupView />
+                </Suspense>
+              )}
+            />
             <Route path="/cadastros" element={<Navigate to="/cadastros/fornecedores" replace />} />
-            <Route path="/cadastros/:section" element={<CadastrosPage />} />
-            <Route path="/admin/clients" element={<Protected adminOnly><AdminClients /></Protected>} />
+            <Route
+              path="/cadastros/:section"
+              element={(
+                <Suspense fallback={pageSuspenseFallback}>
+                  <CadastrosPage />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/admin/clients"
+              element={(
+                <Protected adminOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <AdminClients />
+                  </Suspense>
+                </Protected>
+              )}
+            />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

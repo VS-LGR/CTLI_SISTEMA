@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { fetchDashboard } from "@/lib/dashboardApi";
@@ -10,11 +10,20 @@ import {
 } from "@phosphor-icons/react";
 import { consumeTenantSwitchNotice } from "@/lib/tenantSwitchNotice";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import DocumentDistributionPie from "@/components/dashboard/DocumentDistributionPie";
 import DashboardRecentDocs from "@/components/dashboard/DashboardRecentDocs";
 import DashboardReminders from "@/components/dashboard/DashboardReminders";
 import DashboardPinnedDocs from "@/components/dashboard/DashboardPinnedDocs";
 import DashboardShortcutCard from "@/components/dashboard/DashboardShortcutCard";
+
+const DocumentDistributionPie = lazy(
+  () => import("@/components/dashboard/DocumentDistributionPie"),
+);
+
+const pieChartFallback = (
+  <div className="h-[240px] sm:h-[280px] flex items-center justify-center text-sm text-slate-500">
+    A carregar gráfico…
+  </div>
+);
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -126,7 +135,9 @@ const Dashboard = () => {
             <CardTitle className="font-display text-lg">Distribuição por requisito</CardTitle>
           </CardHeader>
           <CardContent className="min-w-0 overflow-hidden pt-0 pb-4">
-            <DocumentDistributionPie byRequirement={data?.by_requirement || {}} />
+            <Suspense fallback={pieChartFallback}>
+              <DocumentDistributionPie byRequirement={data?.by_requirement || {}} />
+            </Suspense>
           </CardContent>
         </Card>
 

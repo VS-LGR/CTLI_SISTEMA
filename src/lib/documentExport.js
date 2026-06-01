@@ -205,7 +205,7 @@ async function exportDocxFromHtml(doc) {
 }
 
 export async function exportDocumentDocx(doc) {
-  const { isDocxFileName } = await import("@/lib/docxImport");
+  const { isDocxFileName } = await import("@/lib/docxFileUtils");
   if (doc.has_file && isDocxFileName(doc.file_name, doc.file_mime)) {
     const { downloadOriginalFile } = await import("@/lib/documentsApi");
     return downloadOriginalFile(doc);
@@ -226,11 +226,4 @@ export async function exportDocumentDocx(doc) {
   return exportDocxFromHtml(doc);
 }
 
-export function triggerBlobDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+export { triggerBlobDownload } from "@/lib/blobDownload";

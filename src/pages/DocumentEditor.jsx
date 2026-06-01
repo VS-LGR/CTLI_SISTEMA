@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef, lazy, Suspense, useMemo } from "react";
-import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams, useNavigation } from "react-router-dom";
 import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
 import { saveDocxWithFidelity, printDocxFromEditor } from "@/lib/docxEditorSave";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
@@ -7,13 +7,13 @@ import {
   getDocument, updateDocument, uploadDocumentFile, exportDocumentBlob,
   downloadOriginalFile, duplicateDocument, toggleDocumentPin as togglePinApi,
 } from "@/lib/documentsApi";
-import { triggerBlobDownload } from "@/lib/documentExport";
-import { isDocxFile, isDocxFileName } from "@/lib/docxImport";
+import { triggerBlobDownload } from "@/lib/blobDownload";
+import { isDocxFile, isDocxFileName } from "@/lib/docxFileUtils";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import DocumentEditorMetaCard from "@/components/documents/DocumentEditorMetaCard";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
@@ -23,8 +23,8 @@ import {
   Copy, PencilSimple, PushPin, PushPinSlash,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { RESPONSIBLE_ROLES } from "@/lib/roles";
 import { REQ_NAMES, buildRequirementListPath } from "@/lib/requirementNavConfig";
+import { Card } from "@/components/ui/card";
 
 const LazyDocxEditorPanel = lazy(() => import("@/components/documents/DocxEditorPanel"));
 
@@ -35,6 +35,16 @@ const DOCX_EDITOR_FALLBACK = (
     data-testid="docx-editor-loading"
   >
     A carregar editor Word…
+  </div>
+);
+
+const DOCX_EDITOR_TEARDOWN = (
+  <div
+    className="flex items-center justify-center min-h-[560px] text-slate-500 text-sm border border-slate-200 rounded-xl bg-white"
+    aria-busy="true"
+    data-testid="docx-editor-teardown"
+  >
+    A sair do editor…
   </div>
 );
 
@@ -106,7 +116,9 @@ const SaveAsDialog = ({ doc, onCreated }) => {
 const DocumentEditor = () => {
   const { id } = useParams();
   const nav = useNavigate();
+  const navigation = useNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const suspendHeavyEditor = navigation.state !== "idle";
   const { user } = useAuth();
   const viewMode = searchParams.get("mode") === "view";
   const [doc, setDoc] = useState(null);
@@ -118,6 +130,7 @@ const DocumentEditor = () => {
   const [printMode, setPrintMode] = useState(false);
   const docxEditorRef = useRef(null);
   const originalDocxBufferRef = useRef(null);
+  const printTimeoutRef = useRef(null);
   const fileInputRef = useRef();
 
   const load = useCallback(async () => {
@@ -146,9 +159,46 @@ const DocumentEditor = () => {
     setWordDocumentMode(viewMode ? "viewing" : "editing");
   }, [doc?.id, reloadToken, viewMode]);
 
+  useEffect(() => () => {
+    if (printTimeoutRef.current != null) {
+      window.clearTimeout(printTimeoutRef.current);
+    }
+  }, []);
+
   const handleOriginalBufferLoaded = useCallback((ab) => {
     originalDocxBufferRef.current = ab ? ab.slice(0) : null;
   }, []);
+
+  const patchDoc = useCallback((field, value) => {
+    setDoc((p) => (p ? { ...p, [field]: value } : p));
+  }, []);
+
+  const editorDoc = useMemo(() => {
+    if (!doc?.id) return null;
+    return {
+      id: doc.id,
+      title: doc.title,
+      has_file: doc.has_file,
+      file_name: doc.file_name,
+      file_mime: doc.file_mime,
+      storage_path: doc.storage_path,
+      requirement: doc.requirement,
+      folder_key: doc.folder_key,
+      section: doc.section,
+      tenant_id: doc.tenant_id,
+    };
+  }, [
+    doc?.id,
+    doc?.title,
+    doc?.has_file,
+    doc?.file_name,
+    doc?.file_mime,
+    doc?.storage_path,
+    doc?.requirement,
+    doc?.folder_key,
+    doc?.section,
+    doc?.tenant_id,
+  ]);
 
   const metaPatch = () => ({
     title: doc.title,
@@ -214,7 +264,13 @@ const DocumentEditor = () => {
         setPrintMode(true);
         await new Promise((r) => window.requestAnimationFrame(r));
         printDocxFromEditor(docxEditorRef);
-        window.setTimeout(() => setPrintMode(false), 2000);
+        if (printTimeoutRef.current != null) {
+          window.clearTimeout(printTimeoutRef.current);
+        }
+        printTimeoutRef.current = window.setTimeout(() => {
+          printTimeoutRef.current = null;
+          setPrintMode(false);
+        }, 2000);
         toast.info(
           "Na janela de impressão, escolha «Guardar como PDF» com fundo branco e margens padrão.",
           { duration: 7000 },
@@ -314,9 +370,9 @@ const DocumentEditor = () => {
   const activeWordMode = readOnly ? "viewing" : wordDocumentMode;
 
   const editorPanelProps = useMemo(() => {
-    if (!doc) return null;
+    if (!editorDoc) return null;
     return {
-      doc,
+      doc: editorDoc,
       readOnly,
       documentMode: activeWordMode,
       printMode,
@@ -326,7 +382,7 @@ const DocumentEditor = () => {
       onDirtyChange: setDocxDirty,
       onOriginalBufferLoaded: handleOriginalBufferLoaded,
     };
-  }, [doc, readOnly, activeWordMode, printMode, authorName, reloadToken, handleOriginalBufferLoaded]);
+  }, [editorDoc, readOnly, activeWordMode, printMode, authorName, reloadToken, handleOriginalBufferLoaded]);
 
   if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
 
@@ -411,66 +467,29 @@ const DocumentEditor = () => {
       </div>
 
       <div className="space-y-6">
-        <Card className="border-slate-200">
-          <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            <div className="min-w-0">
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Título</Label>
-              <Input className="mt-1" value={doc.title} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, title: e.target.value })} data-testid="edit-title" />
-            </div>
-            <div className="min-w-0">
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Revisão</Label>
-              <Input className="mt-1" value={doc.version || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, version: e.target.value })} placeholder="Rev. 01" data-testid="edit-revision" />
-            </div>
-            <div className="min-w-0">
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Emissão</Label>
-              <Input className="mt-1" type="date" value={doc.code || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, code: e.target.value })} data-testid="edit-emission" />
-            </div>
-            <div className="min-w-0">
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Responsável</Label>
-              <select
-                value={doc.responsible || ""}
-                disabled={readOnly}
-                onChange={(e) => setDoc({ ...doc, responsible: e.target.value })}
-                className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white disabled:opacity-60"
-                data-testid="edit-responsible"
-              >
-                <option value="">Selecione…</option>
-                {responsibles.map((r) => (
-                  <option key={r.id} value={r.name}>
-                    {r.name} — {RESPONSIBLE_ROLES.find(x => x.value === r.role)?.short}
-                  </option>
-                ))}
-                {doc.responsible && !responsibles.some((r) => r.name === doc.responsible) && (
-                  <option value={doc.responsible}>{doc.responsible} (não cadastrado)</option>
-                )}
-              </select>
-            </div>
-            <div className="min-w-0">
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Próxima revisão</Label>
-              <Input className="mt-1" type="date" value={doc.review_date || ""} readOnly={readOnly} disabled={readOnly} onChange={(e) => setDoc({ ...doc, review_date: e.target.value })} data-testid="edit-review-date" />
-            </div>
-            {doc.has_file && (
-              <div className="text-xs bg-slate-50 border border-slate-200 rounded-md p-3 sm:col-span-2 xl:col-span-5 min-w-0">
-                <div className="font-semibold text-slate-700 mb-1">Ficheiro Word</div>
-                <div className="text-slate-600 truncate" title={doc.file_name}>{doc.file_name}</div>
-                <div className="text-[11px] text-slate-500 mt-1">
-                  Edição nativa .docx com toolbar do editor. «Baixar original» = ficheiro do upload.
-                  Salvar usa gravação seletiva e valida cabeçalho/rodapé Word.
-                  PDF: impressão do editor (fundo branco). Use «Visualizar» na lista para só leitura.
-                  {docxDirty && (
-                    <span className="block mt-1 text-amber-700 font-medium">Alterações pendentes no Word.</span>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <DocumentEditorMetaCard
+          title={doc.title}
+          version={doc.version}
+          code={doc.code}
+          responsible={doc.responsible}
+          reviewDate={doc.review_date}
+          readOnly={readOnly}
+          hasFile={doc.has_file}
+          fileName={doc.file_name}
+          docxDirty={docxDirty}
+          responsibles={responsibles}
+          onPatch={patchDoc}
+        />
 
         <div className="w-full min-w-0">
           {canEditRich && editorPanelProps ? (
-            <Suspense fallback={DOCX_EDITOR_FALLBACK}>
-              <LazyDocxEditorPanel {...editorPanelProps} />
-            </Suspense>
+            suspendHeavyEditor ? (
+              DOCX_EDITOR_TEARDOWN
+            ) : (
+              <Suspense fallback={DOCX_EDITOR_FALLBACK}>
+                <LazyDocxEditorPanel {...editorPanelProps} />
+              </Suspense>
+            )
           ) : readOnly && doc.content_html ? (
             <Card className="border-slate-200 p-6 prose prose-slate max-w-none min-h-[320px]"
               dangerouslySetInnerHTML={{ __html: doc.content_html || "<p class='text-slate-500'>Sem conteúdo.</p>" }}

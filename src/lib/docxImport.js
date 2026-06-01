@@ -4,9 +4,7 @@
  * Procedimentos com editor nativo (@eigenpal) devem usar o .docx no Storage, não content_html.
  * Ver docs/DOCX-PROCEDIMENTOS.md
  */
-import mammoth from "mammoth";
-
-const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+import { isDocxFile, isLegacyDocFile } from "@/lib/docxFileUtils";
 
 const MAMMOTH_STYLE_MAP = [
   "p[style-name='Heading 1'] => h1:fresh",
@@ -22,39 +20,24 @@ const MAMMOTH_STYLE_MAP = [
   "u => u",
 ];
 
-const mammothImageConverter = {
-  convertImage: mammoth.images.imgElement((image) =>
-    image.read("base64").then((imageBuffer) => ({
-      src: `data:${image.contentType};base64,${imageBuffer}`,
-    })),
-  ),
-};
-
-/** Apenas .docx (Office Open XML). Não inclui .doc legado. */
-export function isDocxFile(file) {
-  if (!file) return false;
-  const n = (file.name || "").toLowerCase();
-  if (n.endsWith(".docx")) return true;
-  if (file.type === DOCX_MIME) return true;
-  return false;
+async function loadMammoth() {
+  const mammoth = await import(
+    /* webpackChunkName: "mammoth" */ "mammoth"
+  );
+  return mammoth.default || mammoth;
 }
 
-/** Ficheiro já guardado no Storage é .docx */
-export function isDocxFileName(fileName, mime) {
-  const n = (fileName || "").toLowerCase();
-  if (n.endsWith(".docx")) return true;
-  if (mime === DOCX_MIME) return true;
-  return false;
+function mammothImageConverter(mammoth) {
+  return {
+    convertImage: mammoth.images.imgElement((image) =>
+      image.read("base64").then((imageBuffer) => ({
+        src: `data:${image.contentType};base64,${imageBuffer}`,
+      })),
+    ),
+  };
 }
 
-/** Word 97–2003 (.doc) — anexo apenas, sem mammoth. */
-export function isLegacyDocFile(file) {
-  if (!file?.name) return false;
-  const n = file.name.toLowerCase();
-  return n.endsWith(".doc") && !n.endsWith(".docx");
-}
-
-/** Limpa HTML do mammoth para o TipTap (tabelas, imagens, sem tags Office). */
+/** Limpa HTML do mammoth (tabelas, imagens, sem tags Office). */
 export function normalizeHtmlForEditor(html) {
   if (!html) return "";
   let out = html;
@@ -80,9 +63,10 @@ function hasMeaningfulHtml(html) {
 }
 
 async function convertArrayBufferToHtml(arrayBuffer) {
+  const mammoth = await loadMammoth();
   const result = await mammoth.convertToHtml(
     { arrayBuffer },
-    { styleMap: MAMMOTH_STYLE_MAP, ...mammothImageConverter },
+    { styleMap: MAMMOTH_STYLE_MAP, ...mammothImageConverter(mammoth) },
   );
   return normalizeHtmlForEditor(result.value || "");
 }
@@ -126,13 +110,4 @@ export async function tryConvertDocxToHtml(file) {
       : "Não foi possível ler o .docx (ficheiro inválido ou corrompido).";
     return { html: null, warning: hint, imported: false };
   }
-}
-
-/** Mensagem de sucesso após upload, conforme tipo de ficheiro e conversão. */
-export function uploadSuccessMessage(file, { imported, warning } = {}) {
-  if (isDocxFile(file) && imported) return "Word importado para o editor";
-  if (isDocxFile(file)) return "Word anexado (abrir no editor para editar)";
-  if (isLegacyDocFile(file)) return "Arquivo .doc anexado (sem importação para o editor)";
-  if (warning) return `Arquivo anexado. ${warning}`;
-  return "Arquivo anexado";
 }
