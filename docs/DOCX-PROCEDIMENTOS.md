@@ -7,8 +7,8 @@ Editor: [@eigenpal/docx-editor-react](https://www.docx-editor.dev/docs/latest) (
 | Etapa | Comportamento |
 |-------|---------------|
 | **Upload** | Bytes intactos no Supabase Storage |
-| **Visualização** | `DocxEditor` em `mode="viewing"`, `showToolbar={false}` |
-| **Edição** | Botão «Editar Word» → `mode="editing"` + remount via `key` |
+| **Edição (rota normal)** | `DocxEditor` em `mode="editing"`, toolbar ativa ao abrir `/document/:id` |
+| **Só leitura** | Link «Visualizar» (`?mode=view`) → `readOnly` + `mode="viewing"`; «Editar» na barra restaura edição |
 | **Salvar** | `ref.save({ selective: true })` + validação header/footer (`docxSaveFidelity.js`) |
 | **Baixar original** | Bytes do Storage (sem passar pelo editor) |
 | **PDF** | `ref.print()` do editor + CSS print (`.docx-printing`) |
@@ -26,9 +26,9 @@ Editor: [@eigenpal/docx-editor-react](https://www.docx-editor.dev/docs/latest) (
 
 ## Checklist QA
 
-1. Upload `.docx` → visualização fiel (viewing)
-2. «Editar Word» → toolbar ativa, texto editável
-3. Salvar sem editar → Storage inalterado; responsável persiste
-4. Salvar com edição → `.docx` atualizado, header validado
-5. PDF via botão do editor
+1. Abrir procedimento com `.docx` (`/document/:id`) → toolbar visível, texto editável
+2. Editar parágrafo e «Salvar» → ficheiro atualizado; modo permanece editável
+3. «Visualizar» (`?mode=view`) → só leitura; «Editar» na barra → edição
+4. Upload/substituir Word → abre em edição
+5. Export Word/PDF após edição
 6. PR-6.6: alternar abas após voltar de solicitação

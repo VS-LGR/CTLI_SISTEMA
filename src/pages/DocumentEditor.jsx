@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   FloppyDisk, FilePdf, FileDoc, Upload, DownloadSimple, ArrowLeft, Archive, ArrowsClockwise,
-  Copy, Eye, PencilSimple, PushPin, PushPinSlash,
+  Copy, PencilSimple, PushPin, PushPinSlash,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { RESPONSIBLE_ROLES } from "@/lib/roles";
@@ -114,7 +114,7 @@ const DocumentEditor = () => {
   const [responsibles, setResponsibles] = useState([]);
   const [reloadToken, setReloadToken] = useState(0);
   const [docxDirty, setDocxDirty] = useState(false);
-  const [wordDocumentMode, setWordDocumentMode] = useState("viewing");
+  const [wordDocumentMode, setWordDocumentMode] = useState("editing");
   const [printMode, setPrintMode] = useState(false);
   const docxEditorRef = useRef(null);
   const originalDocxBufferRef = useRef(null);
@@ -139,6 +139,16 @@ const DocumentEditor = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!doc) return;
+    setDocxDirty(false);
+    setWordDocumentMode(viewMode ? "viewing" : "editing");
+  }, [doc?.id, reloadToken, viewMode]);
+
+  const handleOriginalBufferLoaded = useCallback((ab) => {
+    originalDocxBufferRef.current = ab ? ab.slice(0) : null;
+  }, []);
 
   const metaPatch = () => ({
     title: doc.title,
@@ -267,7 +277,7 @@ const DocumentEditor = () => {
       const data = await uploadDocumentFile(id, file, user?.id, null);
       setDoc((p) => ({ ...p, ...data }));
       setDocxDirty(false);
-      setWordDocumentMode("viewing");
+      setWordDocumentMode("editing");
       setReloadToken((t) => t + 1);
       toast.success(
         "Documento Word carregado. A formatação original mantém-se até editar e salvar.",
@@ -314,13 +324,9 @@ const DocumentEditor = () => {
       reloadToken,
       editorRef: docxEditorRef,
       onDirtyChange: setDocxDirty,
-      onOriginalBufferLoaded: (ab) => {
-        originalDocxBufferRef.current = ab ? ab.slice(0) : null;
-        setDocxDirty(false);
-        setWordDocumentMode(doc.has_file ? "viewing" : "editing");
-      },
+      onOriginalBufferLoaded: handleOriginalBufferLoaded,
     };
-  }, [doc, readOnly, activeWordMode, printMode, authorName, reloadToken]);
+  }, [doc, readOnly, activeWordMode, printMode, authorName, reloadToken, handleOriginalBufferLoaded]);
 
   if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
 
@@ -345,7 +351,13 @@ const DocumentEditor = () => {
 
         <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto min-w-0">
           {readOnly && canEditRich && (
-            <Button variant="outline" onClick={() => setSearchParams({})}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchParams({});
+                setWordDocumentMode("editing");
+              }}
+            >
               <PencilSimple size={16} className="mr-1.5" /> Editar
             </Button>
           )}
@@ -442,9 +454,9 @@ const DocumentEditor = () => {
                 <div className="font-semibold text-slate-700 mb-1">Ficheiro Word</div>
                 <div className="text-slate-600 truncate" title={doc.file_name}>{doc.file_name}</div>
                 <div className="text-[11px] text-slate-500 mt-1">
-                  Edição nativa .docx. «Baixar original» = ficheiro do upload.
+                  Edição nativa .docx com toolbar do editor. «Baixar original» = ficheiro do upload.
                   Salvar usa gravação seletiva e valida cabeçalho/rodapé Word.
-                  PDF: impressão do editor (fundo branco).
+                  PDF: impressão do editor (fundo branco). Use «Visualizar» na lista para só leitura.
                   {docxDirty && (
                     <span className="block mt-1 text-amber-700 font-medium">Alterações pendentes no Word.</span>
                   )}
@@ -455,18 +467,6 @@ const DocumentEditor = () => {
         </Card>
 
         <div className="w-full min-w-0">
-          {canEditRich && !readOnly && doc.has_file && wordDocumentMode === "viewing" && (
-            <div className="flex justify-end mb-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setWordDocumentMode("editing")}
-                data-testid="docx-start-edit-btn"
-              >
-                <PencilSimple size={16} className="mr-1.5" /> Editar Word
-              </Button>
-            </div>
-          )}
           {canEditRich && editorPanelProps ? (
             <Suspense fallback={DOCX_EDITOR_FALLBACK}>
               <LazyDocxEditorPanel {...editorPanelProps} />

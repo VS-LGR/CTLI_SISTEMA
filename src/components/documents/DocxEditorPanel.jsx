@@ -29,6 +29,10 @@ function DocxEditorPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const dirtySentRef = useRef(false);
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  const onOriginalBufferLoadedRef = useRef(onOriginalBufferLoaded);
+  onDirtyChangeRef.current = onDirtyChange;
+  onOriginalBufferLoadedRef.current = onOriginalBufferLoaded;
 
   const scheduleRelayout = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -36,36 +40,41 @@ function DocxEditorPanel({
     });
   }, [editorRef]);
 
+  const docId = doc?.id;
+  const docHasFile = doc?.has_file;
+  const docFileName = doc?.file_name;
+  const docFileMime = doc?.file_mime;
+
   const loadBuffer = useCallback(async () => {
     if (!doc) return;
     setLoading(true);
     setError(null);
     dirtySentRef.current = false;
-    onDirtyChange?.(false);
+    onDirtyChangeRef.current?.(false);
     try {
       if (doc.has_file && isDocxFileName(doc.file_name, doc.file_mime)) {
         const blob = await downloadOriginalFile(doc);
         const ab = await blob.arrayBuffer();
         setBuffer(ab);
-        onOriginalBufferLoaded?.(ab);
+        onOriginalBufferLoadedRef.current?.(ab);
       } else if (doc.has_file) {
         setError("Este ficheiro não é .docx. Faça upload de um documento Word (.docx).");
         setBuffer(null);
-        onOriginalBufferLoaded?.(null);
+        onOriginalBufferLoadedRef.current?.(null);
       } else {
         const blank = await getBlankDocxBuffer();
         setBuffer(blank);
-        onOriginalBufferLoaded?.(blank);
+        onOriginalBufferLoadedRef.current?.(blank);
       }
     } catch (e) {
       console.error("[DocxEditorPanel] load", e);
       setError(e?.message || "Falha ao carregar o documento");
       setBuffer(null);
-      onOriginalBufferLoaded?.(null);
+      onOriginalBufferLoadedRef.current?.(null);
     } finally {
       setLoading(false);
     }
-  }, [doc, onDirtyChange, onOriginalBufferLoaded]);
+  }, [doc, docId, docHasFile, docFileName, docFileMime]);
 
   useEffect(() => {
     loadBuffer();
@@ -81,6 +90,14 @@ function DocxEditorPanel({
 
   const editing = !readOnly && documentMode === "editing" && !printMode;
   const editorMode = editing ? "editing" : "viewing";
+
+  useEffect(() => {
+    if (!editing || !buffer || loading) return;
+    const frameId = window.requestAnimationFrame(() => {
+      editorRef.current?.focus?.();
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [editing, buffer, loading, documentMode, reloadToken, editorRef]);
 
   if (loading) {
     return (
@@ -118,7 +135,7 @@ function DocxEditorPanel({
         documentBuffer={buffer}
         documentName={doc?.title || "Documento"}
         author={author || "Utilizador"}
-        readOnly={readOnly || !editing}
+        readOnly={readOnly}
         mode={editorMode}
         showToolbar={editing}
         showZoomControl
@@ -129,7 +146,7 @@ function DocxEditorPanel({
         onChange={() => {
           if (!dirtySentRef.current) {
             dirtySentRef.current = true;
-            onDirtyChange?.(true);
+            onDirtyChangeRef.current?.(true);
           }
         }}
         onEditorViewReady={() => scheduleRelayout()}
