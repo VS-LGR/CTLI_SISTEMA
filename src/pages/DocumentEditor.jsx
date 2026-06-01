@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef, Suspense, useMemo } from "react";
-import { useParams, Link, useNavigate, useSearchParams, useNavigation } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
 import { saveDocxWithFidelity, printDocxFromEditor } from "@/lib/docxEditorSave";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
@@ -39,16 +39,6 @@ const DOCX_EDITOR_FALLBACK = (
     data-testid="docx-editor-loading"
   >
     A carregar editor Word…
-  </div>
-);
-
-const DOCX_EDITOR_TEARDOWN = (
-  <div
-    className="flex items-center justify-center min-h-[560px] text-slate-500 text-sm border border-slate-200 rounded-xl bg-white"
-    aria-busy="true"
-    data-testid="docx-editor-teardown"
-  >
-    A sair do editor…
   </div>
 );
 
@@ -120,11 +110,7 @@ const SaveAsDialog = ({ doc, onCreated }) => {
 const DocumentEditor = () => {
   const { id } = useParams();
   const nav = useNavigate();
-  const navigation = useNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const suspendHeavyEditor = navigation.state !== "idle"
-    && navigation.location
-    && !navigation.location.pathname.startsWith("/document/");
   const { user } = useAuth();
   const viewMode = searchParams.get("mode") === "view";
   const [doc, setDoc] = useState(null);
@@ -489,15 +475,11 @@ const DocumentEditor = () => {
 
         <div className="w-full min-w-0">
           {canEditRich && editorPanelProps ? (
-            suspendHeavyEditor ? (
-              DOCX_EDITOR_TEARDOWN
-            ) : (
-              <EditorErrorBoundary resetKey={`${editorDoc?.id}-${reloadToken}`}>
-                <Suspense fallback={DOCX_EDITOR_FALLBACK}>
-                  <LazyDocxEditorPanel {...editorPanelProps} />
-                </Suspense>
-              </EditorErrorBoundary>
-            )
+            <EditorErrorBoundary resetKey={`${editorDoc?.id}-${reloadToken}`}>
+              <Suspense fallback={DOCX_EDITOR_FALLBACK}>
+                <LazyDocxEditorPanel {...editorPanelProps} />
+              </Suspense>
+            </EditorErrorBoundary>
           ) : readOnly && doc.content_html ? (
             <Card className="border-slate-200 p-6 prose prose-slate max-w-none min-h-[320px]"
               dangerouslySetInnerHTML={{ __html: doc.content_html || "<p class='text-slate-500'>Sem conteúdo.</p>" }}
