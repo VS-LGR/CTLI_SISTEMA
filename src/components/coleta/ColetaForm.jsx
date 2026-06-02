@@ -19,6 +19,9 @@ import { cadastroSectionPath } from "@/lib/cadastroSections";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
 import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
 import CalibracaoOrdemTooltip from "@/components/coleta/CalibracaoOrdemTooltip";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import FormRowCard from "@/components/forms/FormRowCard";
+import FormRowsTableShell, { FormRowsTableHead, FormRowsTableBody } from "@/components/forms/FormRowsTableShell";
 
 function Field({ label, children, className = "" }) {
   return (
@@ -72,6 +75,7 @@ export default function ColetaForm({
   endCustomers = [],
   isNew = false,
 }) {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   const selectedEndCustomerId = resolveEndCustomerId(payload, endCustomers);
   const autoFilledSingleClient = useRef(false);
 
@@ -297,30 +301,44 @@ export default function ColetaForm({
               })}
             />
           </Field>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b bg-slate-50">
-                  <th className="p-2 text-left w-12">Ponto</th>
-                  <th className="p-2 text-left">Antes do ajuste</th>
-                  <th className="p-2 text-left">Depois do ajuste</th>
+          {!isDesktop && (
+            <div className="space-y-3">
+              {payload.excentricidade.pontos.map((pt, i) => (
+                <FormRowCard key={i} label={`Ponto ${i + 1}`} readOnly>
+                  <Field label="Antes do ajuste">
+                    <Input value={pt.antes} onChange={(e) => setEccPonto(i, "antes", e.target.value)} className="h-10" />
+                  </Field>
+                  <Field label="Depois do ajuste">
+                    <Input value={pt.depois} onChange={(e) => setEccPonto(i, "depois", e.target.value)} className="h-10" />
+                  </Field>
+                </FormRowCard>
+              ))}
+            </div>
+          )}
+          {isDesktop && (
+            <FormRowsTableShell tableMinWidth="400px">
+              <FormRowsTableHead>
+                <tr>
+                  <th className="p-2 text-left w-12 font-semibold sticky left-0 z-[1] bg-slate-50">Ponto</th>
+                  <th className="p-2 text-left font-semibold">Antes do ajuste</th>
+                  <th className="p-2 text-left font-semibold">Depois do ajuste</th>
                 </tr>
-              </thead>
-              <tbody>
+              </FormRowsTableHead>
+              <FormRowsTableBody>
                 {payload.excentricidade.pontos.map((pt, i) => (
-                  <tr key={i} className="border-b">
-                    <td className="p-2 font-mono">{i + 1}</td>
+                  <tr key={i} className="border-b border-slate-100">
+                    <td className="p-2 font-mono sticky left-0 z-[1] bg-white">{i + 1}</td>
                     <td className="p-2">
-                      <Input value={pt.antes} onChange={(e) => setEccPonto(i, "antes", e.target.value)} className="h-8" />
+                      <Input value={pt.antes} onChange={(e) => setEccPonto(i, "antes", e.target.value)} className="h-10" />
                     </td>
                     <td className="p-2">
-                      <Input value={pt.depois} onChange={(e) => setEccPonto(i, "depois", e.target.value)} className="h-8" />
+                      <Input value={pt.depois} onChange={(e) => setEccPonto(i, "depois", e.target.value)} className="h-10" />
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </FormRowsTableBody>
+            </FormRowsTableShell>
+          )}
         </SectionCard>
 
         <SectionCard num="5" title="Controle">
@@ -354,28 +372,58 @@ export default function ColetaForm({
         num="6"
         title="Calibração da Balança"
       >
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs border-collapse min-w-[800px]">
-            <thead>
-              <tr className="border-b bg-slate-50">
-                <th className="p-2">Ponto</th>
-                <th className="p-2">Valor nominal do Peso de Referência</th>
-                <th className="p-2">Leitura antes do ajuste</th>
-                <th className="p-2">Leitura 1</th>
-                <th className="p-2">Leitura 2</th>
-                <th className="p-2">Leitura 3</th>
-                <th className="p-2 min-w-[180px]">Identificação do(s) Peso(s) Padrão</th>
+        {!isDesktop && (
+          <div className="space-y-3">
+            {payload.calibracao.pontos.map((pt, i) => (
+              <FormRowCard key={i} label={`Ponto P${i + 1}`} readOnly>
+                <Field label="Valor nominal do Peso de Referência">
+                  <Input value={pt.peso_nominal} onChange={(e) => setCalPonto(i, "peso_nominal", e.target.value)} className="h-10" />
+                </Field>
+                <Field label="Leitura antes do ajuste">
+                  <Input value={pt.leitura_antes} onChange={(e) => setCalPonto(i, "leitura_antes", e.target.value)} className="h-10" />
+                </Field>
+                <Field label="Leitura 1">
+                  <Input value={pt.rep1} onChange={(e) => setCalPonto(i, "rep1", e.target.value)} className="h-10" />
+                </Field>
+                <Field label="Leitura 2">
+                  <Input value={pt.rep2} onChange={(e) => setCalPonto(i, "rep2", e.target.value)} className="h-10" />
+                </Field>
+                <Field label="Leitura 3">
+                  <Input value={pt.rep3} onChange={(e) => setCalPonto(i, "rep3", e.target.value)} className="h-10" />
+                </Field>
+                <Field label="Identificação do(s) Peso(s) Padrão">
+                  <PesoPadraoMultiSelect
+                    weightItems={weightItems}
+                    value={pt.pesos_padrao_ids || []}
+                    onChange={(ids) => setCalPonto(i, "pesos_padrao_ids", ids)}
+                  />
+                </Field>
+              </FormRowCard>
+            ))}
+          </div>
+        )}
+        {isDesktop && (
+          <FormRowsTableShell tableMinWidth="800px">
+            <FormRowsTableHead>
+              <tr>
+                <th className="p-2 font-semibold sticky left-0 z-[1] bg-slate-50">Ponto</th>
+                <th className="p-2 font-semibold">Valor nominal do Peso de Referência</th>
+                <th className="p-2 font-semibold">Leitura antes do ajuste</th>
+                <th className="p-2 font-semibold">Leitura 1</th>
+                <th className="p-2 font-semibold">Leitura 2</th>
+                <th className="p-2 font-semibold">Leitura 3</th>
+                <th className="p-2 min-w-[180px] font-semibold">Identificação do(s) Peso(s) Padrão</th>
               </tr>
-            </thead>
-            <tbody>
+            </FormRowsTableHead>
+            <FormRowsTableBody>
               {payload.calibracao.pontos.map((pt, i) => (
-                <tr key={i} className="border-b">
-                  <td className="p-2 font-mono align-top">P{i + 1}</td>
-                  <td className="p-1 align-top"><Input value={pt.peso_nominal} onChange={(e) => setCalPonto(i, "peso_nominal", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1 align-top"><Input value={pt.leitura_antes} onChange={(e) => setCalPonto(i, "leitura_antes", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1 align-top"><Input value={pt.rep1} onChange={(e) => setCalPonto(i, "rep1", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1 align-top"><Input value={pt.rep2} onChange={(e) => setCalPonto(i, "rep2", e.target.value)} className="h-8 text-xs" /></td>
-                  <td className="p-1 align-top"><Input value={pt.rep3} onChange={(e) => setCalPonto(i, "rep3", e.target.value)} className="h-8 text-xs" /></td>
+                <tr key={i} className="border-b border-slate-100">
+                  <td className="p-2 font-mono align-top sticky left-0 z-[1] bg-white">P{i + 1}</td>
+                  <td className="p-1 align-top"><Input value={pt.peso_nominal} onChange={(e) => setCalPonto(i, "peso_nominal", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top"><Input value={pt.leitura_antes} onChange={(e) => setCalPonto(i, "leitura_antes", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top"><Input value={pt.rep1} onChange={(e) => setCalPonto(i, "rep1", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top"><Input value={pt.rep2} onChange={(e) => setCalPonto(i, "rep2", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top"><Input value={pt.rep3} onChange={(e) => setCalPonto(i, "rep3", e.target.value)} className="h-10 text-sm" /></td>
                   <td className="p-1 align-top min-w-[180px]">
                     <PesoPadraoMultiSelect
                       weightItems={weightItems}
@@ -385,9 +433,9 @@ export default function ColetaForm({
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </FormRowsTableBody>
+          </FormRowsTableShell>
+        )}
       </SectionCard>
 
       <ColetaVersoForm payload={payload} onChange={onChange} />

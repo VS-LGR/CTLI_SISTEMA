@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SUBSTITUICAO_LINHA_DEFS, isSubstituicaoLinhaSoloL } from "@/lib/coletaSchema";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import FormRowCard from "@/components/forms/FormRowCard";
+import FormRowsTableShell, { FormRowsTableHead, FormRowsTableBody } from "@/components/forms/FormRowsTableShell";
 
 function Field({ label, children, className = "" }) {
   return (
@@ -45,7 +48,55 @@ function SimNaoRow({ label, value, onChange, disabled }) {
   );
 }
 
+function RepetitividadeLinhaFields({ def, row, soloL, aplicavel, setLinha }) {
+  const inputCls = "h-10 text-sm";
+  const ambientField = (field, label) => (
+    <Field key={field} label={label}>
+      {soloL ? (
+        <span className="text-slate-400 block text-center py-2 text-sm">—</span>
+      ) : (
+        <Input
+          value={row[field] || ""}
+          onChange={(e) => setLinha(def.key, { [field]: e.target.value })}
+          className={inputCls}
+          disabled={!aplicavel}
+        />
+      )}
+    </Field>
+  );
+
+  return (
+    <>
+      <Field label="Valor nominal">
+        <Input
+          value={row.valor_nominal || ""}
+          onChange={(e) => setLinha(def.key, { valor_nominal: e.target.value })}
+          className={inputCls}
+          disabled={!aplicavel}
+        />
+      </Field>
+      {[0, 1, 2].map((i) => (
+        def.leituras3 || i === 0 ? (
+          <Field key={`leitura-${i}`} label={`Leitura ${i + 1}`}>
+            <Input
+              value={row[`leitura${i + 1}`] || ""}
+              onChange={(e) => setLinha(def.key, { [`leitura${i + 1}`]: e.target.value })}
+              className={inputCls}
+              disabled={!aplicavel}
+            />
+          </Field>
+        ) : null
+      ))}
+      {ambientField("massa_especifica", "Massa específica")}
+      {ambientField("temp", "°C")}
+      {ambientField("umidade", "% ur")}
+      {ambientField("pressao", "hPa")}
+    </>
+  );
+}
+
 export default function ColetaVersoForm({ payload, onChange }) {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   const verso = payload.verso || {};
   const q = verso.questoes_carga || {};
   const rep = verso.repetitividade || {};
@@ -158,22 +209,42 @@ export default function ColetaVersoForm({ payload, onChange }) {
               />
             </Field>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs border-collapse min-w-[960px]">
-                <thead>
-                  <tr className="border-b bg-slate-50">
-                    <th className="p-2 text-left">Linha</th>
-                    <th className="p-2">Valor nominal</th>
-                    <th className="p-2">Leitura 1</th>
-                    <th className="p-2">Leitura 2</th>
-                    <th className="p-2">Leitura 3</th>
-                    <th className="p-2">Massa específica</th>
-                    <th className="p-2">°C</th>
-                    <th className="p-2">%ur</th>
-                    <th className="p-2">hPa</th>
+            {!isDesktop && (
+              <div className="space-y-3">
+                {SUBSTITUICAO_LINHA_DEFS.map((def) => {
+                  const row = linhaByKey(def.key);
+                  const soloL = isSubstituicaoLinhaSoloL(def);
+                  return (
+                    <FormRowCard key={def.key} label={def.label} readOnly>
+                      <RepetitividadeLinhaFields
+                        def={def}
+                        row={row}
+                        soloL={soloL}
+                        aplicavel={aplicavel}
+                        setLinha={setLinha}
+                      />
+                    </FormRowCard>
+                  );
+                })}
+              </div>
+            )}
+
+            {isDesktop && (
+              <FormRowsTableShell tableMinWidth="960px">
+                <FormRowsTableHead>
+                  <tr>
+                    <th className="p-2 text-left sticky left-0 z-[1] bg-slate-50 font-semibold">Linha</th>
+                    <th className="p-2 font-semibold">Valor nominal</th>
+                    <th className="p-2 font-semibold">Leitura 1</th>
+                    <th className="p-2 font-semibold">Leitura 2</th>
+                    <th className="p-2 font-semibold">Leitura 3</th>
+                    <th className="p-2 font-semibold">Massa específica</th>
+                    <th className="p-2 font-semibold">°C</th>
+                    <th className="p-2 font-semibold">%ur</th>
+                    <th className="p-2 font-semibold">hPa</th>
                   </tr>
-                </thead>
-                <tbody>
+                </FormRowsTableHead>
+                <FormRowsTableBody>
                   {SUBSTITUICAO_LINHA_DEFS.map((def) => {
                     const row = linhaByKey(def.key);
                     const soloL = isSubstituicaoLinhaSoloL(def);
@@ -184,19 +255,21 @@ export default function ColetaVersoForm({ payload, onChange }) {
                         <Input
                           value={row[field] || ""}
                           onChange={(e) => setLinha(def.key, { [field]: e.target.value })}
-                          className="h-8 text-xs"
+                          className="h-10 text-sm"
                           disabled={!aplicavel}
                         />
                       )
                     );
                     return (
-                      <tr key={def.key} className="border-b">
-                        <td className="p-2 font-mono align-top whitespace-nowrap">{def.label}</td>
+                      <tr key={def.key} className="border-b border-slate-100">
+                        <td className="p-2 font-mono align-top whitespace-nowrap sticky left-0 z-[1] bg-white font-medium">
+                          {def.label}
+                        </td>
                         <td className="p-1 align-top">
                           <Input
                             value={row.valor_nominal || ""}
                             onChange={(e) => setLinha(def.key, { valor_nominal: e.target.value })}
-                            className="h-8 text-xs"
+                            className="h-10 text-sm"
                             disabled={!aplicavel}
                           />
                         </td>
@@ -206,7 +279,7 @@ export default function ColetaVersoForm({ payload, onChange }) {
                               <Input
                                 value={row[`leitura${i + 1}`] || ""}
                                 onChange={(e) => setLinha(def.key, { [`leitura${i + 1}`]: e.target.value })}
-                                className="h-8 text-xs"
+                                className="h-10 text-sm"
                                 disabled={!aplicavel}
                               />
                             ) : (
@@ -221,9 +294,9 @@ export default function ColetaVersoForm({ payload, onChange }) {
                       </tr>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+                </FormRowsTableBody>
+              </FormRowsTableShell>
+            )}
           </CardContent>
         </Card>
       </div>

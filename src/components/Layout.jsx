@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
-  Buildings, CaretRight, ClipboardText, List,
+  Buildings, CaretRight, ClipboardText, List, X,
 } from "@phosphor-icons/react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -23,6 +23,7 @@ import {
 } from "@/lib/requirementNavConfig";
 import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
+import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
 
 const REQ_ICONS = {
@@ -58,6 +59,12 @@ const Layout = () => {
   const [cadastrosExpanded, setCadastrosExpanded] = useState(
     () => location.pathname.startsWith("/cadastros"),
   );
+  const {
+    collapsed: sidebarCollapsed,
+    overlayOpen: desktopSidebarOverlay,
+    toggleDesktopMenu,
+    closeOverlay: closeDesktopSidebarOverlay,
+  } = useSidebarCollapsed();
 
   const loadTenants = useCallback(async () => {
     try {
@@ -86,7 +93,8 @@ const Layout = () => {
 
   useEffect(() => {
     setMobileNavOpen(false);
-  }, [location.pathname]);
+    closeDesktopSidebarOverlay();
+  }, [location.pathname, closeDesktopSidebarOverlay]);
 
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";
@@ -314,12 +322,28 @@ const Layout = () => {
   </>
   );
 
+  const desktopSidebarVisible = !sidebarCollapsed || desktopSidebarOverlay;
+
   return (
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 fixed inset-y-0 left-0 bg-slate-900 text-white border-r border-slate-800 z-40 flex-col">
-        {sidebarInner()}
+      {/* Desktop sidebar — fixo quando expandido; overlay quando recolhido */}
+      <aside
+        className={`hidden lg:flex w-64 fixed inset-y-0 left-0 bg-slate-900 text-white border-r border-slate-800 z-40 flex-col transition-transform duration-200 ease-out ${
+          desktopSidebarVisible ? "translate-x-0" : "-translate-x-full pointer-events-none"
+        }`}
+        aria-hidden={!desktopSidebarVisible}
+      >
+        {sidebarInner(closeDesktopSidebarOverlay)}
       </aside>
+
+      {sidebarCollapsed && desktopSidebarOverlay && (
+        <button
+          type="button"
+          className="hidden lg:block fixed inset-0 z-[35] bg-slate-900/40 backdrop-blur-[1px]"
+          aria-label="Fechar menu"
+          onClick={closeDesktopSidebarOverlay}
+        />
+      )}
 
       {/* Mobile / tablet drawer */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
@@ -331,18 +355,40 @@ const Layout = () => {
         </SheetContent>
       </Sheet>
 
-      <div className="lg:pl-64 min-h-screen flex flex-col min-w-0">
+      <div
+        className={`min-h-screen flex flex-col min-w-0 transition-[padding] duration-200 ease-out ${
+          sidebarCollapsed ? "lg:pl-0" : "lg:pl-64"
+        }`}
+      >
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200 flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-3 min-h-[4rem]">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="lg:hidden shrink-0 text-slate-700 hover:bg-slate-100"
-            onClick={() => setMobileNavOpen(true)}
-            aria-label="Abrir menu"
-            data-testid="mobile-nav-toggle"
+            className="shrink-0 text-slate-700 hover:bg-slate-100"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
+                toggleDesktopMenu();
+              } else {
+                setMobileNavOpen(true);
+              }
+            }}
+            aria-label={
+              !sidebarCollapsed || desktopSidebarOverlay ? "Recolher menu" : "Abrir menu"
+            }
+            aria-expanded={!sidebarCollapsed || desktopSidebarOverlay}
+            data-testid="desktop-sidebar-toggle"
           >
-            <List size={22} weight="bold" />
+            <span className="lg:hidden">
+              <List size={22} weight="bold" />
+            </span>
+            <span className="hidden lg:inline">
+              {!sidebarCollapsed || desktopSidebarOverlay ? (
+                <X size={22} weight="bold" />
+              ) : (
+                <List size={22} weight="bold" />
+              )}
+            </span>
           </Button>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 truncate">
