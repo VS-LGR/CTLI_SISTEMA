@@ -33,6 +33,13 @@ export const canAccessPurchaseOrders = (role) =>
 /** Solicitações de orçamento — mesmos papéis que pedidos de compra. */
 export const canAccessQuotationRequests = canAccessPurchaseOrders;
 
+/** Módulo 6.2 Pessoal — mesmos papéis que pedidos de compra. */
+export const canAccessPersonnel = canAccessPurchaseOrders;
+
+/** Edição de listas padrão do módulo Pessoal. */
+export const canEditPersonnelStandardOptions = (role) =>
+  ["admin", "client", "gerente_qualidade", "diretor"].includes(role);
+
 export const canManageTechnicians = (role) =>
   role === "admin" || role === "client";
 

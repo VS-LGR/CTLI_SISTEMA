@@ -181,6 +181,10 @@ async function buildBackupZip(
     responsibles: () => admin.from("responsibles").select("*").eq("tenant_id", tenantId),
     suppliers: () => admin.from("supplier_registrations").select("*").eq("tenant_id", tenantId),
     end_customers: () => admin.from("end_customer_registrations").select("*").eq("tenant_id", tenantId),
+    personnel_options: () => admin.from("personnel_standard_options").select("*").eq("tenant_id", tenantId),
+    personnel_positions: () => admin.from("personnel_positions").select("*").eq("tenant_id", tenantId),
+    personnel_adequacies: () => admin.from("personnel_competency_adequacies").select("*").eq("tenant_id", tenantId),
+    personnel_monitorings: () => admin.from("personnel_monitorings").select("*").eq("tenant_id", tenantId),
     employees: () => admin.from("employee_registrations").select("*").eq("tenant_id", tenantId),
     weight_certs: () => admin.from("weight_standard_certificates").select("*").eq("tenant_id", tenantId),
     weight_items: () => admin.from("standard_weight_items").select("*").eq("tenant_id", tenantId),
@@ -201,6 +205,10 @@ async function buildBackupZip(
   zip.folder("cadastros");
   zip.file("cadastros/suppliers.json", JSON.stringify(exported.suppliers, null, 2));
   zip.file("cadastros/end_customers.json", JSON.stringify(exported.end_customers, null, 2));
+  zip.file("cadastros/personnel_options.json", JSON.stringify(exported.personnel_options, null, 2));
+  zip.file("cadastros/personnel_positions.json", JSON.stringify(exported.personnel_positions, null, 2));
+  zip.file("cadastros/personnel_adequacies.json", JSON.stringify(exported.personnel_adequacies, null, 2));
+  zip.file("cadastros/personnel_monitorings.json", JSON.stringify(exported.personnel_monitorings, null, 2));
   zip.file("cadastros/employees.json", JSON.stringify(exported.employees, null, 2));
   zip.file("cadastros/weight_certs.json", JSON.stringify(exported.weight_certs, null, 2));
   zip.file("cadastros/weight_items.json", JSON.stringify(exported.weight_items, null, 2));
@@ -321,7 +329,11 @@ async function deleteTenantData(admin: SupabaseClient, tenantId: string) {
   await admin.from("standard_weight_items").delete().eq("tenant_id", tenantId);
   await admin.from("weight_standard_certificates").delete().eq("tenant_id", tenantId);
   await admin.from("environment_sensor_certificates").delete().eq("tenant_id", tenantId);
-  await admin.from("employee_registrations").update({ supervisor_id: null }).eq("tenant_id", tenantId);
+  await admin.from("personnel_monitorings").delete().eq("tenant_id", tenantId);
+  await admin.from("personnel_competency_adequacies").delete().eq("tenant_id", tenantId);
+  await admin.from("employee_registrations").update({ supervisor_id: null, position_id: null }).eq("tenant_id", tenantId);
+  await admin.from("personnel_positions").delete().eq("tenant_id", tenantId);
+  await admin.from("personnel_standard_options").delete().eq("tenant_id", tenantId);
   await admin.from("employee_registrations").delete().eq("tenant_id", tenantId);
   await admin.from("supplier_registrations").delete().eq("tenant_id", tenantId);
   await admin.from("end_customer_registrations").delete().eq("tenant_id", tenantId);
@@ -408,6 +420,10 @@ async function restoreFromZip(
   let responsibles = await readJson("responsibles.json");
   let suppliers = await readJson("cadastros/suppliers.json");
   let endCustomers = await readJson("cadastros/end_customers.json");
+  let personnelOptions = await readJson("cadastros/personnel_options.json");
+  let personnelPositions = await readJson("cadastros/personnel_positions.json");
+  let personnelAdequacies = await readJson("cadastros/personnel_adequacies.json");
+  let personnelMonitorings = await readJson("cadastros/personnel_monitorings.json");
   let employees = await readJson("cadastros/employees.json");
   let weightCerts = await readJson("cadastros/weight_certs.json");
   let weightItems = await readJson("cadastros/weight_items.json");
@@ -422,6 +438,10 @@ async function restoreFromZip(
     responsibles = remapIds(responsibles, idMap);
     suppliers = remapIds(suppliers, idMap);
     endCustomers = remapIds(endCustomers, idMap);
+    personnelOptions = remapIds(personnelOptions, idMap);
+    personnelPositions = remapIds(personnelPositions, idMap);
+    personnelAdequacies = remapIds(personnelAdequacies, idMap);
+    personnelMonitorings = remapIds(personnelMonitorings, idMap);
     employees = remapIds(employees, idMap);
     weightCerts = remapIds(weightCerts, idMap);
     weightItems = remapIds(weightItems, idMap);
@@ -431,7 +451,31 @@ async function restoreFromZip(
     poItems = remapIds(poItems, idMap);
     poInspections = remapIds(poInspections, idMap);
     poSignatures = remapIds(poSignatures, idMap);
-    for (const row of employees) applyIdMap(row, idMap);
+    for (const row of employees) {
+      applyIdMap(row, idMap);
+      if (row.position_id && idMap.has(row.position_id as string)) {
+        row.position_id = idMap.get(row.position_id as string);
+      }
+    }
+    for (const row of personnelPositions) {
+      if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
+        row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
+      }
+    }
+    for (const row of personnelAdequacies) {
+      if (row.employee_id && idMap.has(row.employee_id as string)) row.employee_id = idMap.get(row.employee_id as string);
+      if (row.position_id && idMap.has(row.position_id as string)) row.position_id = idMap.get(row.position_id as string);
+      if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
+        row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
+      }
+    }
+    for (const row of personnelMonitorings) {
+      if (row.employee_id && idMap.has(row.employee_id as string)) row.employee_id = idMap.get(row.employee_id as string);
+      if (row.position_id && idMap.has(row.position_id as string)) row.position_id = idMap.get(row.position_id as string);
+      if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
+        row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
+      }
+    }
     for (const row of weightItems) applyIdMap(row, idMap);
     for (const row of purchaseOrders) {
       if (row.supplier_id && idMap.has(row.supplier_id as string)) {
@@ -491,8 +535,24 @@ async function restoreFromZip(
   counts.cadastros_restored += await insertCadastro("supplier_registrations", suppliers);
   counts.cadastros_restored += await insertCadastro("end_customer_registrations", endCustomers);
 
-  const sortedEmployees = sortEmployeesForInsert(employees);
+  counts.cadastros_restored += await insertCadastro("personnel_standard_options", personnelOptions);
+
+  const employeesForInsert = employees.map((r: Record<string, unknown>) => ({ ...r, position_id: null }));
+  const sortedEmployees = sortEmployeesForInsert(employeesForInsert);
   counts.cadastros_restored += await insertCadastro("employee_registrations", sortedEmployees);
+  counts.cadastros_restored += await insertCadastro("personnel_positions", personnelPositions);
+
+  for (const row of employees) {
+    if (!row.position_id) continue;
+    const { error } = await admin
+      .from("employee_registrations")
+      .update({ position_id: row.position_id })
+      .eq("id", row.id as string);
+    if (error) throw new Error(`employee position_id: ${error.message}`);
+  }
+
+  counts.cadastros_restored += await insertCadastro("personnel_competency_adequacies", personnelAdequacies);
+  counts.cadastros_restored += await insertCadastro("personnel_monitorings", personnelMonitorings);
   counts.cadastros_restored += await insertCadastro("weight_standard_certificates", weightCerts);
   counts.cadastros_restored += await insertCadastro("standard_weight_items", weightItems);
   counts.cadastros_restored += await insertCadastro("environment_sensor_certificates", envCerts);

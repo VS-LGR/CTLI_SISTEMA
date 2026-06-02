@@ -6,7 +6,8 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
-import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, isTechnicianOnlyNav } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, isTechnicianOnlyNav } from "@/lib/roles";
+import { PERSONNEL_BASE_PATH, PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
@@ -24,6 +25,10 @@ const PedidosCompraPage = lazy(() => import("@/pages/PedidosCompraPage"));
 const PedidoCompraEditorPage = lazy(() => import("@/pages/PedidoCompraEditorPage"));
 const QuotationRequestsPage = lazy(() => import("@/pages/QuotationRequestsPage"));
 const QuotationRequestEditorPage = lazy(() => import("@/pages/QuotationRequestEditorPage"));
+const PersonnelPage = lazy(() => import("@/pages/PersonnelPage"));
+const PositionEditorPage = lazy(() => import("@/pages/PositionEditorPage"));
+const CompetencyAdequacyEditorPage = lazy(() => import("@/pages/CompetencyAdequacyEditorPage"));
+const PersonnelMonitoringEditorPage = lazy(() => import("@/pages/PersonnelMonitoringEditorPage"));
 
 const pageSuspenseFallback = (
   <div className="p-8 text-center text-slate-500 text-sm">A carregar…</div>
@@ -35,7 +40,7 @@ const ColetaLegacyRedirect = () => {
   return <Navigate to={coletaEditorPath(id)} replace />;
 };
 
-const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false }) => {
+const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false, personnelOnly = false }) => {
   const { user } = useAuth();
   const loc = useLocation();
   if (user === null) {
@@ -54,6 +59,9 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOr
     return <Navigate to="/dashboard" replace />;
   }
   if (quotationRequestsOnly && !canAccessQuotationRequests(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (personnelOnly && !canAccessPersonnel(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (isTechnicianOnlyNav(user.role) && !isColetaPath(loc.pathname)) {
@@ -204,6 +212,47 @@ const App = () => (
                 <Suspense fallback={pageSuspenseFallback}>
                   <CadastrosPage />
                 </Suspense>
+              )}
+            />
+            <Route path={PERSONNEL_BASE_PATH} element={<Navigate to={PERSONNEL_CARGOS_PATH} replace />} />
+            <Route
+              path={`${PERSONNEL_BASE_PATH}/:section`}
+              element={(
+                <Protected personnelOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <PersonnelPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path={`${PERSONNEL_CARGOS_PATH}/:id`}
+              element={(
+                <Protected personnelOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <PositionEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/pessoal/adequacao/:id"
+              element={(
+                <Protected personnelOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <CompetencyAdequacyEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/pessoal/monitoramento/:id"
+              element={(
+                <Protected personnelOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <PersonnelMonitoringEditorPage />
+                  </Suspense>
+                </Protected>
               )}
             />
             <Route

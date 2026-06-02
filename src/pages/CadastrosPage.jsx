@@ -79,6 +79,7 @@ const CadastrosPage = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [endCustomers, setEndCustomers] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [positions, setPositions] = useState([]);
   const [weightCerts, setWeightCerts] = useState([]);
   const [weightItems, setWeightItems] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
@@ -89,10 +90,11 @@ const CadastrosPage = () => {
   const loadAll = useCallback(async () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
     const tid = currentTenantId;
-    const [s, e, em, w, wi, v] = await Promise.all([
+    const [s, e, em, pos, w, wi, v] = await Promise.all([
       supabase.from("supplier_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("end_customer_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("employee_registrations").select("*").eq("tenant_id", tid).order("full_name"),
+      supabase.from("personnel_positions").select("id, title, status").eq("tenant_id", tid).eq("status", "ativo").order("title"),
       supabase.from("weight_standard_certificates").select("*").eq("tenant_id", tid).order("calibration_date", { ascending: false }),
       supabase.from("standard_weight_items").select("*").eq("tenant_id", tid).eq("active", true).order("identification"),
       supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", tid).order("calibration_date", { ascending: false }),
@@ -103,6 +105,8 @@ const CadastrosPage = () => {
     else setEndCustomers(e.data || []);
     if (em.error) toast.error(em.error.message);
     else setEmployees(em.data || []);
+    if (pos.error) toast.error(pos.error.message);
+    else setPositions(pos.data || []);
     if (w.error) toast.error(w.error.message);
     else setWeightCerts(w.data || []);
     if (wi.error) toast.error(wi.error.message);
@@ -181,7 +185,9 @@ const CadastrosPage = () => {
       <div className="mt-2">
         {activeSection === "fornecedores" && <SupplierSection rows={suppliers} tenantId={currentTenantId} onRefresh={loadAll} />}
         {activeSection === "clientes" && <EndCustomerSection rows={endCustomers} tenantId={currentTenantId} onRefresh={loadAll} />}
-        {activeSection === "colaboradores" && <EmployeeSection rows={employees} tenantId={currentTenantId} onRefresh={loadAll} />}
+        {activeSection === "colaboradores" && (
+          <EmployeeSection rows={employees} positions={positions} tenantId={currentTenantId} onRefresh={loadAll} />
+        )}
         {activeSection === "cert-peso" && (
           <WeightCertSection rows={filteredWeight} allRows={weightCerts} tenantId={currentTenantId} tenantName={tenantName}
             year={yearWeight} years={yearsWeight} onYearChange={setYearWeight} onRefresh={loadAll} />
@@ -462,7 +468,12 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
   );
 }
 
-function EmployeeSection({ rows, tenantId, onRefresh }) {
+function positionTitle(positions, positionId) {
+  if (!positionId) return "—";
+  return positions.find((p) => p.id === positionId)?.title || "—";
+}
+
+function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [code, setCode] = useState("");
@@ -471,7 +482,7 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
   const [rg, setRg] = useState("");
   const [rgIss, setRgIss] = useState("");
   const [adm, setAdm] = useState(todayIso());
-  const [job, setJob] = useState("auxiliar_tecnico");
+  const [positionId, setPositionId] = useState("");
   const [edu, setEdu] = useState("medio_completo");
   const [supId, setSupId] = useState("");
   const [sigFile, setSigFile] = useState(null);
@@ -481,7 +492,7 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
     setEditing(null);
     setCode(generateEmployeeRegistrationCode());
     setFullName(""); setCpf(""); setRg(""); setRgIss("");
-    setAdm(todayIso()); setJob("auxiliar_tecnico"); setEdu("medio_completo"); setSupId("");
+    setAdm(todayIso()); setPositionId(""); setEdu("medio_completo"); setSupId("");
     setSigFile(null);
     setSigPath("");
   };
@@ -501,7 +512,8 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
       rg: rg.trim(),
       rg_issuer: rgIss.trim(),
       admission_date: adm || todayIso(),
-      job_role: job,
+      job_role: editing?.job_role || "auxiliar_tecnico",
+      position_id: positionId || null,
       education_level: edu,
       supervisor_id: supId || null,
     };
@@ -572,14 +584,14 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
                 <tr key={r.id} className="border-t border-slate-100">
                   <td className="p-2 font-mono text-xs">{r.registration_code}</td>
                   <td className="p-2 font-medium">{r.full_name}</td>
-                  <td className="p-2">{jobLabel(r.job_role)}</td>
+                  <td className="p-2">{positionTitle(positions, r.position_id) || jobLabel(r.job_role)}</td>
                   <td className="p-2">{fmtIsoDate(r.admission_date)}</td>
                   <td className="p-2">
                     <Button variant="ghost" size="sm" onClick={() => {
                       setEditing(r);
                       setCode(r.registration_code);
                       setFullName(r.full_name); setCpf(r.cpf); setRg(r.rg); setRgIss(r.rg_issuer);
-                      setAdm(fmtIsoDate(r.admission_date)); setJob(r.job_role); setEdu(r.education_level);
+                      setAdm(fmtIsoDate(r.admission_date)); setPositionId(r.position_id || ""); setEdu(r.education_level);
                       setSupId(r.supervisor_id || "");
                       setSigPath(r.signature_storage_path || "");
                       setSigFile(null);
@@ -603,10 +615,14 @@ function EmployeeSection({ rows, tenantId, onRefresh }) {
               <div><Label>Órgão emissor do RG</Label><Input value={rgIss} onChange={(e) => setRgIss(e.target.value)} /></div>
               <div><Label>Data de admissão</Label><Input type="date" value={adm} onChange={(e) => setAdm(e.target.value)} /></div>
               <div>
-                <Label>Cargo</Label>
-                <select value={job} onChange={(e) => setJob(e.target.value)} className="w-full border rounded-md h-10 px-3 text-sm">
-                  {JOB_ROLES.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+                <Label>Cargo (função)</Label>
+                <select value={positionId} onChange={(e) => setPositionId(e.target.value)} className="w-full border rounded-md h-10 px-3 text-sm">
+                  <option value="">— Selecionar cargo —</option>
+                  {positions.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}
                 </select>
+                {positions.length === 0 && (
+                  <p className="text-xs text-slate-500 mt-1">Cadastre cargos em 6.2 Pessoal.</p>
+                )}
               </div>
               <div>
                 <Label>Escolaridade</Label>

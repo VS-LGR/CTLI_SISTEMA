@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
-  Buildings, CaretRight, ClipboardText, List, X,
+  Buildings, CaretRight, ClipboardText, List, X, UsersThree,
 } from "@phosphor-icons/react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -14,7 +14,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, canAccessColeta } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, canAccessColeta, canAccessPersonnel } from "@/lib/roles";
+import { personnelSectionPath, getVisiblePersonnelSections } from "@/lib/personnelNavConfig";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -58,6 +59,9 @@ const Layout = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [cadastrosExpanded, setCadastrosExpanded] = useState(
     () => location.pathname.startsWith("/cadastros"),
+  );
+  const [pessoalExpanded, setPessoalExpanded] = useState(
+    () => location.pathname.startsWith("/pessoal"),
   );
   const {
     collapsed: sidebarCollapsed,
@@ -152,6 +156,13 @@ const Layout = () => {
     if (isCadastrosActive) setCadastrosExpanded(true);
   }, [isCadastrosActive]);
 
+  const isPessoalActive = location.pathname.startsWith("/pessoal");
+  const personnelSections = getVisiblePersonnelSections(user?.role);
+
+  useEffect(() => {
+    if (isPessoalActive) setPessoalExpanded(true);
+  }, [isPessoalActive]);
+
   const renderNav = (onNavigate) => (
     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain">
       {!technicianNav && (
@@ -180,6 +191,35 @@ const Layout = () => {
                 className={subNavLinkClass}
                 title={s.label}
                 data-testid={`nav-cadastros-${s.id}`}
+                onClick={onNavigate}
+              >
+                <span className="truncate">{s.label}</span>
+              </NavLink>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {!technicianNav && canAccessPersonnel(user?.role) && personnelSections.length > 0 && (
+        <Collapsible open={pessoalExpanded} onOpenChange={setPessoalExpanded}>
+          <CollapsibleTrigger
+            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
+              isPessoalActive ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            }`}
+            data-testid="nav-pessoal"
+          >
+            <UsersThree size={18} weight="duotone" className="shrink-0" />
+            <span className="flex-1 min-w-0">6.2 Pessoal</span>
+            <CaretRight size={14} className="shrink-0 opacity-70" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
+            {personnelSections.map((s) => (
+              <NavLink
+                key={s.id}
+                to={personnelSectionPath(s.id)}
+                className={subNavLinkClass}
+                title={s.label}
+                data-testid={`nav-pessoal-${s.id}`}
                 onClick={onNavigate}
               >
                 <span className="truncate">{s.label}</span>
