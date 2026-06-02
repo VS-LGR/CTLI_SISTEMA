@@ -27,6 +27,7 @@ import { downloadWeightCertificatesValidPdf, downloadEnvironmentCertificatesVali
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
 import { fmtDmyShort } from "@/lib/dateFormat";
+import { ensureDefaultPositionsSeeded } from "@/lib/personnelPositionsApi";
 
 function fmtIsoDate(d) {
   if (!d) return "";
@@ -90,6 +91,7 @@ const CadastrosPage = () => {
   const loadAll = useCallback(async () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
     const tid = currentTenantId;
+    await ensureDefaultPositionsSeeded(tid).catch(() => {});
     const [s, e, em, pos, w, wi, v] = await Promise.all([
       supabase.from("supplier_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("end_customer_registrations").select("*").eq("tenant_id", tid).order("name"),
