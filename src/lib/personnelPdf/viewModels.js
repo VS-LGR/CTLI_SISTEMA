@@ -1,7 +1,16 @@
 import { displayValue, formatDateBr } from "@/lib/quotationRequestDisplay";
 import { formatOptionListForPdf } from "@/lib/personnelSnapshots";
 import { labelsFromOptionItems, normalizeAuthorityValue } from "@/lib/personnelConstants";
-import { COMPETENCY_AUTH_TEXT, MONITORING_AUTH_TEXT_APT, MONITORING_AUTH_TEXT_TRAINING, SUITABILITY_REQUIRES_TRAINING } from "@/lib/personnelDocMeta";
+import {
+  COMPETENCY_AUTH_TEXT,
+  MONITORING_AUTH_TEXT_APT,
+  MONITORING_AUTH_TEXT_TRAINING,
+  SUITABILITY_REQUIRES_TRAINING,
+  PERSONNEL_DOC_DEFAULTS,
+} from "@/lib/personnelDocMeta";
+import { buildPersonnelSubjectMetaRows } from "./personnelSubjectMeta";
+import { EXPERIENCE_OPINION_LABELS, EXPERIENCE_SCORE_CRITERIA, EXPERIENCE_CRITERION_LOW, EXPERIENCE_CRITERION_POSITIVE } from "@/lib/personnelExperienceConstants";
+import { PERSONNEL_SELECTION_EDUCATION_LEVELS, SELECTION_APPROVAL_TEXT } from "@/lib/personnelSelectionConstants";
 
 function docHeaderFromRecord(record, defaultTitle) {
   return {
@@ -23,6 +32,10 @@ export function buildCompetencyPdfViewModel(position) {
   const p = position;
   return {
     header: docHeaderFromRecord(p, "COMPETÊNCIA DO CARGO"),
+    subjectMetaRows: buildPersonnelSubjectMetaRows({
+      documentCode: p.document_code || PERSONNEL_DOC_DEFAULTS.competency.code,
+      positionTitle: p.title,
+    }),
     metaRows: [
       ["Cargo", p.title],
       ["Formação Exigência", p.required_education],
@@ -49,9 +62,14 @@ export function buildCompetencyPdfViewModel(position) {
 
 export function buildAdequacyPdfViewModel(record) {
   const emp = record.employee_snapshot || {};
-  const pos = record.position_snapshot || {};
   return {
     header: docHeaderFromRecord(record, "ADEQUAÇÃO DE COMPETÊNCIA"),
+    subjectMetaRows: buildPersonnelSubjectMetaRows({
+      documentCode: record.document_code,
+      occupantName: record.occupant_name,
+      positionTitle: record.position_title,
+      registrationNumber: record.registration_number,
+    }),
     metaRows: [
       ["Ocupante do Cargo", record.occupant_name],
       ["Cargo", record.position_title],
@@ -86,6 +104,12 @@ export function buildMonitoringPdfViewModel(record) {
   const needsTraining = record.employee_remains_suitable === SUITABILITY_REQUIRES_TRAINING;
   return {
     header: docHeaderFromRecord(record, "MONITORAMENTO DE PESSOAL"),
+    subjectMetaRows: buildPersonnelSubjectMetaRows({
+      documentCode: record.document_code,
+      occupantName: record.occupant_name,
+      positionTitle: record.position_title,
+      registrationNumber: record.registration_number,
+    }),
     metaRows: [
       ["Ocupante do Cargo", record.occupant_name],
       ["Cargo", record.position_title],
@@ -126,5 +150,115 @@ export function buildMonitoringPdfViewModel(record) {
     approvalName: record.analysis_approval_responsible_name,
     occupantName: record.occupant_name,
     occupantSignatureUrl: emp.signature_url || null,
+  };
+}
+
+export function buildExperienceEvaluationPdfViewModel(record) {
+  const items = record.items || [];
+  return {
+    header: docHeaderFromRecord(record, "AVALIAÇÃO DO PERÍODO DE EXPERIÊNCIA"),
+    subjectMetaRows: buildPersonnelSubjectMetaRows({
+      documentCode: record.document_code,
+      occupantName: record.occupant_name,
+      positionTitle: record.position_title,
+      registrationNumber: record.registration_number,
+    }),
+    identityRows: [
+      ["Nome", record.occupant_name],
+      ["Admissão", formatDateBr(record.admission_date)],
+      ["Cargo", record.position_title],
+      ["Setor", record.department],
+    ],
+    evaluationItems: items,
+    scoreCriteria: EXPERIENCE_SCORE_CRITERIA,
+    criterionLow: EXPERIENCE_CRITERION_LOW,
+    criterionPositive: EXPERIENCE_CRITERION_POSITIVE,
+    conclusiveOpinionLabel: EXPERIENCE_OPINION_LABELS[record.conclusive_opinion] || record.conclusive_opinion,
+    evaluatorName: record.evaluator_name,
+    signatureDate: formatDateBr(record.signature_date),
+  };
+}
+
+export function buildSelectionPdfViewModel(record) {
+  const attr = record.selected_position_attributions || {};
+  const eduChecked = new Set(labelsFromOptionItems(record.selected_education_levels));
+  return {
+    header: docHeaderFromRecord(record, "SELEÇÃO DE PESSOAL"),
+    subjectMetaRows: buildPersonnelSubjectMetaRows({
+      documentCode: record.document_code,
+      candidateName: record.candidate_name,
+      positionTitle: record.position_title || record.vacancy,
+    }),
+    page1Rows: [
+      ["Data", formatDateBr(record.selection_date)],
+      ["Vaga", record.vacancy],
+      ["Nível de Formação Exigido", record.required_education_level],
+      ["Condutor do Processo Seletivo", record.selection_conductor_name],
+      ["Candidato", record.candidate_name],
+    ],
+    educationChecklist: PERSONNEL_SELECTION_EDUCATION_LEVELS.map((label) => ({
+      label,
+      checked: eduChecked.has(label) || label === record.required_education_level,
+    })),
+    attributions: {
+      showActivities: !!attr.function_activities,
+      showTechnical: !!attr.technical_authorities,
+      showManagerial: !!attr.managerial_authorities,
+      functionActivities: record.function_activities,
+      technicalAuthorities: listLabels(normalizeAuthorityValue(record.technical_authorities)),
+      managerialAuthorities: listLabels(normalizeAuthorityValue(record.managerial_authorities)),
+    },
+    generalKnowledge: listLabels(record.selected_general_knowledge),
+    technicalKnowledge: [
+      ...listLabels(record.selected_technical_knowledge),
+      ...(record.technical_knowledge_other ? [`Outros: ${record.technical_knowledge_other}`] : []),
+    ],
+    skills: listLabels(record.selected_skills),
+    qualifications: [
+      ...listLabels(record.selected_qualifications),
+      ...(record.qualification_other ? [`Outros: ${record.qualification_other}`] : []),
+    ],
+    experience: listLabels(record.selected_experience),
+    approved: record.conclusive_opinion_approved === true,
+    opinionText: record.conclusive_opinion_approved === true
+      ? SELECTION_APPROVAL_TEXT
+      : record.conclusive_opinion_text,
+    approvalName: record.analysis_approval_responsible_name,
+  };
+}
+
+export function buildAttendanceListPdfViewModel(record) {
+  const participants = record.participants || [];
+  return {
+    header: docHeaderFromRecord(record, "LISTA DE PRESENÇA"),
+    subjectMetaRows: buildPersonnelSubjectMetaRows({
+      documentCode: record.document_code,
+    }),
+    courseRows: [
+      ["Curso", record.course_title],
+      ["Horário", record.schedule],
+      ["Entidade Executora", record.executing_entity],
+      ["Data", formatDateBr(record.course_date)],
+      ["Duração", record.duration_hours],
+      ["Instrutor(es)", record.instructors],
+    ],
+    participants: participants.map((p) => [
+      String(p.order_number || ""),
+      p.full_name,
+      p.department,
+      p.signature_status,
+      p.frequency_percentage != null ? `${p.frequency_percentage}%` : "",
+      p.result,
+    ]),
+    contentSummary: record.content_summary,
+    observations: record.observations,
+    movementRows: [
+      ["Nº de concluintes", record.concludes_count],
+      ["% de frequência", record.attendance_percentage != null ? `${record.attendance_percentage}%` : ""],
+      ["Aprovados", record.approved_count],
+      ["Reprovados", record.reproved_count],
+      ["Instrutor responsável", record.instructor_responsible],
+    ],
+    courseTitle: record.course_title,
   };
 }

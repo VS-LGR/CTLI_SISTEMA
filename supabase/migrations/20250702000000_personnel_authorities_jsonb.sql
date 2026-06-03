@@ -1,4 +1,32 @@
 -- Autoridades técnicas/gerenciais: listas padrão + colunas text → jsonb
+-- (PostgreSQL não permite subquery em ALTER COLUMN ... USING; usa função auxiliar.)
+
+CREATE OR REPLACE FUNCTION public.personnel_authorities_text_to_jsonb(val text)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  result jsonb;
+BEGIN
+  IF val IS NULL OR btrim(val) = '' THEN
+    RETURN '[]'::jsonb;
+  END IF;
+
+  SELECT COALESCE(
+    jsonb_agg(jsonb_build_object('label', line) ORDER BY ord),
+    '[]'::jsonb
+  )
+  INTO result
+  FROM (
+    SELECT btrim(x) AS line, row_number() OVER () AS ord
+    FROM unnest(string_to_array(val, E'\n')) AS x
+    WHERE btrim(x) <> ''
+  ) s;
+
+  RETURN COALESCE(result, '[]'::jsonb);
+END;
+$$;
 
 ALTER TABLE public.personnel_standard_options
   DROP CONSTRAINT IF EXISTS personnel_standard_options_category_check;
@@ -26,32 +54,10 @@ ALTER TABLE public.personnel_positions
   ALTER COLUMN managerial_authorities DROP DEFAULT;
 
 ALTER TABLE public.personnel_positions
-  ALTER COLUMN technical_authorities TYPE jsonb USING (
-    CASE
-      WHEN technical_authorities IS NULL OR btrim(technical_authorities::text) = '' THEN '[]'::jsonb
-      ELSE COALESCE(
-        (
-          SELECT jsonb_agg(jsonb_build_object('label', btrim(line)))
-          FROM unnest(string_to_array(technical_authorities::text, E'\n')) AS line
-          WHERE btrim(line) <> ''
-        ),
-        '[]'::jsonb
-      )
-    END
-  ),
-  ALTER COLUMN managerial_authorities TYPE jsonb USING (
-    CASE
-      WHEN managerial_authorities IS NULL OR btrim(managerial_authorities::text) = '' THEN '[]'::jsonb
-      ELSE COALESCE(
-        (
-          SELECT jsonb_agg(jsonb_build_object('label', btrim(line)))
-          FROM unnest(string_to_array(managerial_authorities::text, E'\n')) AS line
-          WHERE btrim(line) <> ''
-        ),
-        '[]'::jsonb
-      )
-    END
-  );
+  ALTER COLUMN technical_authorities TYPE jsonb
+    USING public.personnel_authorities_text_to_jsonb(technical_authorities::text),
+  ALTER COLUMN managerial_authorities TYPE jsonb
+    USING public.personnel_authorities_text_to_jsonb(managerial_authorities::text);
 
 ALTER TABLE public.personnel_positions
   ALTER COLUMN technical_authorities SET DEFAULT '[]'::jsonb,
@@ -64,35 +70,15 @@ ALTER TABLE public.personnel_competency_adequacies
   ALTER COLUMN managerial_authorities DROP DEFAULT;
 
 ALTER TABLE public.personnel_competency_adequacies
-  ALTER COLUMN technical_authorities TYPE jsonb USING (
-    CASE
-      WHEN technical_authorities IS NULL OR btrim(technical_authorities::text) = '' THEN '[]'::jsonb
-      ELSE COALESCE(
-        (
-          SELECT jsonb_agg(jsonb_build_object('label', btrim(line)))
-          FROM unnest(string_to_array(technical_authorities::text, E'\n')) AS line
-          WHERE btrim(line) <> ''
-        ),
-        '[]'::jsonb
-      )
-    END
-  ),
-  ALTER COLUMN managerial_authorities TYPE jsonb USING (
-    CASE
-      WHEN managerial_authorities IS NULL OR btrim(managerial_authorities::text) = '' THEN '[]'::jsonb
-      ELSE COALESCE(
-        (
-          SELECT jsonb_agg(jsonb_build_object('label', btrim(line)))
-          FROM unnest(string_to_array(managerial_authorities::text, E'\n')) AS line
-          WHERE btrim(line) <> ''
-        ),
-        '[]'::jsonb
-      )
-    END
-  );
+  ALTER COLUMN technical_authorities TYPE jsonb
+    USING public.personnel_authorities_text_to_jsonb(technical_authorities::text),
+  ALTER COLUMN managerial_authorities TYPE jsonb
+    USING public.personnel_authorities_text_to_jsonb(managerial_authorities::text);
 
 ALTER TABLE public.personnel_competency_adequacies
   ALTER COLUMN technical_authorities SET DEFAULT '[]'::jsonb,
   ALTER COLUMN technical_authorities SET NOT NULL,
   ALTER COLUMN managerial_authorities SET DEFAULT '[]'::jsonb,
   ALTER COLUMN managerial_authorities SET NOT NULL;
+
+DROP FUNCTION public.personnel_authorities_text_to_jsonb(text);

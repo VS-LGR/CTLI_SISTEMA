@@ -4,6 +4,9 @@ export const PERSONNEL_SECTIONS = [
   { id: "cargos", label: "Cargos / Funções" },
   { id: "adequacao", label: "Adequação de Competência" },
   { id: "monitoramento", label: "Monitoramento de Pessoal" },
+  { id: "avaliacao-experiencia", label: "Avaliação do Período de Experiência" },
+  { id: "selecao", label: "Seleção de Pessoal" },
+  { id: "presenca", label: "Lista de Presença" },
   { id: "listas", label: "Níveis e Listas Padrão" },
 ];
 

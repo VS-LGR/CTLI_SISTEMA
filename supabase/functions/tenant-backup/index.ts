@@ -185,6 +185,9 @@ async function buildBackupZip(
     personnel_positions: () => admin.from("personnel_positions").select("*").eq("tenant_id", tenantId),
     personnel_adequacies: () => admin.from("personnel_competency_adequacies").select("*").eq("tenant_id", tenantId),
     personnel_monitorings: () => admin.from("personnel_monitorings").select("*").eq("tenant_id", tenantId),
+    personnel_exp_evaluations: () => admin.from("personnel_experience_evaluations").select("*").eq("tenant_id", tenantId),
+    personnel_selections: () => admin.from("personnel_selections").select("*").eq("tenant_id", tenantId),
+    personnel_attendance_lists: () => admin.from("personnel_attendance_lists").select("*").eq("tenant_id", tenantId),
     employees: () => admin.from("employee_registrations").select("*").eq("tenant_id", tenantId),
     weight_certs: () => admin.from("weight_standard_certificates").select("*").eq("tenant_id", tenantId),
     weight_items: () => admin.from("standard_weight_items").select("*").eq("tenant_id", tenantId),
@@ -209,6 +212,34 @@ async function buildBackupZip(
   zip.file("cadastros/personnel_positions.json", JSON.stringify(exported.personnel_positions, null, 2));
   zip.file("cadastros/personnel_adequacies.json", JSON.stringify(exported.personnel_adequacies, null, 2));
   zip.file("cadastros/personnel_monitorings.json", JSON.stringify(exported.personnel_monitorings, null, 2));
+  zip.file("cadastros/personnel_exp_evaluations.json", JSON.stringify(exported.personnel_exp_evaluations, null, 2));
+  zip.file("cadastros/personnel_selections.json", JSON.stringify(exported.personnel_selections, null, 2));
+  zip.file("cadastros/personnel_attendance_lists.json", JSON.stringify(exported.personnel_attendance_lists, null, 2));
+
+  const expEvalIds = (exported.personnel_exp_evaluations as { id: string }[]).map((r) => r.id);
+  let personnelExpEvalItems: unknown[] = [];
+  if (expEvalIds.length) {
+    const { data: pei, error: peiErr } = await admin
+      .from("personnel_experience_evaluation_items")
+      .select("*")
+      .in("evaluation_id", expEvalIds);
+    if (peiErr) throw new Error(`Export personnel_exp_eval_items: ${peiErr.message}`);
+    personnelExpEvalItems = pei || [];
+  }
+  zip.file("cadastros/personnel_exp_eval_items.json", JSON.stringify(personnelExpEvalItems, null, 2));
+
+  const attListIds = (exported.personnel_attendance_lists as { id: string }[]).map((r) => r.id);
+  let personnelAttendanceParticipants: unknown[] = [];
+  if (attListIds.length) {
+    const { data: pap, error: papErr } = await admin
+      .from("personnel_attendance_participants")
+      .select("*")
+      .in("attendance_list_id", attListIds);
+    if (papErr) throw new Error(`Export personnel_attendance_participants: ${papErr.message}`);
+    personnelAttendanceParticipants = pap || [];
+  }
+  zip.file("cadastros/personnel_attendance_participants.json", JSON.stringify(personnelAttendanceParticipants, null, 2));
+
   zip.file("cadastros/employees.json", JSON.stringify(exported.employees, null, 2));
   zip.file("cadastros/weight_certs.json", JSON.stringify(exported.weight_certs, null, 2));
   zip.file("cadastros/weight_items.json", JSON.stringify(exported.weight_items, null, 2));
@@ -329,6 +360,9 @@ async function deleteTenantData(admin: SupabaseClient, tenantId: string) {
   await admin.from("standard_weight_items").delete().eq("tenant_id", tenantId);
   await admin.from("weight_standard_certificates").delete().eq("tenant_id", tenantId);
   await admin.from("environment_sensor_certificates").delete().eq("tenant_id", tenantId);
+  await admin.from("personnel_attendance_lists").delete().eq("tenant_id", tenantId);
+  await admin.from("personnel_experience_evaluations").delete().eq("tenant_id", tenantId);
+  await admin.from("personnel_selections").delete().eq("tenant_id", tenantId);
   await admin.from("personnel_monitorings").delete().eq("tenant_id", tenantId);
   await admin.from("personnel_competency_adequacies").delete().eq("tenant_id", tenantId);
   await admin.from("employee_registrations").update({ supervisor_id: null, position_id: null }).eq("tenant_id", tenantId);
@@ -424,6 +458,11 @@ async function restoreFromZip(
   let personnelPositions = await readJson("cadastros/personnel_positions.json");
   let personnelAdequacies = await readJson("cadastros/personnel_adequacies.json");
   let personnelMonitorings = await readJson("cadastros/personnel_monitorings.json");
+  let personnelExpEvaluations = await readJson("cadastros/personnel_exp_evaluations.json");
+  let personnelExpEvalItems = await readJson("cadastros/personnel_exp_eval_items.json");
+  let personnelSelections = await readJson("cadastros/personnel_selections.json");
+  let personnelAttendanceLists = await readJson("cadastros/personnel_attendance_lists.json");
+  let personnelAttendanceParticipants = await readJson("cadastros/personnel_attendance_participants.json");
   let employees = await readJson("cadastros/employees.json");
   let weightCerts = await readJson("cadastros/weight_certs.json");
   let weightItems = await readJson("cadastros/weight_items.json");
@@ -442,6 +481,11 @@ async function restoreFromZip(
     personnelPositions = remapIds(personnelPositions, idMap);
     personnelAdequacies = remapIds(personnelAdequacies, idMap);
     personnelMonitorings = remapIds(personnelMonitorings, idMap);
+    personnelExpEvaluations = remapIds(personnelExpEvaluations, idMap);
+    personnelExpEvalItems = remapIds(personnelExpEvalItems, idMap);
+    personnelSelections = remapIds(personnelSelections, idMap);
+    personnelAttendanceLists = remapIds(personnelAttendanceLists, idMap);
+    personnelAttendanceParticipants = remapIds(personnelAttendanceParticipants, idMap);
     employees = remapIds(employees, idMap);
     weightCerts = remapIds(weightCerts, idMap);
     weightItems = remapIds(weightItems, idMap);
@@ -475,6 +519,31 @@ async function restoreFromZip(
       if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
         row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
       }
+    }
+    for (const row of personnelExpEvaluations) {
+      if (row.employee_id && idMap.has(row.employee_id as string)) row.employee_id = idMap.get(row.employee_id as string);
+      if (row.position_id && idMap.has(row.position_id as string)) row.position_id = idMap.get(row.position_id as string);
+      if (row.evaluator_id && idMap.has(row.evaluator_id as string)) row.evaluator_id = idMap.get(row.evaluator_id as string);
+    }
+    for (const row of personnelExpEvalItems) {
+      if (row.evaluation_id && idMap.has(row.evaluation_id as string)) {
+        row.evaluation_id = idMap.get(row.evaluation_id as string);
+      }
+    }
+    for (const row of personnelSelections) {
+      if (row.position_id && idMap.has(row.position_id as string)) row.position_id = idMap.get(row.position_id as string);
+      if (row.selection_conductor_id && idMap.has(row.selection_conductor_id as string)) {
+        row.selection_conductor_id = idMap.get(row.selection_conductor_id as string);
+      }
+      if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
+        row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
+      }
+    }
+    for (const row of personnelAttendanceParticipants) {
+      if (row.attendance_list_id && idMap.has(row.attendance_list_id as string)) {
+        row.attendance_list_id = idMap.get(row.attendance_list_id as string);
+      }
+      if (row.employee_id && idMap.has(row.employee_id as string)) row.employee_id = idMap.get(row.employee_id as string);
     }
     for (const row of weightItems) applyIdMap(row, idMap);
     for (const row of purchaseOrders) {
@@ -553,6 +622,19 @@ async function restoreFromZip(
 
   counts.cadastros_restored += await insertCadastro("personnel_competency_adequacies", personnelAdequacies);
   counts.cadastros_restored += await insertCadastro("personnel_monitorings", personnelMonitorings);
+  counts.cadastros_restored += await insertCadastro("personnel_experience_evaluations", personnelExpEvaluations);
+  if (personnelExpEvalItems.length) {
+    const { error: peiErr } = await admin.from("personnel_experience_evaluation_items").insert(personnelExpEvalItems);
+    if (peiErr) throw new Error(`personnel_experience_evaluation_items: ${peiErr.message}`);
+    counts.cadastros_restored += personnelExpEvalItems.length;
+  }
+  counts.cadastros_restored += await insertCadastro("personnel_selections", personnelSelections);
+  counts.cadastros_restored += await insertCadastro("personnel_attendance_lists", personnelAttendanceLists);
+  if (personnelAttendanceParticipants.length) {
+    const { error: papErr } = await admin.from("personnel_attendance_participants").insert(personnelAttendanceParticipants);
+    if (papErr) throw new Error(`personnel_attendance_participants: ${papErr.message}`);
+    counts.cadastros_restored += personnelAttendanceParticipants.length;
+  }
   counts.cadastros_restored += await insertCadastro("weight_standard_certificates", weightCerts);
   counts.cadastros_restored += await insertCadastro("standard_weight_items", weightItems);
   counts.cadastros_restored += await insertCadastro("environment_sensor_certificates", envCerts);

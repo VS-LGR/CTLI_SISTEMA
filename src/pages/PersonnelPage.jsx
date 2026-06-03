@@ -10,6 +10,9 @@ import PositionsListPanel from "@/components/personnel/PositionsListPanel";
 import AdequaciesListPanel from "@/components/personnel/AdequaciesListPanel";
 import MonitoringsListPanel from "@/components/personnel/MonitoringsListPanel";
 import StandardOptionsPanel from "@/components/personnel/StandardOptionsPanel";
+import ExperienceEvaluationsListPanel from "@/components/personnel/ExperienceEvaluationsListPanel";
+import SelectionsListPanel from "@/components/personnel/SelectionsListPanel";
+import AttendanceListsListPanel from "@/components/personnel/AttendanceListsListPanel";
 
 export default function PersonnelPage() {
   const { section } = useParams();
@@ -35,6 +38,15 @@ export default function PersonnelPage() {
       {section === "cargos" && <PositionsListPanel tenantId={currentTenantId} tenant={currentTenant} />}
       {section === "adequacao" && <AdequaciesListPanel tenantId={currentTenantId} tenant={currentTenant} />}
       {section === "monitoramento" && <MonitoringsListPanel tenantId={currentTenantId} tenant={currentTenant} />}
+      {section === "avaliacao-experiencia" && (
+        <ExperienceEvaluationsListPanel tenantId={currentTenantId} tenant={currentTenant} />
+      )}
+      {section === "selecao" && (
+        <SelectionsListPanel tenantId={currentTenantId} tenant={currentTenant} />
+      )}
+      {section === "presenca" && (
+        <AttendanceListsListPanel tenantId={currentTenantId} tenant={currentTenant} />
+      )}
       {section === "listas" && <StandardOptionsPanel tenantId={currentTenantId} />}
     </div>
   );

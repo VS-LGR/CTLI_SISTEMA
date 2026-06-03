@@ -20,6 +20,27 @@ export const PERSONNEL_DOC_DEFAULTS = {
     title: "MONITORAMENTO DE PESSOAL",
     modelIssueDate: "2025-06-30",
   },
+  experienceEvaluation: {
+    code: "RE-6.2B",
+    reference: "PR-6.2",
+    revision: "00",
+    title: "AVALIAÇÃO DO PERÍODO DE EXPERIÊNCIA",
+    modelIssueDate: "2025-06-30",
+  },
+  personnelSelection: {
+    code: "PR-6.2F",
+    reference: "PR-6.2",
+    revision: "00",
+    title: "SELEÇÃO DE PESSOAL",
+    modelIssueDate: "2025-06-30",
+  },
+  attendanceList: {
+    code: "RE-6.2D",
+    reference: "PR-6.2",
+    revision: "00",
+    title: "LISTA DE PRESENÇA",
+    modelIssueDate: "2025-06-30",
+  },
 };
 
 export const ADEQUACY_AUTH_TEXT =

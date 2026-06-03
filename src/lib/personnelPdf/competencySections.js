@@ -50,6 +50,21 @@ export function drawAuthBlock(doc, y, text, redrawHeader, header, logoDataUrl) {
   return drawSectionBlock(doc, y, "Autorização de Ocupação do Cargo e suas Responsabilidades", text, redrawHeader, header, logoDataUrl);
 }
 
+export function drawCheckboxList(doc, y, title, items, redrawHeader, header, logoDataUrl) {
+  let cy = ensurePersonnelSpace(doc, y, 12, redrawHeader, header, logoDataUrl);
+  cy = drawSectionTitle(doc, cy, title);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  for (const it of items || []) {
+    const mark = it.checked ? "[X]" : "[ ]";
+    const line = `${mark} ${displayValue(it.label)}`;
+    cy = ensurePersonnelSpace(doc, cy, 6, redrawHeader, header, logoDataUrl);
+    doc.text(line, ML, cy);
+    cy += 4.5;
+  }
+  return cy + 2;
+}
+
 export function drawSignatureRow(doc, y, leftLabel, rightLabel, leftUrl, rightUrl, redrawHeader, header, logoDataUrl) {
   let cy = ensurePersonnelSpace(doc, y, 35, redrawHeader, header, logoDataUrl);
   const colW = (MR - ML) / 2 - 4;

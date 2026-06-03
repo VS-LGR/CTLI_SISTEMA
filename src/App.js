@@ -29,6 +29,9 @@ const PersonnelPage = lazy(() => import("@/pages/PersonnelPage"));
 const PositionEditorPage = lazy(() => import("@/pages/PositionEditorPage"));
 const CompetencyAdequacyEditorPage = lazy(() => import("@/pages/CompetencyAdequacyEditorPage"));
 const PersonnelMonitoringEditorPage = lazy(() => import("@/pages/PersonnelMonitoringEditorPage"));
+const ExperienceEvaluationEditorPage = lazy(() => import("@/pages/ExperienceEvaluationEditorPage"));
+const PersonnelSelectionEditorPage = lazy(() => import("@/pages/PersonnelSelectionEditorPage"));
+const AttendanceListEditorPage = lazy(() => import("@/pages/AttendanceListEditorPage"));
 
 const pageSuspenseFallback = (
   <div className="p-8 text-center text-slate-500 text-sm">A carregar…</div>
@@ -251,6 +254,36 @@ const App = () => (
                 <Protected personnelOnly>
                   <Suspense fallback={pageSuspenseFallback}>
                     <PersonnelMonitoringEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/pessoal/avaliacao-experiencia/:id"
+              element={(
+                <Protected personnelOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <ExperienceEvaluationEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/pessoal/selecao/:id"
+              element={(
+                <Protected personnelOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <PersonnelSelectionEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/pessoal/presenca/:id"
+              element={(
+                <Protected personnelOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <AttendanceListEditorPage />
                   </Suspense>
                 </Protected>
               )}

@@ -56,3 +56,52 @@ export function validateMonitoring(payload) {
   }
   return errors;
 }
+
+export function validateExperienceEvaluation(payload) {
+  const errors = [];
+  if (!payload.employee_id) errors.push("Colaborador é obrigatório.");
+  if (!payload.position_id) errors.push("Cargo é obrigatório.");
+  if (!payload.admission_date) errors.push("Data de admissão é obrigatória.");
+  if (!payload.evaluator_id && !payload.evaluator_name?.trim()) errors.push("Avaliador é obrigatório.");
+  if (!payload.evaluation_date) errors.push("Data da avaliação é obrigatória.");
+  const items = payload.items || [];
+  for (const it of items) {
+    if (it.score === null || it.score === undefined || it.score === "") {
+      errors.push(`Pontuação obrigatória no item ${it.item_number}.`);
+      break;
+    }
+  }
+  if (!payload.conclusive_opinion) errors.push("Parecer conclusivo é obrigatório.");
+  return errors;
+}
+
+export function validateSelection(payload) {
+  const errors = [];
+  if (!payload.selection_date) errors.push("Data é obrigatória.");
+  if (!payload.vacancy?.trim()) errors.push("Vaga é obrigatória.");
+  if (!payload.required_education_level?.trim()) errors.push("Nível de formação exigido é obrigatório.");
+  if (!payload.selection_conductor_id && !payload.selection_conductor_name?.trim()) {
+    errors.push("Condutor do processo seletivo é obrigatório.");
+  }
+  if (!payload.candidate_name?.trim()) errors.push("Candidato é obrigatório.");
+  if (payload.conclusive_opinion_approved === null || payload.conclusive_opinion_approved === undefined) {
+    errors.push("Parecer conclusivo é obrigatório.");
+  }
+  if (payload.conclusive_opinion_approved === false && !payload.conclusive_opinion_text?.trim()) {
+    errors.push("Informe a justificativa quando o parecer for Não.");
+  }
+  if (!payload.analysis_approval_responsible_id && !payload.analysis_approval_responsible_name?.trim()) {
+    errors.push("Responsável pela análise e aprovação é obrigatório.");
+  }
+  return errors;
+}
+
+export function validateAttendanceList(payload) {
+  const errors = [];
+  if (!payload.course_title?.trim()) errors.push("Curso é obrigatório.");
+  if (!payload.course_date) errors.push("Data é obrigatória.");
+  if (!payload.duration_hours?.trim()) errors.push("Duração é obrigatória.");
+  if (!payload.instructors?.trim()) errors.push("Instrutor é obrigatório.");
+  if (!payload.participants?.length) errors.push("Informe pelo menos um participante.");
+  return errors;
+}

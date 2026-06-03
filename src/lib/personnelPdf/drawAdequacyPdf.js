@@ -20,7 +20,7 @@ export async function drawAdequacyPdf(record, { logoDataUrl, signatureUrls = {} 
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = redrawHeader(doc, model.header, logoDataUrl);
-
+  if (model.subjectMetaRows?.length) y = drawLabelValueTable(doc, y, model.subjectMetaRows);
   y = drawLabelValueTable(doc, y, model.metaRows);
 
   for (const sec of model.sections) {

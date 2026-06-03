@@ -1,4 +1,6 @@
 import { PERSONNEL_DOC_DEFAULTS } from "@/lib/personnelDocMeta";
+import { defaultExperienceEvaluationItems } from "@/lib/personnelExperienceConstants";
+import { DEFAULT_POSITION_ATTRIBUTIONS } from "@/lib/personnelSelectionConstants";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -102,5 +104,102 @@ export function emptyMonitoringForm() {
     document_reference: d.reference,
     document_revision: d.revision,
     document_model_issue_date: d.modelIssueDate,
+  };
+}
+
+export function emptyExperienceEvaluationForm() {
+  const d = PERSONNEL_DOC_DEFAULTS.experienceEvaluation;
+  return {
+    employee_id: "",
+    position_id: "",
+    registration_number: "",
+    occupant_name: "",
+    admission_date: "",
+    position_title: "",
+    department: "",
+    evaluator_id: "",
+    evaluator_name: "",
+    evaluation_date: todayIso(),
+    average_score: null,
+    conclusive_opinion: "",
+    signature_date: todayIso(),
+    notes: "",
+    items: defaultExperienceEvaluationItems(),
+    document_code: d.code,
+    document_reference: d.reference,
+    document_revision: d.revision,
+    document_model_issue_date: d.modelIssueDate,
+  };
+}
+
+export function emptySelectionForm() {
+  const d = PERSONNEL_DOC_DEFAULTS.personnelSelection;
+  return {
+    selection_date: todayIso(),
+    vacancy: "",
+    required_education_level: "",
+    selection_conductor_id: "",
+    selection_conductor_name: "",
+    candidate_name: "",
+    position_id: "",
+    position_title: "",
+    selected_education_levels: [],
+    selected_position_attributions: { ...DEFAULT_POSITION_ATTRIBUTIONS },
+    function_activities: "",
+    technical_authorities: [],
+    managerial_authorities: [],
+    selected_general_knowledge: [],
+    selected_technical_knowledge: [],
+    technical_knowledge_other: "",
+    selected_skills: [],
+    selected_qualifications: [],
+    qualification_other: "",
+    selected_experience: [],
+    conclusive_opinion_approved: null,
+    conclusive_opinion_text: "",
+    analysis_approval_responsible_id: "",
+    analysis_approval_responsible_name: "",
+    notes: "",
+    document_code: d.code,
+    document_reference: d.reference,
+    document_revision: d.revision,
+    document_model_issue_date: d.modelIssueDate,
+  };
+}
+
+export function emptyAttendanceListForm() {
+  const d = PERSONNEL_DOC_DEFAULTS.attendanceList;
+  return {
+    course_title: "",
+    schedule: "",
+    executing_entity: "",
+    course_date: todayIso(),
+    duration_hours: "",
+    instructors: "",
+    content_summary: "",
+    observations: "",
+    concludes_count: 0,
+    attendance_percentage: null,
+    approved_count: 0,
+    reproved_count: 0,
+    instructor_responsible: "",
+    participants: [],
+    suggested_training: "",
+    document_code: d.code,
+    document_reference: d.reference,
+    document_revision: d.revision,
+    document_model_issue_date: d.modelIssueDate,
+  };
+}
+
+export function emptyAttendanceParticipant(orderNumber = 1) {
+  return {
+    employee_id: "",
+    order_number: orderNumber,
+    full_name: "",
+    department: "",
+    signature_status: "",
+    frequency_percentage: null,
+    result: "",
   };
 }
