@@ -10,6 +10,7 @@ import { createPosition, getPosition, updatePosition } from "@/lib/personnelPosi
 import { loadOptionsByCategory } from "@/lib/personnelStandardOptionsApi";
 import { validatePosition } from "@/lib/personnelValidation";
 import { emptyPositionForm } from "@/lib/personnelFormDefaults";
+import { normalizeAuthorityValue } from "@/lib/personnelConstants";
 import { exportPositionCompetencyPdf } from "@/lib/personnelPdfExport";
 import { PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
 
@@ -36,6 +37,8 @@ export default function PositionEditorPage() {
       setForm({
         ...emptyPositionForm(),
         ...row,
+        technical_authorities: normalizeAuthorityValue(row.technical_authorities),
+        managerial_authorities: normalizeAuthorityValue(row.managerial_authorities),
         analysis_approval_responsible_na: !row.analysis_approval_responsible_id,
         document_model_issue_date: row.document_model_issue_date?.slice?.(0, 10) || row.document_model_issue_date,
         inclusion_date: row.inclusion_date?.slice?.(0, 10) || row.inclusion_date,

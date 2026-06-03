@@ -61,18 +61,22 @@ Com os provedores externos durante as negociações.
 Com a Gestão da Qualidade durante as avaliações internas.
 Com os avaliadores durante avaliações externas.
 Com o Gerente da Qualidade para obter esclarecimentos, informações e aprovação para provisão de produtos e serviços.`,
-    technical_authorities: `Qualificar provedores para o Laboratório
-Aprovar os dados técnicos de produtos e serviços providos externamente
-Fazer limpeza e organizar o laboratório
-Decidir sobre produtos adquiridos não-conforme
-Enviar certificado de calibração para o cliente
-Fazer inspeção de recebimento dos produtos e serviços adquiridos`,
-    managerial_authorities: `Registrar reclamação de cliente ou outra parte
-Representar a empresa junto ao Cgcre.
-Vender serviço de calibração de Balanças
-Esclarecer e orientar os clientes sobre assuntos comerciais
-Vender serviço de ajuste de balança
-Vender serviço de manutenção de balança`,
+    technical_authorities: L([
+      "Qualificar provedores para o Laboratório",
+      "Aprovar os dados técnicos de produtos e serviços providos externamente",
+      "Fazer limpeza e organizar o laboratório",
+      "Decidir sobre produtos adquiridos não-conforme",
+      "Enviar certificado de calibração para o cliente",
+      "Fazer inspeção de recebimento dos produtos e serviços adquiridos",
+    ]),
+    managerial_authorities: L([
+      "Registrar reclamação de cliente ou outra parte",
+      "Representar a empresa junto ao Cgcre.",
+      "Vender serviço de calibração de Balanças",
+      "Esclarecer e orientar os clientes sobre assuntos comerciais",
+      "Vender serviço de ajuste de balança",
+      "Vender serviço de manutenção de balança",
+    ]),
     internal_trainings: L([
       "PR-4.1 Confidencialidade e Imparcialidade",
       "PR-6.6 Produtos e Serviços Providos Externamente",
@@ -102,9 +106,11 @@ As principais inter-relações são:
 · Com os clientes durante os trabalhos externos;
 · Com a Gestão da Qualidade durante as auditorias internas;
 · Com os avaliadores durante auditorias externas.`,
-    technical_authorities: `Fazer limpeza e organizar o laboratório
-Manusear balanças, pesos e termo-baro-higrômetro`,
-    managerial_authorities: "Registrar reclamação de cliente ou outra parte",
+    technical_authorities: L([
+      "Fazer limpeza e organizar o laboratório",
+      "Manusear balanças, pesos e termo-barô-higrômetro",
+    ]),
+    managerial_authorities: L(["Registrar reclamação de cliente ou outra parte"]),
     internal_trainings: L([
       "PR-4.1 Confidencialidade e Imparcialidade",
       "PR-7.4 Manuseio de Itens de Calibração",
@@ -137,15 +143,17 @@ As principais inter-relações do Técnico RBC são:
 • Com o Gerente Técnico para repasse das informações das calibrações realizadas
 • Com a Gestão da Qualidade durante as avaliações internas
 • Com os avaliadores durante avaliações externas`,
-    technical_authorities: `Executar manutenção e ajuste de balanças
-Executar calibração de balança analítica e semi-analítica
-Executar calibração de balança industrial
-Executar calibração de balança rodoviária
-Monitorar e registrar condições ambientais necessárias para calibração
-Fazer limpeza e organizar o laboratório
-Manusear balanças, pesos e termo-baro-higrômetro
-Participar das comparações interlaboratoriais e intralaboratoriais`,
-    managerial_authorities: "Registrar reclamação de cliente ou outra parte",
+    technical_authorities: L([
+      "Executar manutenção e ajuste de balanças",
+      "Executar calibração de balança analítica e semi-analítica",
+      "Executar calibração de balança industrial",
+      "Executar calibração de balança rodoviária",
+      "Monitorar e registrar condições ambientais necessárias para calibração",
+      "Fazer limpeza e organizar o laboratório",
+      "Manusear balanças, pesos e termo-barô-higrômetro",
+      "Participar das comparações interlaboratoriais e intralaboratoriais",
+    ]),
+    managerial_authorities: L(["Registrar reclamação de cliente ou outra parte"]),
     internal_trainings: L([
       "PR-4.1 Confidencialidade e Imparcialidade",
       "PR-7.2 Calibração de Balanças",
@@ -192,37 +200,41 @@ Responsabilidades da função:
 - Zelar pelo patrimônio da empresa.
 
 As principais inter-relações do Gerente da Qualidade são com vendas, compras, Diretoria, CGCRE, clientes e setor Técnico.`,
-    technical_authorities: `Qualificar fornecedores para o Laboratório
-Aprovar os dados técnicos de produtos e serviços providos externamente
-Fazer inspeção de recebimento dos produtos e serviços adquiridos
-Decidir sobre produtos adquiridos não-conforme
-Emitir certificado de calibração
-Conferir os valores inseridos para emissão de certificado
-Analisar e aprovar o certificado de calibração
-Enviar certificado de calibração para o cliente
-Esclarecer e orientar os clientes sobre assuntos técnicos de calibração
-Fazer limpeza e organizar o laboratório
-Selecionar, desenvolver (quando necessário) e validar métodos
-Definir as estimativas que compõem a incerteza expandida declarada
-Validar a planilha de cálculo e proteger contra alterações indevidas
-Controlar os pesos-padrão e termo-baro-higrômetro
-Manter os padrões rastreados ao SI através da calibração em membros da RBC
-Participar das comparações interlaboratoriais e intralaboratoriais`,
-    managerial_authorities: `Responsável por aprovação, emissão e alteração de documentos
-Vender serviço de manutenção de balança
-Esclarecer e orientar os clientes sobre assuntos comerciais
-Vender serviço de ajuste de balança
-Gerenciar os trabalhos não-conformes
-Autorizar a retomada de trabalho paralizado devido a não-conformidade
-Pesquisar a satisfação dos clientes
-Registrar reclamação de cliente ou outra parte
-Solucionar reclamação de cliente ou outra parte
-Implementar ações corretivas, preventivas e oportunidades de melhoria
-Manter o controle sobre os registros da qualidade
-Planejar Auditorias Internas
-Programar as Análises Críticas pela Gerência
-Conduzir e tomar decisões nas reuniões de análise crítica pela gerência
-Representar a empresa junto ao Cgcre.`,
+    technical_authorities: L([
+      "Qualificar fornecedores para o Laboratório",
+      "Aprovar os dados técnicos de produtos e serviços providos externamente",
+      "Fazer inspeção de recebimento dos produtos e serviços adquiridos",
+      "Decidir sobre produtos adquiridos não-conforme",
+      "Emitir certificado de calibração",
+      "Conferir os valores inseridos para emissão de certificado",
+      "Analisar e aprovar o certificado de calibração",
+      "Enviar certificado de calibração para o cliente",
+      "Esclarecer e orientar os clientes sobre assuntos técnicos de calibração",
+      "Fazer limpeza e organizar o laboratório",
+      "Selecionar, desenvolver (quando necessário) e validar métodos",
+      "Definir as estimativas que compõem a incerteza expandida declarada",
+      "Validar a planilha de cálculo e proteger contra alterações indevidas",
+      "Controlar os pesos-padrão e termo-barô-higrômetro",
+      "Manter os padrões rastreados ao SI através da calibração em membros da RBC",
+      "Participar das comparações interlaboratoriais e intralaboratoriais",
+    ]),
+    managerial_authorities: L([
+      "Responsável por aprovação, emissão e alteração de documentos",
+      "Vender serviço de manutenção de balança",
+      "Esclarecer e orientar os clientes sobre assuntos comerciais",
+      "Vender serviço de ajuste de balança",
+      "Gerenciar os trabalhos não-conformes",
+      "Autorizar a retomada de trabalho paralizado devido a não-conformidade",
+      "Pesquisar a satisfação dos clientes",
+      "Registrar reclamação de cliente ou outra parte",
+      "Solucionar reclamação de cliente ou outra parte",
+      "Implementar ações corretivas, preventivas e oportunidades de melhoria",
+      "Manter o controle sobre os registros da qualidade",
+      "Planejar Auditorias Internas",
+      "Programar as Análises Críticas pela Gerência",
+      "Conduzir e tomar decisões nas reuniões de análise crítica pela gerência",
+      "Representar a empresa junto ao Cgcre.",
+    ]),
     internal_trainings: L([
       "MQ-000 Manual da Qualidade",
       "PR-4.1 Confidencialidade e Imparcialidade",
@@ -281,41 +293,45 @@ Representar a empresa junto ao Cgcre.`,
 Responsabilidades da Função (resumo): garantir requisitos CGCRE; supervisionar e autorizar técnicos; aprovar confiabilidade de padrões; prover recursos; analisar certificados de padrões; definir requisitos de aquisição; decidir retomada após não-conformidade; garantir qualidade dos resultados; manter independência técnica; desenvolver e validar métodos; coordenar interlaboratoriais; documentar falhas; ações corretivas; análise crítica de novos trabalhos; emitir certificados e solicitar aprovação do signatário.
 
 Inter-relações: vendas, compras, Diretoria, CGCRE, clientes e Gestão da Qualidade.`,
-    technical_authorities: `Analisar e aprovar o certificado de calibração
-Aprovar os dados técnicos de produtos e serviços providos externamente
-Conferir os valores inseridos para emissão de certificado
-Controlar os pesos-padrão e termo-baro-higrômetro
-Decidir sobre produtos adquiridos não-conforme
-Definir as estimativas que compõem a incerteza expandida declarada
-Emitir certificado de calibração
-Enviar certificado de calibração para o cliente
-Esclarecer e orientar os clientes sobre assuntos técnicos de calibração
-Executar calibração de balança analítica e semi-analítica
-Executar calibração de balança industrial
-Executar calibração de balança rodoviária
-Fazer inspeção de recebimento dos produtos e serviços adquiridos
-Fazer limpeza e organizar o laboratório
-Liberar recursos para assegurar a competência de todos funcionários
-Manter os padrões rastreados ao SI através da calibração em membros da RBC
-Manusear balanças, pesos e termo-baro-higrômetro
-Monitorar e registrar condições ambientais necessárias para calibração
-Participar das comparações interlaboratoriais e intralaboratoriais
-Programar a execução dos serviços de calibração
-Qualificar provedores para o Laboratório
-Selecionar, desenvolver (quando necessário) e validar métodos
-Validar a planilha de cálculo e proteger contra alterações indevidas`,
-    managerial_authorities: `Responsável por aprovação, emissão e alteração de documentos
-Autorizar os funcionários a realizar atividades técnicas
-Esclarecer e orientar os clientes sobre assuntos comerciais
-Autorizar os funcionários a realizar atividades gerenciais
-Gerenciar os trabalhos não-conformes
-Autorizar a retomada de trabalho paralizado devido a não-conformidade
-Registrar reclamação de cliente ou outra parte
-Solucionar reclamação de cliente ou outra parte
-Implementar ações corretivas, preventivas e oportunidades de melhoria
-Programar as Análises Críticas pela Gerência
-Conduzir e tomar decisões nas reuniões de análise crítica pela gerência
-Representar a empresa junto ao Cgcre.`,
+    technical_authorities: L([
+      "Analisar e aprovar o certificado de calibração",
+      "Aprovar os dados técnicos de produtos e serviços providos externamente",
+      "Conferir os valores inseridos para emissão de certificado",
+      "Controlar os pesos-padrão e termo-barô-higrômetro",
+      "Decidir sobre produtos adquiridos não-conforme",
+      "Definir as estimativas que compõem a incerteza expandida declarada",
+      "Emitir certificado de calibração",
+      "Enviar certificado de calibração para o cliente",
+      "Esclarecer e orientar os clientes sobre assuntos técnicos de calibração",
+      "Executar calibração de balança analítica e semi-analítica",
+      "Executar calibração de balança industrial",
+      "Executar calibração de balança rodoviária",
+      "Fazer inspeção de recebimento dos produtos e serviços adquiridos",
+      "Fazer limpeza e organizar o laboratório",
+      "Liberar recursos para assegurar a competência de todos funcionários",
+      "Manter os padrões rastreados ao SI através da calibração em membros da RBC",
+      "Manusear balanças, pesos e termo-barô-higrômetro",
+      "Monitorar e registrar condições ambientais necessárias para calibração",
+      "Participar das comparações interlaboratoriais e intralaboratoriais",
+      "Programar a execução dos serviços de calibração",
+      "Qualificar provedores para o Laboratório",
+      "Selecionar, desenvolver (quando necessário) e validar métodos",
+      "Validar a planilha de cálculo e proteger contra alterações indevidas",
+    ]),
+    managerial_authorities: L([
+      "Responsável por aprovação, emissão e alteração de documentos",
+      "Autorizar os funcionários a realizar atividades técnicas",
+      "Esclarecer e orientar os clientes sobre assuntos comerciais",
+      "Autorizar os funcionários a realizar atividades gerenciais",
+      "Gerenciar os trabalhos não-conformes",
+      "Autorizar a retomada de trabalho paralizado devido a não-conformidade",
+      "Registrar reclamação de cliente ou outra parte",
+      "Solucionar reclamação de cliente ou outra parte",
+      "Implementar ações corretivas, preventivas e oportunidades de melhoria",
+      "Programar as Análises Críticas pela Gerência",
+      "Conduzir e tomar decisões nas reuniões de análise crítica pela gerência",
+      "Representar a empresa junto ao Cgcre.",
+    ]),
     internal_trainings: L([
       "MQ-000 Manual da Qualidade",
       "PR-4.1 Confidencialidade e Imparcialidade",
@@ -373,32 +389,36 @@ Representar a empresa junto ao Cgcre.`,
 Responsabilidades da Função: garantir requisitos CGCRE; supervisionar e autorizar técnicos; aprovar confiabilidade de padrões; analisar certificados de padrões; definir requisitos de aquisição; decidir retomada após não-conformidade; garantir qualidade; desenvolver métodos; nomear signatários; coordenar interlaboratoriais; ações corretivas; emitir, analisar e aprovar certificados com responsabilidade técnica pelo conteúdo.
 
 Inter-relações: vendas, compras, Diretoria, CGCRE, clientes e Gestão da Qualidade.`,
-    technical_authorities: `Programar a execução dos serviços de calibração
-Decidir sobre produtos adquiridos não-conforme
-Emitir certificado de calibração
-Conferir os valores inseridos para emissão de certificado
-Analisar e aprovar o certificado de calibração
-Enviar certificado de calibração para o cliente
-Esclarecer e orientar os clientes sobre assuntos técnicos de calibração
-Fazer limpeza e organizar o laboratório
-Selecionar, desenvolver (quando necessário) e validar métodos
-Definir as estimativas que compõem a incerteza expandida declarada
-Validar a planilha de cálculo e proteger contra alterações indevidas
-Manter os padrões rastreados ao SI através da calibração em membros da RBC
-Controlar os pesos-padrão e termo-baro-higrômetro
-Manusear balanças, pesos e termo-baro-higrômetro
-Participar das comparações interlaboratoriais e intralaboratoriais`,
-    managerial_authorities: `Autorizar os funcionários a realizar atividades técnicas
-Responsável por aprovação, emissão e alteração de documentos
-Esclarecer e orientar os clientes sobre assuntos comerciais
-Autorizar os funcionários a realizar atividades gerenciais
-Gerenciar os trabalhos não-conformes
-Autorizar a retomada de trabalho paralizado devido a não-conformidade
-Registrar reclamação de cliente ou outra parte
-Solucionar reclamação de cliente ou outra parte
-Implementar ações corretivas, preventivas e oportunidades de melhoria
-Conduzir e tomar decisões nas reuniões de análise crítica pela gerência
-Representar a empresa junto ao Cgcre.`,
+    technical_authorities: L([
+      "Programar a execução dos serviços de calibração",
+      "Decidir sobre produtos adquiridos não-conforme",
+      "Emitir certificado de calibração",
+      "Conferir os valores inseridos para emissão de certificado",
+      "Analisar e aprovar o certificado de calibração",
+      "Enviar certificado de calibração para o cliente",
+      "Esclarecer e orientar os clientes sobre assuntos técnicos de calibração",
+      "Fazer limpeza e organizar o laboratório",
+      "Selecionar, desenvolver (quando necessário) e validar métodos",
+      "Definir as estimativas que compõem a incerteza expandida declarada",
+      "Validar a planilha de cálculo e proteger contra alterações indevidas",
+      "Manter os padrões rastreados ao SI através da calibração em membros da RBC",
+      "Controlar os pesos-padrão e termo-barô-higrômetro",
+      "Manusear balanças, pesos e termo-barô-higrômetro",
+      "Participar das comparações interlaboratoriais e intralaboratoriais",
+    ]),
+    managerial_authorities: L([
+      "Autorizar os funcionários a realizar atividades técnicas",
+      "Responsável por aprovação, emissão e alteração de documentos",
+      "Esclarecer e orientar os clientes sobre assuntos comerciais",
+      "Autorizar os funcionários a realizar atividades gerenciais",
+      "Gerenciar os trabalhos não-conformes",
+      "Autorizar a retomada de trabalho paralizado devido a não-conformidade",
+      "Registrar reclamação de cliente ou outra parte",
+      "Solucionar reclamação de cliente ou outra parte",
+      "Implementar ações corretivas, preventivas e oportunidades de melhoria",
+      "Conduzir e tomar decisões nas reuniões de análise crítica pela gerência",
+      "Representar a empresa junto ao Cgcre.",
+    ]),
     internal_trainings: L([
       "MQ-000 Manual da Qualidade",
       "PR-4.1 Confidencialidade e Imparcialidade",
@@ -436,9 +456,11 @@ Responsabilidades da Função:
 - Disponibilizar recursos para manutenção do sistema de gestão da qualidade
 - Aprovar documentos do sistema de gestão da qualidade
 - Nomear um Representante da Direção para gerenciamento do sistema de gestão da qualidade`,
-    technical_authorities: "Liberar recursos para assegurar a competência de todos funcionários",
-    managerial_authorities: `Liberar recursos para manutenção do sistema de gestão da qualidade
-Representar a empresa junto ao Cgcre.`,
+    technical_authorities: L(["Liberar recursos para assegurar a competência de todos funcionários"]),
+    managerial_authorities: L([
+      "Liberar recursos para manutenção do sistema de gestão da qualidade",
+      "Representar a empresa junto ao Cgcre.",
+    ]),
     internal_trainings: L([
       "MQ-000 Manual da Qualidade",
       "PR-4.1 Confidencialidade e Imparcialidade",

@@ -12,6 +12,7 @@ import { listPositions } from "@/lib/personnelPositionsApi";
 import { loadOptionsByCategory } from "@/lib/personnelStandardOptionsApi";
 import { validateAdequacy } from "@/lib/personnelValidation";
 import { emptyAdequacyForm } from "@/lib/personnelFormDefaults";
+import { normalizeAuthorityValue } from "@/lib/personnelConstants";
 import { usePersonnelPrefill } from "@/hooks/usePersonnelPrefill";
 import { exportAdequacyPdf } from "@/lib/personnelPdfExport";
 import { PERSONNEL_ADEQUACAO_PATH } from "@/lib/personnelRoutes";
@@ -44,6 +45,8 @@ export default function CompetencyAdequacyEditorPage() {
       setForm({
         ...emptyAdequacyForm(),
         ...row,
+        technical_authorities: normalizeAuthorityValue(row.technical_authorities),
+        managerial_authorities: normalizeAuthorityValue(row.managerial_authorities),
         analysis_approval_responsible_na: !row.analysis_approval_responsible_id && !row.analysis_approval_responsible_name,
         admission_date: row.admission_date?.slice?.(0, 10) || "",
         last_update_date: row.last_update_date?.slice?.(0, 10) || "",

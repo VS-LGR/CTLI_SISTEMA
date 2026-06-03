@@ -1,5 +1,5 @@
 import { educationLabel } from "@/lib/cadastroConstants";
-import { labelsFromOptionItems } from "@/lib/personnelConstants";
+import { labelsFromOptionItems, normalizeAuthorityValue } from "@/lib/personnelConstants";
 
 function employeeSupervisorName(employee, employeesById) {
   if (!employee?.supervisor_id) return "";
@@ -40,8 +40,8 @@ export function buildPositionSnapshot(position, { approvalEmployee = null } = {}
     general_knowledge: position.general_knowledge || [],
     immediate_supervisor: position.immediate_supervisor || "",
     function_activities: position.function_activities || "",
-    technical_authorities: position.technical_authorities || "",
-    managerial_authorities: position.managerial_authorities || "",
+    technical_authorities: normalizeAuthorityValue(position.technical_authorities),
+    managerial_authorities: normalizeAuthorityValue(position.managerial_authorities),
     internal_trainings: position.internal_trainings || [],
     analysis_approval_responsible_id: position.analysis_approval_responsible_id || null,
     analysis_approval_responsible_name: approvalEmployee?.full_name || "",
@@ -66,8 +66,8 @@ export function mergePositionIntoFormFields(position) {
     general_knowledge: [...(position.general_knowledge || [])],
     immediate_supervisor: position.immediate_supervisor || "",
     function_activities: position.function_activities || "",
-    technical_authorities: position.technical_authorities || "",
-    managerial_authorities: position.managerial_authorities || "",
+    technical_authorities: normalizeAuthorityValue(position.technical_authorities),
+    managerial_authorities: normalizeAuthorityValue(position.managerial_authorities),
     internal_trainings: [...(position.internal_trainings || [])],
     analysis_approval_responsible_id: position.analysis_approval_responsible_id || "",
     analysis_approval_responsible_name: "",

@@ -60,12 +60,20 @@ export default function PositionForm({
       <Field label="Conjunto de Atividades Relacionadas à Função *">
         <Textarea value={form.function_activities} onChange={(e) => set("function_activities", e.target.value)} disabled={readOnly} rows={4} />
       </Field>
-      <Field label="Autoridades e Responsabilidades Técnicas">
-        <Textarea value={form.technical_authorities} onChange={(e) => set("technical_authorities", e.target.value)} disabled={readOnly} rows={3} />
-      </Field>
-      <Field label="Autoridades e Responsabilidades Gerenciais">
-        <Textarea value={form.managerial_authorities} onChange={(e) => set("managerial_authorities", e.target.value)} disabled={readOnly} rows={3} />
-      </Field>
+      <MultiSelectStandardOptions
+        label="Autoridades e Responsabilidades Técnicas"
+        options={optionsByCategory.technical_authority || []}
+        value={form.technical_authorities || []}
+        onChange={(v) => set("technical_authorities", v)}
+        disabled={readOnly}
+      />
+      <MultiSelectStandardOptions
+        label="Autoridades e Responsabilidades Gerenciais"
+        options={optionsByCategory.managerial_authority || []}
+        value={form.managerial_authorities || []}
+        onChange={(v) => set("managerial_authorities", v)}
+        disabled={readOnly}
+      />
 
       <MultiSelectStandardOptions
         label="Treinamentos Internos *"

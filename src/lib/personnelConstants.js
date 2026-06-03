@@ -13,6 +13,8 @@ export const PERSONNEL_OPTION_CATEGORIES = [
   { value: "training_classification", label: "Classificação de Treinamento" },
   { value: "suitability_status", label: "Funcionário está apto" },
   { value: "training_need", label: "Houve Necessidade de Novos Treinamentos" },
+  { value: "technical_authority", label: "Autoridades e Responsabilidades Técnicas" },
+  { value: "managerial_authority", label: "Autoridades e Responsabilidades Gerenciais" },
 ];
 
 export const categoryLabel = (v) =>
@@ -114,6 +116,55 @@ export const PERSONNEL_DEFAULT_OPTIONS = {
   ],
   suitability_status: ["Sim", "Não, requer treinamentos complementares"],
   training_need: ["Sim", "Não"],
+  technical_authority: [
+    "Analisar e aprovar o certificado de calibração",
+    "Aprovar os dados técnicos de produtos e serviços providos externamente",
+    "Conferir os valores inseridos para emissão de certificado",
+    "Controlar os pesos-padrão e termo-barô-higrômetro",
+    "Decidir sobre produtos adquiridos não-conforme",
+    "Definir as estimativas que compõem a incerteza expandida declarada",
+    "Emitir certificado de calibração",
+    "Enviar certificado de calibração para o cliente",
+    "Esclarecer e orientar os clientes sobre assuntos técnicos de calibração",
+    "Executar calibração de balança analítica e semi-analítica",
+    "Executar calibração de balança industrial",
+    "Executar calibração de balança rodoviária",
+    "Executar manutenção e ajuste de balanças",
+    "Fazer inspeção de recebimento dos produtos e serviços adquiridos",
+    "Fazer limpeza e organizar o laboratório",
+    "Liberar recursos para assegurar a competência de todos funcionários",
+    "Manter os padrões rastreados ao SI através da calibração em membros da RBC",
+    "Manusear balanças, pesos e termo-barô-higrômetro",
+    "Monitorar e registrar condições ambientais necessárias para calibração",
+    "Participar das comparações interlaboratoriais e intralaboratoriais",
+    "Programar a execução dos serviços de calibração",
+    "Qualificar fornecedores para o Laboratório",
+    "Qualificar provedores para o Laboratório",
+    "Selecionar, desenvolver (quando necessário) e validar métodos",
+    "Validar a planilha de cálculo e proteger contra alterações indevidas",
+  ],
+  managerial_authority: [
+    "Autorizar a retomada de trabalho paralizado devido a não-conformidade",
+    "Autorizar os funcionários a realizar atividades gerenciais",
+    "Autorizar os funcionários a realizar atividades técnicas",
+    "Conduzir e tomar decisões nas reuniões de análise crítica pela gerência",
+    "Esclarecer e orientar os clientes sobre assuntos comerciais",
+    "Gerenciar os trabalhos não-conformes",
+    "Implementar ações corretivas e oportunidades de melhoria",
+    "Implementar ações corretivas, preventivas e oportunidades de melhoria",
+    "Liberar recursos para manutenção do sistema de gestão da qualidade",
+    "Manter o controle sobre os registros da qualidade",
+    "Pesquisar a satisfação dos clientes",
+    "Planejar Auditorias Internas",
+    "Programar as Análises Críticas pela Gerência",
+    "Registrar reclamação de cliente ou outra parte",
+    "Representar a empresa junto ao Cgcre.",
+    "Responsável por aprovação, emissão e alteração de documentos",
+    "Solucionar reclamação de cliente ou outra parte",
+    "Vender serviço de ajuste de balança",
+    "Vender serviço de calibração de Balanças",
+    "Vender serviço de manutenção de balança",
+  ],
 };
 
 export const NOT_APPLICABLE_LABEL = "Não Aplicável";
@@ -125,4 +176,22 @@ export function labelsFromOptionItems(items) {
 
 export function optionItemsFromLabels(labels) {
   return (labels || []).map((label) => ({ label, id: null }));
+}
+
+/** Converte texto legado ou jsonb em itens [{ id, label }] para formulários/PDF */
+export function normalizeAuthorityValue(v) {
+  if (!v) return [];
+  if (Array.isArray(v)) {
+    return v.map((x) => (typeof x === "string" ? { id: null, label: x } : { id: x?.id ?? null, label: x?.label || "" })).filter((x) => x.label);
+  }
+  if (typeof v === "string") {
+    const trimmed = v.trim();
+    if (!trimmed) return [];
+    return trimmed
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((label) => ({ id: null, label }));
+  }
+  return [];
 }

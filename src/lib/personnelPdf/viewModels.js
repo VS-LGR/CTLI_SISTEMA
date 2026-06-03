@@ -1,6 +1,6 @@
 import { displayValue, formatDateBr } from "@/lib/quotationRequestDisplay";
 import { formatOptionListForPdf } from "@/lib/personnelSnapshots";
-import { labelsFromOptionItems } from "@/lib/personnelConstants";
+import { labelsFromOptionItems, normalizeAuthorityValue } from "@/lib/personnelConstants";
 import { COMPETENCY_AUTH_TEXT, MONITORING_AUTH_TEXT_APT, MONITORING_AUTH_TEXT_TRAINING, SUITABILITY_REQUIRES_TRAINING } from "@/lib/personnelDocMeta";
 
 function docHeaderFromRecord(record, defaultTitle) {
@@ -33,8 +33,8 @@ export function buildCompetencyPdfViewModel(position) {
     sections: [
       { type: "block", title: "1. Atribuições do Cargo", content: "" },
       { type: "block", title: "1.1 Conjunto de Atividades Relacionadas à Função", content: p.function_activities },
-      { type: "block", title: "1.2 Autoridades e Responsabilidades Técnicas Atribuídas ao Ocupante do Cargo", content: p.technical_authorities },
-      { type: "block", title: "1.3 Autoridades e Responsabilidades Gerenciais Atribuídas ao Ocupante do Cargo", content: p.managerial_authorities },
+      { type: "list", title: "1.2 Autoridades e Responsabilidades Técnicas Atribuídas ao Ocupante do Cargo", items: listLabels(normalizeAuthorityValue(p.technical_authorities)) },
+      { type: "list", title: "1.3 Autoridades e Responsabilidades Gerenciais Atribuídas ao Ocupante do Cargo", items: listLabels(normalizeAuthorityValue(p.managerial_authorities)) },
       { type: "list", title: "2. Treinamentos Interno", items: listLabels(p.internal_trainings) },
       { type: "list", title: "3. Conhecimentos Gerais", items: listLabels(p.general_knowledge) },
       { type: "list", title: "4. Conhecimento Técnico", items: listLabels(p.technical_knowledge) },
@@ -64,8 +64,8 @@ export function buildAdequacyPdfViewModel(record) {
     sections: [
       { type: "block", title: "1. Atribuições do Cargo", content: "" },
       { type: "block", title: "1.1 Conjunto de Atividades Relacionadas à Função", content: record.function_activities },
-      { type: "block", title: "1.2 Autoridades e Responsabilidades Técnicas Atribuídas ao Ocupante do Cargo", content: record.technical_authorities },
-      { type: "block", title: "1.3 Autoridades e Responsabilidades Gerenciais Atribuídas ao Ocupante do Cargo", content: record.managerial_authorities },
+      { type: "list", title: "1.2 Autoridades e Responsabilidades Técnicas Atribuídas ao Ocupante do Cargo", items: listLabels(normalizeAuthorityValue(record.technical_authorities)) },
+      { type: "list", title: "1.3 Autoridades e Responsabilidades Gerenciais Atribuídas ao Ocupante do Cargo", items: listLabels(normalizeAuthorityValue(record.managerial_authorities)) },
       { type: "list", title: "2. Treinamentos Interno", items: listLabels(record.internal_trainings) },
       { type: "list", title: "3. Conhecimentos Gerais", items: listLabels(record.general_knowledge) },
       { type: "list", title: "4. Conhecimento Técnico", items: listLabels(record.technical_knowledge) },

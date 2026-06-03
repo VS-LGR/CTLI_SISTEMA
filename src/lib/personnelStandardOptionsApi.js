@@ -25,26 +25,30 @@ export async function listStandardOptions(tenantId, { category = null, activeOnl
 export async function ensureStandardOptionsSeeded(tenantId) {
   assertSupabasePersonnel();
   const existing = await listStandardOptions(tenantId, { activeOnly: false });
-  if (existing.length > 0) return existing;
+  const existingKeys = new Set(existing.map((r) => `${r.category}\0${r.label}`));
 
   const rows = [];
-  let sort = 0;
   for (const [category, labels] of Object.entries(PERSONNEL_DEFAULT_OPTIONS)) {
     labels.forEach((label, i) => {
-      rows.push({
-        tenant_id: tenantId,
-        category,
-        label,
-        description: "",
-        sort_order: i,
-        is_active: true,
-      });
+      const key = `${category}\0${label}`;
+      if (!existingKeys.has(key)) {
+        rows.push({
+          tenant_id: tenantId,
+          category,
+          label,
+          description: "",
+          sort_order: i,
+          is_active: true,
+        });
+      }
     });
-    sort += labels.length;
   }
+
+  if (rows.length === 0) return existing;
+
   const { data, error } = await supabase.from("personnel_standard_options").insert(rows).select();
   if (error) throw error;
-  return data || [];
+  return [...existing, ...(data || [])];
 }
 
 export async function loadOptionsByCategory(tenantId) {
