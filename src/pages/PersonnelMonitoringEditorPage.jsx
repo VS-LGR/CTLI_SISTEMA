@@ -31,6 +31,7 @@ export default function PersonnelMonitoringEditorPage() {
 
   const { onMonitoringEmployeeChange, onPositionChange } = usePersonnelPrefill({ employees, optionsByCategory });
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
+  const trainingDetailsEnabled = form.needed_new_training === "Sim";
 
   const load = useCallback(async () => {
     if (!currentTenantId) return;
@@ -199,7 +200,18 @@ export default function PersonnelMonitoringEditorPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label>Houve necessidade de novos treinamentos? *</Label>
-            <select value={form.needed_new_training} onChange={(e) => set("needed_new_training", e.target.value)} className="w-full border rounded-md h-10 px-3 text-sm">
+            <select
+              value={form.needed_new_training}
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm((prev) => ({
+                  ...prev,
+                  needed_new_training: val,
+                  ...(val !== "Sim" ? { training_classification: "", training_topics: [] } : {}),
+                }));
+              }}
+              className="w-full border rounded-md h-10 px-3 text-sm"
+            >
               <option value="">—</option>
               {(optionsByCategory.training_need || []).map((o) => (
                 <option key={o.id} value={o.label}>{o.label}</option>
@@ -208,7 +220,12 @@ export default function PersonnelMonitoringEditorPage() {
           </div>
           <div>
             <Label>Classificação</Label>
-            <select value={form.training_classification} onChange={(e) => set("training_classification", e.target.value)} className="w-full border rounded-md h-10 px-3 text-sm">
+            <select
+              value={form.training_classification}
+              onChange={(e) => set("training_classification", e.target.value)}
+              disabled={!trainingDetailsEnabled}
+              className="w-full border rounded-md h-10 px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50"
+            >
               <option value="">—</option>
               {(optionsByCategory.training_classification || []).map((o) => (
                 <option key={o.id} value={o.label}>{o.label}</option>
@@ -222,6 +239,7 @@ export default function PersonnelMonitoringEditorPage() {
           options={optionsByCategory.internal_training || []}
           value={form.training_topics}
           onChange={(v) => set("training_topics", v)}
+          disabled={!trainingDetailsEnabled}
         />
 
         {lastMonitoringHint && isNew && (

@@ -12,8 +12,6 @@ import { buildPersonnelSubjectMetaRows } from "./personnelSubjectMeta";
 import {
   EXPERIENCE_OPINION_LABELS,
   EXPERIENCE_SCORE_CRITERIA,
-  EXPERIENCE_CRITERION_LOW,
-  EXPERIENCE_CRITERION_POSITIVE,
   EXPERIENCE_APPROVAL_MIN_AVERAGE,
   formatExperiencePeriodLabel,
   experienceResultLabel,
@@ -181,8 +179,6 @@ export function buildExperienceEvaluationPdfViewModel(record) {
     ],
     evaluationItems: items,
     scoreCriteria: EXPERIENCE_SCORE_CRITERIA,
-    criterionLow: EXPERIENCE_CRITERION_LOW,
-    criterionPositive: EXPERIENCE_CRITERION_POSITIVE,
     averageScore: record.average_score != null ? String(record.average_score) : "—",
     approvalCriterion: `Média mínima para aprovação: ${EXPERIENCE_APPROVAL_MIN_AVERAGE},0`,
     resultLabel: experienceResultLabel(record.conclusive_opinion) || "—",

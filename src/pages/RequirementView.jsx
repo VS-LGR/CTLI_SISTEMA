@@ -48,12 +48,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
-import { canAccessColeta } from "@/lib/roles";
+import { PERSONNEL_REQ_ID, PERSONNEL_FOLDER_KEY } from "@/lib/personnelRegistrosRoutes";
+import { canAccessColeta, canAccessPersonnel } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import AssinaturasSection from "@/components/documents/AssinaturasSection";
 
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
+const PersonnelRegistrosPage = lazy(() => import("@/pages/PersonnelRegistrosPage"));
 
 function filterBySearch(docs, searchQuery) {
   if (!searchQuery.trim()) return docs;
@@ -517,6 +519,8 @@ const RequirementView = () => {
   const reqTitle = REQ_NAMES[String(id)];
   const isColetaRegistro =
     String(id) === COLETA_REQ_ID && folderKey === COLETA_FOLDER_KEY && section === "registro" && canAccessColeta(user?.role);
+  const isPersonnelRegistro =
+    String(id) === PERSONNEL_REQ_ID && folderKey === PERSONNEL_FOLDER_KEY && section === "registro" && canAccessPersonnel(user?.role);
   const signatures = isSignaturesFolder(id, folderKey);
   const fileOnly = isFileOnlyFolder(id, folderKey);
   const purchaseOrdersTab = isPurchaseOrdersFolder(id, folderKey) && section === "pedidos_compra";
@@ -558,7 +562,7 @@ const RequirementView = () => {
         <p className="text-sm text-slate-600 mt-1">Ambiente: <span className="font-medium">{currentTenant?.name}</span></p>
       </div>
 
-      {!isColetaRegistro && !moduleTab && (
+      {!isColetaRegistro && !isPersonnelRegistro && !moduleTab && (
         <div className="relative max-w-md">
           <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input
@@ -578,7 +582,7 @@ const RequirementView = () => {
             ))}
           </TabsList>
 
-          {!isColetaRegistro && !signatures && !moduleTab && (
+          {!isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
             <div className="flex items-center gap-2 flex-wrap">
               <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5">
                 <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
@@ -612,6 +616,10 @@ const RequirementView = () => {
           ) : isColetaRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta…</div>}>
               <ColetaPage embedded />
+            </Suspense>
+          ) : isPersonnelRegistro ? (
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar registros de pessoal…</div>}>
+              <PersonnelRegistrosPage embedded />
             </Suspense>
           ) : loading ? (
             <div className="text-slate-600">Carregando…</div>

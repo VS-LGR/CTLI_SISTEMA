@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useFilteredPersonnelRows, usePersonnelRowCountEffect, personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +14,14 @@ function fmtDate(d) {
   return d.slice(0, 10).split("-").reverse().join("/");
 }
 
-export default function SelectionsListPanel({ tenantId, tenant }) {
+export default function SelectionsListPanel({
+  tenantId,
+  tenant,
+  compact = false,
+  externalFilters = null,
+  topicId = "pr-62f",
+  onRowCountChange,
+}) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -29,9 +37,12 @@ export default function SelectionsListPanel({ tenantId, tenant }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const displayRows = useFilteredPersonnelRows(rows, externalFilters, topicId);
+  usePersonnelRowCountEffect(displayRows, onRowCountChange);
+
   return (
-    <Card className="border-slate-200">
-      <CardContent className="p-4 space-y-4">
+    <Card className={personnelPanelCardClass(compact)}>
+      <CardContent className={compact ? "p-0 space-y-4" : "p-4 space-y-4"}>
         <div className="flex justify-end">
           <Button size="sm" className="bg-blue-600 text-white" onClick={() => navigate(selectionEditorPath("nova"))}>
             <Plus size={16} className="mr-1" /> Nova seleção
@@ -51,10 +62,10 @@ export default function SelectionsListPanel({ tenantId, tenant }) {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && (
+              {displayRows.length === 0 && (
                 <tr><td colSpan={7} className="p-4 text-center text-slate-500">Nenhuma seleção.</td></tr>
               )}
-              {rows.map((r) => (
+              {displayRows.map((r) => (
                 <tr key={r.id} className="border-t">
                   <td className="p-2">{fmtDate(r.selection_date)}</td>
                   <td className="p-2">{r.vacancy}</td>

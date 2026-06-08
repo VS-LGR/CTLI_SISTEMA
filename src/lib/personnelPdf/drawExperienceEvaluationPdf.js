@@ -64,9 +64,6 @@ export async function drawExperienceEvaluationPdf(record, { logoDataUrl } = {}) 
   });
   y = doc.lastAutoTable.finalY + 4;
 
-  y = drawSectionBlock(doc, y, "", model.criterionLow, redrawHeader, model.header, logoDataUrl);
-  y = drawSectionBlock(doc, y, "", model.criterionPositive, redrawHeader, model.header, logoDataUrl);
-
   y = drawSectionTitle(doc, y, "Resultado da avaliação");
   y = ensurePersonnelSpace(doc, y, 28, redrawHeader, model.header, logoDataUrl);
   const resultRows = [

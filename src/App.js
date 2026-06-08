@@ -8,6 +8,7 @@ import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, isTechnicianOnlyNav } from "@/lib/roles";
 import { PERSONNEL_BASE_PATH, PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
+import { PERSONNEL_DASHBOARD_PATH } from "@/lib/personnelRegistrosRoutes";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
@@ -217,7 +218,7 @@ const App = () => (
                 </Suspense>
               )}
             />
-            <Route path={PERSONNEL_BASE_PATH} element={<Navigate to={PERSONNEL_CARGOS_PATH} replace />} />
+            <Route path={PERSONNEL_BASE_PATH} element={<Navigate to={PERSONNEL_DASHBOARD_PATH} replace />} />
             <Route
               path={`${PERSONNEL_BASE_PATH}/:section`}
               element={(

@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { roleShort, isTechnicianOnlyNav, canAccessColeta, canAccessPersonnel } from "@/lib/roles";
-import { personnelSectionPath, getVisiblePersonnelSections } from "@/lib/personnelNavConfig";
+import { getVisiblePersonnelNavItems, isPersonnelNavActive } from "@/lib/personnelNavConfig";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -61,7 +61,7 @@ const Layout = () => {
     () => location.pathname.startsWith("/cadastros"),
   );
   const [pessoalExpanded, setPessoalExpanded] = useState(
-    () => location.pathname.startsWith("/pessoal"),
+    () => location.pathname.startsWith("/pessoal") || location.pathname.includes("/requirement/6/pr-6-2"),
   );
   const {
     collapsed: sidebarCollapsed,
@@ -156,8 +156,9 @@ const Layout = () => {
     if (isCadastrosActive) setCadastrosExpanded(true);
   }, [isCadastrosActive]);
 
-  const isPessoalActive = location.pathname.startsWith("/pessoal");
-  const personnelSections = getVisiblePersonnelSections(user?.role);
+  const isPessoalActive = location.pathname.startsWith("/pessoal")
+    || location.pathname.includes("/requirement/6/pr-6-2");
+  const personnelNavItems = getVisiblePersonnelNavItems(user?.role);
 
   useEffect(() => {
     if (isPessoalActive) setPessoalExpanded(true);
@@ -200,7 +201,7 @@ const Layout = () => {
         </Collapsible>
       )}
 
-      {!technicianNav && canAccessPersonnel(user?.role) && personnelSections.length > 0 && (
+      {!technicianNav && canAccessPersonnel(user?.role) && personnelNavItems.length > 0 && (
         <Collapsible open={pessoalExpanded} onOpenChange={setPessoalExpanded}>
           <CollapsibleTrigger
             className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
@@ -213,16 +214,18 @@ const Layout = () => {
             <CaretRight size={14} className="shrink-0 opacity-70" />
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
-            {personnelSections.map((s) => (
+            {personnelNavItems.map((item) => (
               <NavLink
-                key={s.id}
-                to={personnelSectionPath(s.id)}
-                className={subNavLinkClass}
-                title={s.label}
-                data-testid={`nav-pessoal-${s.id}`}
+                key={item.id}
+                to={item.to}
+                className={({ isActive }) => subNavLinkClass({
+                  isActive: isActive || isPersonnelNavActive(location.pathname + location.search, item),
+                })}
+                title={item.label}
+                data-testid={`nav-pessoal-${item.id}`}
                 onClick={onNavigate}
               >
-                <span className="truncate">{s.label}</span>
+                <span className="truncate">{item.label}</span>
               </NavLink>
             ))}
           </CollapsibleContent>

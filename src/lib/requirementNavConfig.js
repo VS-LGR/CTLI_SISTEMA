@@ -4,7 +4,7 @@
  */
 
 import { COLETA_LIST_PATH } from "./coletaRoutes";
-import { PERSONNEL_CARGOS_PATH } from "./personnelRoutes";
+import { PERSONNEL_DASHBOARD_PATH, PERSONNEL_REGISTROS_PATH } from "./personnelRegistrosRoutes";
 
 export const REQ_NAMES = {
   "4": "Requisitos Gerais",
@@ -39,7 +39,7 @@ const FOLDERS = {
       folderKey: "pr-6-2",
       label: "PR-6.2 Pessoal",
       children: [
-        { key: "pessoal-cargos", label: "6.2 Pessoal — Cargos", to: PERSONNEL_CARGOS_PATH },
+        { key: "pessoal-registros", label: "Registros 6.2 Pessoal", to: PERSONNEL_REGISTROS_PATH },
       ],
     },
     { folderKey: "pr-6-4", label: "PR-6.4 Equipamentos" },

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useFilteredPersonnelRows, usePersonnelRowCountEffect, personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +18,14 @@ function fmtDate(d) {
   return d.slice(0, 10).split("-").reverse().join("/");
 }
 
-export default function AttendanceListsListPanel({ tenantId, tenant }) {
+export default function AttendanceListsListPanel({
+  tenantId,
+  tenant,
+  compact = false,
+  externalFilters = null,
+  topicId = "re-62d",
+  onRowCountChange,
+}) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -33,9 +41,12 @@ export default function AttendanceListsListPanel({ tenantId, tenant }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const displayRows = useFilteredPersonnelRows(rows, externalFilters, topicId);
+  usePersonnelRowCountEffect(displayRows, onRowCountChange);
+
   return (
-    <Card className="border-slate-200">
-      <CardContent className="p-4 space-y-4">
+    <Card className={personnelPanelCardClass(compact)}>
+      <CardContent className={compact ? "p-0 space-y-4" : "p-4 space-y-4"}>
         <div className="flex justify-end">
           <Button size="sm" className="bg-blue-600 text-white" onClick={() => navigate(attendanceListEditorPath("nova"))}>
             <Plus size={16} className="mr-1" /> Nova lista
@@ -56,10 +67,10 @@ export default function AttendanceListsListPanel({ tenantId, tenant }) {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && (
+              {displayRows.length === 0 && (
                 <tr><td colSpan={8} className="p-4 text-center text-slate-500">Nenhuma lista de presença.</td></tr>
               )}
-              {rows.map((r) => (
+              {displayRows.map((r) => (
                 <tr key={r.id} className="border-t">
                   <td className="p-2">{r.course_title}</td>
                   <td className="p-2">{fmtDate(r.course_date)}</td>

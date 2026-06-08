@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { filterPersonnelTopicRows } from "@/lib/personnelRegistrosListUtils";
+import { personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -159,7 +161,14 @@ function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab })
   );
 }
 
-export default function PositionsListPanel({ tenantId, tenant }) {
+export default function PositionsListPanel({
+  tenantId,
+  tenant,
+  compact = false,
+  externalFilters = null,
+  topicId = "re-62c",
+  onRowCountChange,
+}) {
   const navigate = useNavigate();
   const [activeRows, setActiveRows] = useState([]);
   const [obsoleteRows, setObsoleteRows] = useState([]);
@@ -182,14 +191,26 @@ export default function PositionsListPanel({ tenantId, tenant }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const filterRows = useCallback((rows) => {
+    if (!externalFilters?.query && !externalFilters?.date) return rows;
+    return filterPersonnelTopicRows(rows, externalFilters, topicId);
+  }, [externalFilters, topicId]);
+
+  const displayActive = useMemo(() => filterRows(activeRows), [activeRows, filterRows]);
+  const displayObsolete = useMemo(() => filterRows(obsoleteRows), [obsoleteRows, filterRows]);
+
+  useEffect(() => {
+    onRowCountChange?.(displayActive.length + displayObsolete.length);
+  }, [displayActive.length, displayObsolete.length, onRowCountChange]);
+
   return (
-    <Card className="border-slate-200">
-      <CardContent className="p-4 space-y-4">
+    <Card className={personnelPanelCardClass(compact)}>
+      <CardContent className={compact ? "p-0 space-y-4" : "p-4 space-y-4"}>
         <Tabs value={tab} onValueChange={setTab}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <TabsList>
-              <TabsTrigger value="ativos">Ativos ({activeRows.length})</TabsTrigger>
-              <TabsTrigger value="obsoletos">Cargos obsoletos ({obsoleteRows.length})</TabsTrigger>
+              <TabsTrigger value="ativos">Ativos ({displayActive.length})</TabsTrigger>
+              <TabsTrigger value="obsoletos">Cargos obsoletos ({displayObsolete.length})</TabsTrigger>
             </TabsList>
             {tab === "ativos" && (
               <Button size="sm" className="bg-blue-600 text-white" onClick={() => navigate(positionEditorPath("nova"))}>
@@ -200,7 +221,7 @@ export default function PositionsListPanel({ tenantId, tenant }) {
 
           <TabsContent value="ativos" className="mt-4">
             <PositionsTable
-              rows={activeRows}
+              rows={displayActive}
               tenantId={tenantId}
               tenant={tenant}
               busy={busy}
@@ -215,7 +236,7 @@ export default function PositionsListPanel({ tenantId, tenant }) {
               Cargos inativos podem ser reativados ou excluídos permanentemente (com confirmação dupla).
             </p>
             <PositionsTable
-              rows={obsoleteRows}
+              rows={displayObsolete}
               tenantId={tenantId}
               tenant={tenant}
               busy={busy}

@@ -1,53 +1,29 @@
 import React from "react";
 import { Navigate, useOutletContext, useParams } from "react-router-dom";
-import {
-  getPersonnelSectionLabel,
-  getVisiblePersonnelSections,
-  isValidPersonnelSection,
-  personnelSectionPath,
-} from "@/lib/personnelNavConfig";
-import PositionsListPanel from "@/components/personnel/PositionsListPanel";
-import AdequaciesListPanel from "@/components/personnel/AdequaciesListPanel";
-import MonitoringsListPanel from "@/components/personnel/MonitoringsListPanel";
+import { legacySectionToRegistrosPath } from "@/lib/personnelNavConfig";
+import { PERSONNEL_REGISTROS_PATH } from "@/lib/personnelRegistrosRoutes";
 import StandardOptionsPanel from "@/components/personnel/StandardOptionsPanel";
-import ExperienceEvaluationsListPanel from "@/components/personnel/ExperienceEvaluationsListPanel";
-import SelectionsListPanel from "@/components/personnel/SelectionsListPanel";
-import AttendanceListsListPanel from "@/components/personnel/AttendanceListsListPanel";
 
 export default function PersonnelPage() {
   const { section } = useParams();
-  const { user, currentTenantId, currentTenant } = useOutletContext();
-  const visible = getVisiblePersonnelSections(user?.role);
+  const { currentTenantId } = useOutletContext();
 
-  if (!currentTenantId) {
-    return <div className="p-8 text-center text-slate-500">Selecione um ambiente no topo.</div>;
+  if (section === "listas") {
+    if (!currentTenantId) {
+      return <div className="p-8 text-center text-slate-500">Selecione um ambiente no topo.</div>;
+    }
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-6 min-w-0">
+        <h1 className="text-xl font-display font-bold text-slate-900 mb-1">6.2 Pessoal</h1>
+        <p className="text-sm text-slate-600 mb-6">Níveis e Listas Padrão</p>
+        <StandardOptionsPanel tenantId={currentTenantId} />
+      </div>
+    );
   }
 
-  if (!section || !isValidPersonnelSection(section)) {
-    const first = visible[0]?.id || "cargos";
-    return <Navigate to={personnelSectionPath(first)} replace />;
+  if (section) {
+    return <Navigate to={legacySectionToRegistrosPath(section)} replace />;
   }
 
-  const title = getPersonnelSectionLabel(section);
-
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-6 min-w-0">
-      <h1 className="text-xl font-display font-bold text-slate-900 mb-1">6.2 Pessoal</h1>
-      <p className="text-sm text-slate-600 mb-6">{title}</p>
-
-      {section === "cargos" && <PositionsListPanel tenantId={currentTenantId} tenant={currentTenant} />}
-      {section === "adequacao" && <AdequaciesListPanel tenantId={currentTenantId} tenant={currentTenant} />}
-      {section === "monitoramento" && <MonitoringsListPanel tenantId={currentTenantId} tenant={currentTenant} />}
-      {section === "avaliacao-experiencia" && (
-        <ExperienceEvaluationsListPanel tenantId={currentTenantId} tenant={currentTenant} />
-      )}
-      {section === "selecao" && (
-        <SelectionsListPanel tenantId={currentTenantId} tenant={currentTenant} />
-      )}
-      {section === "presenca" && (
-        <AttendanceListsListPanel tenantId={currentTenantId} tenant={currentTenant} />
-      )}
-      {section === "listas" && <StandardOptionsPanel tenantId={currentTenantId} />}
-    </div>
-  );
+  return <Navigate to={PERSONNEL_REGISTROS_PATH} replace />;
 }
