@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   House, SignOut, CaretDown, ShieldCheck,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
-  Buildings, CaretRight, ClipboardText, List, X, UsersThree,
+  Buildings, CaretRight, ClipboardText, List, X,
 } from "@phosphor-icons/react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -14,8 +14,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, canAccessColeta, canAccessPersonnel } from "@/lib/roles";
-import { getVisiblePersonnelNavItems, isPersonnelNavActive } from "@/lib/personnelNavConfig";
+import { roleShort, isTechnicianOnlyNav, canAccessColeta } from "@/lib/roles";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -59,9 +58,6 @@ const Layout = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [cadastrosExpanded, setCadastrosExpanded] = useState(
     () => location.pathname.startsWith("/cadastros"),
-  );
-  const [pessoalExpanded, setPessoalExpanded] = useState(
-    () => location.pathname.startsWith("/pessoal") || location.pathname.includes("/requirement/6/pr-6-2"),
   );
   const {
     collapsed: sidebarCollapsed,
@@ -156,14 +152,6 @@ const Layout = () => {
     if (isCadastrosActive) setCadastrosExpanded(true);
   }, [isCadastrosActive]);
 
-  const isPessoalActive = location.pathname.startsWith("/pessoal")
-    || location.pathname.includes("/requirement/6/pr-6-2");
-  const personnelNavItems = getVisiblePersonnelNavItems(user?.role);
-
-  useEffect(() => {
-    if (isPessoalActive) setPessoalExpanded(true);
-  }, [isPessoalActive]);
-
   const renderNav = (onNavigate) => (
     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain">
       {!technicianNav && (
@@ -195,37 +183,6 @@ const Layout = () => {
                 onClick={onNavigate}
               >
                 <span className="truncate">{s.label}</span>
-              </NavLink>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-
-      {!technicianNav && canAccessPersonnel(user?.role) && personnelNavItems.length > 0 && (
-        <Collapsible open={pessoalExpanded} onOpenChange={setPessoalExpanded}>
-          <CollapsibleTrigger
-            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
-              isPessoalActive ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
-            }`}
-            data-testid="nav-pessoal"
-          >
-            <UsersThree size={18} weight="duotone" className="shrink-0" />
-            <span className="flex-1 min-w-0">6.2 Pessoal</span>
-            <CaretRight size={14} className="shrink-0 opacity-70" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
-            {personnelNavItems.map((item) => (
-              <NavLink
-                key={item.id}
-                to={item.to}
-                className={({ isActive }) => subNavLinkClass({
-                  isActive: isActive || isPersonnelNavActive(location.pathname + location.search, item),
-                })}
-                title={item.label}
-                data-testid={`nav-pessoal-${item.id}`}
-                onClick={onNavigate}
-              >
-                <span className="truncate">{item.label}</span>
               </NavLink>
             ))}
           </CollapsibleContent>

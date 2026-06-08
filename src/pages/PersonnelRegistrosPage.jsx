@@ -111,7 +111,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   );
 
   const setTopicCount = useCallback((topicId) => (count) => {
-    setRowCounts((prev) => ({ ...prev, [topicId]: count }));
+    setRowCounts((prev) => (prev[topicId] === count ? prev : { ...prev, [topicId]: count }));
   }, []);
 
   if (!canAccessPersonnel(user?.role)) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { filterPersonnelTopicRows } from "@/lib/personnelRegistrosListUtils";
 
 export function useFilteredPersonnelRows(rows, externalFilters, topicId) {
@@ -9,9 +9,13 @@ export function useFilteredPersonnelRows(rows, externalFilters, topicId) {
 }
 
 export function usePersonnelRowCountEffect(displayRows, onRowCountChange) {
+  const count = displayRows?.length ?? 0;
+  const onRowCountChangeRef = useRef(onRowCountChange);
+  onRowCountChangeRef.current = onRowCountChange;
+
   useEffect(() => {
-    onRowCountChange?.(displayRows?.length ?? 0);
-  }, [displayRows, onRowCountChange]);
+    onRowCountChangeRef.current?.(count);
+  }, [count]);
 }
 
 export function personnelPanelCardClass(compact) {
