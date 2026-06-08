@@ -11,7 +11,7 @@ import {
 } from "@/lib/personnelExperienceEvaluationsApi";
 import { exportExperienceEvaluationPdf } from "@/lib/personnelPdfExport";
 import { experienceEvaluationEditorPath } from "@/lib/personnelRoutes";
-import { EXPERIENCE_OPINION_LABELS } from "@/lib/personnelExperienceConstants";
+import { EXPERIENCE_OPINION_LABELS, experienceResultLabel } from "@/lib/personnelExperienceConstants";
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -67,7 +67,20 @@ export default function ExperienceEvaluationsListPanel({ tenantId, tenant }) {
                   <td className="p-2">{fmtDate(r.admission_date)}</td>
                   <td className="p-2">{fmtDate(r.evaluation_date)}</td>
                   <td className="p-2">{r.average_score ?? "—"}</td>
-                  <td className="p-2 text-xs">{EXPERIENCE_OPINION_LABELS[r.conclusive_opinion] || "—"}</td>
+                  <td className="p-2">
+                    {r.conclusive_opinion ? (
+                      <span
+                        title={EXPERIENCE_OPINION_LABELS[r.conclusive_opinion]}
+                        className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${
+                          r.conclusive_opinion === "aprovado"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {experienceResultLabel(r.conclusive_opinion)}
+                      </span>
+                    ) : "—"}
+                  </td>
                   <td className="p-2">{r.evaluator_name || "—"}</td>
                   <td className="p-2">
                     <Button variant="ghost" size="sm" asChild><Link to={experienceEvaluationEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>

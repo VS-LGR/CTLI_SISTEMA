@@ -41,6 +41,23 @@ export async function getMonitoring(id) {
   return data;
 }
 
+export async function getLastMonitoringForEmployee(tenantId, employeeId, { excludeId } = {}) {
+  assertSupabasePersonnel();
+  if (!tenantId || !employeeId) return null;
+  let q = supabase
+    .from("personnel_monitorings")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("employee_id", employeeId)
+    .order("last_update_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (excludeId) q = q.neq("id", excludeId);
+  const { data, error } = await q.maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 async function buildSnapshots(tenantId, employeeId, positionId, approvalId) {
   const employeesById = await loadEmployeesMap(tenantId);
   const employee = employeesById[employeeId];

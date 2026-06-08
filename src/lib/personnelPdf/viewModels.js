@@ -9,7 +9,15 @@ import {
   PERSONNEL_DOC_DEFAULTS,
 } from "@/lib/personnelDocMeta";
 import { buildPersonnelSubjectMetaRows } from "./personnelSubjectMeta";
-import { EXPERIENCE_OPINION_LABELS, EXPERIENCE_SCORE_CRITERIA, EXPERIENCE_CRITERION_LOW, EXPERIENCE_CRITERION_POSITIVE } from "@/lib/personnelExperienceConstants";
+import {
+  EXPERIENCE_OPINION_LABELS,
+  EXPERIENCE_SCORE_CRITERIA,
+  EXPERIENCE_CRITERION_LOW,
+  EXPERIENCE_CRITERION_POSITIVE,
+  EXPERIENCE_APPROVAL_MIN_AVERAGE,
+  formatExperiencePeriodLabel,
+  experienceResultLabel,
+} from "@/lib/personnelExperienceConstants";
 import { PERSONNEL_SELECTION_EDUCATION_LEVELS, SELECTION_APPROVAL_TEXT } from "@/lib/personnelSelectionConstants";
 
 function docHeaderFromRecord(record, defaultTitle) {
@@ -42,6 +50,7 @@ export function buildCompetencyPdfViewModel(position) {
       ["Formação Desejável", p.desired_education],
       ["Data de Inclusão", formatDateBr(p.inclusion_date)],
       ["Última Atualização", formatDateBr(p.last_update_date)],
+      ...(p.immediate_supervisor ? [["Supervisor Imediato", p.immediate_supervisor]] : []),
     ],
     sections: [
       { type: "block", title: "1. Atribuições do Cargo", content: "" },
@@ -168,11 +177,15 @@ export function buildExperienceEvaluationPdfViewModel(record) {
       ["Admissão", formatDateBr(record.admission_date)],
       ["Cargo", record.position_title],
       ["Setor", record.department],
+      ["Período de experiência", formatExperiencePeriodLabel(record.admission_date)],
     ],
     evaluationItems: items,
     scoreCriteria: EXPERIENCE_SCORE_CRITERIA,
     criterionLow: EXPERIENCE_CRITERION_LOW,
     criterionPositive: EXPERIENCE_CRITERION_POSITIVE,
+    averageScore: record.average_score != null ? String(record.average_score) : "—",
+    approvalCriterion: `Média mínima para aprovação: ${EXPERIENCE_APPROVAL_MIN_AVERAGE},0`,
+    resultLabel: experienceResultLabel(record.conclusive_opinion) || "—",
     conclusiveOpinionLabel: EXPERIENCE_OPINION_LABELS[record.conclusive_opinion] || record.conclusive_opinion,
     evaluatorName: record.evaluator_name,
     signatureDate: formatDateBr(record.signature_date),

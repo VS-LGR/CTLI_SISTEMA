@@ -28,6 +28,9 @@ export const EXPERIENCE_CRITERION_LOW =
 export const EXPERIENCE_CRITERION_POSITIVE =
   "É recomendada a aprovação do funcionário, pois ele atende aos requisitos básicos da empresa.";
 
+export const EXPERIENCE_PERIOD_MAX_MONTHS = 3;
+export const EXPERIENCE_APPROVAL_MIN_AVERAGE = 6;
+
 export const EXPERIENCE_OPINION_APPROVED = "aprovado";
 export const EXPERIENCE_OPINION_REJECTED = "reprovado";
 
@@ -53,5 +56,31 @@ export function calculateExperienceAverage(items) {
 
 export function suggestExperienceOpinion(average) {
   if (average === null || average === undefined) return "";
-  return average >= 6 ? EXPERIENCE_OPINION_APPROVED : EXPERIENCE_OPINION_REJECTED;
+  return average >= EXPERIENCE_APPROVAL_MIN_AVERAGE ? EXPERIENCE_OPINION_APPROVED : EXPERIENCE_OPINION_REJECTED;
+}
+
+function formatIsoDateBr(iso) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
+}
+
+export function computeExperiencePeriodEnd(admissionDate) {
+  if (!admissionDate) return null;
+  const d = new Date(`${admissionDate.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setMonth(d.getMonth() + EXPERIENCE_PERIOD_MAX_MONTHS);
+  return d.toISOString().slice(0, 10);
+}
+
+export function formatExperiencePeriodLabel(admissionDate) {
+  if (!admissionDate) return "—";
+  const end = computeExperiencePeriodEnd(admissionDate);
+  return `${formatIsoDateBr(admissionDate)} a ${formatIsoDateBr(end)} (máximo ${EXPERIENCE_PERIOD_MAX_MONTHS} meses)`;
+}
+
+export function experienceResultLabel(opinion) {
+  if (opinion === EXPERIENCE_OPINION_APPROVED) return "APROVADO";
+  if (opinion === EXPERIENCE_OPINION_REJECTED) return "REPROVADO";
+  return "";
 }

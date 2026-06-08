@@ -23,9 +23,12 @@ import {
   EXPERIENCE_OPINION_LABELS,
   EXPERIENCE_OPINION_APPROVED,
   EXPERIENCE_OPINION_REJECTED,
+  EXPERIENCE_APPROVAL_MIN_AVERAGE,
   calculateExperienceAverage,
   suggestExperienceOpinion,
   defaultExperienceEvaluationItems,
+  formatExperiencePeriodLabel,
+  experienceResultLabel,
 } from "@/lib/personnelExperienceConstants";
 
 export default function ExperienceEvaluationEditorPage() {
@@ -62,6 +65,7 @@ export default function ExperienceEvaluationEditorPage() {
       occupant_name: emp.full_name || "",
       admission_date: emp.admission_date?.slice?.(0, 10) || emp.admission_date || "",
       position_id: emp.position_id || "",
+      evaluator_id: emp.supervisor_id || prev.evaluator_id || "",
     }));
     if (emp.position_id) {
       try {
@@ -78,7 +82,7 @@ export default function ExperienceEvaluationEditorPage() {
   const load = useCallback(async () => {
     if (!currentTenantId) return;
     const [em, pos] = await Promise.all([
-      supabase.from("employee_registrations").select("id, full_name, registration_code, admission_date, position_id").eq("tenant_id", currentTenantId).order("full_name"),
+      supabase.from("employee_registrations").select("id, full_name, registration_code, admission_date, position_id, supervisor_id").eq("tenant_id", currentTenantId).order("full_name"),
       listPositions(currentTenantId, { status: "ativo" }),
     ]);
     setEmployees(em.data || []);
@@ -178,6 +182,12 @@ export default function ExperienceEvaluationEditorPage() {
           <div><Label>Data assinatura</Label><Input type="date" value={form.signature_date} onChange={(e) => set("signature_date", e.target.value)} className="h-10" /></div>
         </div>
 
+        {form.admission_date && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm text-slate-700">
+            <strong>Período de experiência:</strong> {formatExperiencePeriodLabel(form.admission_date)}
+          </div>
+        )}
+
         <div className="border rounded-lg overflow-x-auto">
           <table className="w-full text-xs min-w-[640px]">
             <thead className="bg-slate-50">
@@ -212,8 +222,30 @@ export default function ExperienceEvaluationEditorPage() {
           </table>
         </div>
 
-        <div className="text-sm text-slate-600">
-          Média calculada: <strong>{form.average_score ?? "—"}</strong>
+        <div className={`rounded-lg border px-4 py-3 ${
+          form.conclusive_opinion === EXPERIENCE_OPINION_APPROVED
+            ? "border-green-300 bg-green-50"
+            : form.conclusive_opinion === EXPERIENCE_OPINION_REJECTED
+              ? "border-red-300 bg-red-50"
+              : "border-slate-200 bg-slate-50"
+        }`}>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-slate-600">
+              Média: <strong className="text-base">{form.average_score ?? "—"}</strong>
+            </span>
+            <span className="text-xs text-slate-500">
+              (mínimo {EXPERIENCE_APPROVAL_MIN_AVERAGE},0 para aprovação)
+            </span>
+            {form.conclusive_opinion && (
+              <span className={`text-sm font-bold px-2 py-0.5 rounded ${
+                form.conclusive_opinion === EXPERIENCE_OPINION_APPROVED
+                  ? "bg-green-600 text-white"
+                  : "bg-red-600 text-white"
+              }`}>
+                {experienceResultLabel(form.conclusive_opinion)}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">

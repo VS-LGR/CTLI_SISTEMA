@@ -202,3 +202,55 @@ export async function deletePosition(id) {
   const { error } = await supabase.from("personnel_positions").delete().eq("id", id);
   if (error) throw error;
 }
+
+async function countByPosition(table, positionId) {
+  const { count, error } = await supabase
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq("position_id", positionId);
+  if (error) throw error;
+  return count || 0;
+}
+
+export async function getPositionUsageCounts(positionId) {
+  assertSupabasePersonnel();
+  const [employees, adequacies, monitorings, experienceEvaluations, selections] = await Promise.all([
+    countByPosition("employee_registrations", positionId),
+    countByPosition("personnel_competency_adequacies", positionId),
+    countByPosition("personnel_monitorings", positionId),
+    countByPosition("personnel_experience_evaluations", positionId),
+    countByPosition("personnel_selections", positionId),
+  ]);
+  return {
+    employees,
+    adequacies,
+    monitorings,
+    experienceEvaluations,
+    selections,
+    blockingTotal: employees + adequacies + monitorings,
+  };
+}
+
+export async function reactivatePosition(id) {
+  return updatePosition(id, { status: "ativo", last_update_date: todayIso() });
+}
+
+export async function deletePositionPermanently(id, tenantId) {
+  assertSupabasePersonnel();
+  const position = await getPosition(id);
+  if (position.tenant_id !== tenantId) {
+    throw new Error("Cargo não pertence a este tenant.");
+  }
+  if (position.status !== "inativo") {
+    throw new Error("Somente cargos obsoletos (inativos) podem ser excluídos permanentemente.");
+  }
+  const usage = await getPositionUsageCounts(id);
+  if (usage.blockingTotal > 0) {
+    const parts = [];
+    if (usage.employees) parts.push(`${usage.employees} colaborador(es)`);
+    if (usage.adequacies) parts.push(`${usage.adequacies} adequação(ões)`);
+    if (usage.monitorings) parts.push(`${usage.monitorings} monitoramento(s)`);
+    throw new Error(`Não é possível excluir: cargo vinculado a ${parts.join(", ")}. Reatribua ou remova os vínculos primeiro.`);
+  }
+  await deletePosition(id);
+}

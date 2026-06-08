@@ -27,8 +27,9 @@ export default function PersonnelMonitoringEditorPage() {
   const [positions, setPositions] = useState([]);
   const [optionsByCategory, setOptionsByCategory] = useState({});
   const [busy, setBusy] = useState(false);
+  const [lastMonitoringHint, setLastMonitoringHint] = useState("");
 
-  const { onEmployeeChange, onPositionChange } = usePersonnelPrefill({ employees, optionsByCategory });
+  const { onMonitoringEmployeeChange, onPositionChange } = usePersonnelPrefill({ employees, optionsByCategory });
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
   const load = useCallback(async () => {
@@ -103,10 +104,20 @@ export default function PersonnelMonitoringEditorPage() {
             <Label>Colaborador *</Label>
             <select
               value={form.employee_id}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const v = e.target.value;
                 set("employee_id", v);
-                onEmployeeChange(v, setForm);
+                const last = await onMonitoringEmployeeChange(v, setForm, {
+                  tenantId: currentTenantId,
+                  isNew,
+                  excludeId: isNew ? undefined : id,
+                });
+                if (last?.last_update_date) {
+                  const d = last.last_update_date.slice(0, 10).split("-").reverse().join("/");
+                  setLastMonitoringHint(`Valores sugeridos com base no último monitoramento deste colaborador (${d}).`);
+                } else {
+                  setLastMonitoringHint("");
+                }
               }}
               className="w-full border rounded-md h-10 px-3 text-sm"
             >
@@ -212,6 +223,25 @@ export default function PersonnelMonitoringEditorPage() {
           value={form.training_topics}
           onChange={(v) => set("training_topics", v)}
         />
+
+        {lastMonitoringHint && isNew && (
+          <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">{lastMonitoringHint}</p>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Autorização de ocupação do cargo</Label>
+            <Input type="date" value={form.occupation_authorization_date} onChange={(e) => set("occupation_authorization_date", e.target.value)} className="h-10" />
+          </div>
+          <div>
+            <Label>Último interlaboratorial</Label>
+            <Input type="date" value={form.last_interlaboratory_date} onChange={(e) => set("last_interlaboratory_date", e.target.value)} className="h-10" />
+          </div>
+          <div>
+            <Label>Último intralaboratorial</Label>
+            <Input type="date" value={form.last_intralaboratory_date} onChange={(e) => set("last_intralaboratory_date", e.target.value)} className="h-10" />
+          </div>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

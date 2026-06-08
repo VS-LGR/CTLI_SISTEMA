@@ -41,7 +41,20 @@ export default function PersonnelCompetencyFields({
           </div>
           <div>
             <Label>Supervisor imediato</Label>
-            <Input value={form.immediate_supervisor} onChange={(e) => set("immediate_supervisor", e.target.value)} disabled={readOnly} className="h-10" />
+            <select
+              value={employees.find((e) => e.full_name === form.immediate_supervisor)?.id || ""}
+              onChange={(e) => {
+                const emp = employees.find((x) => x.id === e.target.value);
+                set("immediate_supervisor", emp?.full_name || "");
+              }}
+              disabled={readOnly}
+              className="w-full border rounded-md h-10 px-3 text-sm"
+            >
+              <option value="">— Selecionar colaborador —</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>{e.full_name}</option>
+              ))}
+            </select>
           </div>
         </div>
       )}

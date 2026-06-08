@@ -70,7 +70,7 @@ export function mergePositionIntoFormFields(position) {
     managerial_authorities: normalizeAuthorityValue(position.managerial_authorities),
     internal_trainings: [...(position.internal_trainings || [])],
     analysis_approval_responsible_id: position.analysis_approval_responsible_id || "",
-    analysis_approval_responsible_name: "",
+    analysis_approval_responsible_name: position.analysis_approval_responsible?.full_name || "",
   };
 }
 

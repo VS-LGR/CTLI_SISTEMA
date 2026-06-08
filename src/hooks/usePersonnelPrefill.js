@@ -2,6 +2,11 @@ import { useCallback } from "react";
 import { educationLabel } from "@/lib/cadastroConstants";
 import { mergePositionIntoFormFields } from "@/lib/personnelSnapshots";
 import { getPosition } from "@/lib/personnelPositionsApi";
+import { getLastMonitoringForEmployee } from "@/lib/personnelMonitoringsApi";
+
+function sliceDate(d) {
+  return d?.slice?.(0, 10) || d || "";
+}
 
 export function usePersonnelPrefill({ employees = [], optionsByCategory = {} }) {
   const employeesById = useCallback(() => {
@@ -28,9 +33,16 @@ export function usePersonnelPrefill({ employees = [], optionsByCategory = {} }) 
         current_education: eduFromOpts?.label || educationLabel(emp.education_level),
         immediate_supervisor: sup?.full_name || prev.immediate_supervisor || "",
       }));
+      const supervisorName = sup?.full_name || "";
       if (emp.position_id) {
         getPosition(emp.position_id)
-          .then((pos) => setForm((prev) => ({ ...prev, ...mergePositionIntoFormFields(pos), position_title: pos.title })))
+          .then((pos) => setForm((prev) => ({
+            ...prev,
+            ...mergePositionIntoFormFields(pos),
+            position_title: pos.title,
+            immediate_supervisor: supervisorName || prev.immediate_supervisor || pos.immediate_supervisor || "",
+            analysis_approval_responsible_name: pos.analysis_approval_responsible?.full_name || prev.analysis_approval_responsible_name || "",
+          })))
           .catch(() => {});
       }
     },
@@ -49,5 +61,27 @@ export function usePersonnelPrefill({ employees = [], optionsByCategory = {} }) 
     }));
   }, []);
 
-  return { onEmployeeChange, onPositionChange };
+  const onMonitoringEmployeeChange = useCallback(
+    async (employeeId, setForm, { tenantId, isNew, excludeId } = {}) => {
+      onEmployeeChange(employeeId, setForm);
+      if (!isNew || !tenantId || !employeeId) return null;
+      try {
+        const last = await getLastMonitoringForEmployee(tenantId, employeeId, { excludeId });
+        if (!last) return null;
+        setForm((prev) => ({
+          ...prev,
+          last_update_date: sliceDate(last.last_update_date) || prev.last_update_date,
+          last_interlaboratory_date: sliceDate(last.last_interlaboratory_date) || prev.last_interlaboratory_date,
+          last_intralaboratory_date: sliceDate(last.last_intralaboratory_date) || prev.last_intralaboratory_date,
+          occupation_authorization_date: sliceDate(last.occupation_authorization_date) || prev.occupation_authorization_date,
+        }));
+        return last;
+      } catch {
+        return null;
+      }
+    },
+    [onEmployeeChange],
+  );
+
+  return { onEmployeeChange, onPositionChange, onMonitoringEmployeeChange };
 }

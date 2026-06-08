@@ -46,6 +46,7 @@ export default function AdequaciesListPanel({ tenantId, tenant }) {
                 <th className="p-2">Cargo</th>
                 <th className="p-2">Admissão</th>
                 <th className="p-2">Última atualização</th>
+                <th className="p-2">Supervisor</th>
                 <th className="p-2">Responsável</th>
                 <th className="p-2">Status</th>
                 <th className="p-2 w-32">Ações</th>
@@ -53,7 +54,7 @@ export default function AdequaciesListPanel({ tenantId, tenant }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-slate-500">Nenhuma adequação.</td></tr>
+                <tr><td colSpan={9} className="p-4 text-center text-slate-500">Nenhuma adequação.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="border-t">
@@ -62,6 +63,7 @@ export default function AdequaciesListPanel({ tenantId, tenant }) {
                   <td className="p-2">{r.position_title}</td>
                   <td className="p-2">{fmtDate(r.admission_date)}</td>
                   <td className="p-2">{fmtDate(r.last_update_date)}</td>
+                  <td className="p-2">{r.immediate_supervisor || "—"}</td>
                   <td className="p-2">{r.analysis_approval_responsible_name || "—"}</td>
                   <td className="p-2">{r.adequacy_status}</td>
                   <td className="p-2">

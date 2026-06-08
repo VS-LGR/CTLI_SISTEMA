@@ -46,6 +46,8 @@ export default function MonitoringsListPanel({ tenantId, tenant }) {
                 <th className="p-2">Cargo</th>
                 <th className="p-2">Motivo</th>
                 <th className="p-2">Última atualização</th>
+                <th className="p-2">Supervisor</th>
+                <th className="p-2">Responsável</th>
                 <th className="p-2">Próximo monitoramento</th>
                 <th className="p-2">Adequado</th>
                 <th className="p-2 w-32">Ações</th>
@@ -53,7 +55,7 @@ export default function MonitoringsListPanel({ tenantId, tenant }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-slate-500">Nenhum monitoramento.</td></tr>
+                <tr><td colSpan={10} className="p-4 text-center text-slate-500">Nenhum monitoramento.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="border-t">
@@ -62,6 +64,8 @@ export default function MonitoringsListPanel({ tenantId, tenant }) {
                   <td className="p-2">{r.position_title}</td>
                   <td className="p-2 max-w-[200px] truncate" title={r.monitoring_reason}>{r.monitoring_reason}</td>
                   <td className="p-2">{fmtDate(r.last_update_date)}</td>
+                  <td className="p-2">{r.immediate_supervisor || "—"}</td>
+                  <td className="p-2">{r.analysis_approval_responsible_name || "—"}</td>
                   <td className="p-2">{fmtDate(r.next_monitoring_date)}</td>
                   <td className="p-2 text-xs">{r.employee_remains_suitable || "—"}</td>
                   <td className="p-2">
