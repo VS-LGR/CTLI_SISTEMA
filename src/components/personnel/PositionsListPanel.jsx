@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { filterPersonnelTopicRows } from "@/lib/personnelRegistrosListUtils";
 import { personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
+import { computePersonnelTopicStats } from "@/lib/personnelRegistrosListUtils";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -167,7 +168,7 @@ export default function PositionsListPanel({
   compact = false,
   externalFilters = null,
   topicId = "re-62c",
-  onRowCountChange,
+  onTopicStatsChange,
 }) {
   const navigate = useNavigate();
   const [activeRows, setActiveRows] = useState([]);
@@ -199,13 +200,23 @@ export default function PositionsListPanel({
   const displayActive = useMemo(() => filterRows(activeRows), [activeRows, filterRows]);
   const displayObsolete = useMemo(() => filterRows(obsoleteRows), [obsoleteRows, filterRows]);
 
-  const rowCount = displayActive.length + displayObsolete.length;
-  const onRowCountChangeRef = useRef(onRowCountChange);
-  onRowCountChangeRef.current = onRowCountChange;
+  const positionStats = useMemo(
+    () => computePersonnelTopicStats(topicId, [...displayActive, ...displayObsolete]),
+    [displayActive, displayObsolete, topicId],
+  );
+  const onTopicStatsChangeRef = useRef(onTopicStatsChange);
+  onTopicStatsChangeRef.current = onTopicStatsChange;
+
+  const positionStatsSig = [
+    positionStats.total,
+    positionStats.attention,
+    positionStats.activePositions,
+    positionStats.obsoletePositions,
+  ].join("|");
 
   useEffect(() => {
-    onRowCountChangeRef.current?.(rowCount);
-  }, [rowCount]);
+    onTopicStatsChangeRef.current?.(positionStats);
+  }, [positionStats, positionStatsSig]);
 
   return (
     <Card className={personnelPanelCardClass(compact)}>

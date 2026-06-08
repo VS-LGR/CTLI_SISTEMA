@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useFilteredPersonnelRows, usePersonnelRowCountEffect, personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
+import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +25,7 @@ export default function ExperienceEvaluationsListPanel({
   compact = false,
   externalFilters = null,
   topicId = "re-62b",
-  onRowCountChange,
+  onTopicStatsChange,
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -43,7 +43,7 @@ export default function ExperienceEvaluationsListPanel({
   useEffect(() => { load(); }, [load]);
 
   const displayRows = useFilteredPersonnelRows(rows, externalFilters, topicId);
-  usePersonnelRowCountEffect(displayRows, onRowCountChange);
+  usePersonnelTopicStatsEffect(displayRows, topicId, onTopicStatsChange);
 
   return (
     <Card className={personnelPanelCardClass(compact)}>

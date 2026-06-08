@@ -1,4 +1,6 @@
 import { getPersonnelTopicById } from "@/lib/personnelRegistrosConfig";
+import { EXPERIENCE_OPINION_REJECTED } from "@/lib/personnelExperienceConstants";
+import { SUITABILITY_REQUIRES_TRAINING } from "@/lib/personnelDocMeta";
 
 function norm(s) {
   return String(s ?? "").trim().toLowerCase();
@@ -46,6 +48,66 @@ export function hasActivePersonnelRegistrosFilters(filters) {
   );
 }
 
-export function personnelRegistrosKpis({ totalAll = 0, totalFiltered = 0, activeGroups = 0 }) {
-  return { totalAll, totalFiltered, activeGroups };
+/**
+ * Métricas por tópico (respeita linhas já filtradas pelo painel).
+ * @param {string} topicId
+ * @param {Array<Record<string, unknown>>} rows
+ */
+export function computePersonnelTopicStats(topicId, rows) {
+  const list = rows || [];
+  const total = list.length;
+
+  switch (topicId) {
+    case "re-62c": {
+      const activePositions = list.filter((r) => r.status === "ativo").length;
+      const obsoletePositions = list.filter((r) => r.status === "inativo").length;
+      return { total, activePositions, obsoletePositions, attention: obsoletePositions };
+    }
+    case "re-62a": {
+      const draftAdequacies = list.filter((r) => r.adequacy_status === "rascunho").length;
+      return { total, draftAdequacies, attention: draftAdequacies };
+    }
+    case "re-62e": {
+      const needsTraining = list.filter((r) => r.employee_remains_suitable === SUITABILITY_REQUIRES_TRAINING).length;
+      return { total, needsTraining, attention: needsTraining };
+    }
+    case "re-62b": {
+      const rejectedExperience = list.filter((r) => r.conclusive_opinion === EXPERIENCE_OPINION_REJECTED).length;
+      return { total, rejectedExperience, attention: rejectedExperience };
+    }
+    case "pr-62f": {
+      const rejectedSelections = list.filter((r) => r.conclusive_opinion_approved === false).length;
+      return { total, rejectedSelections, attention: rejectedSelections };
+    }
+    default:
+      return { total, attention: 0 };
+  }
 }
+
+function topicStatsEqual(a, b) {
+  if (!a || !b) return a === b;
+  return (
+    a.total === b.total
+    && a.attention === b.attention
+    && a.activePositions === b.activePositions
+    && a.obsoletePositions === b.obsoletePositions
+    && a.draftAdequacies === b.draftAdequacies
+    && a.needsTraining === b.needsTraining
+    && a.rejectedExperience === b.rejectedExperience
+    && a.rejectedSelections === b.rejectedSelections
+  );
+}
+
+/**
+ * Agrega métricas dos painéis visíveis para os cartões do dashboard.
+ * @param {Record<string, ReturnType<typeof computePersonnelTopicStats>>} topicStatsMap
+ */
+export function aggregatePersonnelKpis(topicStatsMap) {
+  const stats = Object.values(topicStatsMap || {});
+  const total = stats.reduce((n, s) => n + (s.total || 0), 0);
+  const activePositions = stats.reduce((n, s) => n + (s.activePositions || 0), 0);
+  const attention = stats.reduce((n, s) => n + (s.attention || 0), 0);
+  return { total, activePositions, attention };
+}
+
+export { topicStatsEqual };

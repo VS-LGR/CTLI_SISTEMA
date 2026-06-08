@@ -11,10 +11,12 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { MagnifyingGlass, CaretDown, UsersThree, Folders, Funnel } from "@phosphor-icons/react";
+import { MagnifyingGlass, CaretDown, UsersThree, Briefcase, WarningCircle } from "@phosphor-icons/react";
 import {
   EMPTY_PERSONNEL_REGISTROS_FILTERS,
+  aggregatePersonnelKpis,
   hasActivePersonnelRegistrosFilters,
+  topicStatsEqual,
 } from "@/lib/personnelRegistrosListUtils";
 import {
   PERSONNEL_REGISTRO_TOPICS,
@@ -39,14 +41,15 @@ const PANEL_BY_TOPIC = {
 const filterFieldClass =
   "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
 
-function KpiCard({ label, value, icon: Icon, tint = "blue" }) {
+function KpiCard({ label, value, icon: Icon, tint = "blue", hint, testId }) {
   const tones = {
     blue: "bg-blue-50 text-blue-700 border-blue-100",
     slate: "bg-slate-50 text-slate-700 border-slate-100",
     green: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
   };
   return (
-    <Card className="border-slate-200">
+    <Card className="border-slate-200" data-testid={testId}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -54,6 +57,7 @@ function KpiCard({ label, value, icon: Icon, tint = "blue" }) {
             <div className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-slate-900 mt-1.5">
               {value}
             </div>
+            {hint && <p className="text-xs text-slate-500 mt-1.5 leading-snug">{hint}</p>}
           </div>
           <div className={`p-2 rounded-md border shrink-0 ${tones[tint]}`}>
             <Icon size={18} weight="duotone" />
@@ -69,7 +73,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   const { currentTenantId, currentTenant } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(EMPTY_PERSONNEL_REGISTROS_FILTERS);
-  const [rowCounts, setRowCounts] = useState({});
+  const [topicStats, setTopicStats] = useState({});
   const [openGroups, setOpenGroups] = useState({
     "cargos-competencia": true,
     acompanhamento: true,
@@ -105,13 +109,21 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   );
 
   const filtersActive = hasActivePersonnelRegistrosFilters(filters);
-  const totalFiltered = useMemo(
-    () => Object.values(rowCounts).reduce((a, b) => a + b, 0),
-    [rowCounts],
+  const visibleTopicIds = useMemo(
+    () => visibleGroups.flatMap((g) => g.topics.map((t) => t.id)),
+    [visibleGroups],
   );
+  const kpis = useMemo(() => {
+    const scoped = Object.fromEntries(
+      visibleTopicIds
+        .filter((id) => topicStats[id])
+        .map((id) => [id, topicStats[id]]),
+    );
+    return aggregatePersonnelKpis(scoped);
+  }, [topicStats, visibleTopicIds]);
 
-  const setTopicCount = useCallback((topicId) => (count) => {
-    setRowCounts((prev) => (prev[topicId] === count ? prev : { ...prev, [topicId]: count }));
+  const setTopicStatsFor = useCallback((topicId) => (stats) => {
+    setTopicStats((prev) => (topicStatsEqual(prev[topicId], stats) ? prev : { ...prev, [topicId]: stats }));
   }, []);
 
   if (!canAccessPersonnel(user?.role)) {
@@ -156,23 +168,28 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         </p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4" data-testid="personnel-registros-kpis">
         <KpiCard
-          label={filtersActive ? "Registros (filtrados)" : "Registros visíveis"}
-          value={totalFiltered}
+          label={filtersActive ? "Registros (filtrados)" : "Total de registros"}
+          value={kpis.total}
           icon={UsersThree}
+          testId="personnel-kpi-total"
         />
         <KpiCard
-          label="Categorias visíveis"
-          value={visibleGroups.reduce((n, g) => n + g.topics.length, 0)}
-          icon={Folders}
+          label="Cargos ativos"
+          value={kpis.activePositions}
+          icon={Briefcase}
           tint="slate"
+          hint="Cargos vigentes no ambiente"
+          testId="personnel-kpi-active-positions"
         />
         <KpiCard
-          label="Filtros ativos"
-          value={filtersActive ? "Sim" : "Não"}
-          icon={Funnel}
-          tint={filtersActive ? "green" : "slate"}
+          label="Situações de atenção"
+          value={kpis.attention}
+          icon={WarningCircle}
+          tint="amber"
+          hint="Rascunhos, reprovações, treinamentos e cargos obsoletos"
+          testId="personnel-kpi-attention"
         />
       </div>
 
@@ -218,7 +235,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         {filtersActive && (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
             <p className="text-xs text-slate-500">
-              {totalFiltered} registo(s) após filtros
+              {kpis.total} registo(s) após filtros
             </p>
             <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
               Limpar filtros
@@ -266,7 +283,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
                           compact
                           externalFilters={externalFilters}
                           topicId={topic.id}
-                          onRowCountChange={setTopicCount(topic.id)}
+                          onTopicStatsChange={setTopicStatsFor(topic.id)}
                         />
                       </div>
                     );

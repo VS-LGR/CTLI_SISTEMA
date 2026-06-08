@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { filterPersonnelTopicRows } from "@/lib/personnelRegistrosListUtils";
+import { computePersonnelTopicStats, filterPersonnelTopicRows } from "@/lib/personnelRegistrosListUtils";
 
 export function useFilteredPersonnelRows(rows, externalFilters, topicId) {
   return useMemo(() => {
@@ -8,14 +8,28 @@ export function useFilteredPersonnelRows(rows, externalFilters, topicId) {
   }, [rows, externalFilters, topicId]);
 }
 
-export function usePersonnelRowCountEffect(displayRows, onRowCountChange) {
-  const count = displayRows?.length ?? 0;
-  const onRowCountChangeRef = useRef(onRowCountChange);
-  onRowCountChangeRef.current = onRowCountChange;
+export function usePersonnelTopicStatsEffect(displayRows, topicId, onTopicStatsChange) {
+  const stats = useMemo(
+    () => computePersonnelTopicStats(topicId, displayRows),
+    [displayRows, topicId],
+  );
+  const onTopicStatsChangeRef = useRef(onTopicStatsChange);
+  onTopicStatsChangeRef.current = onTopicStatsChange;
+
+  const statsSig = [
+    stats.total,
+    stats.attention,
+    stats.activePositions,
+    stats.obsoletePositions,
+    stats.draftAdequacies,
+    stats.needsTraining,
+    stats.rejectedExperience,
+    stats.rejectedSelections,
+  ].join("|");
 
   useEffect(() => {
-    onRowCountChangeRef.current?.(count);
-  }, [count]);
+    onTopicStatsChangeRef.current?.(stats);
+  }, [stats, statsSig]);
 }
 
 export function personnelPanelCardClass(compact) {
