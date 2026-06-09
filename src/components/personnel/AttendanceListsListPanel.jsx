@@ -25,6 +25,7 @@ export default function AttendanceListsListPanel({
   externalFilters = null,
   topicId = "re-62d",
   onTopicStatsChange,
+  loadEnabled = true,
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -39,7 +40,7 @@ export default function AttendanceListsListPanel({
     }
   }, [tenantId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
   const displayRows = useFilteredPersonnelRows(rows, externalFilters, topicId);
   usePersonnelTopicStatsEffect(displayRows, topicId, onTopicStatsChange);
@@ -80,14 +81,14 @@ export default function AttendanceListsListPanel({
                   <td className="p-2">{r.approved_count}</td>
                   <td className="p-2">{r.reproved_count}</td>
                   <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild><Link to={attendanceListEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar lista de presença"><Link to={attendanceListEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
+                    <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar lista de presença" onClick={async () => {
                       try {
                         const c = await duplicateAttendanceList(r.id, tenantId);
                         navigate(attendanceListEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" disabled={busy} title="Exportar PDF" aria-label="Exportar PDF da lista de presença" onClick={async () => {
                       setBusy(true);
                       try {
                         await exportAttendanceListPdf(r.id, tenant);
@@ -95,7 +96,7 @@ export default function AttendanceListsListPanel({
                       } catch (e) { toast.error(e.message); }
                       finally { setBusy(false); }
                     }}><FilePdf size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir lista de presença" onClick={async () => {
                       if (!window.confirm("Excluir esta lista?")) return;
                       try {
                         await deleteAttendanceList(r.id);

@@ -169,6 +169,7 @@ export default function PositionsListPanel({
   externalFilters = null,
   topicId = "re-62c",
   onTopicStatsChange,
+  loadEnabled = true,
 }) {
   const navigate = useNavigate();
   const [activeRows, setActiveRows] = useState([]);
@@ -190,7 +191,7 @@ export default function PositionsListPanel({
     }
   }, [tenantId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
   const filterRows = useCallback((rows) => {
     if (!externalFilters?.query && !externalFilters?.date) return rows;

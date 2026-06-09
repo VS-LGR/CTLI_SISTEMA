@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,7 @@ import { listPositions } from "@/lib/personnelPositionsApi";
 import { emptyExperienceEvaluationForm } from "@/lib/personnelFormDefaults";
 import { validateExperienceEvaluation } from "@/lib/personnelValidation";
 import { exportExperienceEvaluationPdf } from "@/lib/personnelPdfExport";
-import { PERSONNEL_AVALIACAO_EXPERIENCIA_PATH } from "@/lib/personnelRoutes";
+import { personnelRegistrosPath } from "@/lib/personnelRegistrosRoutes";
 import { getPosition } from "@/lib/personnelPositionsApi";
 import {
   EXPERIENCE_EVALUATION_SCORES,
@@ -35,8 +35,11 @@ import {
 export default function ExperienceEvaluationEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentTenantId, currentTenant } = useOutletContext();
   const isNew = id === "nova";
+  const returnTo = searchParams.get("returnTo");
+  const registrosBack = returnTo || personnelRegistrosPath({ topic: "re-62b" });
   const [form, setForm] = useState(emptyExperienceEvaluationForm);
   const [employees, setEmployees] = useState([]);
   const [positions, setPositions] = useState([]);
@@ -135,8 +138,40 @@ export default function ExperienceEvaluationEditorPage() {
         const emp = (em.data || []).find((e) => e.id === row.employee_id);
         await loadSourceSelection(emp?.source_selection_id);
       }
+    } else {
+      const employeeId = searchParams.get("employee_id");
+      if (employeeId) {
+        const emp = (em.data || []).find((e) => e.id === employeeId);
+        if (emp) {
+          const admission = emp.admission_date?.slice?.(0, 10) || emp.admission_date || "";
+          await loadSourceSelection(emp.source_selection_id || searchParams.get("selection_id"));
+          setForm((prev) => ({
+            ...prev,
+            employee_id: emp.id,
+            registration_number: emp.registration_code || "",
+            occupant_name: emp.full_name || "",
+            admission_date: admission,
+            period_end_date: computeExperiencePeriodEnd(admission) || "",
+            position_id: emp.position_id || "",
+            evaluator_id: emp.supervisor_id || prev.evaluator_id || "",
+          }));
+          if (emp.position_id) {
+            try {
+              const pos = await getPosition(emp.position_id);
+              setForm((prev) => ({
+                ...prev,
+                position_id: pos.id,
+                position_title: pos.title || "",
+              }));
+            } catch { /* ignore */ }
+          }
+        }
+      } else {
+        const selectionId = searchParams.get("selection_id");
+        if (selectionId) await loadSourceSelection(selectionId);
+      }
     }
-  }, [currentTenantId, id, isNew, loadSourceSelection]);
+  }, [currentTenantId, id, isNew, loadSourceSelection, searchParams]);
 
   useEffect(() => { load().catch((e) => toast.error(e.message)); }, [load]);
 
@@ -151,12 +186,13 @@ export default function ExperienceEvaluationEditorPage() {
         evaluator_name: employees.find((e) => e.id === form.evaluator_id)?.full_name || form.evaluator_name,
       };
       if (isNew) {
-        const row = await createExperienceEvaluation(currentTenantId, payload);
+        await createExperienceEvaluation(currentTenantId, payload);
         toast.success("Avaliação criada");
-        navigate(`/pessoal/avaliacao-experiencia/${row.id}`, { replace: true });
+        navigate(registrosBack, { replace: true });
       } else {
         await updateExperienceEvaluation(id, currentTenantId, payload);
         toast.success("Guardado");
+        if (returnTo) navigate(returnTo, { replace: true });
       }
     } catch (e) {
       toast.error(e.message);
@@ -168,7 +204,7 @@ export default function ExperienceEvaluationEditorPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 min-w-0">
       <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="sm" asChild><Link to={PERSONNEL_AVALIACAO_EXPERIENCIA_PATH}><ArrowLeft size={18} /></Link></Button>
+        <Button variant="ghost" size="sm" asChild><Link to={registrosBack}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Nova avaliação de experiência" : "Editar avaliação"}</h1>
         {!isNew && (
           <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
@@ -181,6 +217,14 @@ export default function ExperienceEvaluationEditorPage() {
           </Button>
         )}
       </div>
+      {returnTo && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+          <span className="text-slate-700">A registar avaliação no fluxo de integração de pessoal.</span>
+          <Button variant="link" size="sm" className="h-auto p-0 text-blue-700" asChild>
+            <Link to={returnTo}>Voltar ao fluxo</Link>
+          </Button>
+        </div>
+      )}
       <Card><CardContent className="p-4 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -327,7 +371,7 @@ export default function ExperienceEvaluationEditorPage() {
         </div>
 
         <div className="flex gap-2 mt-6">
-          <Button variant="outline" onClick={() => navigate(PERSONNEL_AVALIACAO_EXPERIENCIA_PATH)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => navigate(registrosBack)}>Cancelar</Button>
           <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>

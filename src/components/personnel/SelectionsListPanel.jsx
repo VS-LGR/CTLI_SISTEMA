@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { listSelections, duplicateSelection, deleteSelection } from "@/lib/personnelSelectionsApi";
 import { exportSelectionPdf } from "@/lib/personnelPdfExport";
 import { selectionEditorPath } from "@/lib/personnelRoutes";
+import { selectionOpinionLabel } from "@/lib/personnelDisplayLabels";
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -21,6 +22,7 @@ export default function SelectionsListPanel({
   externalFilters = null,
   topicId = "pr-62f",
   onTopicStatsChange,
+  loadEnabled = true,
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -35,7 +37,7 @@ export default function SelectionsListPanel({
     }
   }, [tenantId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
   const displayRows = useFilteredPersonnelRows(rows, externalFilters, topicId);
   usePersonnelTopicStatsEffect(displayRows, topicId, onTopicStatsChange);
@@ -71,17 +73,17 @@ export default function SelectionsListPanel({
                   <td className="p-2">{r.vacancy}</td>
                   <td className="p-2">{r.candidate_name}</td>
                   <td className="p-2">{r.selection_conductor_name || "—"}</td>
-                  <td className="p-2">{r.conclusive_opinion_approved === true ? "Sim" : r.conclusive_opinion_approved === false ? "Não" : "—"}</td>
+                  <td className="p-2">{selectionOpinionLabel(r.conclusive_opinion_approved)}</td>
                   <td className="p-2">{r.analysis_approval_responsible_name || "—"}</td>
                   <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild><Link to={selectionEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar seleção"><Link to={selectionEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
+                    <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar seleção" onClick={async () => {
                       try {
                         const c = await duplicateSelection(r.id, tenantId);
                         navigate(selectionEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" disabled={busy} title="Exportar PDF" aria-label="Exportar PDF da seleção" onClick={async () => {
                       setBusy(true);
                       try {
                         await exportSelectionPdf(r.id, tenant);
@@ -89,7 +91,7 @@ export default function SelectionsListPanel({
                       } catch (e) { toast.error(e.message); }
                       finally { setBusy(false); }
                     }}><FilePdf size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir seleção" onClick={async () => {
                       if (!window.confirm("Excluir esta seleção?")) return;
                       try {
                         await deleteSelection(r.id);

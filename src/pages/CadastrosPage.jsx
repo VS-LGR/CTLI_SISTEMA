@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Navigate, useOutletContext, useParams } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, Navigate, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
@@ -480,6 +480,10 @@ function positionTitle(positions, positionId) {
 }
 
 function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefillDone = useRef(false);
+  const returnTo = searchParams.get("returnTo");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [code, setCode] = useState("");
@@ -517,6 +521,23 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
       .then(setAvailableSelections)
       .catch(() => setAvailableSelections([]));
   }, [open, tenantId, editing?.id]);
+
+  useEffect(() => {
+    if (prefillDone.current || searchParams.get("open") !== "1") return;
+    prefillDone.current = true;
+    const selId = searchParams.get("source_selection_id") || "";
+    const name = searchParams.get("full_name") || "";
+    const posId = searchParams.get("position_id") || "";
+    setEditing(null);
+    setCode(generateEmployeeRegistrationCode());
+    setFullName(name);
+    setCpf(""); setRg(""); setRgIss("");
+    setAdm(todayIso()); setPositionId(posId); setEdu("medio_completo"); setSupId("");
+    setSigFile(null);
+    setSigPath("");
+    setSourceSelectionId(selId);
+    setOpen(true);
+  }, [searchParams]);
 
   const save = async () => {
     if (!fullName.trim()) return toast.error("Informe o nome");
@@ -565,6 +586,7 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
       setOpen(false);
       reset();
       onRefresh();
+      if (returnTo) navigate(returnTo, { replace: true });
     } catch (err) {
       toast.error(err.message || "Falha — matrícula duplicada?");
     }
@@ -585,6 +607,14 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
   return (
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
+        {returnTo && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+            <span className="text-slate-700">A vincular colaborador no fluxo de integração de pessoal.</span>
+            <Button variant="link" size="sm" className="h-auto p-0 text-blue-700" asChild>
+              <Link to={returnTo}>Voltar ao fluxo</Link>
+            </Button>
+          </div>
+        )}
         <div className="flex justify-end">
           <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-blue-600 text-white"><Plus size={16} className="mr-1" /> Novo colaborador</Button>
         </div>

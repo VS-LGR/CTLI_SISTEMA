@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { listAdequacies, duplicateAdequacy } from "@/lib/personnelAdequaciesApi";
 import { exportAdequacyPdf } from "@/lib/personnelPdfExport";
 import { adequacyEditorPath } from "@/lib/personnelRoutes";
+import { adequacyStatusLabel } from "@/lib/personnelDisplayLabels";
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -21,6 +22,7 @@ export default function AdequaciesListPanel({
   externalFilters = null,
   topicId = "re-62a",
   onTopicStatsChange,
+  loadEnabled = true,
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -35,7 +37,7 @@ export default function AdequaciesListPanel({
     }
   }, [tenantId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
   const displayRows = useFilteredPersonnelRows(rows, externalFilters, topicId);
   usePersonnelTopicStatsEffect(displayRows, topicId, onTopicStatsChange);
@@ -76,16 +78,16 @@ export default function AdequaciesListPanel({
                   <td className="p-2">{fmtDate(r.last_update_date)}</td>
                   <td className="p-2">{r.immediate_supervisor || "—"}</td>
                   <td className="p-2">{r.analysis_approval_responsible_name || "—"}</td>
-                  <td className="p-2">{r.adequacy_status}</td>
+                  <td className="p-2">{adequacyStatusLabel(r.adequacy_status)}</td>
                   <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild><Link to={adequacyEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar adequação"><Link to={adequacyEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
+                    <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar adequação" onClick={async () => {
                       try {
                         const c = await duplicateAdequacy(r.id, tenantId);
                         navigate(adequacyEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" disabled={busy} title="Exportar PDF" aria-label="Exportar PDF da adequação" onClick={async () => {
                       setBusy(true);
                       try {
                         await exportAdequacyPdf(r.id, tenant);

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import { loadOptionsByCategory } from "@/lib/personnelStandardOptionsApi";
 import { emptySelectionForm } from "@/lib/personnelFormDefaults";
 import { validateSelection } from "@/lib/personnelValidation";
 import { exportSelectionPdf } from "@/lib/personnelPdfExport";
-import { PERSONNEL_SELECAO_PATH } from "@/lib/personnelRoutes";
+import { personnelRegistrosPath } from "@/lib/personnelRegistrosRoutes";
 import { mergePositionIntoFormFields } from "@/lib/personnelSnapshots";
 import { labelsFromOptionItems, optionItemsFromLabels } from "@/lib/personnelConstants";
 import {
@@ -36,8 +36,11 @@ function Field({ label, children }) {
 export default function PersonnelSelectionEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentTenantId, currentTenant } = useOutletContext();
   const isNew = id === "nova";
+  const returnTo = searchParams.get("returnTo");
+  const registrosBack = returnTo || personnelRegistrosPath({ topic: "pr-62f" });
   const [form, setForm] = useState(emptySelectionForm);
   const [employees, setEmployees] = useState([]);
   const [positions, setPositions] = useState([]);
@@ -122,12 +125,13 @@ export default function PersonnelSelectionEditorPage() {
         analysis_approval_responsible_name: employees.find((e) => e.id === form.analysis_approval_responsible_id)?.full_name || form.analysis_approval_responsible_name,
       };
       if (isNew) {
-        const row = await createSelection(currentTenantId, payload);
+        await createSelection(currentTenantId, payload);
         toast.success("Seleção criada");
-        navigate(`/pessoal/selecao/${row.id}`, { replace: true });
+        navigate(registrosBack, { replace: true });
       } else {
         await updateSelection(id, currentTenantId, payload);
         toast.success("Guardado");
+        if (returnTo) navigate(returnTo, { replace: true });
       }
     } catch (e) {
       toast.error(e.message);
@@ -141,7 +145,7 @@ export default function PersonnelSelectionEditorPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 min-w-0">
       <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="sm" asChild><Link to={PERSONNEL_SELECAO_PATH}><ArrowLeft size={18} /></Link></Button>
+        <Button variant="ghost" size="sm" asChild><Link to={registrosBack}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Nova seleção de pessoal" : "Editar seleção"}</h1>
         {!isNew && (
           <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
@@ -154,6 +158,14 @@ export default function PersonnelSelectionEditorPage() {
           </Button>
         )}
       </div>
+      {returnTo && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+          <span className="text-slate-700">A registar seleção no fluxo de integração de pessoal.</span>
+          <Button variant="link" size="sm" className="h-auto p-0 text-blue-700" asChild>
+            <Link to={returnTo}>Voltar ao fluxo</Link>
+          </Button>
+        </div>
+      )}
       <Card><CardContent className="p-4 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Data *"><Input type="date" value={form.selection_date} onChange={(e) => set("selection_date", e.target.value)} className="h-10" /></Field>
@@ -234,7 +246,7 @@ export default function PersonnelSelectionEditorPage() {
         </Field>
 
         <div className="flex gap-2 mt-6">
-          <Button variant="outline" onClick={() => navigate(PERSONNEL_SELECAO_PATH)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => navigate(registrosBack)}>Cancelar</Button>
           <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>

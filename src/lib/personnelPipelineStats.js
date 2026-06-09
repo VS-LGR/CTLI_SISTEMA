@@ -43,16 +43,20 @@ function latestExperienceByEmployee(experiences) {
   return map;
 }
 
-function completedAdequacyEmployeeIds(adequacies) {
-  return new Set(
-    (adequacies || [])
-      .filter((a) => a.adequacy_status === "concluida")
-      .map((a) => a.employee_id),
-  );
+function latestCompletedAdequacyByEmployee(adequacies) {
+  const map = new Map();
+  for (const row of adequacies || []) {
+    if (row.adequacy_status !== "concluida" || !row.employee_id) continue;
+    const existing = map.get(row.employee_id);
+    const rowDate = row.last_update_date || "";
+    const existingDate = existing?.last_update_date || "";
+    if (!existing || rowDate >= existingDate) map.set(row.employee_id, row);
+  }
+  return map;
 }
 
-function resolveStage(employee, experience, completedAdequacyIds) {
-  if (completedAdequacyIds.has(employee.id)) return PIPELINE_STAGES.ADEQUACAO_CONCLUIDA;
+function resolveStage(employee, experience, adequacyByEmployee) {
+  if (adequacyByEmployee.has(employee.id)) return PIPELINE_STAGES.ADEQUACAO_CONCLUIDA;
   if (experience?.conclusive_opinion === EXPERIENCE_OPINION_APPROVED) {
     return PIPELINE_STAGES.EXPERIENCIA_APROVADA;
   }
@@ -72,9 +76,10 @@ export function buildPersonnelPipelineRows(selections, employees, experiences, a
   }
 
   const experienceByEmployee = latestExperienceByEmployee(experiences);
-  const completedAdequacyIds = completedAdequacyEmployeeIds(adequacies);
+  const adequacyByEmployee = latestCompletedAdequacyByEmployee(adequacies);
 
   const active = [];
+  const completed = [];
   const rejected = [];
   const stageCounts = {
     aguardando_admissao: 0,
@@ -96,6 +101,7 @@ export function buildPersonnelPipelineRows(selections, employees, experiences, a
         selection,
         employee: null,
         experience: null,
+        adequacy: null,
         stage: PIPELINE_STAGES.AGUARDANDO_ADMISSAO,
         periodEnd: null,
         daysRemaining: null,
@@ -122,19 +128,26 @@ export function buildPersonnelPipelineRows(selections, employees, experiences, a
       continue;
     }
 
-    const stage = resolveStage(employee, experience, completedAdequacyIds);
-    active.push({
+    const adequacy = adequacyByEmployee.get(employee.id) || null;
+    const stage = resolveStage(employee, experience, adequacyByEmployee);
+    const row = {
       selection,
       employee,
       experience,
+      adequacy,
       stage,
       periodEnd,
       daysRemaining: daysUntil(periodEnd),
-    });
+    };
     stageCounts[stage] += 1;
+    if (stage === PIPELINE_STAGES.ADEQUACAO_CONCLUIDA) {
+      completed.push(row);
+    } else {
+      active.push(row);
+    }
   }
 
-  return { active, rejected, stageCounts };
+  return { active, completed, rejected, stageCounts };
 }
 
 export async function fetchPersonnelPipeline(tenantId) {
@@ -146,7 +159,7 @@ export async function fetchPersonnelPipeline(tenantId) {
   const [selectionsRes, employeesRes, experiencesRes, adequaciesRes] = await Promise.all([
     supabase
       .from("personnel_selections")
-      .select("id, candidate_name, selection_date, vacancy, position_title, conclusive_opinion_approved")
+      .select("id, candidate_name, selection_date, vacancy, position_title, position_id, conclusive_opinion_approved")
       .eq("tenant_id", tenantId)
       .order("selection_date", { ascending: false }),
     supabase
@@ -159,7 +172,7 @@ export async function fetchPersonnelPipeline(tenantId) {
       .eq("tenant_id", tenantId),
     supabase
       .from("personnel_competency_adequacies")
-      .select("employee_id, adequacy_status")
+      .select("id, employee_id, adequacy_status, last_update_date")
       .eq("tenant_id", tenantId),
   ]);
 

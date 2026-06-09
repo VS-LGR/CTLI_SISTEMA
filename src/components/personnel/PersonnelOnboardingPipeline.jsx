@@ -11,9 +11,10 @@ import {
   PIPELINE_STAGES,
 } from "@/lib/personnelPipelineStats";
 import {
-  selectionEditorPath,
-  experienceEvaluationEditorPath,
-} from "@/lib/personnelRoutes";
+  getOnboardingActionLabel,
+  getOnboardingNextPath,
+} from "@/lib/personnelOnboardingRoutes";
+import { adequacyEditorPath, selectionEditorPath } from "@/lib/personnelRoutes";
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -42,9 +43,72 @@ function StageBadge({ stage }) {
   );
 }
 
-export default function PersonnelOnboardingPipeline({ pipeline, loading }) {
+function PipelineRowActions({ row, variant = "active" }) {
+  if (variant === "completed") {
+    const path = row.adequacy?.id
+      ? adequacyEditorPath(row.adequacy.id)
+      : getOnboardingNextPath(row);
+    return (
+      <div className="flex flex-col gap-1 items-start">
+        <Button size="sm" variant="outline" className="h-8" asChild>
+          <Link to={path}>Ver adequação RE-6.2A</Link>
+        </Button>
+        <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+          <Link to={selectionEditorPath(row.selection.id)}>Ver PR-6.2F</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const actionLabel = getOnboardingActionLabel(row.stage);
+  const nextPath = getOnboardingNextPath(row);
+  return (
+    <div className="flex flex-col gap-1 items-start">
+      <Button size="sm" className="bg-blue-600 text-white h-8" asChild>
+        <Link to={nextPath}>{actionLabel}</Link>
+      </Button>
+      <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+        <Link to={selectionEditorPath(row.selection.id)}>Ver PR-6.2F</Link>
+      </Button>
+    </div>
+  );
+}
+
+function PipelineRowCard({ row }) {
+  const name = row.employee?.full_name || row.selection.candidate_name;
+  const role = row.employee
+    ? row.selection.position_title
+    : row.selection.vacancy || row.selection.position_title;
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2 sm:hidden">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="font-medium text-slate-900 truncate">{name}</div>
+          <div className="text-xs text-slate-500 truncate">{role || "—"}</div>
+        </div>
+        <StageBadge stage={row.stage} />
+      </div>
+      <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-slate-600">
+        <dt>Seleção</dt><dd>{fmtDate(row.selection.selection_date)}</dd>
+        <dt>Admissão</dt><dd>{fmtDate(row.employee?.admission_date)}</dd>
+        <dt>Fim período</dt>
+        <dd>
+          {fmtDate(row.periodEnd)}
+          {row.daysRemaining != null && row.daysRemaining > 0 && (
+            <span className="text-slate-400"> ({row.daysRemaining}d)</span>
+          )}
+        </dd>
+      </dl>
+      <PipelineRowActions row={row} />
+    </div>
+  );
+}
+
+export default function PersonnelOnboardingPipeline({ pipeline, loading, compact = false }) {
   const [rejectedOpen, setRejectedOpen] = useState(false);
-  const { active = [], rejected = [], stageCounts = {} } = pipeline || {};
+  const [completedOpen, setCompletedOpen] = useState(false);
+  const { active = [], completed = [], rejected = [], stageCounts = {} } = pipeline || {};
 
   if (loading) {
     return (
@@ -54,12 +118,19 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading }) {
     );
   }
 
+  const titleClass = compact ? "text-sm font-medium text-slate-700" : "text-xs font-semibold uppercase tracking-[0.15em] text-slate-500";
+
   return (
-    <div className="space-y-4" data-testid="personnel-pipeline">
+    <div className={`space-y-4 ${compact ? "mb-6" : ""}`} data-testid="personnel-pipeline">
       <div className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-          Integração de pessoal
-        </h2>
+        <div>
+          <h2 className={titleClass}>Integração de pessoal</h2>
+          {!compact && (
+            <p className="text-xs text-slate-500 mt-1">
+              Fluxo guiado: seleção aprovada → período experimental → adequação de competência.
+            </p>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
           {STEPPER_STEPS.map((step, idx) => (
@@ -75,9 +146,19 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading }) {
           ))}
         </div>
 
-        <Card className="border-slate-200" data-testid="personnel-pipeline-active">
+        <div className="space-y-2 sm:hidden">
+          {active.length === 0 ? (
+            <p className="text-sm text-slate-500 py-2 text-center">
+              Nenhum fluxo pendente. Aprove uma seleção (PR-6.2F) e vincule o colaborador.
+            </p>
+          ) : (
+            active.map((row) => <PipelineRowCard key={row.selection.id} row={row} />)
+          )}
+        </div>
+
+        <Card className="border-slate-200 hidden sm:block" data-testid="personnel-pipeline-active">
           <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-sm min-w-[720px]">
+            <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-slate-50 text-xs text-slate-600 text-left">
                 <tr>
                   <th className="p-2">Candidato / Colaborador</th>
@@ -86,14 +167,14 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading }) {
                   <th className="p-2">Seleção</th>
                   <th className="p-2">Admissão</th>
                   <th className="p-2">Fim do período</th>
-                  <th className="p-2 w-28">Ações</th>
+                  <th className="p-2 w-40">Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {active.length === 0 && (
                   <tr>
                     <td colSpan={7} className="p-4 text-center text-slate-500 text-sm">
-                      Nenhum fluxo ativo. Aprove uma seleção (PR-6.2F) e vincule o colaborador no cadastro.
+                      Nenhum fluxo pendente. Aprove uma seleção (PR-6.2F) e vincule o colaborador no cadastro.
                     </td>
                   </tr>
                 )}
@@ -116,19 +197,7 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading }) {
                         )}
                       </td>
                       <td className="p-2">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={selectionEditorPath(row.selection.id)}>PR-6.2F</Link>
-                        </Button>
-                        {row.employee && (
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={experienceEvaluationEditorPath(row.experience?.id || "nova")}>RE-6.2B</Link>
-                          </Button>
-                        )}
-                        {row.stage === PIPELINE_STAGES.EXPERIENCIA_APROVADA && (
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to="/requirement/6/pr-6-2?tab=registro&topic=re-62a">RE-6.2A</Link>
-                          </Button>
-                        )}
+                        <PipelineRowActions row={row} />
                       </td>
                     </tr>
                   );
@@ -138,6 +207,45 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading }) {
           </CardContent>
         </Card>
       </div>
+
+      <Collapsible open={completedOpen} onOpenChange={setCompletedOpen}>
+        <Card className="border-slate-200" data-testid="personnel-pipeline-completed">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+            >
+              <div>
+                <h3 className="font-semibold text-slate-900">Integrações concluídas</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{completed.length} registo(s)</p>
+              </div>
+              <CaretDown
+                size={18}
+                className={`shrink-0 text-slate-500 transition-transform ${completedOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="px-4 pb-4 pt-0 border-t border-slate-100">
+              {completed.length === 0 ? (
+                <p className="text-sm text-slate-500 py-2">Nenhuma integração concluída ainda.</p>
+              ) : (
+                <div className="space-y-2">
+                  {completed.map((row) => (
+                    <div key={row.selection.id} className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-slate-100 last:border-0">
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm">{row.employee?.full_name || row.selection.candidate_name}</div>
+                        <div className="text-xs text-slate-500">{row.selection.position_title || row.selection.vacancy || "—"}</div>
+                      </div>
+                      <PipelineRowActions row={row} variant="completed" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       <Collapsible open={rejectedOpen} onOpenChange={setRejectedOpen}>
         <Card className="border-slate-200" data-testid="personnel-pipeline-rejected">
@@ -162,14 +270,13 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading }) {
                 <p className="text-sm text-slate-500 py-2">Nenhuma reprovação registada.</p>
               ) : (
                 <div className="overflow-x-auto border rounded-md">
-                  <table className="w-full text-sm min-w-[640px]">
+                  <table className="w-full text-sm min-w-[520px]">
                     <thead className="bg-slate-50 text-xs text-slate-600 text-left">
                       <tr>
                         <th className="p-2">Motivo</th>
                         <th className="p-2">Candidato / Colaborador</th>
                         <th className="p-2">Vaga / Cargo</th>
                         <th className="p-2">Data seleção</th>
-                        <th className="p-2">Fim período</th>
                         <th className="p-2 w-28">Ações</th>
                       </tr>
                     </thead>
@@ -184,16 +291,10 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading }) {
                           </td>
                           <td className="p-2">{row.selection.vacancy || row.selection.position_title || "—"}</td>
                           <td className="p-2">{fmtDate(row.selection.selection_date)}</td>
-                          <td className="p-2">{fmtDate(row.periodEnd)}</td>
                           <td className="p-2">
                             <Button variant="ghost" size="sm" asChild>
                               <Link to={selectionEditorPath(row.selection.id)}>PR-6.2F</Link>
                             </Button>
-                            {row.experience && (
-                              <Button variant="ghost" size="sm" asChild>
-                                <Link to={experienceEvaluationEditorPath(row.experience.id)}>RE-6.2B</Link>
-                              </Button>
-                            )}
                           </td>
                         </tr>
                       ))}

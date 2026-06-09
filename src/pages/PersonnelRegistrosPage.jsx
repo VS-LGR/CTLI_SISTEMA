@@ -11,7 +11,7 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { MagnifyingGlass, CaretDown, Briefcase, Clock, UsersThree } from "@phosphor-icons/react";
+import { MagnifyingGlass, CaretDown, Briefcase, Clock, UsersThree, UserCircle, Hourglass } from "@phosphor-icons/react";
 import {
   EMPTY_PERSONNEL_REGISTROS_FILTERS,
   hasActivePersonnelRegistrosFilters,
@@ -19,9 +19,8 @@ import {
   topicStatsEqual,
 } from "@/lib/personnelRegistrosListUtils";
 import {
-  PERSONNEL_REGISTRO_GROUPS,
   PERSONNEL_REGISTRO_TOPICS,
-  getVisibleGroupsAndTopics,
+  getVisibleTopics,
 } from "@/lib/personnelRegistrosConfig";
 import { usePersonnelComplianceStats } from "@/hooks/usePersonnelComplianceStats";
 import { usePersonnelPipeline } from "@/hooks/usePersonnelPipeline";
@@ -44,6 +43,10 @@ const PANEL_BY_TOPIC = {
   "re-62d": AttendanceListsListPanel,
 };
 
+const DEFAULT_OPEN_TOPICS = Object.fromEntries(
+  PERSONNEL_REGISTRO_TOPICS.map((t) => [t.id, t.id === "pr-62f"]),
+);
+
 const filterFieldClass =
   "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
 
@@ -53,24 +56,24 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(EMPTY_PERSONNEL_REGISTROS_FILTERS);
   const [topicStats, setTopicStats] = useState({});
-  const [openGroups, setOpenGroups] = useState({
-    "cargos-competencia": true,
-    acompanhamento: true,
-    "selecao-capacitacao": true,
-  });
+  const [openTopics, setOpenTopics] = useState(DEFAULT_OPEN_TOPICS);
 
-  const { compliance } = usePersonnelComplianceStats(currentTenantId);
+  const { compliance, loading: complianceLoading } = usePersonnelComplianceStats(currentTenantId);
   const { pipeline, loading: pipelineLoading } = usePersonnelPipeline(currentTenantId);
 
   useEffect(() => {
     const topic = searchParams.get("topic");
     if (topic && PERSONNEL_REGISTRO_TOPICS.some((t) => t.id === topic)) {
       setFilters((prev) => ({ ...prev, topic }));
+      setOpenTopics((prev) => ({ ...prev, [topic]: true }));
     }
   }, [searchParams]);
 
   const onTopicChange = useCallback((topic) => {
     setFilters((prev) => ({ ...prev, topic }));
+    if (topic && topic !== "all") {
+      setOpenTopics((prev) => ({ ...prev, [topic]: true }));
+    }
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev);
       p.set("tab", "registro");
@@ -81,8 +84,8 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   }, [setSearchParams]);
 
   const onTopicCardClick = useCallback((topicId) => {
-    const next = filters.topic === topicId ? "all" : topicId;
-    onTopicChange(next);
+    if (filters.topic === topicId) return;
+    onTopicChange(topicId);
   }, [filters.topic, onTopicChange]);
 
   const externalFilters = useMemo(
@@ -90,15 +93,15 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
     [filters.query, filters.date],
   );
 
-  const visibleGroups = useMemo(
-    () => getVisibleGroupsAndTopics(filters.topic),
+  const visibleTopics = useMemo(
+    () => getVisibleTopics(filters.topic),
     [filters.topic],
   );
 
   const filtersActive = hasActivePersonnelRegistrosFilters(filters);
   const visibleTopicIds = useMemo(
-    () => visibleGroups.flatMap((g) => g.topics.map((t) => t.id)),
-    [visibleGroups],
+    () => visibleTopics.map((t) => t.id),
+    [visibleTopics],
   );
 
   const scopedTopicStats = useMemo(
@@ -140,6 +143,27 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
       return p;
     }, { replace: true });
   };
+
+  const renderTopicPanel = (topic) => {
+    const Panel = PANEL_BY_TOPIC[topic.id];
+    if (!Panel) return null;
+
+    const loadEnabled = openTopics[topic.id] !== false;
+
+    return (
+      <Panel
+        tenantId={currentTenantId}
+        tenant={currentTenant}
+        compact
+        loadEnabled={loadEnabled}
+        externalFilters={externalFilters}
+        topicId={topic.id}
+        onTopicStatsChange={setTopicStatsFor(topic.id)}
+      />
+    );
+  };
+
+  const kpiValue = (key) => (complianceLoading ? "…" : compliance?.[key] ?? 0);
 
   return (
     <div className="space-y-6 min-w-0" data-testid="personnel-registros-page">
@@ -186,7 +210,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
           Indicadores do ambiente
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           <PersonnelEnvKpiCard
             label="Cargos obsoletos"
             value={topicStats["re-62c"]?.obsoletePositions ?? 0}
@@ -197,11 +221,27 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
           />
           <PersonnelEnvKpiCard
             label="Monitoramento vencido"
-            value={compliance?.overdueMonitoring ?? 0}
+            value={kpiValue("overdueMonitoring")}
             hint="Colaboradores com próximo monitoramento vencido"
             icon={Clock}
             tint="slate"
             testId="personnel-kpi-overdue-monitoring"
+          />
+          <PersonnelEnvKpiCard
+            label="Experiência pendente"
+            value={kpiValue("pendingExperience")}
+            hint="Colaboradores sem avaliação RE-6.2B concluída"
+            icon={Hourglass}
+            tint="blue"
+            testId="personnel-kpi-pending-experience"
+          />
+          <PersonnelEnvKpiCard
+            label="Sem adequação"
+            value={kpiValue("withoutCompletedAdequacy")}
+            hint="Colaboradores sem adequação RE-6.2A concluída"
+            icon={UserCircle}
+            tint="amber"
+            testId="personnel-kpi-without-adequacy"
           />
           <PersonnelEnvKpiCard
             label="Participantes aprovados"
@@ -268,58 +308,45 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
       </div>
 
       <div className="space-y-4">
-        {visibleGroups.map((group) => (
+        {visibleTopics.map((topic) => (
           <Collapsible
-            key={group.id}
-            open={openGroups[group.id] !== false}
-            onOpenChange={(open) => setOpenGroups((prev) => ({ ...prev, [group.id]: open }))}
+            key={topic.id}
+            open={openTopics[topic.id] !== false}
+            onOpenChange={(open) => setOpenTopics((prev) => ({ ...prev, [topic.id]: open }))}
           >
-            <Card className="border-slate-200 overflow-hidden">
+            <Card className="border-slate-200 overflow-hidden" data-testid={`personnel-topic-panel-${topic.id}`}>
               <CollapsibleTrigger asChild>
                 <button
                   type="button"
                   className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
                 >
-                  <div>
-                    <h2 className="font-semibold text-slate-900">{group.label}</h2>
+                  <div className="min-w-0">
+                    <h2 className="font-semibold text-slate-900">{topic.label}</h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {group.topics.map((t) => t.code).join(" · ")}
+                      {topic.code}
+                      {topicStats[topic.id]?.total != null && (
+                        <span className="ml-2">· {topicStats[topic.id].total} registo(s)</span>
+                      )}
                     </p>
                   </div>
                   <CaretDown
                     size={18}
-                    className={`shrink-0 text-slate-500 transition-transform ${openGroups[group.id] !== false ? "rotate-180" : ""}`}
+                    className={`shrink-0 text-slate-500 transition-transform ${openTopics[topic.id] !== false ? "rotate-180" : ""}`}
                   />
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent className="px-4 pb-4 pt-0 space-y-6 border-t border-slate-100">
-                  {group.topics.map((topic) => {
-                    const Panel = PANEL_BY_TOPIC[topic.id];
-                    if (!Panel) return null;
-                    return (
-                      <div key={topic.id} className="space-y-2">
-                        <h3 className="text-sm font-medium text-slate-700">{topic.label}</h3>
-                        <Panel
-                          tenantId={currentTenantId}
-                          tenant={currentTenant}
-                          compact
-                          externalFilters={externalFilters}
-                          topicId={topic.id}
-                          onTopicStatsChange={setTopicStatsFor(topic.id)}
-                        />
-                      </div>
-                    );
-                  })}
+                <CardContent className="px-4 pb-4 pt-0 border-t border-slate-100">
+                  {renderTopicPanel(topic)}
                 </CardContent>
               </CollapsibleContent>
             </Card>
           </Collapsible>
         ))}
-        {visibleGroups.length === 0 && (
+        {visibleTopics.length === 0 && (
           <Card className="border-slate-200">
             <CardContent className="p-8 text-center text-slate-500 text-sm">
-              Nenhuma categoria corresponde aos filtros selecionados.
+              Nenhum tópico corresponde aos filtros selecionados.
             </CardContent>
           </Card>
         )}

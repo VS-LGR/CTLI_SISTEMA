@@ -60,7 +60,7 @@ export const PERSONNEL_REGISTRO_TOPICS = [
     code: D.personnelSelection.code,
     label: `${D.personnelSelection.code} — Seleção de pessoal`,
     shortLabel: "Seleção de pessoal",
-    nbrRef: "6.2 b — Seleção de pessoal",
+    nbrRef: "6.2 f — Processo de seleção de pessoal",
     dateField: "selection_date",
     searchFields: [
       "candidate_name",
@@ -112,4 +112,10 @@ export function getVisibleGroupsAndTopics(activeTopic) {
       .filter(Boolean)
       .filter((t) => !topic || t.id === topic),
   })).filter((g) => g.topics.length > 0);
+}
+
+/** Lista de tópicos visíveis (um menu expansivo por tópico). */
+export function getVisibleTopics(activeTopic) {
+  const topic = activeTopic && activeTopic !== "all" ? activeTopic : null;
+  return PERSONNEL_REGISTRO_TOPICS.filter((t) => !topic || t.id === topic);
 }

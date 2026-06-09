@@ -5,6 +5,7 @@
 
 import { COLETA_LIST_PATH } from "./coletaRoutes";
 import { PERSONNEL_DASHBOARD_PATH, PERSONNEL_REGISTROS_PATH } from "./personnelRegistrosRoutes";
+import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 
 export const REQ_NAMES = {
   "4": "Requisitos Gerais",
@@ -40,6 +41,12 @@ const FOLDERS = {
       label: "PR-6.2 Pessoal",
       children: [
         { key: "pessoal-registros", label: "Registros 6.2 Pessoal", to: PERSONNEL_REGISTROS_PATH },
+        {
+          key: "pessoal-listas",
+          label: "Níveis e Listas Padrão",
+          to: PERSONNEL_LISTAS_PATH,
+          requiresPersonnelStandardOptions: true,
+        },
       ],
     },
     { folderKey: "pr-6-4", label: "PR-6.4 Equipamentos" },
@@ -92,9 +99,13 @@ export function getFoldersForRequirement(requirementId) {
 }
 
 /** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2). */
-export function getFolderNavChildren(folder, { canColeta = false } = {}) {
+export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false } = {}) {
   const list = folder?.children || [];
-  return list.filter((c) => !c.requiresColeta || canColeta);
+  return list.filter((c) => {
+    if (c.requiresColeta && !canColeta) return false;
+    if (c.requiresPersonnelStandardOptions && !canPersonnelStandardOptions) return false;
+    return true;
+  });
 }
 
 export function getFolderLabel(requirementId, folderKey) {

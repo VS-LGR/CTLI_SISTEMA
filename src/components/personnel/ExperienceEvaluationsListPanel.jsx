@@ -30,6 +30,7 @@ export default function ExperienceEvaluationsListPanel({
   externalFilters = null,
   topicId = "re-62b",
   onTopicStatsChange,
+  loadEnabled = true,
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -44,7 +45,7 @@ export default function ExperienceEvaluationsListPanel({
     }
   }, [tenantId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
   const displayRows = useFilteredPersonnelRows(rows, externalFilters, topicId);
   usePersonnelTopicStatsEffect(displayRows, topicId, onTopicStatsChange);
@@ -102,14 +103,14 @@ export default function ExperienceEvaluationsListPanel({
                   </td>
                   <td className="p-2">{r.evaluator_name || "—"}</td>
                   <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild><Link to={experienceEvaluationEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar avaliação de experiência"><Link to={experienceEvaluationEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
+                    <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar avaliação de experiência" onClick={async () => {
                       try {
                         const c = await duplicateExperienceEvaluation(r.id, tenantId);
                         navigate(experienceEvaluationEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" disabled={busy} title="Exportar PDF" aria-label="Exportar PDF da avaliação" onClick={async () => {
                       setBusy(true);
                       try {
                         await exportExperienceEvaluationPdf(r.id, tenant);
@@ -117,7 +118,7 @@ export default function ExperienceEvaluationsListPanel({
                       } catch (e) { toast.error(e.message); }
                       finally { setBusy(false); }
                     }}><FilePdf size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
+                    <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir avaliação de experiência" onClick={async () => {
                       if (!window.confirm("Excluir esta avaliação?")) return;
                       try {
                         await deleteExperienceEvaluation(r.id);

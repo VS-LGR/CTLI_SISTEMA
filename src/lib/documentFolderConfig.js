@@ -21,6 +21,11 @@ const FOLDER_MODES = {
     purchaseOrders: true,
     quotationRequests: true,
   },
+  "pr-6-2": {
+    sections: ["procedimento", "registro"],
+    defaultSection: "registro",
+    richEditor: true,
+  },
   "manual-qualidade": { sections: ["procedimento"], defaultSection: "procedimento", richEditor: true },
   "documentacao-legal": { sections: ["documento"], defaultSection: "documento", richEditor: false, fileOnly: true },
   "estrutura-organizacional": { sections: ["registro"], defaultSection: "registro", richEditor: true },
@@ -37,7 +42,7 @@ const DEFAULT_MODE = {
 export function getFolderDocumentMode(requirementId, folderKey) {
   const rid = String(requirementId);
   if (folderKey && FOLDER_MODES[folderKey]) {
-    if (rid === "5" || (rid === "6" && folderKey === "pr-6-6")) {
+    if (rid === "5" || (rid === "6" && (folderKey === "pr-6-6" || folderKey === "pr-6-2"))) {
       return { ...FOLDER_MODES[folderKey] };
     }
   }

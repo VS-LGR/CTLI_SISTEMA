@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { listMonitorings, duplicateMonitoring } from "@/lib/personnelMonitoringsApi";
 import { exportMonitoringPdf } from "@/lib/personnelPdfExport";
 import { monitoringEditorPath } from "@/lib/personnelRoutes";
+import { isMonitoringOverdue } from "@/lib/personnelDisplayLabels";
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -21,6 +22,7 @@ export default function MonitoringsListPanel({
   externalFilters = null,
   topicId = "re-62e",
   onTopicStatsChange,
+  loadEnabled = true,
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -35,7 +37,7 @@ export default function MonitoringsListPanel({
     }
   }, [tenantId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
   const displayRows = useFilteredPersonnelRows(rows, externalFilters, topicId);
   usePersonnelTopicStatsEffect(displayRows, topicId, onTopicStatsChange);
@@ -69,7 +71,7 @@ export default function MonitoringsListPanel({
                 <tr><td colSpan={10} className="p-4 text-center text-slate-500">Nenhum monitoramento.</td></tr>
               )}
               {displayRows.map((r) => (
-                <tr key={r.id} className="border-t">
+                <tr key={r.id} className={`border-t ${isMonitoringOverdue(r.next_monitoring_date) ? "bg-amber-50/80" : ""}`}>
                   <td className="p-2 font-mono text-xs">{r.registration_number}</td>
                   <td className="p-2">{r.occupant_name}</td>
                   <td className="p-2">{r.position_title}</td>
@@ -77,11 +79,16 @@ export default function MonitoringsListPanel({
                   <td className="p-2">{fmtDate(r.last_update_date)}</td>
                   <td className="p-2">{r.immediate_supervisor || "—"}</td>
                   <td className="p-2">{r.analysis_approval_responsible_name || "—"}</td>
-                  <td className="p-2">{fmtDate(r.next_monitoring_date)}</td>
+                  <td className="p-2">
+                    {fmtDate(r.next_monitoring_date)}
+                    {isMonitoringOverdue(r.next_monitoring_date) && (
+                      <span className="ml-1 text-xs font-medium text-amber-700">Vencido</span>
+                    )}
+                  </td>
                   <td className="p-2 text-xs">{r.employee_remains_suitable || "—"}</td>
                   <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild><Link to={monitoringEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" onClick={async () => {
+                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar monitoramento"><Link to={monitoringEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
+                    <Button variant="ghost" size="sm" title="Duplicar" aria-label="Duplicar monitoramento" onClick={async () => {
                       try {
                         const c = await duplicateMonitoring(r.id, tenantId);
                         navigate(monitoringEditorPath(c.id));

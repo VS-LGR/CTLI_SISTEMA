@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,20 +8,25 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import PersonnelCompetencyFields from "@/components/personnel/PersonnelCompetencyFields";
 import { createAdequacy, getAdequacy, updateAdequacy } from "@/lib/personnelAdequaciesApi";
-import { listPositions } from "@/lib/personnelPositionsApi";
+import { getPosition, listPositions } from "@/lib/personnelPositionsApi";
+import { educationLabel } from "@/lib/cadastroConstants";
+import { mergePositionIntoFormFields } from "@/lib/personnelSnapshots";
 import { loadOptionsByCategory } from "@/lib/personnelStandardOptionsApi";
 import { validateAdequacy } from "@/lib/personnelValidation";
 import { emptyAdequacyForm } from "@/lib/personnelFormDefaults";
 import { normalizeAuthorityValue } from "@/lib/personnelConstants";
 import { usePersonnelPrefill } from "@/hooks/usePersonnelPrefill";
 import { exportAdequacyPdf } from "@/lib/personnelPdfExport";
-import { PERSONNEL_ADEQUACAO_PATH } from "@/lib/personnelRoutes";
+import { personnelRegistrosPath } from "@/lib/personnelRegistrosRoutes";
 
 export default function CompetencyAdequacyEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentTenantId, currentTenant } = useOutletContext();
   const isNew = id === "nova";
+  const returnTo = searchParams.get("returnTo");
+  const registrosBack = returnTo || personnelRegistrosPath({ topic: "re-62a" });
   const [form, setForm] = useState(emptyAdequacyForm);
   const [employees, setEmployees] = useState([]);
   const [positions, setPositions] = useState([]);
@@ -52,8 +57,39 @@ export default function CompetencyAdequacyEditorPage() {
         last_update_date: row.last_update_date?.slice?.(0, 10) || "",
         document_model_issue_date: row.document_model_issue_date?.slice?.(0, 10) || "",
       });
+    } else {
+      const employeeId = searchParams.get("employee_id");
+      if (employeeId && (em.data || []).some((e) => e.id === employeeId)) {
+        const map = Object.fromEntries((em.data || []).map((e) => [e.id, e]));
+        const emp = map[employeeId];
+        const sup = emp.supervisor_id ? map[emp.supervisor_id] : null;
+        const eduOpts = opts.education_level || [];
+        const eduFromOpts = eduOpts.find((o) => o.label === educationLabel(emp.education_level));
+        setForm((prev) => ({
+          ...prev,
+          employee_id: emp.id,
+          registration_number: emp.registration_code || "",
+          occupant_name: emp.full_name || "",
+          admission_date: emp.admission_date?.slice?.(0, 10) || emp.admission_date || "",
+          position_id: emp.position_id || prev.position_id || "",
+          current_education: eduFromOpts?.label || educationLabel(emp.education_level),
+          immediate_supervisor: sup?.full_name || prev.immediate_supervisor || "",
+        }));
+        if (emp.position_id) {
+          try {
+            const pos = await getPosition(emp.position_id);
+            setForm((prev) => ({
+              ...prev,
+              ...mergePositionIntoFormFields(pos),
+              position_title: pos.title,
+              immediate_supervisor: sup?.full_name || prev.immediate_supervisor || pos.immediate_supervisor || "",
+              analysis_approval_responsible_name: pos.analysis_approval_responsible?.full_name || prev.analysis_approval_responsible_name || "",
+            }));
+          } catch { /* ignore */ }
+        }
+      }
     }
-  }, [currentTenantId, id, isNew]);
+  }, [currentTenantId, id, isNew, searchParams]);
 
   useEffect(() => { load().catch((e) => toast.error(e.message)); }, [load]);
 
@@ -68,12 +104,13 @@ export default function CompetencyAdequacyEditorPage() {
         adequacy_status: "concluida",
       };
       if (isNew) {
-        const row = await createAdequacy(currentTenantId, payload);
+        await createAdequacy(currentTenantId, payload);
         toast.success("Adequação criada");
-        navigate(`/pessoal/adequacao/${row.id}`, { replace: true });
+        navigate(registrosBack, { replace: true });
       } else {
         await updateAdequacy(id, currentTenantId, payload);
         toast.success("Guardado");
+        if (returnTo) navigate(returnTo, { replace: true });
       }
     } catch (e) {
       toast.error(e.message);
@@ -85,7 +122,7 @@ export default function CompetencyAdequacyEditorPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 min-w-0">
       <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="sm" asChild><Link to={PERSONNEL_ADEQUACAO_PATH}><ArrowLeft size={18} /></Link></Button>
+        <Button variant="ghost" size="sm" asChild><Link to={registrosBack}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Nova adequação" : "Adequação de competência"}</h1>
         {!isNew && (
           <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
@@ -96,6 +133,14 @@ export default function CompetencyAdequacyEditorPage() {
           }}><FilePdf size={16} className="mr-1" /> RE-6.2A</Button>
         )}
       </div>
+      {returnTo && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+          <span className="text-slate-700">A registar adequação no fluxo de integração de pessoal.</span>
+          <Button variant="link" size="sm" className="h-auto p-0 text-blue-700" asChild>
+            <Link to={returnTo}>Voltar ao fluxo</Link>
+          </Button>
+        </div>
+      )}
       <Card><CardContent className="p-4 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -140,7 +185,7 @@ export default function CompetencyAdequacyEditorPage() {
           employees={employees}
         />
         <div className="flex gap-2 mt-6">
-          <Button variant="outline" onClick={() => navigate(PERSONNEL_ADEQUACAO_PATH)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => navigate(registrosBack)}>Cancelar</Button>
           <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>

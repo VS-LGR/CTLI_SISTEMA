@@ -3,6 +3,7 @@ import { fetchPersonnelPipeline } from "@/lib/personnelPipelineStats";
 
 const EMPTY_PIPELINE = {
   active: [],
+  completed: [],
   rejected: [],
   stageCounts: {
     aguardando_admissao: 0,

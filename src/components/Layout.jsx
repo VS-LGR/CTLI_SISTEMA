@@ -14,7 +14,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, canAccessColeta } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStandardOptions } from "@/lib/roles";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -233,6 +233,7 @@ const Layout = () => {
                   {folders.map((f) => {
                     const children = getFolderNavChildren(f, {
                       canColeta: canAccessColeta(user?.role),
+                      canPersonnelStandardOptions: canEditPersonnelStandardOptions(user?.role),
                     });
                     return (
                       <div key={f.folderKey} className="space-y-0.5">
