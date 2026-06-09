@@ -6,24 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger,
 } from "@/components/ui/select";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { MagnifyingGlass, CaretDown, Briefcase, Clock, UsersThree, UserCircle, Hourglass } from "@phosphor-icons/react";
+import {
+  MagnifyingGlass, CaretDown, Briefcase, Clock, UsersThree, UserCircle, Hourglass, X, Funnel,
+} from "@phosphor-icons/react";
 import {
   EMPTY_PERSONNEL_REGISTROS_FILTERS,
   hasActivePersonnelRegistrosFilters,
   sumPersonnelTopicTotals,
-  topicStatsEqual,
 } from "@/lib/personnelRegistrosListUtils";
 import {
   PERSONNEL_REGISTRO_TOPICS,
   getVisibleTopics,
+  getPersonnelTopicById,
 } from "@/lib/personnelRegistrosConfig";
+import {
+  parsePersonnelTopicsParam,
+  formatPersonnelTopicsParam,
+} from "@/lib/personnelRegistrosRoutes";
 import { usePersonnelComplianceStats } from "@/hooks/usePersonnelComplianceStats";
 import { usePersonnelPipeline } from "@/hooks/usePersonnelPipeline";
+import { usePersonnelRegistrosTopicStats } from "@/hooks/usePersonnelRegistrosTopicStats";
 import PersonnelTopicCountCard from "@/components/personnel/PersonnelTopicCountCard";
 import PersonnelEnvKpiCard from "@/components/personnel/PersonnelEnvKpiCard";
 import PersonnelOnboardingPipeline from "@/components/personnel/PersonnelOnboardingPipeline";
@@ -50,52 +57,93 @@ const DEFAULT_OPEN_TOPICS = Object.fromEntries(
 const filterFieldClass =
   "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
 
+function syncTopicsToSearchParams(topics, setSearchParams) {
+  setSearchParams((prev) => {
+    const p = new URLSearchParams(prev);
+    p.set("tab", "registro");
+    const formatted = formatPersonnelTopicsParam(topics);
+    if (formatted) p.set("topic", formatted);
+    else p.delete("topic");
+    return p;
+  }, { replace: true });
+}
+
 export default function PersonnelRegistrosPage({ embedded = false }) {
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(EMPTY_PERSONNEL_REGISTROS_FILTERS);
-  const [topicStats, setTopicStats] = useState({});
   const [openTopics, setOpenTopics] = useState(DEFAULT_OPEN_TOPICS);
 
   const { compliance, loading: complianceLoading } = usePersonnelComplianceStats(currentTenantId);
   const { pipeline, loading: pipelineLoading } = usePersonnelPipeline(currentTenantId);
-
-  useEffect(() => {
-    const topic = searchParams.get("topic");
-    if (topic && PERSONNEL_REGISTRO_TOPICS.some((t) => t.id === topic)) {
-      setFilters((prev) => ({ ...prev, topic }));
-      setOpenTopics((prev) => ({ ...prev, [topic]: true }));
-    }
-  }, [searchParams]);
-
-  const onTopicChange = useCallback((topic) => {
-    setFilters((prev) => ({ ...prev, topic }));
-    if (topic && topic !== "all") {
-      setOpenTopics((prev) => ({ ...prev, [topic]: true }));
-    }
-    setSearchParams((prev) => {
-      const p = new URLSearchParams(prev);
-      p.set("tab", "registro");
-      if (!topic || topic === "all") p.delete("topic");
-      else p.set("topic", topic);
-      return p;
-    }, { replace: true });
-  }, [setSearchParams]);
-
-  const onTopicCardClick = useCallback((topicId) => {
-    if (filters.topic === topicId) return;
-    onTopicChange(topicId);
-  }, [filters.topic, onTopicChange]);
 
   const externalFilters = useMemo(
     () => ({ query: filters.query, date: filters.date }),
     [filters.query, filters.date],
   );
 
+  const { topicStats, loading: topicStatsLoading, reload: reloadTopicStats } = usePersonnelRegistrosTopicStats(
+    currentTenantId,
+    externalFilters,
+  );
+
+  useEffect(() => {
+    const topics = parsePersonnelTopicsParam(searchParams.get("topic"));
+    if (topics.length > 0) {
+      setFilters((prev) => ({ ...prev, topics }));
+      setOpenTopics((prev) => {
+        const next = { ...prev };
+        topics.forEach((id) => { next[id] = true; });
+        return next;
+      });
+    }
+  }, [searchParams]);
+
+  const setTopics = useCallback((topics) => {
+    setFilters((prev) => ({ ...prev, topics }));
+    syncTopicsToSearchParams(topics, setSearchParams);
+  }, [setSearchParams]);
+
+  const toggleTopic = useCallback((topicId) => {
+    setFilters((prev) => {
+      const has = prev.topics.includes(topicId);
+      const topics = has
+        ? prev.topics.filter((id) => id !== topicId)
+        : [...prev.topics, topicId];
+      syncTopicsToSearchParams(topics, setSearchParams);
+      if (!has) {
+        setOpenTopics((o) => ({ ...o, [topicId]: true }));
+      }
+      return { ...prev, topics };
+    });
+  }, [setSearchParams]);
+
+  const removeTopic = useCallback((topicId) => {
+    setFilters((prev) => {
+      const topics = prev.topics.filter((id) => id !== topicId);
+      syncTopicsToSearchParams(topics, setSearchParams);
+      return { ...prev, topics };
+    });
+  }, [setSearchParams]);
+
+  const onSelectTopicAdd = useCallback((value) => {
+    if (value === "all") {
+      setTopics([]);
+      return;
+    }
+    setFilters((prev) => {
+      if (prev.topics.includes(value)) return prev;
+      const topics = [...prev.topics, value];
+      syncTopicsToSearchParams(topics, setSearchParams);
+      setOpenTopics((o) => ({ ...o, [value]: true }));
+      return { ...prev, topics };
+    });
+  }, [setSearchParams, setTopics]);
+
   const visibleTopics = useMemo(
-    () => getVisibleTopics(filters.topic),
-    [filters.topic],
+    () => getVisibleTopics(filters.topics),
+    [filters.topics],
   );
 
   const filtersActive = hasActivePersonnelRegistrosFilters(filters);
@@ -118,9 +166,13 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
     [scopedTopicStats],
   );
 
-  const setTopicStatsFor = useCallback((topicId) => (stats) => {
-    setTopicStats((prev) => (topicStatsEqual(prev[topicId], stats) ? prev : { ...prev, [topicId]: stats }));
-  }, []);
+  const selectTopicLabel = useMemo(() => {
+    if (filters.topics.length === 0) return "Todos os tópicos";
+    if (filters.topics.length === 1) {
+      return getPersonnelTopicById(filters.topics[0])?.shortLabel || "1 tópico";
+    }
+    return `${filters.topics.length} tópicos selecionados`;
+  }, [filters.topics]);
 
   if (!canAccessPersonnel(user?.role)) {
     return <Navigate to="/dashboard" replace />;
@@ -158,12 +210,13 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         loadEnabled={loadEnabled}
         externalFilters={externalFilters}
         topicId={topic.id}
-        onTopicStatsChange={setTopicStatsFor(topic.id)}
+        onRecordsChange={reloadTopicStats}
       />
     );
   };
 
   const kpiValue = (key) => (complianceLoading ? "…" : compliance?.[key] ?? 0);
+  const topicTotalValue = (topicId) => (topicStatsLoading ? "…" : topicStats[topicId]?.total ?? 0);
 
   return (
     <div className="space-y-6 min-w-0" data-testid="personnel-registros-page">
@@ -186,9 +239,24 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
       )}
 
       <div className="space-y-3" data-testid="personnel-topic-totals">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-          Total por tópico
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            Total por tópico
+          </h2>
+          {filtersActive && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              className="shrink-0 border-slate-300 text-slate-700"
+              data-testid="personnel-clear-filters-top"
+            >
+              <Funnel size={16} className="mr-1.5" />
+              Limpar filtros
+            </Button>
+          )}
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           {PERSONNEL_REGISTRO_TOPICS.map((topic) => (
             <PersonnelTopicCountCard
@@ -196,14 +264,38 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
               code={topic.code}
               shortLabel={topic.shortLabel}
               nbrRef={topic.nbrRef}
-              value={topicStats[topic.id]?.total ?? 0}
+              value={topicTotalValue(topic.id)}
               filtered={filtersActive}
-              active={filters.topic === topic.id}
-              onClick={() => onTopicCardClick(topic.id)}
+              active={filters.topics.includes(topic.id)}
+              onClick={() => toggleTopic(topic.id)}
               testId={`personnel-topic-${topic.id}`}
             />
           ))}
         </div>
+        {filters.topics.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2" data-testid="personnel-topic-chips">
+            {filters.topics.map((topicId) => {
+              const topic = getPersonnelTopicById(topicId);
+              if (!topic) return null;
+              return (
+                <span
+                  key={topicId}
+                  className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800"
+                >
+                  {topic.shortLabel}
+                  <button
+                    type="button"
+                    onClick={() => removeTopic(topicId)}
+                    className="rounded-full p-0.5 hover:bg-blue-100 transition-colors"
+                    aria-label={`Remover filtro ${topic.shortLabel}`}
+                  >
+                    <X size={12} weight="bold" />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="space-y-3" data-testid="personnel-env-kpis">
@@ -213,7 +305,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           <PersonnelEnvKpiCard
             label="Cargos obsoletos"
-            value={topicStats["re-62c"]?.obsoletePositions ?? 0}
+            value={topicStatsLoading ? "…" : topicStats["re-62c"]?.obsoletePositions ?? 0}
             hint="Cargos inativos no RE-6.2C"
             icon={Briefcase}
             tint="amber"
@@ -245,7 +337,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
           />
           <PersonnelEnvKpiCard
             label="Participantes aprovados"
-            value={topicStats["re-62d"]?.totalParticipantsApproved ?? 0}
+            value={topicStatsLoading ? "…" : topicStats["re-62d"]?.totalParticipantsApproved ?? 0}
             hint="Total em listas de presença"
             icon={UsersThree}
             tint="green"
@@ -253,8 +345,6 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
           />
         </div>
       </div>
-
-      <PersonnelOnboardingPipeline pipeline={pipeline} loading={pipelineLoading} />
 
       <div
         className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm"
@@ -275,9 +365,9 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
             />
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center shrink-0">
-            <Select value={filters.topic} onValueChange={onTopicChange}>
+            <Select onValueChange={onSelectTopicAdd}>
               <SelectTrigger className={`${filterFieldClass} w-full sm:w-[16rem]`}>
-                <SelectValue placeholder="Tópico" />
+                <span className="truncate text-left">{selectTopicLabel}</span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tópicos</SelectItem>
@@ -293,16 +383,26 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
               className={`${filterFieldClass} w-full sm:w-[11.5rem] text-slate-600 ${!filters.date ? "text-slate-400" : ""}`}
               title="Filtrar por data do registo"
             />
+            {filtersActive && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="shrink-0 border-slate-300 text-slate-700 h-10"
+                data-testid="personnel-clear-filters-bar"
+              >
+                <X size={16} className="mr-1.5" />
+                Limpar filtros
+              </Button>
+            )}
           </div>
         </div>
         {filtersActive && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
             <p className="text-xs text-slate-500">
               {totalFiltered} registo(s) após filtros
             </p>
-            <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-              Limpar filtros
-            </Button>
           </div>
         )}
       </div>
@@ -324,7 +424,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
                     <h2 className="font-semibold text-slate-900">{topic.label}</h2>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {topic.code}
-                      {topicStats[topic.id]?.total != null && (
+                      {!topicStatsLoading && topicStats[topic.id]?.total != null && (
                         <span className="ml-2">· {topicStats[topic.id].total} registo(s)</span>
                       )}
                     </p>
@@ -350,6 +450,10 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      <div className="mt-6" data-testid="personnel-onboarding-pipeline">
+        <PersonnelOnboardingPipeline pipeline={pipeline} loading={pipelineLoading} />
       </div>
     </div>
   );

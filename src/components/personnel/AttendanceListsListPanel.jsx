@@ -25,6 +25,7 @@ export default function AttendanceListsListPanel({
   externalFilters = null,
   topicId = "re-62d",
   onTopicStatsChange,
+  onRecordsChange,
   loadEnabled = true,
 }) {
   const navigate = useNavigate();
@@ -39,6 +40,11 @@ export default function AttendanceListsListPanel({
       toast.error(e.message);
     }
   }, [tenantId]);
+
+  const reload = useCallback(async () => {
+    await load();
+    onRecordsChange?.();
+  }, [load, onRecordsChange]);
 
   useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
@@ -85,6 +91,7 @@ export default function AttendanceListsListPanel({
                     <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar lista de presença" onClick={async () => {
                       try {
                         const c = await duplicateAttendanceList(r.id, tenantId);
+                        onRecordsChange?.();
                         navigate(attendanceListEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
@@ -101,7 +108,7 @@ export default function AttendanceListsListPanel({
                       try {
                         await deleteAttendanceList(r.id);
                         toast.success("Excluída");
-                        load();
+                        await reload();
                       } catch (e) { toast.error(e.message); }
                     }}><Trash size={16} /></Button>
                   </td>

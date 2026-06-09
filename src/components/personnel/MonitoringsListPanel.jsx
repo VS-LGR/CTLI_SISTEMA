@@ -22,6 +22,7 @@ export default function MonitoringsListPanel({
   externalFilters = null,
   topicId = "re-62e",
   onTopicStatsChange,
+  onRecordsChange,
   loadEnabled = true,
 }) {
   const navigate = useNavigate();
@@ -91,6 +92,7 @@ export default function MonitoringsListPanel({
                     <Button variant="ghost" size="sm" title="Duplicar" aria-label="Duplicar monitoramento" onClick={async () => {
                       try {
                         const c = await duplicateMonitoring(r.id, tenantId);
+                        onRecordsChange?.();
                         navigate(monitoringEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>

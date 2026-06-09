@@ -30,7 +30,7 @@ function isOverdueMonitoringDate(dateValue) {
   return String(dateValue).slice(0, 10) < todayIso();
 }
 
-export const EMPTY_PERSONNEL_REGISTROS_FILTERS = { query: "", topic: "all", date: "" };
+export const EMPTY_PERSONNEL_REGISTROS_FILTERS = { query: "", topics: [], date: "" };
 
 /**
  * Filtra linhas de um tópico específico (uso nos list panels).
@@ -55,7 +55,7 @@ export function filterPersonnelTopicRows(rows, externalFilters, topicId) {
 export function hasActivePersonnelRegistrosFilters(filters) {
   return Boolean(
     filters?.query?.trim()
-    || (filters?.topic && filters.topic !== "all")
+    || (filters?.topics?.length > 0)
     || filters?.date?.trim(),
   );
 }

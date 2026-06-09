@@ -22,6 +22,7 @@ export default function AdequaciesListPanel({
   externalFilters = null,
   topicId = "re-62a",
   onTopicStatsChange,
+  onRecordsChange,
   loadEnabled = true,
 }) {
   const navigate = useNavigate();
@@ -84,6 +85,7 @@ export default function AdequaciesListPanel({
                     <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar adequação" onClick={async () => {
                       try {
                         const c = await duplicateAdequacy(r.id, tenantId);
+                        onRecordsChange?.();
                         navigate(adequacyEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>

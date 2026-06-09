@@ -30,6 +30,7 @@ export default function ExperienceEvaluationsListPanel({
   externalFilters = null,
   topicId = "re-62b",
   onTopicStatsChange,
+  onRecordsChange,
   loadEnabled = true,
 }) {
   const navigate = useNavigate();
@@ -44,6 +45,11 @@ export default function ExperienceEvaluationsListPanel({
       toast.error(e.message);
     }
   }, [tenantId]);
+
+  const reload = useCallback(async () => {
+    await load();
+    onRecordsChange?.();
+  }, [load, onRecordsChange]);
 
   useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
@@ -107,6 +113,7 @@ export default function ExperienceEvaluationsListPanel({
                     <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar avaliação de experiência" onClick={async () => {
                       try {
                         const c = await duplicateExperienceEvaluation(r.id, tenantId);
+                        onRecordsChange?.();
                         navigate(experienceEvaluationEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
@@ -123,7 +130,7 @@ export default function ExperienceEvaluationsListPanel({
                       try {
                         await deleteExperienceEvaluation(r.id);
                         toast.success("Excluída");
-                        load();
+                        await reload();
                       } catch (e) { toast.error(e.message); }
                     }}><Trash size={16} /></Button>
                   </td>

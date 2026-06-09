@@ -169,6 +169,7 @@ export default function PositionsListPanel({
   externalFilters = null,
   topicId = "re-62c",
   onTopicStatsChange,
+  onRecordsChange,
   loadEnabled = true,
 }) {
   const navigate = useNavigate();
@@ -190,6 +191,11 @@ export default function PositionsListPanel({
       toast.error(e.message);
     }
   }, [tenantId]);
+
+  const reload = useCallback(async () => {
+    await load();
+    onRecordsChange?.();
+  }, [load, onRecordsChange]);
 
   useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
@@ -244,7 +250,7 @@ export default function PositionsListPanel({
               tenant={tenant}
               busy={busy}
               onBusy={setBusy}
-              onReload={load}
+              onReload={reload}
               tab="ativos"
             />
           </TabsContent>
@@ -259,7 +265,7 @@ export default function PositionsListPanel({
               tenant={tenant}
               busy={busy}
               onBusy={setBusy}
-              onReload={load}
+              onReload={reload}
               tab="obsoletos"
             />
           </TabsContent>

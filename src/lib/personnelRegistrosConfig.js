@@ -115,7 +115,11 @@ export function getVisibleGroupsAndTopics(activeTopic) {
 }
 
 /** Lista de tópicos visíveis (um menu expansivo por tópico). */
-export function getVisibleTopics(activeTopic) {
-  const topic = activeTopic && activeTopic !== "all" ? activeTopic : null;
-  return PERSONNEL_REGISTRO_TOPICS.filter((t) => !topic || t.id === topic);
+export function getVisibleTopics(activeTopics) {
+  const ids = Array.isArray(activeTopics)
+    ? activeTopics
+    : (activeTopics && activeTopics !== "all" ? [activeTopics] : []);
+  if (!ids.length) return PERSONNEL_REGISTRO_TOPICS;
+  const idSet = new Set(ids);
+  return PERSONNEL_REGISTRO_TOPICS.filter((t) => idSet.has(t.id));
 }

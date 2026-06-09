@@ -1,6 +1,17 @@
 import { supabase } from "@/lib/supabaseClient";
 import { computeExperiencePeriodEnd } from "@/lib/personnelExperienceConstants";
 import { assertSupabasePersonnel } from "@/lib/personnelStandardOptionsApi";
+import { listPositions } from "@/lib/personnelPositionsApi";
+import { listAdequacies } from "@/lib/personnelAdequaciesApi";
+import { listMonitorings } from "@/lib/personnelMonitoringsApi";
+import { listExperienceEvaluations } from "@/lib/personnelExperienceEvaluationsApi";
+import { listSelections } from "@/lib/personnelSelectionsApi";
+import { listAttendanceLists } from "@/lib/personnelAttendanceListsApi";
+import { PERSONNEL_REGISTRO_TOPICS } from "@/lib/personnelRegistrosConfig";
+import {
+  computePersonnelTopicStats,
+  filterPersonnelTopicRows,
+} from "@/lib/personnelRegistrosListUtils";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -112,4 +123,54 @@ export async function fetchPersonnelComplianceStats(tenantId) {
     overdueMonitoring: employeesWithOverdueMonitoring(monitorings),
     pendingExperience: employeesWithPendingExperience(employees, evaluations),
   };
+}
+
+/**
+ * Carrega linhas brutas de todos os tópicos de registros (para métricas da dashboard).
+ * @param {string} tenantId
+ */
+export async function fetchPersonnelRegistrosTopicRows(tenantId) {
+  assertSupabasePersonnel();
+  if (!tenantId) return {};
+
+  const [
+    activePositions,
+    obsoletePositions,
+    adequacies,
+    monitorings,
+    experiences,
+    selections,
+    attendances,
+  ] = await Promise.all([
+    listPositions(tenantId, { status: "ativo" }),
+    listPositions(tenantId, { status: "inativo", seedIfEmpty: false }),
+    listAdequacies(tenantId),
+    listMonitorings(tenantId),
+    listExperienceEvaluations(tenantId),
+    listSelections(tenantId),
+    listAttendanceLists(tenantId),
+  ]);
+
+  return {
+    "re-62c": [...activePositions, ...obsoletePositions],
+    "re-62a": adequacies,
+    "re-62e": monitorings,
+    "re-62b": experiences,
+    "pr-62f": selections,
+    "re-62d": attendances,
+  };
+}
+
+/**
+ * @param {Record<string, Array<Record<string, unknown>>>} rowsByTopic
+ * @param {{ query?: string, date?: string }} externalFilters
+ */
+export function computePersonnelRegistrosTopicStats(rowsByTopic, externalFilters = {}) {
+  const result = {};
+  for (const topic of PERSONNEL_REGISTRO_TOPICS) {
+    const rows = rowsByTopic?.[topic.id] || [];
+    const filtered = filterPersonnelTopicRows(rows, externalFilters, topic.id);
+    result[topic.id] = computePersonnelTopicStats(topic.id, filtered);
+  }
+  return result;
 }

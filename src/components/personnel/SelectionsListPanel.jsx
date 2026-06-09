@@ -22,6 +22,7 @@ export default function SelectionsListPanel({
   externalFilters = null,
   topicId = "pr-62f",
   onTopicStatsChange,
+  onRecordsChange,
   loadEnabled = true,
 }) {
   const navigate = useNavigate();
@@ -36,6 +37,11 @@ export default function SelectionsListPanel({
       toast.error(e.message);
     }
   }, [tenantId]);
+
+  const reload = useCallback(async () => {
+    await load();
+    onRecordsChange?.();
+  }, [load, onRecordsChange]);
 
   useEffect(() => { if (loadEnabled) load(); }, [load, loadEnabled]);
 
@@ -80,6 +86,7 @@ export default function SelectionsListPanel({
                     <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar seleção" onClick={async () => {
                       try {
                         const c = await duplicateSelection(r.id, tenantId);
+                        onRecordsChange?.();
                         navigate(selectionEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
@@ -96,7 +103,7 @@ export default function SelectionsListPanel({
                       try {
                         await deleteSelection(r.id);
                         toast.success("Excluída");
-                        load();
+                        await reload();
                       } catch (e) { toast.error(e.message); }
                     }}><Trash size={16} /></Button>
                   </td>
