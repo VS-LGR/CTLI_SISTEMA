@@ -73,6 +73,19 @@ export function computeExperiencePeriodEnd(admissionDate) {
   return d.toISOString().slice(0, 10);
 }
 
+/** Alias explícito — fim do período de experiência a partir da admissão. */
+export const getExperiencePeriodEndDate = computeExperiencePeriodEnd;
+
+export function formatExperiencePeriodEndDateBr(admissionDate) {
+  const end = computeExperiencePeriodEnd(admissionDate);
+  return end ? formatIsoDateBr(end) : "—";
+}
+
+export function resolveExperiencePeriodEndDate(admissionDate, storedPeriodEnd) {
+  if (storedPeriodEnd) return String(storedPeriodEnd).slice(0, 10);
+  return computeExperiencePeriodEnd(admissionDate);
+}
+
 export function formatExperiencePeriodLabel(admissionDate) {
   if (!admissionDate) return "—";
   const end = computeExperiencePeriodEnd(admissionDate);

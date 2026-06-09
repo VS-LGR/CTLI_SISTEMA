@@ -14,6 +14,7 @@ import {
   EXPERIENCE_SCORE_CRITERIA,
   EXPERIENCE_APPROVAL_MIN_AVERAGE,
   formatExperiencePeriodLabel,
+  resolveExperiencePeriodEndDate,
   experienceResultLabel,
 } from "@/lib/personnelExperienceConstants";
 import { PERSONNEL_SELECTION_EDUCATION_LEVELS, SELECTION_APPROVAL_TEXT } from "@/lib/personnelSelectionConstants";
@@ -162,6 +163,7 @@ export function buildMonitoringPdfViewModel(record) {
 
 export function buildExperienceEvaluationPdfViewModel(record) {
   const items = record.items || [];
+  const periodEndDate = resolveExperiencePeriodEndDate(record.admission_date, record.period_end_date);
   return {
     header: docHeaderFromRecord(record, "AVALIAÇÃO DO PERÍODO DE EXPERIÊNCIA"),
     subjectMetaRows: buildPersonnelSubjectMetaRows({
@@ -176,10 +178,12 @@ export function buildExperienceEvaluationPdfViewModel(record) {
       ["Cargo", record.position_title],
       ["Setor", record.department],
       ["Período de experiência", formatExperiencePeriodLabel(record.admission_date)],
+      ["Data final do período de experiência", formatDateBr(periodEndDate)],
     ],
     evaluationItems: items,
     scoreCriteria: EXPERIENCE_SCORE_CRITERIA,
     averageScore: record.average_score != null ? String(record.average_score) : "—",
+    periodEndDate: formatDateBr(periodEndDate),
     approvalCriterion: `Média mínima para aprovação: ${EXPERIENCE_APPROVAL_MIN_AVERAGE},0`,
     resultLabel: experienceResultLabel(record.conclusive_opinion) || "—",
     conclusiveOpinionLabel: EXPERIENCE_OPINION_LABELS[record.conclusive_opinion] || record.conclusive_opinion,

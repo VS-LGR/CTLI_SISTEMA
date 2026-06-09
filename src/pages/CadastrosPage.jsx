@@ -28,6 +28,10 @@ import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar"
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import { ensureDefaultPositionsSeeded } from "@/lib/personnelPositionsApi";
+import {
+  listAvailableSourceSelections,
+  validateEmployeeSourceSelection,
+} from "@/lib/employeeRegistrationsApi";
 
 function fmtIsoDate(d) {
   if (!d) return "";
@@ -489,6 +493,8 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
   const [supId, setSupId] = useState("");
   const [sigFile, setSigFile] = useState(null);
   const [sigPath, setSigPath] = useState("");
+  const [sourceSelectionId, setSourceSelectionId] = useState("");
+  const [availableSelections, setAvailableSelections] = useState([]);
 
   const reset = () => {
     setEditing(null);
@@ -497,11 +503,20 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
     setAdm(todayIso()); setPositionId(""); setEdu("medio_completo"); setSupId("");
     setSigFile(null);
     setSigPath("");
+    setSourceSelectionId("");
+    setAvailableSelections([]);
   };
 
   useEffect(() => {
     if (open && !editing) setCode(generateEmployeeRegistrationCode());
   }, [open, editing]);
+
+  useEffect(() => {
+    if (!open || !tenantId) return;
+    listAvailableSourceSelections(tenantId, { excludeEmployeeId: editing?.id })
+      .then(setAvailableSelections)
+      .catch(() => setAvailableSelections([]));
+  }, [open, tenantId, editing?.id]);
 
   const save = async () => {
     if (!fullName.trim()) return toast.error("Informe o nome");
@@ -518,8 +533,14 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
       position_id: positionId || null,
       education_level: edu,
       supervisor_id: supId || null,
+      source_selection_id: sourceSelectionId || null,
     };
     try {
+      await validateEmployeeSourceSelection(
+        tenantId,
+        sourceSelectionId || null,
+        editing?.id || null,
+      );
       if (editing) {
         let signaturePath = editing.signature_storage_path || sigPath;
         if (sigFile) {
@@ -595,6 +616,7 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
                       setFullName(r.full_name); setCpf(r.cpf); setRg(r.rg); setRgIss(r.rg_issuer);
                       setAdm(fmtIsoDate(r.admission_date)); setPositionId(r.position_id || ""); setEdu(r.education_level);
                       setSupId(r.supervisor_id || "");
+                      setSourceSelectionId(r.source_selection_id || "");
                       setSigPath(r.signature_storage_path || "");
                       setSigFile(null);
                       setOpen(true);
@@ -641,6 +663,30 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
                   ))}
                 </select>
               </div>
+              {(availableSelections.length > 0 || sourceSelectionId) && (
+                <div>
+                  <Label>Seleção de origem (PR-6.2F)</Label>
+                  <select
+                    value={sourceSelectionId}
+                    onChange={(e) => setSourceSelectionId(e.target.value)}
+                    className="w-full border rounded-md h-10 px-3 text-sm"
+                  >
+                    <option value="">— Nenhuma —</option>
+                    {availableSelections.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.candidate_name}
+                        {s.vacancy || s.position_title ? ` — ${s.vacancy || s.position_title}` : ""}
+                      </option>
+                    ))}
+                    {sourceSelectionId && !availableSelections.some((s) => s.id === sourceSelectionId) && editing?.source_selection_id === sourceSelectionId && (
+                      <option value={sourceSelectionId}>Seleção vinculada (atual)</option>
+                    )}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Vincula o colaborador a uma seleção aprovada ainda sem admissão registada.
+                  </p>
+                </div>
+              )}
               <div>
                 <Label>Assinatura (imagem PNG/JPG)</Label>
                 <Input

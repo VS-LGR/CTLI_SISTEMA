@@ -120,6 +120,7 @@ export function emptyExperienceEvaluationForm() {
     evaluator_id: "",
     evaluator_name: "",
     evaluation_date: todayIso(),
+    period_end_date: "",
     average_score: null,
     conclusive_opinion: "",
     signature_date: todayIso(),

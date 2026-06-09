@@ -11,10 +11,9 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { MagnifyingGlass, CaretDown, WarningCircle } from "@phosphor-icons/react";
+import { MagnifyingGlass, CaretDown, Briefcase, Clock, UsersThree } from "@phosphor-icons/react";
 import {
   EMPTY_PERSONNEL_REGISTROS_FILTERS,
-  buildPersonnelGroupCompliance,
   hasActivePersonnelRegistrosFilters,
   sumPersonnelTopicTotals,
   topicStatsEqual,
@@ -25,7 +24,10 @@ import {
   getVisibleGroupsAndTopics,
 } from "@/lib/personnelRegistrosConfig";
 import { usePersonnelComplianceStats } from "@/hooks/usePersonnelComplianceStats";
+import { usePersonnelPipeline } from "@/hooks/usePersonnelPipeline";
 import PersonnelTopicCountCard from "@/components/personnel/PersonnelTopicCountCard";
+import PersonnelEnvKpiCard from "@/components/personnel/PersonnelEnvKpiCard";
+import PersonnelOnboardingPipeline from "@/components/personnel/PersonnelOnboardingPipeline";
 import PositionsListPanel from "@/components/personnel/PositionsListPanel";
 import AdequaciesListPanel from "@/components/personnel/AdequaciesListPanel";
 import MonitoringsListPanel from "@/components/personnel/MonitoringsListPanel";
@@ -45,40 +47,6 @@ const PANEL_BY_TOPIC = {
 const filterFieldClass =
   "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
 
-function ComplianceGroupCard({ groupLabel, metric1, metric2, attention, testId }) {
-  const hasAttention = attention?.length > 0;
-  return (
-    <Card className="border-slate-200" data-testid={testId}>
-      <CardContent className="p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-3">{groupLabel}</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-xs text-slate-500">{metric1.label}</div>
-            <div className="text-2xl font-display font-bold text-slate-900 mt-0.5">{metric1.value}</div>
-          </div>
-          <div>
-            <div className="text-xs text-slate-500">{metric2.label}</div>
-            <div className="text-2xl font-display font-bold text-slate-900 mt-0.5">{metric2.value}</div>
-          </div>
-        </div>
-        {hasAttention ? (
-          <div className="mt-3 pt-3 border-t border-amber-100 flex gap-2">
-            <WarningCircle size={16} className="shrink-0 text-amber-600 mt-0.5" weight="duotone" />
-            <ul className="text-xs text-amber-800 space-y-0.5">
-              {attention.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="text-xs text-emerald-700 mt-3 pt-3 border-t border-emerald-50">Sem pendências identificadas</p>
-        )}
-        <p className="text-[10px] text-slate-400 mt-2">Indicador de conformidade do ambiente (NBR 17025 — 6.2)</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function PersonnelRegistrosPage({ embedded = false }) {
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
@@ -92,6 +60,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   });
 
   const { compliance } = usePersonnelComplianceStats(currentTenantId);
+  const { pipeline, loading: pipelineLoading } = usePersonnelPipeline(currentTenantId);
 
   useEffect(() => {
     const topic = searchParams.get("topic");
@@ -144,11 +113,6 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   const totalFiltered = useMemo(
     () => sumPersonnelTopicTotals(scopedTopicStats),
     [scopedTopicStats],
-  );
-
-  const groupCompliance = useMemo(
-    () => buildPersonnelGroupCompliance(topicStats, compliance),
-    [topicStats, compliance],
   );
 
   const setTopicStatsFor = useCallback((topicId) => (stats) => {
@@ -218,27 +182,39 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         </div>
       </div>
 
-      <div className="space-y-3" data-testid="personnel-compliance-kpis">
+      <div className="space-y-3" data-testid="personnel-env-kpis">
         <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-          Conformidade NBR 17025 — item 6.2
+          Indicadores do ambiente
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {PERSONNEL_REGISTRO_GROUPS.map((group) => {
-            const data = groupCompliance[group.id];
-            if (!data) return null;
-            return (
-              <ComplianceGroupCard
-                key={group.id}
-                groupLabel={group.label}
-                metric1={data.metric1}
-                metric2={data.metric2}
-                attention={data.attention}
-                testId={`personnel-compliance-${group.id}`}
-              />
-            );
-          })}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+          <PersonnelEnvKpiCard
+            label="Cargos obsoletos"
+            value={topicStats["re-62c"]?.obsoletePositions ?? 0}
+            hint="Cargos inativos no RE-6.2C"
+            icon={Briefcase}
+            tint="amber"
+            testId="personnel-kpi-obsolete-positions"
+          />
+          <PersonnelEnvKpiCard
+            label="Monitoramento vencido"
+            value={compliance?.overdueMonitoring ?? 0}
+            hint="Colaboradores com próximo monitoramento vencido"
+            icon={Clock}
+            tint="slate"
+            testId="personnel-kpi-overdue-monitoring"
+          />
+          <PersonnelEnvKpiCard
+            label="Participantes aprovados"
+            value={topicStats["re-62d"]?.totalParticipantsApproved ?? 0}
+            hint="Total em listas de presença"
+            icon={UsersThree}
+            tint="green"
+            testId="personnel-kpi-participants-approved"
+          />
         </div>
       </div>
+
+      <PersonnelOnboardingPipeline pipeline={pipeline} loading={pipelineLoading} />
 
       <div
         className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm"

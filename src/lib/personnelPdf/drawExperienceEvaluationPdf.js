@@ -67,6 +67,7 @@ export async function drawExperienceEvaluationPdf(record, { logoDataUrl } = {}) 
   y = drawSectionTitle(doc, y, "Resultado da avaliação");
   y = ensurePersonnelSpace(doc, y, 28, redrawHeader, model.header, logoDataUrl);
   const resultRows = [
+    ["Data final do período de experiência", model.periodEndDate],
     ["Média final", model.averageScore],
     ["Critério de aprovação", model.approvalCriterion],
     ["Resultado", model.resultLabel],
@@ -79,7 +80,7 @@ export async function drawExperienceEvaluationPdf(record, { logoDataUrl } = {}) 
     styles: { fontSize: 9, cellPadding: 2.5 },
     columnStyles: { 0: { fontStyle: "bold", cellWidth: 55 } },
     didParseCell: (data) => {
-      if (data.section === "body" && data.column.index === 1 && data.row.index === 2) {
+      if (data.section === "body" && data.column.index === 1 && data.row.index === 3) {
         data.cell.styles.fontStyle = "bold";
         if (model.resultLabel === "APROVADO") data.cell.styles.textColor = [22, 101, 52];
         if (model.resultLabel === "REPROVADO") data.cell.styles.textColor = [185, 28, 28];

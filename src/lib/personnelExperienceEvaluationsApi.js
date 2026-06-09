@@ -7,9 +7,14 @@ import {
 import { assertSupabasePersonnel } from "@/lib/personnelStandardOptionsApi";
 import { getPosition } from "@/lib/personnelPositionsApi";
 import {
+  computeExperiencePeriodEnd,
   defaultExperienceEvaluationItems,
   EXPERIENCE_EVALUATION_ITEMS,
 } from "@/lib/personnelExperienceConstants";
+
+function periodEndFromAdmission(admissionDate) {
+  return computeExperiencePeriodEnd(admissionDate) || null;
+}
 
 async function loadEmployeesMap(tenantId) {
   const { data, error } = await supabase.from("employee_registrations").select("*").eq("tenant_id", tenantId);
@@ -95,6 +100,7 @@ export async function createExperienceEvaluation(tenantId, payload) {
       evaluator_id: payload.evaluator_id || null,
       evaluator_name: payload.evaluator_name || "",
       evaluation_date: payload.evaluation_date,
+      period_end_date: periodEndFromAdmission(payload.admission_date),
       average_score: payload.average_score ?? null,
       conclusive_opinion: payload.conclusive_opinion || "",
       signature_date: payload.signature_date || null,
@@ -128,6 +134,7 @@ export async function updateExperienceEvaluation(id, tenantId, payload) {
       evaluator_id: payload.evaluator_id || null,
       evaluator_name: payload.evaluator_name,
       evaluation_date: payload.evaluation_date,
+      period_end_date: periodEndFromAdmission(payload.admission_date),
       average_score: payload.average_score ?? null,
       conclusive_opinion: payload.conclusive_opinion,
       signature_date: payload.signature_date || null,

@@ -12,7 +12,11 @@ import {
 } from "@/lib/personnelExperienceEvaluationsApi";
 import { exportExperienceEvaluationPdf } from "@/lib/personnelPdfExport";
 import { experienceEvaluationEditorPath } from "@/lib/personnelRoutes";
-import { EXPERIENCE_OPINION_LABELS, experienceResultLabel } from "@/lib/personnelExperienceConstants";
+import {
+  EXPERIENCE_OPINION_LABELS,
+  experienceResultLabel,
+  resolveExperiencePeriodEndDate,
+} from "@/lib/personnelExperienceConstants";
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -60,6 +64,7 @@ export default function ExperienceEvaluationsListPanel({
                 <th className="p-2">Colaborador</th>
                 <th className="p-2">Cargo</th>
                 <th className="p-2">Admissão</th>
+                <th className="p-2">Fim do período</th>
                 <th className="p-2">Data da Avaliação</th>
                 <th className="p-2">Média</th>
                 <th className="p-2">Parecer</th>
@@ -69,13 +74,16 @@ export default function ExperienceEvaluationsListPanel({
             </thead>
             <tbody>
               {displayRows.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-slate-500">Nenhuma avaliação.</td></tr>
+                <tr><td colSpan={9} className="p-4 text-center text-slate-500">Nenhuma avaliação.</td></tr>
               )}
               {displayRows.map((r) => (
                 <tr key={r.id} className="border-t">
                   <td className="p-2">{r.occupant_name}</td>
                   <td className="p-2">{r.position_title}</td>
                   <td className="p-2">{fmtDate(r.admission_date)}</td>
+                  <td className="p-2">
+                    {fmtDate(resolveExperiencePeriodEndDate(r.admission_date, r.period_end_date))}
+                  </td>
                   <td className="p-2">{fmtDate(r.evaluation_date)}</td>
                   <td className="p-2">{r.average_score ?? "—"}</td>
                   <td className="p-2">

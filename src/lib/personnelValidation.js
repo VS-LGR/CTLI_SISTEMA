@@ -1,5 +1,5 @@
-import { NOT_APPLICABLE_LABEL } from "@/lib/personnelConstants";
-import { labelsFromOptionItems } from "@/lib/personnelConstants";
+import { NOT_APPLICABLE_LABEL, labelsFromOptionItems } from "@/lib/personnelConstants";
+import { computeExperiencePeriodEnd } from "@/lib/personnelExperienceConstants";
 
 function hasTrainings(items) {
   const labels = labelsFromOptionItems(items);
@@ -62,6 +62,9 @@ export function validateExperienceEvaluation(payload) {
   if (!payload.employee_id) errors.push("Colaborador é obrigatório.");
   if (!payload.position_id) errors.push("Cargo é obrigatório.");
   if (!payload.admission_date) errors.push("Data de admissão é obrigatória.");
+  else if (!computeExperiencePeriodEnd(payload.admission_date)) {
+    errors.push("Data de admissão inválida para calcular o fim do período de experiência.");
+  }
   if (!payload.evaluator_id && !payload.evaluator_name?.trim()) errors.push("Avaliador é obrigatório.");
   if (!payload.evaluation_date) errors.push("Data da avaliação é obrigatória.");
   const items = payload.items || [];

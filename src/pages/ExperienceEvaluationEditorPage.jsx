@@ -27,6 +27,7 @@ import {
   calculateExperienceAverage,
   suggestExperienceOpinion,
   defaultExperienceEvaluationItems,
+  computeExperiencePeriodEnd,
   formatExperiencePeriodLabel,
   experienceResultLabel,
 } from "@/lib/personnelExperienceConstants";
@@ -41,8 +42,14 @@ export default function ExperienceEvaluationEditorPage() {
   const [positions, setPositions] = useState([]);
   const [busy, setBusy] = useState(false);
   const [opinionManual, setOpinionManual] = useState(false);
+  const [sourceSelection, setSourceSelection] = useState(null);
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
+
+  const syncPeriodEnd = (admissionDate) => {
+    const periodEnd = computeExperiencePeriodEnd(admissionDate) || "";
+    setForm((prev) => ({ ...prev, period_end_date: periodEnd }));
+  };
 
   const updateItemsAndSuggest = (items) => {
     const avg = calculateExperienceAverage(items);
@@ -55,15 +62,38 @@ export default function ExperienceEvaluationEditorPage() {
     });
   };
 
+  const loadSourceSelection = useCallback(async (selectionId) => {
+    if (!selectionId) {
+      setSourceSelection(null);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("personnel_selections")
+      .select("id, candidate_name, vacancy, position_title, selection_date")
+      .eq("id", selectionId)
+      .maybeSingle();
+    if (error) {
+      setSourceSelection(null);
+      return;
+    }
+    setSourceSelection(data);
+  }, []);
+
   const onEmployeeChange = async (employeeId) => {
     const emp = employees.find((e) => e.id === employeeId);
-    if (!emp) return;
+    if (!emp) {
+      setSourceSelection(null);
+      return;
+    }
+    const admission = emp.admission_date?.slice?.(0, 10) || emp.admission_date || "";
+    await loadSourceSelection(emp.source_selection_id);
     setForm((prev) => ({
       ...prev,
       employee_id: emp.id,
       registration_number: emp.registration_code || "",
       occupant_name: emp.full_name || "",
-      admission_date: emp.admission_date?.slice?.(0, 10) || emp.admission_date || "",
+      admission_date: admission,
+      period_end_date: computeExperiencePeriodEnd(admission) || "",
       position_id: emp.position_id || "",
       evaluator_id: emp.supervisor_id || prev.evaluator_id || "",
     }));
@@ -82,7 +112,7 @@ export default function ExperienceEvaluationEditorPage() {
   const load = useCallback(async () => {
     if (!currentTenantId) return;
     const [em, pos] = await Promise.all([
-      supabase.from("employee_registrations").select("id, full_name, registration_code, admission_date, position_id, supervisor_id").eq("tenant_id", currentTenantId).order("full_name"),
+      supabase.from("employee_registrations").select("id, full_name, registration_code, admission_date, position_id, supervisor_id, source_selection_id").eq("tenant_id", currentTenantId).order("full_name"),
       listPositions(currentTenantId, { status: "ativo" }),
     ]);
     setEmployees(em.data || []);
@@ -94,13 +124,19 @@ export default function ExperienceEvaluationEditorPage() {
         ...row,
         items: row.items?.length ? row.items : defaultExperienceEvaluationItems(),
         admission_date: row.admission_date?.slice?.(0, 10) || "",
+        period_end_date: row.period_end_date?.slice?.(0, 10)
+          || computeExperiencePeriodEnd(row.admission_date?.slice?.(0, 10) || row.admission_date) || "",
         evaluation_date: row.evaluation_date?.slice?.(0, 10) || "",
         signature_date: row.signature_date?.slice?.(0, 10) || "",
         document_model_issue_date: row.document_model_issue_date?.slice?.(0, 10) || "",
       });
       setOpinionManual(true);
+      if (row.employee_id) {
+        const emp = (em.data || []).find((e) => e.id === row.employee_id);
+        await loadSourceSelection(emp?.source_selection_id);
+      }
     }
-  }, [currentTenantId, id, isNew]);
+  }, [currentTenantId, id, isNew, loadSourceSelection]);
 
   useEffect(() => { load().catch((e) => toast.error(e.message)); }, [load]);
 
@@ -169,7 +205,25 @@ export default function ExperienceEvaluationEditorPage() {
             </select>
           </div>
           <div><Label>Nome</Label><Input value={form.occupant_name} onChange={(e) => set("occupant_name", e.target.value)} className="h-10" /></div>
-          <div><Label>Admissão *</Label><Input type="date" value={form.admission_date} onChange={(e) => set("admission_date", e.target.value)} className="h-10" /></div>
+          <div>
+            <Label>Admissão *</Label>
+            <Input
+              type="date"
+              value={form.admission_date}
+              onChange={(e) => {
+                set("admission_date", e.target.value);
+                syncPeriodEnd(e.target.value);
+              }}
+              className="h-10"
+            />
+          </div>
+          <div>
+            <Label>Data final do período de experiência</Label>
+            <Input type="date" value={form.period_end_date} readOnly className="h-10 bg-slate-50 text-slate-700" />
+            <p className="text-xs text-slate-500 mt-1">
+              Parecer conclusivo emitido ao final deste período (NBR 17025 — 6.2 b).
+            </p>
+          </div>
           <div><Label>Setor</Label><Input value={form.department} onChange={(e) => set("department", e.target.value)} className="h-10" /></div>
           <div>
             <Label>Avaliador *</Label>
@@ -181,6 +235,18 @@ export default function ExperienceEvaluationEditorPage() {
           <div><Label>Data da avaliação *</Label><Input type="date" value={form.evaluation_date} onChange={(e) => set("evaluation_date", e.target.value)} className="h-10" /></div>
           <div><Label>Data assinatura</Label><Input type="date" value={form.signature_date} onChange={(e) => set("signature_date", e.target.value)} className="h-10" /></div>
         </div>
+
+        {sourceSelection && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">Seleção de origem (PR-6.2F)</div>
+            <div className="font-medium text-slate-900">{sourceSelection.candidate_name}</div>
+            <div className="text-xs text-slate-600 mt-0.5">
+              {[sourceSelection.vacancy || sourceSelection.position_title, sourceSelection.selection_date?.slice?.(0, 10)]
+                .filter(Boolean)
+                .join(" · ")}
+            </div>
+          </div>
+        )}
 
         {form.admission_date && (
           <div className="rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm text-slate-700">
