@@ -212,6 +212,8 @@ export default function PositionsListPanel({
     positionStats.attention,
     positionStats.activePositions,
     positionStats.obsoletePositions,
+    positionStats.completedAdequacies,
+    positionStats.draftAdequacies,
   ].join("|");
 
   useEffect(() => {

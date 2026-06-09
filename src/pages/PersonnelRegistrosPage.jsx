@@ -11,17 +11,21 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { MagnifyingGlass, CaretDown, UsersThree, Briefcase, WarningCircle } from "@phosphor-icons/react";
+import { MagnifyingGlass, CaretDown, WarningCircle } from "@phosphor-icons/react";
 import {
   EMPTY_PERSONNEL_REGISTROS_FILTERS,
-  aggregatePersonnelKpis,
+  buildPersonnelGroupCompliance,
   hasActivePersonnelRegistrosFilters,
+  sumPersonnelTopicTotals,
   topicStatsEqual,
 } from "@/lib/personnelRegistrosListUtils";
 import {
+  PERSONNEL_REGISTRO_GROUPS,
   PERSONNEL_REGISTRO_TOPICS,
   getVisibleGroupsAndTopics,
 } from "@/lib/personnelRegistrosConfig";
+import { usePersonnelComplianceStats } from "@/hooks/usePersonnelComplianceStats";
+import PersonnelTopicCountCard from "@/components/personnel/PersonnelTopicCountCard";
 import PositionsListPanel from "@/components/personnel/PositionsListPanel";
 import AdequaciesListPanel from "@/components/personnel/AdequaciesListPanel";
 import MonitoringsListPanel from "@/components/personnel/MonitoringsListPanel";
@@ -41,28 +45,35 @@ const PANEL_BY_TOPIC = {
 const filterFieldClass =
   "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
 
-function KpiCard({ label, value, icon: Icon, tint = "blue", hint, testId }) {
-  const tones = {
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
-    slate: "bg-slate-50 text-slate-700 border-slate-100",
-    green: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    amber: "bg-amber-50 text-amber-700 border-amber-100",
-  };
+function ComplianceGroupCard({ groupLabel, metric1, metric2, attention, testId }) {
+  const hasAttention = attention?.length > 0;
   return (
     <Card className="border-slate-200" data-testid={testId}>
       <CardContent className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</div>
-            <div className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-slate-900 mt-1.5">
-              {value}
-            </div>
-            {hint && <p className="text-xs text-slate-500 mt-1.5 leading-snug">{hint}</p>}
+        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-3">{groupLabel}</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-xs text-slate-500">{metric1.label}</div>
+            <div className="text-2xl font-display font-bold text-slate-900 mt-0.5">{metric1.value}</div>
           </div>
-          <div className={`p-2 rounded-md border shrink-0 ${tones[tint]}`}>
-            <Icon size={18} weight="duotone" />
+          <div>
+            <div className="text-xs text-slate-500">{metric2.label}</div>
+            <div className="text-2xl font-display font-bold text-slate-900 mt-0.5">{metric2.value}</div>
           </div>
         </div>
+        {hasAttention ? (
+          <div className="mt-3 pt-3 border-t border-amber-100 flex gap-2">
+            <WarningCircle size={16} className="shrink-0 text-amber-600 mt-0.5" weight="duotone" />
+            <ul className="text-xs text-amber-800 space-y-0.5">
+              {attention.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-xs text-emerald-700 mt-3 pt-3 border-t border-emerald-50">Sem pendências identificadas</p>
+        )}
+        <p className="text-[10px] text-slate-400 mt-2">Indicador de conformidade do ambiente (NBR 17025 — 6.2)</p>
       </CardContent>
     </Card>
   );
@@ -79,6 +90,8 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
     acompanhamento: true,
     "selecao-capacitacao": true,
   });
+
+  const { compliance } = usePersonnelComplianceStats(currentTenantId);
 
   useEffect(() => {
     const topic = searchParams.get("topic");
@@ -98,6 +111,11 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
     }, { replace: true });
   }, [setSearchParams]);
 
+  const onTopicCardClick = useCallback((topicId) => {
+    const next = filters.topic === topicId ? "all" : topicId;
+    onTopicChange(next);
+  }, [filters.topic, onTopicChange]);
+
   const externalFilters = useMemo(
     () => ({ query: filters.query, date: filters.date }),
     [filters.query, filters.date],
@@ -113,14 +131,25 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
     () => visibleGroups.flatMap((g) => g.topics.map((t) => t.id)),
     [visibleGroups],
   );
-  const kpis = useMemo(() => {
-    const scoped = Object.fromEntries(
+
+  const scopedTopicStats = useMemo(
+    () => Object.fromEntries(
       visibleTopicIds
         .filter((id) => topicStats[id])
         .map((id) => [id, topicStats[id]]),
-    );
-    return aggregatePersonnelKpis(scoped);
-  }, [topicStats, visibleTopicIds]);
+    ),
+    [topicStats, visibleTopicIds],
+  );
+
+  const totalFiltered = useMemo(
+    () => sumPersonnelTopicTotals(scopedTopicStats),
+    [scopedTopicStats],
+  );
+
+  const groupCompliance = useMemo(
+    () => buildPersonnelGroupCompliance(topicStats, compliance),
+    [topicStats, compliance],
+  );
 
   const setTopicStatsFor = useCallback((topicId) => (stats) => {
     setTopicStats((prev) => (topicStatsEqual(prev[topicId], stats) ? prev : { ...prev, [topicId]: stats }));
@@ -168,29 +197,47 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         </p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4" data-testid="personnel-registros-kpis">
-        <KpiCard
-          label={filtersActive ? "Registros (filtrados)" : "Total de registros"}
-          value={kpis.total}
-          icon={UsersThree}
-          testId="personnel-kpi-total"
-        />
-        <KpiCard
-          label="Cargos ativos"
-          value={kpis.activePositions}
-          icon={Briefcase}
-          tint="slate"
-          hint="Cargos vigentes no ambiente"
-          testId="personnel-kpi-active-positions"
-        />
-        <KpiCard
-          label="Situações de atenção"
-          value={kpis.attention}
-          icon={WarningCircle}
-          tint="amber"
-          hint="Rascunhos, reprovações, treinamentos e cargos obsoletos"
-          testId="personnel-kpi-attention"
-        />
+      <div className="space-y-3" data-testid="personnel-topic-totals">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+          Total por tópico
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+          {PERSONNEL_REGISTRO_TOPICS.map((topic) => (
+            <PersonnelTopicCountCard
+              key={topic.id}
+              code={topic.code}
+              shortLabel={topic.shortLabel}
+              nbrRef={topic.nbrRef}
+              value={topicStats[topic.id]?.total ?? 0}
+              filtered={filtersActive}
+              active={filters.topic === topic.id}
+              onClick={() => onTopicCardClick(topic.id)}
+              testId={`personnel-topic-${topic.id}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3" data-testid="personnel-compliance-kpis">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+          Conformidade NBR 17025 — item 6.2
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {PERSONNEL_REGISTRO_GROUPS.map((group) => {
+            const data = groupCompliance[group.id];
+            if (!data) return null;
+            return (
+              <ComplianceGroupCard
+                key={group.id}
+                groupLabel={group.label}
+                metric1={data.metric1}
+                metric2={data.metric2}
+                attention={data.attention}
+                testId={`personnel-compliance-${group.id}`}
+              />
+            );
+          })}
+        </div>
       </div>
 
       <div
@@ -235,7 +282,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         {filtersActive && (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
             <p className="text-xs text-slate-500">
-              {kpis.total} registo(s) após filtros
+              {totalFiltered} registo(s) após filtros
             </p>
             <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
               Limpar filtros

@@ -21,10 +21,18 @@ export function usePersonnelTopicStatsEffect(displayRows, topicId, onTopicStatsC
     stats.attention,
     stats.activePositions,
     stats.obsoletePositions,
+    stats.completedAdequacies,
     stats.draftAdequacies,
+    stats.overdueMonitorings,
     stats.needsTraining,
+    stats.approvedExperience,
     stats.rejectedExperience,
+    stats.pendingOpinion,
+    stats.approvedSelections,
     stats.rejectedSelections,
+    stats.pendingSelections,
+    stats.totalParticipantsApproved,
+    stats.totalParticipantsReproved,
   ].join("|");
 
   useEffect(() => {
