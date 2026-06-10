@@ -213,8 +213,8 @@ export function ColetaPdfFrente({ model, logoUrl }) {
         </table>
       </AbsBlock>
 
-      <AbsBlock style={FRENTE.footer} className="coleta-pdf-footer-line coleta-pdf-footer-center">
-        Página 1 de 2
+      <AbsBlock style={FRENTE.footer} className="coleta-pdf-footer-line coleta-pdf-footer-right">
+        N.PÁG.: 1 / 2
       </AbsBlock>
     </section>
   );

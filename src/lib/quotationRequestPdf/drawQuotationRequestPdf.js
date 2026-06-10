@@ -1,16 +1,12 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { drawInstitutionalPdfHeaderWithCenterLines } from "@/lib/institutionalPdf/drawHeader";
+import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
+import { ML, MR, PAGE_H, PAGE_W, TEXT } from "@/lib/institutionalPdf/theme";
 import { buildQuotationRequestPdfViewModel } from "./viewModel";
 
-const ML = 10;
-const MR = 200;
-const PAGE_W = 210;
-const PAGE_H = 297;
 const HEADER_GRAY = [217, 217, 217];
 const BORDER = [180, 180, 180];
-const TEXT = [30, 30, 30];
-const LOGO_W = 32;
-const LOGO_H = 13;
 
 function drawWatermark(doc, text) {
   const pages = doc.getNumberOfPages();
@@ -25,42 +21,21 @@ function drawWatermark(doc, text) {
 }
 
 function drawHeader(doc, model, logoDataUrl, yStart = 8) {
-  const y = yStart;
-  const rightX = MR - 2;
-  const centerX = PAGE_W / 2;
-
-  if (logoDataUrl) {
-    try {
-      doc.addImage(logoDataUrl, "PNG", ML, y, LOGO_W, LOGO_H);
-    } catch { /* optional */ }
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(...TEXT);
-  doc.text(model.header.title, centerX, y + 6, { align: "center", maxWidth: 100 });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.text(`DATA: ${model.header.requestDate}`, centerX, y + 12, { align: "center" });
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(`Nº: ${model.header.requestNumber}`, centerX, y + 17, { align: "center" });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  let ry = y + 4;
-  for (const line of [
-    `Cód.: ${model.header.code}`,
-    `Ref.: ${model.header.reference}`,
-    `Rev.: ${model.header.revision}`,
-    `Emissão: ${model.header.modelIssueDate}`,
-  ]) {
-    doc.text(line, rightX, ry, { align: "right" });
-    ry += 4.5;
-  }
-
-  return Math.max(y + LOGO_H + 4, ry + 2, y + 22);
+  return drawInstitutionalPdfHeaderWithCenterLines(doc, logoDataUrl, yStart, {
+    title: model.header.title,
+    titleFontSize: 12,
+    centerLines: [
+      { text: `DATA: ${model.header.requestDate}`, fontSize: 8 },
+      { text: `Nº: ${model.header.requestNumber}`, bold: true, fontSize: 9 },
+    ],
+    metaLines: [
+      `Cód.: ${model.header.code}`,
+      `Ref.: ${model.header.reference}`,
+      `Rev.: ${model.header.revision}`,
+      `Emissão: ${model.header.modelIssueDate}`,
+    ],
+    minBottom: 22,
+  });
 }
 
 function ensureSpace(doc, y, needed, model, logoDataUrl) {
@@ -191,6 +166,8 @@ export function drawQuotationRequestPdf(request, { logoDataUrl } = {}) {
   }
 
   if (model.isDraft) drawWatermark(doc, "RASCUNHO");
+
+  drawInstitutionalPageFooters(doc);
 
   const num = model.header.requestNumber.replace(/\//g, "-");
   doc.save(`solicitacao-orcamento-${num}.pdf`);

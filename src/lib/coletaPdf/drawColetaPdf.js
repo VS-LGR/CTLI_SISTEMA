@@ -6,6 +6,7 @@ import {
   unidadeLabel,
 } from "../coletaSchema";
 import { buildColetaPdfViewModel, coletaPdfFileSlug } from "./viewModel";
+import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
 import {
   FORM_COLORS,
   drawSectionBar,
@@ -396,19 +397,6 @@ function drawFrente(doc, model) {
     },
     theme: "grid",
   });
-
-  doc.setFontSize(7);
-  doc.text("Página 1 de 2", MR, 290, { align: "right" });
-}
-
-function drawVersoFooter(doc, model) {
-  const { footer } = model;
-  doc.setFontSize(7);
-  doc.setTextColor(...FORM_COLORS.text);
-  doc.text(`Cód. ${footer.code}`, ML, 290);
-  doc.text(`Ref. ${footer.ref}`, PAGE_W / 2, 290, { align: "center" });
-  doc.text(footer.revision, MR, 290, { align: "right" });
-  doc.text("Página 2 de 2", MR, 286, { align: "right" });
 }
 
 function drawVerso(doc, model) {
@@ -422,7 +410,6 @@ function drawVerso(doc, model) {
       120,
       { align: "center" },
     );
-    drawVersoFooter(doc, model);
     return;
   }
 
@@ -504,8 +491,6 @@ function drawVerso(doc, model) {
   doc.setFontSize(8);
   doc.text("Observações:", ML, y);
   underlineField(doc, ML + 22, y, "", model.verso.repetitividade.observacoes, CW - 24);
-
-  drawVersoFooter(doc, model);
 }
 
 /**
@@ -524,5 +509,6 @@ export async function drawColetaPdf(row, tenantName = "", opts = {}) {
   drawHeader(doc, model, logoDataUrl);
   drawVerso(doc, model);
 
+  drawInstitutionalPageFooters(doc);
   doc.save(`coleta-${slug}.pdf`);
 }

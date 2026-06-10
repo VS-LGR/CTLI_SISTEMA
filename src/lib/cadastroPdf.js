@@ -4,6 +4,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { CADASTRO_STORAGE_BUCKET } from "@/lib/cadastroConstants";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import { formatFileSize } from "@/lib/cadastroListUtils";
+import { drawInstitutionalReportHeader } from "@/lib/institutionalPdf/drawHeader";
+import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
+import { ML, TEXT } from "@/lib/institutionalPdf/theme";
 
 async function fetchAttachmentSizeMap(paths) {
   const map = {};
@@ -30,6 +33,12 @@ async function fetchAttachmentSizeMap(paths) {
   return map;
 }
 
+const TABLE_STYLES = {
+  font: "helvetica",
+  fontSize: 7,
+  textColor: TEXT,
+};
+
 /**
  * @param {Array<Record<string, unknown>>} rows weight_standard_certificates
  * @param {string} tenantName
@@ -40,10 +49,10 @@ export async function downloadWeightCertificatesValidPdf(rows, tenantName) {
   const sizeMap = await fetchAttachmentSizeMap(valid.map((r) => r.attachment_storage_path));
 
   const doc = new jsPDF({ orientation: "landscape" });
-  doc.setFontSize(14);
-  doc.text("Certificados de peso padrão — vigentes", 14, 16);
-  doc.setFontSize(10);
-  doc.text(`Ambiente: ${tenantName || "—"}  |  Emissão: ${fmtDmyShort(today)}`, 14, 24);
+  const startY = drawInstitutionalReportHeader(doc, {
+    title: "Certificados de peso padrão — vigentes",
+    subtitle: `Ambiente: ${tenantName || "—"}  |  Emissão: ${fmtDmyShort(today)}`,
+  });
   const body = valid.map((r) => [
     r.set_name || "",
     r.class || "",
@@ -60,15 +69,17 @@ export async function downloadWeightCertificatesValidPdf(rows, tenantName) {
       : "—",
   ]);
   autoTable(doc, {
-    startY: 30,
+    startY: startY + 4,
+    margin: { left: ML },
     head: [[
       "Conjunto", "Classe", "Qtd", "Fabricante", "Modelo/Tipo", "Nº cert.",
       "Calibração", "Checagem", "Vencimento", "Calibrado por", "Tamanho",
     ]],
     body,
-    styles: { fontSize: 7 },
-    headStyles: { fillColor: [37, 99, 235] },
+    styles: TABLE_STYLES,
+    headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold" },
   });
+  drawInstitutionalPageFooters(doc);
   doc.save(`certificados-peso-padrao-vigentes-${today}.pdf`);
 }
 
@@ -82,10 +93,10 @@ export async function downloadEnvironmentCertificatesValidPdf(rows, tenantName) 
   const sizeMap = await fetchAttachmentSizeMap(valid.map((r) => r.attachment_storage_path));
 
   const doc = new jsPDF({ orientation: "landscape" });
-  doc.setFontSize(14);
-  doc.text("Termo-baro-higrômetro — certificados vigentes", 14, 16);
-  doc.setFontSize(10);
-  doc.text(`Ambiente: ${tenantName || "—"}  |  Emissão: ${fmtDmyShort(today)}`, 14, 24);
+  const startY = drawInstitutionalReportHeader(doc, {
+    title: "Termo-baro-higrômetro — certificados vigentes",
+    subtitle: `Ambiente: ${tenantName || "—"}  |  Emissão: ${fmtDmyShort(today)}`,
+  });
   const body = valid.map((r) => [
     r.equipment_name || "",
     r.manufacturer || "",
@@ -100,13 +111,15 @@ export async function downloadEnvironmentCertificatesValidPdf(rows, tenantName) 
       : "—",
   ]);
   autoTable(doc, {
-    startY: 30,
+    startY: startY + 4,
+    margin: { left: ML },
     head: [[
       "Equipamento", "Fabricante", "Modelo", "Nº cert.", "Calibração", "Checagem", "Vencimento", "Calibrado por", "Tamanho",
     ]],
     body,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [37, 99, 235] },
+    styles: { ...TABLE_STYLES, fontSize: 8 },
+    headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold" },
   });
+  drawInstitutionalPageFooters(doc);
   doc.save(`certificados-termo-baro-vigentes-${today}.pdf`);
 }

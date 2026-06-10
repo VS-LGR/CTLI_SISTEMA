@@ -335,12 +335,17 @@
 
 .coleta-pdf-footer-line {
   font-size: 0.55em;
-  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
+  color: #1e1e1e;
   white-space: nowrap;
 }
 
 .coleta-pdf-footer-center {
   text-align: center;
+}
+
+.coleta-pdf-footer-right {
+  text-align: right;
 }
 
 .coleta-field-line {

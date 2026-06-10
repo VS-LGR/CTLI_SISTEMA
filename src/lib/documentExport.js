@@ -4,6 +4,8 @@
 
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
+import { ML, MR, TEXT } from "@/lib/institutionalPdf/theme";
 import {
   Document,
   Packer,
@@ -27,7 +29,7 @@ function hasEditableHtml(doc) {
     || /<img|<table/i.test(doc?.content_html || "");
 }
 
-function buildExportHtmlBody(doc, { pdfHeaderDisclaimer = false } = {}) {
+function buildExportHtmlBody(doc, { pdfHeaderDisclaimer = false, pdfInstitutionalLayout = false } = {}) {
   const body = doc.content_html || "<p></p>";
   const disclaimer = pdfHeaderDisclaimer
     ? `<p style="margin:0 0 12pt;padding:8pt;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:10pt">
@@ -35,12 +37,31 @@ function buildExportHtmlBody(doc, { pdfHeaderDisclaimer = false } = {}) {
         Abra o documento no editor e use o botão PDF (impressão), ou exporte o ficheiro .docx.
       </p>`
     : "";
+  const metaBlock = pdfInstitutionalLayout
+    ? ""
+    : `
+    <h1 style="font-size:18pt;font-weight:bold;margin:0 0 8pt">${escapeHtml(doc.title || "Documento")}</h1>
+    <p style="margin:0 0 16pt;color:#555">Rev. ${escapeHtml(doc.version || "—")} · Emissão: ${escapeHtml(doc.code || "—")}</p>`;
   return `
     ${disclaimer}
-    <h1 style="font-size:18pt;font-weight:bold;margin:0 0 8pt">${escapeHtml(doc.title || "Documento")}</h1>
-    <p style="margin:0 0 16pt;color:#555">Rev. ${escapeHtml(doc.version || "—")} · Emissão: ${escapeHtml(doc.code || "—")}</p>
+    ${metaBlock}
     <div class="export-body">${body}</div>
   `;
+}
+
+function drawDocumentPdfPageHeader(pdf, doc, pageW) {
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(11);
+  pdf.setTextColor(...TEXT);
+  pdf.text(doc.title || "Documento", pageW / 2, 10, { align: "center", maxWidth: pageW - 20 });
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.text(
+    `Rev. ${doc.version || "—"}  ·  Emissão: ${doc.code || "—"}`,
+    MR,
+    16,
+    { align: "right" },
+  );
 }
 
 function escapeHtml(s) {
@@ -160,8 +181,8 @@ function htmlToDocxBlocks(html) {
 
 export async function exportDocumentPdf(doc, options = {}) {
   const wrap = document.createElement("div");
-  wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:794px;padding:40px;background:#fff;font-family:Arial,sans-serif;font-size:12px;color:#111;";
-  wrap.innerHTML = buildExportHtmlBody(doc, options);
+  wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:794px;padding:40px;background:#fff;font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#1e1e1e;";
+  wrap.innerHTML = buildExportHtmlBody(doc, { ...options, pdfInstitutionalLayout: true });
   document.body.appendChild(wrap);
   try {
     const canvas = await html2canvas(wrap, { scale: 2, useCORS: true, logging: false });
@@ -169,20 +190,23 @@ export async function exportDocumentPdf(doc, options = {}) {
     const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
     const pw = pdf.internal.pageSize.getWidth();
     const ph = pdf.internal.pageSize.getHeight();
-    const ratio = Math.min(pw / canvas.width, ph / canvas.height);
-    const w = canvas.width * ratio;
-    const h = canvas.height * ratio;
-    pdf.addImage(img, "PNG", 0, 0, w, h);
-    if (h > ph) {
-      let left = h - ph;
-      let pos = -ph;
-      while (left > 0) {
-        pdf.addPage();
-        pdf.addImage(img, "PNG", 0, pos, w, h);
-        left -= ph;
-        pos -= ph;
-      }
+
+    const HEADER_H = 22;
+    const FOOTER_H = 12;
+    const contentTop = HEADER_H;
+    const contentHeight = ph - HEADER_H - FOOTER_H;
+    const contentWidth = pw - ML * 2;
+    const scale = contentWidth / canvas.width;
+    const scaledH = canvas.height * scale;
+    const pageCount = Math.max(1, Math.ceil(scaledH / contentHeight));
+
+    for (let page = 0; page < pageCount; page += 1) {
+      if (page > 0) pdf.addPage();
+      drawDocumentPdfPageHeader(pdf, doc, pw);
+      pdf.addImage(img, "PNG", ML, contentTop - page * contentHeight, contentWidth, scaledH);
     }
+
+    drawInstitutionalPageFooters(pdf);
     return pdf.output("blob");
   } finally {
     document.body.removeChild(wrap);

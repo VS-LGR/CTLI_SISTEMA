@@ -5,7 +5,7 @@ import { SimNaoPair } from "./PdfCheckbox";
 import { VERSO, SUB_ROW_HEIGHT_EM } from "./layoutSpec";
 
 export function ColetaPdfVerso({ model, logoUrl }) {
-  const { verso, footer } = model;
+  const { verso } = model;
 
   if (!verso.repetitividadeAplicavel) {
     return (
@@ -17,14 +17,8 @@ export function ColetaPdfVerso({ model, logoUrl }) {
         >
           Ensaio de repetitividade com carga de substituição não aplicável.
         </AbsBlock>
-        <AbsBlock style={VERSO.footer.left} className="coleta-pdf-footer-line">
-          Cód {footer.code} Ref.: {footer.ref}
-        </AbsBlock>
-        <AbsBlock style={VERSO.footer.center} className="coleta-pdf-footer-line coleta-pdf-footer-center">
-          PÁGINA 2 DE 2
-        </AbsBlock>
-        <AbsBlock style={VERSO.footer.right} className="coleta-pdf-footer-line">
-          Revisão: {footer.revision}
+        <AbsBlock style={VERSO.footer.right} className="coleta-pdf-footer-line coleta-pdf-footer-right">
+          N.PÁG.: 2 / 2
         </AbsBlock>
       </section>
     );
@@ -142,14 +136,8 @@ export function ColetaPdfVerso({ model, logoUrl }) {
         <span className="coleta-underline-block">{verso.repetitividade.observacoes || "\u00a0"}</span>
       </AbsBlock>
 
-      <AbsBlock style={VERSO.footer.left} className="coleta-pdf-footer-line">
-        Cód {footer.code} Ref.: {footer.ref}
-      </AbsBlock>
-      <AbsBlock style={VERSO.footer.center} className="coleta-pdf-footer-line coleta-pdf-footer-center">
-        PÁGINA 2 DE 2
-      </AbsBlock>
-      <AbsBlock style={VERSO.footer.right} className="coleta-pdf-footer-line">
-        Revisão: {footer.revision}
+      <AbsBlock style={VERSO.footer.right} className="coleta-pdf-footer-line coleta-pdf-footer-right">
+        N.PÁG.: 2 / 2
       </AbsBlock>
     </section>
   );

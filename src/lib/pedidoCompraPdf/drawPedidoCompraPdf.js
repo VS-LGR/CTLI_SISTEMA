@@ -1,16 +1,12 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { drawInstitutionalPdfHeaderWithCenterLines } from "@/lib/institutionalPdf/drawHeader";
+import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
+import { ML, MR, PAGE_W, TEXT } from "@/lib/institutionalPdf/theme";
 import { buildPedidoCompraPdfViewModel } from "./viewModel";
 
-const ML = 10;
-const MR = 200;
-const PAGE_W = 210;
 const HEADER_GRAY = [217, 217, 217];
 const BORDER = [180, 180, 180];
-const TEXT = [30, 30, 30];
-
-const LOGO_W = 32;
-const LOGO_H = 13;
 
 function serviceColumns(type) {
   const commonEnd = [
@@ -93,46 +89,29 @@ function drawWatermark(doc, text) {
 }
 
 function drawHeader(doc, model, logoDataUrl, yStart = 8) {
-  const y = yStart;
-  const rightX = MR - 2;
-  const centerX = PAGE_W / 2;
-
-  if (logoDataUrl) {
-    try {
-      doc.addImage(logoDataUrl, "PNG", ML, y, LOGO_W, LOGO_H);
-    } catch { /* optional */ }
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(...TEXT);
-  doc.text(model.header.displayTitle || "Pedido de compras", centerX, y + 6, { align: "center", maxWidth: 90 });
-
+  const centerLines = [];
   if (model.header.typeLabel) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.text(model.header.typeLabel, centerX, y + 11, { align: "center", maxWidth: 95 });
+    centerLines.push({ text: model.header.typeLabel, fontSize: 8, maxWidth: 95 });
   }
+  centerLines.push({
+    text: `Nº do Pedido: ${model.header.orderNumber}`,
+    bold: true,
+    fontSize: 9,
+    maxWidth: 90,
+  });
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(`Nº do Pedido: ${model.header.orderNumber}`, centerX, y + (model.header.typeLabel ? 16 : 14), { align: "center" });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  let ry = y + 4;
-  const metaLines = [
-    `Cód.: ${model.header.code}`,
-    `Ref.: ${model.header.reference}`,
-    `Rev.: ${model.header.revision}`,
-    `Emissão: ${model.header.issueEmission}`,
-  ];
-  for (const line of metaLines) {
-    doc.text(line, rightX, ry, { align: "right" });
-    ry += 4.5;
-  }
-
-  return Math.max(y + LOGO_H + 2, ry + 2, y + 20);
+  return drawInstitutionalPdfHeaderWithCenterLines(doc, logoDataUrl, yStart, {
+    title: model.header.displayTitle || "Pedido de compras",
+    titleFontSize: 12,
+    centerLines,
+    metaLines: [
+      `Cód.: ${model.header.code}`,
+      `Ref.: ${model.header.reference}`,
+      `Rev.: ${model.header.revision}`,
+      `Emissão: ${model.header.issueEmission}`,
+    ],
+    minBottom: 20,
+  });
 }
 
 function drawTwoColBlock(doc, y, leftTitle, leftLines, rightTitle, rightLines) {
@@ -282,5 +261,6 @@ export function drawPedidoCompraPdf(order, { logoDataUrl, employees = [] } = {})
 
   if (model.isDraft) drawWatermark(doc, "RASCUNHO");
 
+  drawInstitutionalPageFooters(doc);
   return doc;
 }
