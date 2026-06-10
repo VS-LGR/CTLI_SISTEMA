@@ -2,23 +2,14 @@ import { PERSONNEL_DOC_DEFAULTS } from "@/lib/personnelDocMeta";
 
 const D = PERSONNEL_DOC_DEFAULTS;
 
+/** Ordem alfabética por código NBR: 6.2A → 6.2F */
 export const PERSONNEL_REGISTRO_TOPICS = [
-  {
-    id: "re-62c",
-    code: D.competency.code,
-    label: `${D.competency.code} — Competência do cargo`,
-    shortLabel: "Competência do cargo",
-    nbrRef: "6.2 a — Requisitos de competência por função",
-    dateField: "last_update_date",
-    searchFields: ["title", "required_education", "desired_education", "immediate_supervisor", "status"],
-    nestedSearch: (row) => row.analysis_approval_responsible?.full_name,
-  },
   {
     id: "re-62a",
     code: D.adequacy.code,
     label: `${D.adequacy.code} — Adequação de competência`,
     shortLabel: "Adequação de competência",
-    nbrRef: "6.2 c — Registros de competência e autorização",
+    nbrRef: "6.2 a — Registros de competência e autorização",
     dateField: "last_update_date",
     searchFields: [
       "registration_number",
@@ -30,11 +21,39 @@ export const PERSONNEL_REGISTRO_TOPICS = [
     ],
   },
   {
+    id: "re-62b",
+    code: D.experienceEvaluation.code,
+    label: `${D.experienceEvaluation.code} — Avaliação do período de experiência`,
+    shortLabel: "Avaliação de experiência",
+    nbrRef: "6.2 b — Supervisão de pessoal em período inicial",
+    dateField: "evaluation_date",
+    searchFields: ["occupant_name", "position_title", "evaluator_name", "department", "registration_number"],
+  },
+  {
+    id: "re-62c",
+    code: D.competency.code,
+    label: `${D.competency.code} — Competência do cargo`,
+    shortLabel: "Competência do cargo",
+    nbrRef: "6.2 c — Requisitos de competência por função",
+    dateField: "last_update_date",
+    searchFields: ["title", "required_education", "desired_education", "immediate_supervisor", "status"],
+    nestedSearch: (row) => row.analysis_approval_responsible?.full_name,
+  },
+  {
+    id: "re-62d",
+    code: D.attendanceList.code,
+    label: `${D.attendanceList.code} — Lista de presença`,
+    shortLabel: "Lista de presença",
+    nbrRef: "6.2 d — Registros de treinamento",
+    dateField: "course_date",
+    searchFields: ["course_title", "instructors", "department", "general_movement"],
+  },
+  {
     id: "re-62e",
     code: D.monitoring.code,
     label: `${D.monitoring.code} — Monitoramento de pessoal`,
     shortLabel: "Monitoramento de pessoal",
-    nbrRef: "6.2 d/e — Supervisão e manutenção da competência",
+    nbrRef: "6.2 e — Supervisão e manutenção da competência",
     dateField: "last_update_date",
     searchFields: [
       "registration_number",
@@ -45,15 +64,6 @@ export const PERSONNEL_REGISTRO_TOPICS = [
       "analysis_approval_responsible_name",
       "employee_remains_suitable",
     ],
-  },
-  {
-    id: "re-62b",
-    code: D.experienceEvaluation.code,
-    label: `${D.experienceEvaluation.code} — Avaliação do período de experiência`,
-    shortLabel: "Avaliação de experiência",
-    nbrRef: "6.2 b — Supervisão de pessoal em período inicial",
-    dateField: "evaluation_date",
-    searchFields: ["occupant_name", "position_title", "evaluator_name", "department", "registration_number"],
   },
   {
     id: "pr-62f",
@@ -70,32 +80,23 @@ export const PERSONNEL_REGISTRO_TOPICS = [
       "analysis_approval_responsible_name",
     ],
   },
-  {
-    id: "re-62d",
-    code: D.attendanceList.code,
-    label: `${D.attendanceList.code} — Lista de presença`,
-    shortLabel: "Lista de presença",
-    nbrRef: "6.2 b/c — Registros de treinamento",
-    dateField: "course_date",
-    searchFields: ["course_title", "instructors", "department", "general_movement"],
-  },
 ];
 
 export const PERSONNEL_REGISTRO_GROUPS = [
   {
-    id: "cargos-competencia",
-    label: "Cargos e Competência",
-    topicIds: ["re-62c", "re-62a"],
+    id: "adequacao-experiencia",
+    label: "Adequação e Experiência",
+    topicIds: ["re-62a", "re-62b"],
   },
   {
-    id: "acompanhamento",
-    label: "Acompanhamento do Pessoal",
-    topicIds: ["re-62e", "re-62b"],
+    id: "cargos-capacitacao",
+    label: "Cargos e Capacitação",
+    topicIds: ["re-62c", "re-62d"],
   },
   {
-    id: "selecao-capacitacao",
-    label: "Seleção e Capacitação",
-    topicIds: ["pr-62f", "re-62d"],
+    id: "monitoramento-selecao",
+    label: "Monitoramento e Seleção",
+    topicIds: ["re-62e", "pr-62f"],
   },
 ];
 

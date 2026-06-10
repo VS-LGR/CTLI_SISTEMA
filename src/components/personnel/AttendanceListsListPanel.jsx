@@ -3,14 +3,15 @@ import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelC
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, PencilSimple, Copy, FilePdf, Trash } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Copy, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   listAttendanceLists,
   duplicateAttendanceList,
   deleteAttendanceList,
 } from "@/lib/personnelAttendanceListsApi";
-import { exportAttendanceListPdf } from "@/lib/personnelPdfExport";
+import { exportAttendanceListPdf, exportAttendanceListDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { attendanceListEditorPath } from "@/lib/personnelRoutes";
 
 function fmtDate(d) {
@@ -95,14 +96,11 @@ export default function AttendanceListsListPanel({
                         navigate(attendanceListEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} title="Exportar PDF" aria-label="Exportar PDF da lista de presença" onClick={async () => {
-                      setBusy(true);
-                      try {
-                        await exportAttendanceListPdf(r.id, tenant);
-                        toast.success("PDF gerado");
-                      } catch (e) { toast.error(e.message); }
-                      finally { setBusy(false); }
-                    }}><FilePdf size={16} /></Button>
+                    <PersonnelExportMenu
+                      disabled={busy}
+                      onExportPdf={() => exportAttendanceListPdf(r.id, tenant)}
+                      onExportDocx={() => exportAttendanceListDocx(r.id, tenant)}
+                    />
                     <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir lista de presença" onClick={async () => {
                       if (!window.confirm("Excluir esta lista?")) return;
                       try {

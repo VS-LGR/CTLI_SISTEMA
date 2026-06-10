@@ -9,7 +9,7 @@ import {
   drawCheckboxList,
   drawSignatureRow,
 } from "./competencySections";
-import { personnelPdfSlug } from "./personnelSubjectMeta";
+import { selectionExportFilename } from "@/lib/personnelExportFilename";
 
 function redrawHeader(doc, header, logoDataUrl, yStart) {
   return drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart);
@@ -54,7 +54,6 @@ export async function drawPersonnelSelectionPdf(record, { logoDataUrl, signature
   y = drawSectionBlock(doc, y, "Responsável pela Análise e Aprovação", model.approvalName, redrawHeader, model.header, logoDataUrl);
   y = drawSignatureRow(doc, y, "Responsável pela Análise e Aprovação", "", signatureUrl, null, redrawHeader, model.header, logoDataUrl);
 
-  drawPersonnelPageFooters(doc, model.header);
-  const slug = personnelPdfSlug([record.candidate_name]);
-  doc.save(`PR-6.2F-${slug}.pdf`);
+  drawPersonnelPageFooters(doc);
+  doc.save(selectionExportFilename(record, "pdf"));
 }

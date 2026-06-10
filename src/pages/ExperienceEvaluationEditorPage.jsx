@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, FilePdf } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -15,7 +15,8 @@ import {
 import { listPositions } from "@/lib/personnelPositionsApi";
 import { emptyExperienceEvaluationForm } from "@/lib/personnelFormDefaults";
 import { validateExperienceEvaluation } from "@/lib/personnelValidation";
-import { exportExperienceEvaluationPdf } from "@/lib/personnelPdfExport";
+import { exportExperienceEvaluationPdf, exportExperienceEvaluationDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { personnelRegistrosPath } from "@/lib/personnelRegistrosRoutes";
 import { getPosition } from "@/lib/personnelPositionsApi";
 import {
@@ -207,14 +208,14 @@ export default function ExperienceEvaluationEditorPage() {
         <Button variant="ghost" size="sm" asChild><Link to={registrosBack}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Nova avaliação de experiência" : "Editar avaliação"}</h1>
         {!isNew && (
-          <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
-            try {
-              await exportExperienceEvaluationPdf(id, currentTenant);
-              toast.success("PDF gerado");
-            } catch (e) { toast.error(e.message); }
-          }}>
-            <FilePdf size={16} className="mr-1" /> RE-6.2B
-          </Button>
+          <PersonnelExportMenu
+            variant="outline"
+            className="ml-auto"
+            disabled={busy}
+            label="RE-6.2B"
+            onExportPdf={() => exportExperienceEvaluationPdf(id, currentTenant)}
+            onExportDocx={() => exportExperienceEvaluationDocx(id, currentTenant)}
+          />
         )}
       </div>
       {returnTo && (

@@ -4,8 +4,8 @@
  */
 
 import { COLETA_LIST_PATH } from "./coletaRoutes";
-import { PERSONNEL_DASHBOARD_PATH, PERSONNEL_REGISTROS_PATH } from "./personnelRegistrosRoutes";
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
+import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
 
 export const REQ_NAMES = {
   "4": "Requisitos Gerais",
@@ -40,7 +40,6 @@ const FOLDERS = {
       folderKey: "pr-6-2",
       label: "PR-6.2 Pessoal",
       children: [
-        { key: "pessoal-registros", label: "Registros 6.2 Pessoal", to: PERSONNEL_REGISTROS_PATH },
         {
           key: "pessoal-listas",
           label: "Níveis e Listas Padrão",
@@ -98,7 +97,7 @@ export function getFoldersForRequirement(requirementId) {
   return FOLDERS[String(requirementId)] || [];
 }
 
-/** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2). */
+/** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2, listas em PR-6.2). */
 export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false } = {}) {
   const list = folder?.children || [];
   return list.filter((c) => {
@@ -106,6 +105,30 @@ export function getFolderNavChildren(folder, { canColeta = false, canPersonnelSt
     if (c.requiresPersonnelStandardOptions && !canPersonnelStandardOptions) return false;
     return true;
   });
+}
+
+/** Itens de sidebar: secções da pasta (Procedimentos, Registros, …) + extras configurados. */
+export function buildFolderSidebarNav(requirementId, folder, { canColeta = false, canPersonnelStandardOptions = false } = {}) {
+  const rid = String(requirementId);
+  const fk = folder?.folderKey;
+  if (!fk) return [];
+
+  const mode = getFolderDocumentMode(rid, fk);
+  const sections = getVisibleSections(rid, fk);
+  const base = buildRequirementListPath(rid, fk);
+
+  const sectionItems = sections.map((section) => {
+    const isDefault = section.id === mode.defaultSection;
+    const to = isDefault ? base : `${base}?tab=${section.id}`;
+    return { key: `section-${section.id}`, label: section.label, to };
+  });
+
+  const extras = getFolderNavChildren(folder, { canColeta, canPersonnelStandardOptions });
+  return [...sectionItems, ...extras];
+}
+
+export function folderHasSidebarNav(requirementId, folder) {
+  return buildFolderSidebarNav(requirementId, folder).length > 0;
 }
 
 export function getFolderLabel(requirementId, folderKey) {

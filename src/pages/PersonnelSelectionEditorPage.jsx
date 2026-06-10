@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, FilePdf } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import MultiSelectStandardOptions from "@/components/personnel/MultiSelectStandardOptions";
@@ -14,7 +14,8 @@ import { listPositions, getPosition } from "@/lib/personnelPositionsApi";
 import { loadOptionsByCategory } from "@/lib/personnelStandardOptionsApi";
 import { emptySelectionForm } from "@/lib/personnelFormDefaults";
 import { validateSelection } from "@/lib/personnelValidation";
-import { exportSelectionPdf } from "@/lib/personnelPdfExport";
+import { exportSelectionPdf, exportSelectionDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { personnelRegistrosPath } from "@/lib/personnelRegistrosRoutes";
 import { mergePositionIntoFormFields } from "@/lib/personnelSnapshots";
 import { labelsFromOptionItems, optionItemsFromLabels } from "@/lib/personnelConstants";
@@ -148,14 +149,14 @@ export default function PersonnelSelectionEditorPage() {
         <Button variant="ghost" size="sm" asChild><Link to={registrosBack}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Nova seleção de pessoal" : "Editar seleção"}</h1>
         {!isNew && (
-          <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
-            try {
-              await exportSelectionPdf(id, currentTenant);
-              toast.success("PDF gerado");
-            } catch (e) { toast.error(e.message); }
-          }}>
-            <FilePdf size={16} className="mr-1" /> PR-6.2F
-          </Button>
+          <PersonnelExportMenu
+            variant="outline"
+            className="ml-auto"
+            disabled={busy}
+            label="RE-6.2F"
+            onExportPdf={() => exportSelectionPdf(id, currentTenant)}
+            onExportDocx={() => exportSelectionDocx(id, currentTenant)}
+          />
         )}
       </div>
       {returnTo && (

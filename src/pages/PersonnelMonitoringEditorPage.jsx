@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, FilePdf } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import MultiSelectStandardOptions from "@/components/personnel/MultiSelectStandardOptions";
@@ -14,7 +14,8 @@ import { loadOptionsByCategory } from "@/lib/personnelStandardOptionsApi";
 import { validateMonitoring } from "@/lib/personnelValidation";
 import { emptyMonitoringForm } from "@/lib/personnelFormDefaults";
 import { usePersonnelPrefill } from "@/hooks/usePersonnelPrefill";
-import { exportMonitoringPdf } from "@/lib/personnelPdfExport";
+import { exportMonitoringPdf, exportMonitoringDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { PERSONNEL_MONITORAMENTO_PATH } from "@/lib/personnelRoutes";
 
 export default function PersonnelMonitoringEditorPage() {
@@ -91,12 +92,14 @@ export default function PersonnelMonitoringEditorPage() {
         <Button variant="ghost" size="sm" asChild><Link to={PERSONNEL_MONITORAMENTO_PATH}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Novo monitoramento" : "Monitoramento de pessoal"}</h1>
         {!isNew && (
-          <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
-            try {
-              await exportMonitoringPdf(id, currentTenant);
-              toast.success("PDF gerado");
-            } catch (e) { toast.error(e.message); }
-          }}><FilePdf size={16} className="mr-1" /> RE-6.2E</Button>
+          <PersonnelExportMenu
+            variant="outline"
+            className="ml-auto"
+            disabled={busy}
+            label="RE-6.2E"
+            onExportPdf={() => exportMonitoringPdf(id, currentTenant)}
+            onExportDocx={() => exportMonitoringDocx(id, currentTenant)}
+          />
         )}
       </div>
       <Card><CardContent className="p-4 space-y-4">

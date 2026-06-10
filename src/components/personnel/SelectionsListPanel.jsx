@@ -3,10 +3,11 @@ import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelC
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, PencilSimple, Copy, FilePdf, Trash } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Copy, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { listSelections, duplicateSelection, deleteSelection } from "@/lib/personnelSelectionsApi";
-import { exportSelectionPdf } from "@/lib/personnelPdfExport";
+import { exportSelectionPdf, exportSelectionDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { selectionEditorPath } from "@/lib/personnelRoutes";
 import { selectionOpinionLabel } from "@/lib/personnelDisplayLabels";
 
@@ -90,14 +91,11 @@ export default function SelectionsListPanel({
                         navigate(selectionEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} title="Exportar PDF" aria-label="Exportar PDF da seleção" onClick={async () => {
-                      setBusy(true);
-                      try {
-                        await exportSelectionPdf(r.id, tenant);
-                        toast.success("PDF gerado");
-                      } catch (e) { toast.error(e.message); }
-                      finally { setBusy(false); }
-                    }}><FilePdf size={16} /></Button>
+                    <PersonnelExportMenu
+                      disabled={busy}
+                      onExportPdf={() => exportSelectionPdf(r.id, tenant)}
+                      onExportDocx={() => exportSelectionDocx(r.id, tenant)}
+                    />
                     <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir seleção" onClick={async () => {
                       if (!window.confirm("Excluir esta seleção?")) return;
                       try {

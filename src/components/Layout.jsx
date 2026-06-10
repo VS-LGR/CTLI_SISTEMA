@@ -18,7 +18,8 @@ import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStanda
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
-  getFolderNavChildren,
+  buildFolderSidebarNav,
+  folderHasSidebarNav,
   requiresFolderNav,
 } from "@/lib/requirementNavConfig";
 import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
@@ -231,35 +232,47 @@ const Layout = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
                   {folders.map((f) => {
-                    const children = getFolderNavChildren(f, {
+                    const navOpts = {
                       canColeta: canAccessColeta(user?.role),
                       canPersonnelStandardOptions: canEditPersonnelStandardOptions(user?.role),
-                    });
-                    return (
-                      <div key={f.folderKey} className="space-y-0.5">
-                        <NavLink
-                          to={`/requirement/${r.id}/${f.folderKey}`}
-                          end={children.length > 0}
-                          className={subNavLinkClass}
-                          title={f.label}
-                          data-testid={`nav-req-${r.id}-${f.folderKey}`}
-                          onClick={onNavigate}
-                        >
-                          <span className="truncate">{f.label}</span>
-                        </NavLink>
-                        {children.map((c) => (
-                          <NavLink
-                            key={c.key}
-                            to={c.to}
-                            className={subNavNestedLinkClass}
-                            title={c.label}
-                            data-testid={`nav-req-${r.id}-${f.folderKey}-${c.key}`}
-                            onClick={onNavigate}
+                    };
+                    const sidebarItems = buildFolderSidebarNav(r.id, f, navOpts);
+                    const hasSidebar = folderHasSidebarNav(r.id, f);
+                    if (hasSidebar) {
+                      return (
+                        <div key={f.folderKey} className="space-y-0.5">
+                          <div
+                            className="px-3 py-1.5 text-xs font-medium text-slate-400 truncate"
+                            title={f.label}
                           >
-                            <span className="truncate">{c.label}</span>
-                          </NavLink>
-                        ))}
-                      </div>
+                            {f.label}
+                          </div>
+                          {sidebarItems.map((c) => (
+                            <NavLink
+                              key={c.key}
+                              to={c.to}
+                              className={subNavNestedLinkClass}
+                              title={c.label}
+                              data-testid={`nav-req-${r.id}-${f.folderKey}-${c.key}`}
+                              onClick={onNavigate}
+                            >
+                              <span className="truncate">{c.label}</span>
+                            </NavLink>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return (
+                      <NavLink
+                        key={f.folderKey}
+                        to={`/requirement/${r.id}/${f.folderKey}`}
+                        className={subNavLinkClass}
+                        title={f.label}
+                        data-testid={`nav-req-${r.id}-${f.folderKey}`}
+                        onClick={onNavigate}
+                      >
+                        <span className="truncate">{f.label}</span>
+                      </NavLink>
                     );
                   })}
                 </CollapsibleContent>

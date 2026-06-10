@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { buildAttendanceListPdfViewModel } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters, PERSONNEL_PDF_MARGINS, ensurePersonnelSpace } from "./drawPersonnelPdfHeader";
 import { drawLabelValueTable, drawSectionTitle, drawSectionBlock } from "./competencySections";
-import { personnelPdfSlug } from "./personnelSubjectMeta";
+import { attendanceExportFilename } from "@/lib/personnelExportFilename";
 import { displayValue } from "@/lib/quotationRequestDisplay";
 
 const { ML, MR } = PERSONNEL_PDF_MARGINS;
@@ -52,7 +52,6 @@ export async function drawAttendanceListPdf(record, { logoDataUrl } = {}) {
   y = drawSectionTitle(doc, y, "Movimento Geral");
   y = drawLabelValueTable(doc, y, model.movementRows);
 
-  drawPersonnelPageFooters(doc, model.header);
-  const slug = personnelPdfSlug([record.course_title]);
-  doc.save(`RE-6.2D-${slug}.pdf`);
+  drawPersonnelPageFooters(doc);
+  doc.save(attendanceExportFilename(record, "pdf"));
 }

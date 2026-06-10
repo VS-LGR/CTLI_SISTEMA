@@ -3,10 +3,11 @@ import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelC
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, PencilSimple, Copy, FilePdf } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Copy } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { listMonitorings, duplicateMonitoring } from "@/lib/personnelMonitoringsApi";
-import { exportMonitoringPdf } from "@/lib/personnelPdfExport";
+import { exportMonitoringPdf, exportMonitoringDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { monitoringEditorPath } from "@/lib/personnelRoutes";
 import { isMonitoringOverdue } from "@/lib/personnelDisplayLabels";
 
@@ -96,14 +97,11 @@ export default function MonitoringsListPanel({
                         navigate(monitoringEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
-                      setBusy(true);
-                      try {
-                        await exportMonitoringPdf(r.id, tenant);
-                        toast.success("PDF gerado");
-                      } catch (e) { toast.error(e.message); }
-                      finally { setBusy(false); }
-                    }}><FilePdf size={16} /></Button>
+                    <PersonnelExportMenu
+                      disabled={busy}
+                      onExportPdf={() => exportMonitoringPdf(r.id, tenant)}
+                      onExportDocx={() => exportMonitoringDocx(r.id, tenant)}
+                    />
                   </td>
                 </tr>
               ))}

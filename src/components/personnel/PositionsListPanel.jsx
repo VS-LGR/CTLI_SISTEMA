@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, PencilSimple, Copy, FilePdf, Prohibit, ArrowCounterClockwise, Trash } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Copy, Prohibit, ArrowCounterClockwise, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   listPositions,
@@ -16,7 +16,8 @@ import {
   deletePositionPermanently,
   getPositionUsageCounts,
 } from "@/lib/personnelPositionsApi";
-import { exportPositionCompetencyPdf } from "@/lib/personnelPdfExport";
+import { exportPositionCompetencyPdf, exportPositionCompetencyDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { positionEditorPath } from "@/lib/personnelRoutes";
 import PersonnelDeleteConfirmDialog from "@/components/personnel/PersonnelDeleteConfirmDialog";
 
@@ -30,18 +31,6 @@ function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab })
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [usageCounts, setUsageCounts] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const exportPdf = async (id) => {
-    onBusy(true);
-    try {
-      await exportPositionCompetencyPdf(id, tenant);
-      toast.success("PDF gerado");
-    } catch (e) {
-      toast.error(e.message);
-    } finally {
-      onBusy(false);
-    }
-  };
 
   const openDeleteDialog = async (row) => {
     try {
@@ -99,7 +88,11 @@ function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab })
                             navigate(positionEditorPath(c.id));
                           } catch (e) { toast.error(e.message); }
                         }}><Copy size={16} /></Button>
-                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => exportPdf(r.id)}><FilePdf size={16} /></Button>
+                        <PersonnelExportMenu
+                          disabled={busy}
+                          onExportPdf={() => exportPositionCompetencyPdf(r.id, tenant)}
+                          onExportDocx={() => exportPositionCompetencyDocx(r.id, tenant)}
+                        />
                         <Button variant="ghost" size="sm" className="text-amber-700" onClick={async () => {
                           if (!window.confirm("Inativar este cargo? Ele será movido para Cargos obsoletos.")) return;
                           try {
@@ -112,7 +105,11 @@ function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab })
                     )}
                     {tab === "obsoletos" && (
                       <>
-                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => exportPdf(r.id)}><FilePdf size={16} /></Button>
+                        <PersonnelExportMenu
+                          disabled={busy}
+                          onExportPdf={() => exportPositionCompetencyPdf(r.id, tenant)}
+                          onExportDocx={() => exportPositionCompetencyDocx(r.id, tenant)}
+                        />
                         <Button variant="ghost" size="sm" className="text-green-700" title="Reativar" onClick={async () => {
                           if (!window.confirm(`Reativar o cargo "${r.title}"?`)) return;
                           try {

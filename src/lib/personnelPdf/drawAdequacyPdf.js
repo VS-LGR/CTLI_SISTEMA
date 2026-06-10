@@ -8,6 +8,7 @@ import {
   drawAuthBlock,
   drawSignatureRow,
 } from "./competencySections";
+import { adequacyExportFilename } from "@/lib/personnelExportFilename";
 
 function redrawHeader(doc, header, logoDataUrl, yStart) {
   return drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart);
@@ -53,7 +54,6 @@ export async function drawAdequacyPdf(record, { logoDataUrl, signatureUrls = {} 
     logoDataUrl,
   );
 
-  drawPersonnelPageFooters(doc, model.header);
-  const slug = (record.registration_number || "adequacao").replace(/[^a-zA-Z0-9_-]/g, "_");
-  doc.save(`RE-6.2A-${slug}.pdf`);
+  drawPersonnelPageFooters(doc);
+  doc.save(adequacyExportFilename(record, "pdf"));
 }

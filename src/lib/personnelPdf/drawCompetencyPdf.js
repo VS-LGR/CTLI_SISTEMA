@@ -7,6 +7,7 @@ import {
   drawListSection,
   drawAuthBlock,
 } from "./competencySections";
+import { competencyExportFilename } from "@/lib/personnelExportFilename";
 
 function redrawHeader(doc, header, logoDataUrl, yStart) {
   return drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart);
@@ -38,7 +39,6 @@ export function drawCompetencyPdf(position, { logoDataUrl } = {}) {
     logoDataUrl,
   );
 
-  drawPersonnelPageFooters(doc, model.header);
-  const slug = (position.title || "cargo").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
-  doc.save(`RE-6.2C-${slug}.pdf`);
+  drawPersonnelPageFooters(doc);
+  doc.save(competencyExportFilename(position, "pdf"));
 }

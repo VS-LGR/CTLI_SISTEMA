@@ -43,7 +43,7 @@ export function drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart = 8) {
   return Math.max(y + LOGO_H + 2, ry + 2, y + 18);
 }
 
-export function drawPersonnelPageFooters(doc, header) {
+export function drawPersonnelPageFooters(doc) {
   const total = doc.internal.getNumberOfPages();
   for (let p = 1; p <= total; p += 1) {
     doc.setPage(p);
@@ -51,8 +51,6 @@ export function drawPersonnelPageFooters(doc, header) {
     doc.setFontSize(7);
     doc.setTextColor(...TEXT);
     const y = 287;
-    doc.text(`Cód.: ${displayValue(header.code)}`, ML, y);
-    doc.text(`Ref.: ${displayValue(header.reference)}`, PAGE_W / 2, y, { align: "center" });
     doc.text(`N.PÁG.: ${p} / ${total}`, MR, y, { align: "right" });
   }
 }

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, FilePdf, Plus, Users } from "@phosphor-icons/react";
+import { ArrowLeft, Plus, Users } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import FormDynamicRows from "@/components/forms/FormDynamicRows";
@@ -19,7 +19,8 @@ import {
 import { loadOptionsByCategory } from "@/lib/personnelStandardOptionsApi";
 import { emptyAttendanceListForm, emptyAttendanceParticipant } from "@/lib/personnelFormDefaults";
 import { validateAttendanceList } from "@/lib/personnelValidation";
-import { exportAttendanceListPdf } from "@/lib/personnelPdfExport";
+import { exportAttendanceListPdf, exportAttendanceListDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { PERSONNEL_PRESENCA_PATH } from "@/lib/personnelRoutes";
 import { ATTENDANCE_RESULT_OPTIONS, ATTENDANCE_SIGNATURE_OPTIONS } from "@/lib/personnelSelectionConstants";
 export default function AttendanceListEditorPage() {
@@ -168,14 +169,14 @@ export default function AttendanceListEditorPage() {
         <Button variant="ghost" size="sm" asChild><Link to={PERSONNEL_PRESENCA_PATH}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Nova lista de presença" : "Editar lista de presença"}</h1>
         {!isNew && (
-          <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
-            try {
-              await exportAttendanceListPdf(id, currentTenant);
-              toast.success("PDF gerado");
-            } catch (e) { toast.error(e.message); }
-          }}>
-            <FilePdf size={16} className="mr-1" /> RE-6.2D
-          </Button>
+          <PersonnelExportMenu
+            variant="outline"
+            className="ml-auto"
+            disabled={busy}
+            label="RE-6.2D"
+            onExportPdf={() => exportAttendanceListPdf(id, currentTenant)}
+            onExportDocx={() => exportAttendanceListDocx(id, currentTenant)}
+          />
         )}
       </div>
       <Card><CardContent className="p-4 space-y-4">

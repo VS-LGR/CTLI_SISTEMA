@@ -3,14 +3,15 @@ import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelC
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, PencilSimple, Copy, FilePdf, Trash } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Copy, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   listExperienceEvaluations,
   duplicateExperienceEvaluation,
   deleteExperienceEvaluation,
 } from "@/lib/personnelExperienceEvaluationsApi";
-import { exportExperienceEvaluationPdf } from "@/lib/personnelPdfExport";
+import { exportExperienceEvaluationPdf, exportExperienceEvaluationDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { experienceEvaluationEditorPath } from "@/lib/personnelRoutes";
 import {
   EXPERIENCE_OPINION_LABELS,
@@ -117,14 +118,11 @@ export default function ExperienceEvaluationsListPanel({
                         navigate(experienceEvaluationEditorPath(c.id));
                       } catch (e) { toast.error(e.message); }
                     }}><Copy size={16} /></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} title="Exportar PDF" aria-label="Exportar PDF da avaliação" onClick={async () => {
-                      setBusy(true);
-                      try {
-                        await exportExperienceEvaluationPdf(r.id, tenant);
-                        toast.success("PDF gerado");
-                      } catch (e) { toast.error(e.message); }
-                      finally { setBusy(false); }
-                    }}><FilePdf size={16} /></Button>
+                    <PersonnelExportMenu
+                      disabled={busy}
+                      onExportPdf={() => exportExperienceEvaluationPdf(r.id, tenant)}
+                      onExportDocx={() => exportExperienceEvaluationDocx(r.id, tenant)}
+                    />
                     <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir avaliação de experiência" onClick={async () => {
                       if (!window.confirm("Excluir esta avaliação?")) return;
                       try {

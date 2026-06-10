@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, FilePdf } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import PositionForm from "@/components/personnel/PositionForm";
@@ -11,7 +11,8 @@ import { loadOptionsByCategory } from "@/lib/personnelStandardOptionsApi";
 import { validatePosition } from "@/lib/personnelValidation";
 import { emptyPositionForm } from "@/lib/personnelFormDefaults";
 import { normalizeAuthorityValue } from "@/lib/personnelConstants";
-import { exportPositionCompetencyPdf } from "@/lib/personnelPdfExport";
+import { exportPositionCompetencyPdf, exportPositionCompetencyDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
 
 export default function PositionEditorPage() {
@@ -79,14 +80,14 @@ export default function PositionEditorPage() {
         <Button variant="ghost" size="sm" asChild><Link to={PERSONNEL_CARGOS_PATH}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Novo cargo" : "Editar cargo"}</h1>
         {!isNew && (
-          <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
-            try {
-              await exportPositionCompetencyPdf(id, currentTenant);
-              toast.success("PDF gerado");
-            } catch (e) { toast.error(e.message); }
-          }}>
-            <FilePdf size={16} className="mr-1" /> RE-6.2C
-          </Button>
+          <PersonnelExportMenu
+            variant="outline"
+            className="ml-auto"
+            disabled={busy}
+            label="RE-6.2C"
+            onExportPdf={() => exportPositionCompetencyPdf(id, currentTenant)}
+            onExportDocx={() => exportPositionCompetencyDocx(id, currentTenant)}
+          />
         )}
       </div>
       <Card><CardContent className="p-4">

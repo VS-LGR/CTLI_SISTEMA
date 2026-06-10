@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { buildExperienceEvaluationPdfViewModel } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters, PERSONNEL_PDF_MARGINS, ensurePersonnelSpace } from "./drawPersonnelPdfHeader";
 import { drawLabelValueTable, drawSectionTitle, drawSectionBlock } from "./competencySections";
-import { personnelPdfSlug } from "./personnelSubjectMeta";
+import { experienceExportFilename } from "@/lib/personnelExportFilename";
 import { EXPERIENCE_EVALUATION_SCORES } from "@/lib/personnelExperienceConstants";
 
 const { ML, MR } = PERSONNEL_PDF_MARGINS;
@@ -101,7 +101,6 @@ export async function drawExperienceEvaluationPdf(record, { logoDataUrl } = {}) 
   doc.text("Assinatura", ML, y + 12);
   doc.text(`Data: ${model.signatureDate}`, ML, y + 18);
 
-  drawPersonnelPageFooters(doc, model.header);
-  const slug = personnelPdfSlug([record.registration_number, record.occupant_name]);
-  doc.save(`RE-6.2B-${slug}.pdf`);
+  drawPersonnelPageFooters(doc);
+  doc.save(experienceExportFilename(record, "pdf"));
 }

@@ -3,7 +3,7 @@ import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, FilePdf } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import PersonnelCompetencyFields from "@/components/personnel/PersonnelCompetencyFields";
@@ -16,7 +16,8 @@ import { validateAdequacy } from "@/lib/personnelValidation";
 import { emptyAdequacyForm } from "@/lib/personnelFormDefaults";
 import { normalizeAuthorityValue } from "@/lib/personnelConstants";
 import { usePersonnelPrefill } from "@/hooks/usePersonnelPrefill";
-import { exportAdequacyPdf } from "@/lib/personnelPdfExport";
+import { exportAdequacyPdf, exportAdequacyDocx } from "@/lib/personnelExport";
+import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { personnelRegistrosPath } from "@/lib/personnelRegistrosRoutes";
 
 export default function CompetencyAdequacyEditorPage() {
@@ -125,12 +126,14 @@ export default function CompetencyAdequacyEditorPage() {
         <Button variant="ghost" size="sm" asChild><Link to={registrosBack}><ArrowLeft size={18} /></Link></Button>
         <h1 className="text-xl font-bold">{isNew ? "Nova adequação" : "Adequação de competência"}</h1>
         {!isNew && (
-          <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={async () => {
-            try {
-              await exportAdequacyPdf(id, currentTenant);
-              toast.success("PDF gerado");
-            } catch (e) { toast.error(e.message); }
-          }}><FilePdf size={16} className="mr-1" /> RE-6.2A</Button>
+          <PersonnelExportMenu
+            variant="outline"
+            className="ml-auto"
+            disabled={busy}
+            label="RE-6.2A"
+            onExportPdf={() => exportAdequacyPdf(id, currentTenant)}
+            onExportDocx={() => exportAdequacyDocx(id, currentTenant)}
+          />
         )}
       </div>
       {returnTo && (

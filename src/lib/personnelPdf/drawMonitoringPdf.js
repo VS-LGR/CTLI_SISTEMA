@@ -8,6 +8,8 @@ import {
   drawAuthBlock,
   drawSignatureRow,
 } from "./competencySections";
+import { monitoringExportFilename } from "@/lib/personnelExportFilename";
+
 function redrawHeader(doc, header, logoDataUrl, yStart) {
   return drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart);
 }
@@ -63,7 +65,6 @@ export async function drawMonitoringPdf(record, { logoDataUrl, signatureUrls = {
     logoDataUrl,
   );
 
-  drawPersonnelPageFooters(doc, model.header);
-  const slug = (record.registration_number || "monitoramento").replace(/[^a-zA-Z0-9_-]/g, "_");
-  doc.save(`RE-6.2E-${slug}.pdf`);
+  drawPersonnelPageFooters(doc);
+  doc.save(monitoringExportFilename(record, "pdf"));
 }
