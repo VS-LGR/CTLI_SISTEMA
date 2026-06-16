@@ -141,12 +141,19 @@ export async function markDocumentObsolete(tenantId, id, obsoleteData) {
   });
 }
 
+const REVISION_SELECT = `
+  *,
+  approved_by:approved_by_id(id, name),
+  changed_by:changed_by_id(id, name),
+  reviewed_by:reviewed_by_id(id, name)
+`;
+
 // Revisões
 export async function listDocumentRevisions(tenantId, masterDocumentId) {
   assertSupabaseMasterDocuments();
   const { data, error } = await supabase
     .from("document_revisions")
-    .select("*")
+    .select(REVISION_SELECT)
     .eq("tenant_id", tenantId)
     .eq("master_document_id", masterDocumentId)
     .order("revision_number", { ascending: false });
@@ -158,11 +165,26 @@ export async function listAllRevisions(tenantId) {
   assertSupabaseMasterDocuments();
   const { data, error } = await supabase
     .from("document_revisions")
-    .select("*, master_document:master_document_id(code, title)")
+    .select(`${REVISION_SELECT}, master_document:master_document_id(code, title)`)
     .eq("tenant_id", tenantId)
     .order("updated_at", { ascending: false });
   if (error) throw error;
   return data || [];
+}
+
+export async function listRevisionsForDocumentCode(tenantId, code) {
+  assertSupabaseMasterDocuments();
+  const doc = await findMasterDocumentByCode(tenantId, code);
+  if (!doc) return [];
+  const revisions = await listDocumentRevisions(tenantId, doc.id);
+  return revisions.sort((a, b) => String(a.revision_number).localeCompare(String(b.revision_number), undefined, { numeric: true }));
+}
+
+export function revisionResponsibleName(revision) {
+  return revision?.approved_by?.name
+    || revision?.changed_by?.name
+    || revision?.notes
+    || "—";
 }
 
 export async function createDocumentRevision(tenantId, masterDocumentId, payload) {
@@ -176,10 +198,72 @@ export async function createDocumentRevision(tenantId, masterDocumentId, payload
   return data;
 }
 
-export async function approveDocumentRevision(revisionId) {
+export async function approveDocumentRevision(revisionId, approvedById = null) {
   assertSupabaseMasterDocuments();
+  if (approvedById) {
+    const { error: updateError } = await supabase
+      .from("document_revisions")
+      .update({ approved_by_id: approvedById })
+      .eq("id", revisionId);
+    if (updateError) throw updateError;
+  }
   const { error } = await supabase.rpc("approve_document_revision", { p_revision_id: revisionId });
   if (error) throw error;
+  const { data: rev } = await supabase
+    .from("document_revisions")
+    .select("tenant_id")
+    .eq("id", revisionId)
+    .maybeSingle();
+  if (rev?.tenant_id) clearMasterDocumentCache(rev.tenant_id);
+}
+
+export async function recordCriticalAnalysis(tenantId, masterDocumentId, payload) {
+  assertSupabaseMasterDocuments();
+  const doc = await getMasterDocument(tenantId, masterDocumentId);
+  if (!doc) throw new Error("Documento não encontrado");
+  const period = doc.critical_analysis_period_months || 24;
+  const analysisDate = payload.analysis_date || new Date().toISOString().slice(0, 10);
+  return updateMasterDocument(tenantId, masterDocumentId, {
+    last_critical_analysis_date: analysisDate,
+    next_critical_analysis_date: calculateNextCriticalAnalysisDate(analysisDate, period),
+    critical_analysis_result: payload.result || "",
+    critical_analysis_notes: payload.notes || "",
+    analysis_responsible_id: payload.responsible_id || null,
+  });
+}
+
+export async function recordExternalConsultation(tenantId, externalId, payload) {
+  assertSupabaseMasterDocuments();
+  const { data: current, error: fetchError } = await supabase
+    .from("external_document_controls")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("id", externalId)
+    .maybeSingle();
+  if (fetchError) throw fetchError;
+  if (!current) throw new Error("Documento externo não encontrado");
+
+  const consultationDate = payload.consultation_date || new Date().toISOString().slice(0, 10);
+  const period = current.consultation_period_months || 6;
+  const updates = {
+    previous_consultation_date: current.last_consultation_date || current.previous_consultation_date,
+    last_consultation_date: consultationDate,
+    next_consultation_date: calculateNextExternalConsultationDate(consultationDate, period),
+    validity_status: payload.validity_status || current.validity_status || "valido",
+    notes: payload.notes != null ? payload.notes : current.notes,
+  };
+  if (payload.has_revision != null) updates.has_revision = payload.has_revision;
+  if (payload.external_revision != null) updates.external_revision = payload.external_revision;
+
+  const { data, error } = await supabase
+    .from("external_document_controls")
+    .update(updates)
+    .eq("tenant_id", tenantId)
+    .eq("id", externalId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 export async function markRevisionAsObsolete(tenantId, revisionId) {

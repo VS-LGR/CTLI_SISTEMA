@@ -14,45 +14,61 @@ function daysUntil(dateStr) {
 }
 
 export async function checkCriticalAnalysisDueDates(tenantId) {
-  if (!isSupabaseAuthMode || !tenantId) return { overdue: [], upcoming: [] };
+  if (!isSupabaseAuthMode || !tenantId) return { overdue: [], upcoming: [], pending: [] };
   const { data, error } = await supabase
     .from("master_documents")
-    .select("id, code, title, next_critical_analysis_date, status")
+    .select("id, code, title, next_critical_analysis_date, last_critical_analysis_date, status")
     .eq("tenant_id", tenantId)
-    .in("status", ["ativo", "em_revisao"])
-    .not("next_critical_analysis_date", "is", null);
+    .in("status", ["ativo", "em_revisao"]);
   if (error) throw error;
 
   const overdue = [];
   const upcoming = [];
+  const pending = [];
   for (const doc of data || []) {
+    if (!doc.next_critical_analysis_date && !doc.last_critical_analysis_date) {
+      pending.push({ ...doc, daysUntil: null });
+      continue;
+    }
+    if (!doc.next_critical_analysis_date) {
+      pending.push({ ...doc, daysUntil: null });
+      continue;
+    }
     const days = daysUntil(doc.next_critical_analysis_date);
     if (days == null) continue;
     const item = { ...doc, daysUntil: days };
     if (days < 0) overdue.push(item);
     else if (days <= DAYS_WARNING) upcoming.push(item);
   }
-  return { overdue, upcoming };
+  return { overdue, upcoming, pending };
 }
 
 export async function checkExternalDocumentDueDates(tenantId) {
-  if (!isSupabaseAuthMode || !tenantId) return { overdue: [], upcoming: [] };
+  if (!isSupabaseAuthMode || !tenantId) return { overdue: [], upcoming: [], pending: [] };
   const { data, error } = await supabase
     .from("external_document_controls")
-    .select("id, title, next_consultation_date, validity_status")
+    .select("id, title, next_consultation_date, last_consultation_date, validity_status")
     .eq("tenant_id", tenantId);
   if (error) throw error;
 
   const overdue = [];
   const upcoming = [];
+  const pending = [];
   for (const doc of data || []) {
+    if (!doc.last_consultation_date) {
+      pending.push({ ...doc, daysUntil: null });
+      continue;
+    }
     const days = daysUntil(doc.next_consultation_date);
-    if (days == null) continue;
+    if (days == null) {
+      pending.push({ ...doc, daysUntil: null });
+      continue;
+    }
     const item = { ...doc, daysUntil: days };
     if (days < 0) overdue.push(item);
     else if (days <= DAYS_WARNING) upcoming.push(item);
   }
-  return { overdue, upcoming };
+  return { overdue, upcoming, pending };
 }
 
 export async function checkSoftwareValidationDueDates(tenantId) {
@@ -115,14 +131,16 @@ export async function getAllDocumentAlerts(tenantId) {
   return {
     criticalAnalysisOverdue: critical.overdue,
     criticalAnalysisUpcoming: critical.upcoming,
+    criticalAnalysisPending: critical.pending,
     externalConsultationOverdue: external.overdue,
     externalConsultationUpcoming: external.upcoming,
+    externalConsultationPending: external.pending,
     softwareValidationOverdue: software.overdue,
     softwareValidationMissing: software.missing,
     obsoleteActiveTemplates: obsoleteTemplates,
     totalCount:
-      critical.overdue.length + critical.upcoming.length
-      + external.overdue.length + external.upcoming.length
+      critical.overdue.length + critical.upcoming.length + critical.pending.length
+      + external.overdue.length + external.upcoming.length + external.pending.length
       + software.overdue.length + software.missing.length
       + obsoleteTemplates.length,
   };

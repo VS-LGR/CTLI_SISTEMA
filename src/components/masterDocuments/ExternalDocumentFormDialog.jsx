@@ -64,8 +64,9 @@ export default function ExternalDocumentFormDialog({ open, onOpenChange, tenantI
           <div><Label>Revisão / versão externa</Label><Input value={form.external_revision} onChange={(e) => set("external_revision", e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Última consulta</Label><Input type="date" value={form.last_consultation_date || ""} onChange={(e) => set("last_consultation_date", e.target.value)} /></div>
-            <div><Label>Periodicidade (meses)</Label><Input type="number" value={form.consultation_period_months} onChange={(e) => set("consultation_period_months", Number(e.target.value))} /></div>
+            <div><Label>Consulta anterior</Label><Input type="date" value={form.previous_consultation_date || ""} disabled className="bg-slate-50" /></div>
           </div>
+          <div><Label>Periodicidade (meses)</Label><Input type="number" value={form.consultation_period_months} onChange={(e) => set("consultation_period_months", Number(e.target.value))} /></div>
           <div><Label>Procedimentos envolvidos</Label><Textarea value={form.involved_procedures} onChange={(e) => set("involved_procedures", e.target.value)} rows={2} /></div>
           <div>
             <Label>Status de validade</Label>

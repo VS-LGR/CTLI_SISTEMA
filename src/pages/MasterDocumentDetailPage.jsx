@@ -10,21 +10,18 @@ import {
   getMasterDocument,
   listDocumentRevisions,
   listDocumentDistributions,
-  listSnapshotsForDocument,
-  createDocumentRevision,
-  approveDocumentRevision,
-  saveDocumentDistribution,
 } from "@/lib/masterDocuments/masterDocumentsApi";
 import {
   typeLabel,
   statusLabel,
-  revisionStatusLabel,
-  copyTypeLabel,
 } from "@/lib/masterDocuments/masterDocumentConstants";
+import { getDueStatus, dueStatusLabel, dueStatusBadgeVariant } from "@/lib/masterDocuments/masterDocumentDueStatus";
 import { masterDocumentListPath } from "@/lib/masterDocuments/masterDocumentRoutes";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 import MasterDocumentFormDialog from "@/components/masterDocuments/MasterDocumentFormDialog";
 import DocumentRevisionPanel from "@/components/masterDocuments/DocumentRevisionPanel";
+import DocumentDistributionEditor from "@/components/masterDocuments/DocumentDistributionEditor";
+import CriticalAnalysisDialog from "@/components/masterDocuments/CriticalAnalysisDialog";
 
 export default function MasterDocumentDetailPage() {
   const { id } = useParams();
@@ -35,6 +32,7 @@ export default function MasterDocumentDetailPage() {
   const [snapshots, setSnapshots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!currentTenantId || !id) return;
@@ -81,7 +79,10 @@ export default function MasterDocumentDetailPage() {
             <span className="text-xs text-slate-500">Rev. {doc.current_revision} · Emissão {formatDateBr(doc.current_issue_date)}</span>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditOpen(true)}><PencilSimple size={16} className="mr-1" /> Editar</Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setAnalysisOpen(true)}>Registrar análise crítica</Button>
+          <Button variant="outline" onClick={() => setEditOpen(true)}><PencilSimple size={16} className="mr-1" /> Editar</Button>
+        </div>
       </div>
 
       <Tabs defaultValue="dados">
@@ -102,7 +103,16 @@ export default function MasterDocumentDetailPage() {
                 <p><span className="text-slate-500">Categoria:</span> {doc.category || "—"}</p>
                 <p><span className="text-slate-500">Módulo:</span> {doc.linked_module || "—"}</p>
                 <p><span className="text-slate-500">Últ. análise crítica:</span> {formatDateBr(doc.last_critical_analysis_date)}</p>
-                <p><span className="text-slate-500">Próx. análise crítica:</span> {formatDateBr(doc.next_critical_analysis_date)}</p>
+                <p className="flex items-center gap-2 flex-wrap">
+                  <span className="text-slate-500">Próx. análise crítica:</span>
+                  {formatDateBr(doc.next_critical_analysis_date)}
+                  <Badge variant={dueStatusBadgeVariant(getDueStatus(doc.next_critical_analysis_date))} className="text-[10px]">
+                    {dueStatusLabel(getDueStatus(doc.next_critical_analysis_date))}
+                  </Badge>
+                </p>
+                {doc.critical_analysis_result && (
+                  <p><span className="text-slate-500">Resultado:</span> {doc.critical_analysis_result}</p>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -126,28 +136,12 @@ export default function MasterDocumentDetailPage() {
         </TabsContent>
 
         <TabsContent value="distribuicao" className="mt-4">
-          <Card>
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-[10px] uppercase text-slate-500">
-                  <th className="px-3 py-2 text-left">Área</th>
-                  <th className="px-3 py-2 text-left">Cópia</th>
-                  <th className="px-3 py-2 text-left">Tipo</th>
-                  <th className="px-3 py-2 text-left">Data</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {distributions.map((d) => (
-                  <tr key={d.id}>
-                    <td className="px-3 py-2">{d.area}</td>
-                    <td className="px-3 py-2">{d.copy_number ?? "—"}</td>
-                    <td className="px-3 py-2 text-xs">{copyTypeLabel(d.copy_type)}</td>
-                    <td className="px-3 py-2 text-xs">{formatDateBr(d.distribution_date)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
+          <DocumentDistributionEditor
+            tenantId={currentTenantId}
+            masterDocumentId={id}
+            distributions={distributions}
+            onRefresh={load}
+          />
         </TabsContent>
 
         <TabsContent value="exportacao" className="mt-4">
@@ -189,6 +183,14 @@ export default function MasterDocumentDetailPage() {
         </TabsContent>
       </Tabs>
 
+      <CriticalAnalysisDialog
+        open={analysisOpen}
+        onOpenChange={setAnalysisOpen}
+        tenantId={currentTenantId}
+        masterDocumentId={id}
+        documentTitle={`${doc.code} — ${doc.title}`}
+        onSaved={load}
+      />
       <MasterDocumentFormDialog
         open={editOpen}
         onOpenChange={setEditOpen}

@@ -23,6 +23,7 @@ import {
 } from "@/lib/masterDocuments/masterDocumentConstants";
 import { masterDocumentDetailPath } from "@/lib/masterDocuments/masterDocumentRoutes";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
+import { getDueStatus, dueStatusLabel, dueStatusBadgeVariant } from "@/lib/masterDocuments/masterDocumentDueStatus";
 import MasterDocumentFormDialog from "./MasterDocumentFormDialog";
 import ObsoleteDocumentDialog from "./ObsoleteDocumentDialog";
 
@@ -156,7 +157,14 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
                     </Badge>
                   </td>
                   <td className="px-3 py-2 text-xs truncate max-w-[100px]">{row.linked_module || "—"}</td>
-                  <td className="px-3 py-2 text-xs">{formatDateBr(row.next_critical_analysis_date)}</td>
+                  <td className="px-3 py-2 text-xs">
+                    <span className="inline-flex items-center gap-1 flex-wrap">
+                      {formatDateBr(row.next_critical_analysis_date)}
+                      <Badge variant={dueStatusBadgeVariant(getDueStatus(row.next_critical_analysis_date))} className="text-[9px]">
+                        {dueStatusLabel(getDueStatus(row.next_critical_analysis_date))}
+                      </Badge>
+                    </span>
+                  </td>
                   <td className="px-3 py-2 text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" asChild title="Ver">

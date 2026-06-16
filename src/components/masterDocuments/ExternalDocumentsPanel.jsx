@@ -1,18 +1,23 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Plus, PencilSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { listExternalDocuments, saveExternalDocument, deleteExternalDocument } from "@/lib/masterDocuments/masterDocumentsApi";
 import { externalValidityLabel } from "@/lib/masterDocuments/masterDocumentConstants";
+import { getDueStatus, dueStatusLabel, dueStatusBadgeVariant } from "@/lib/masterDocuments/masterDocumentDueStatus";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 import ExternalDocumentFormDialog from "./ExternalDocumentFormDialog";
+import ExternalConsultationDialog from "./ExternalConsultationDialog";
 
 export default function ExternalDocumentsPanel({ tenantId }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editRow, setEditRow] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [consultRow, setConsultRow] = useState(null);
+  const [consultOpen, setConsultOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!tenantId) return;
@@ -41,18 +46,20 @@ export default function ExternalDocumentsPanel({ tenantId }) {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-slate-600">Consulta semestral de normas e legislações controladas.</p>
       <div className="flex justify-end">
         <Button onClick={() => { setEditRow(null); setFormOpen(true); }}>
           <Plus size={16} className="mr-1" /> Novo documento externo
         </Button>
       </div>
       <Card className="overflow-x-auto border-slate-200">
-        <table className="w-full text-sm min-w-[800px]">
+        <table className="w-full text-sm min-w-[960px]">
           <thead className="bg-slate-50 border-b">
             <tr className="text-[10px] uppercase text-slate-500">
               <th className="px-3 py-2 text-left">Título</th>
               <th className="px-3 py-2 text-left">Órgão</th>
               <th className="px-3 py-2 text-left">Revisão</th>
+              <th className="px-3 py-2 text-left">Consulta ant.</th>
               <th className="px-3 py-2 text-left">Última consulta</th>
               <th className="px-3 py-2 text-left">Próxima</th>
               <th className="px-3 py-2 text-left">Status</th>
@@ -60,22 +67,32 @@ export default function ExternalDocumentsPanel({ tenantId }) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {loading && <tr><td colSpan={7} className="p-6 text-center text-slate-500">Carregando…</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-slate-500">Nenhum documento externo.</td></tr>}
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="px-3 py-2">{r.title}</td>
-                <td className="px-3 py-2 text-xs">{r.issuing_organization}</td>
-                <td className="px-3 py-2 font-mono text-xs">{r.external_revision}</td>
-                <td className="px-3 py-2 text-xs">{formatDateBr(r.last_consultation_date)}</td>
-                <td className="px-3 py-2 text-xs">{formatDateBr(r.next_consultation_date)}</td>
-                <td className="px-3 py-2 text-xs">{externalValidityLabel(r.validity_status)}</td>
-                <td className="px-3 py-2 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => { setEditRow(r); setFormOpen(true); }}><PencilSimple size={16} /></Button>
-                  <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDelete(r.id)}>Excluir</Button>
-                </td>
-              </tr>
-            ))}
+            {loading && <tr><td colSpan={8} className="p-6 text-center text-slate-500">Carregando…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-slate-500">Nenhum documento externo.</td></tr>}
+            {rows.map((r) => {
+              const due = getDueStatus(r.next_consultation_date);
+              return (
+                <tr key={r.id}>
+                  <td className="px-3 py-2">{r.title}</td>
+                  <td className="px-3 py-2 text-xs">{r.issuing_organization}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{r.external_revision}</td>
+                  <td className="px-3 py-2 text-xs">{formatDateBr(r.previous_consultation_date)}</td>
+                  <td className="px-3 py-2 text-xs">{formatDateBr(r.last_consultation_date)}</td>
+                  <td className="px-3 py-2 text-xs">
+                    <span className="inline-flex items-center gap-1 flex-wrap">
+                      {formatDateBr(r.next_consultation_date)}
+                      <Badge variant={dueStatusBadgeVariant(due)} className="text-[9px]">{dueStatusLabel(due)}</Badge>
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-xs">{externalValidityLabel(r.validity_status)}</td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap">
+                    <Button variant="outline" size="sm" className="mr-1" onClick={() => { setConsultRow(r); setConsultOpen(true); }}>Consulta</Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setEditRow(r); setFormOpen(true); }}><PencilSimple size={16} /></Button>
+                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDelete(r.id)}>Excluir</Button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </Card>
@@ -85,6 +102,13 @@ export default function ExternalDocumentsPanel({ tenantId }) {
         tenantId={tenantId}
         document={editRow}
         onSaved={() => { setFormOpen(false); load(); }}
+      />
+      <ExternalConsultationDialog
+        open={consultOpen}
+        onOpenChange={setConsultOpen}
+        tenantId={tenantId}
+        externalDoc={consultRow}
+        onSaved={() => { setConsultOpen(false); load(); }}
       />
     </div>
   );
