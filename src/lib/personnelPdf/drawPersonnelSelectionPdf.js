@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { buildSelectionPdfViewModel } from "./viewModels";
+import { buildSelectionPdfViewModel, mergeDocumentMetaHeader } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters } from "./drawPersonnelPdfHeader";
 import {
   drawLabelValueTable,
@@ -15,8 +15,9 @@ function redrawHeader(doc, header, logoDataUrl, yStart) {
   return drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart);
 }
 
-export async function drawPersonnelSelectionPdf(record, { logoDataUrl, signatureUrl = null } = {}) {
+export async function drawPersonnelSelectionPdf(record, { logoDataUrl, signatureUrl = null, documentMeta, fileName } = {}) {
   const model = buildSelectionPdfViewModel(record);
+  model.header = mergeDocumentMetaHeader(model.header, documentMeta);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = redrawHeader(doc, model.header, logoDataUrl);
   if (model.subjectMetaRows?.length) y = drawLabelValueTable(doc, y, model.subjectMetaRows);
@@ -55,5 +56,5 @@ export async function drawPersonnelSelectionPdf(record, { logoDataUrl, signature
   y = drawSignatureRow(doc, y, "Responsável pela Análise e Aprovação", "", signatureUrl, null, redrawHeader, model.header, logoDataUrl);
 
   drawPersonnelPageFooters(doc);
-  doc.save(selectionExportFilename(record, "pdf"));
+  doc.save(fileName || selectionExportFilename(record, "pdf"));
 }

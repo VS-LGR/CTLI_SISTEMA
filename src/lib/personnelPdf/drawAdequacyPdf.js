@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { buildAdequacyPdfViewModel } from "./viewModels";
+import { buildAdequacyPdfViewModel, mergeDocumentMetaHeader } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters } from "./drawPersonnelPdfHeader";
 import {
   drawLabelValueTable,
@@ -14,8 +14,9 @@ function redrawHeader(doc, header, logoDataUrl, yStart) {
   return drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart);
 }
 
-export async function drawAdequacyPdf(record, { logoDataUrl, signatureUrls = {} } = {}) {
+export async function drawAdequacyPdf(record, { logoDataUrl, signatureUrls = {}, documentMeta, fileName } = {}) {
   const model = buildAdequacyPdfViewModel(record);
+  model.header = mergeDocumentMetaHeader(model.header, documentMeta);
   model.approvalSignatureUrl = signatureUrls.approval || null;
   model.occupantSignatureUrl = signatureUrls.occupant || model.occupantSignatureUrl;
 
@@ -55,5 +56,5 @@ export async function drawAdequacyPdf(record, { logoDataUrl, signatureUrls = {} 
   );
 
   drawPersonnelPageFooters(doc);
-  doc.save(adequacyExportFilename(record, "pdf"));
+  doc.save(fileName || adequacyExportFilename(record, "pdf"));
 }

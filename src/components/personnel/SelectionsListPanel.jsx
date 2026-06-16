@@ -21,7 +21,7 @@ export default function SelectionsListPanel({
   tenant,
   compact = false,
   externalFilters = null,
-  topicId = "pr-62f",
+  topicId = "re-62f",
   onTopicStatsChange,
   onRecordsChange,
   loadEnabled = true,

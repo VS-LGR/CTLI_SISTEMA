@@ -272,7 +272,7 @@ export default function QuotationRequestEditorPage() {
         }
       }
       const payload = isNew ? { ...form, sections, items } : await getQuotationRequest(id);
-      await exportQuotationRequestPdf(payload, { logoDataUrl });
+      await exportQuotationRequestPdf(payload, { logoDataUrl, tenantId, userId: user?.id });
     } catch (e) {
       toast.error(e.message || "Falha ao exportar PDF");
     }

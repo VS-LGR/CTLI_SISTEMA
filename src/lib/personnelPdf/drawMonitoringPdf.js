@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { buildMonitoringPdfViewModel } from "./viewModels";
+import { buildMonitoringPdfViewModel, mergeDocumentMetaHeader } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters } from "./drawPersonnelPdfHeader";
 import {
   drawLabelValueTable,
@@ -14,8 +14,9 @@ function redrawHeader(doc, header, logoDataUrl, yStart) {
   return drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart);
 }
 
-export async function drawMonitoringPdf(record, { logoDataUrl, signatureUrls = {} } = {}) {
+export async function drawMonitoringPdf(record, { logoDataUrl, signatureUrls = {}, documentMeta, fileName } = {}) {
   const model = buildMonitoringPdfViewModel(record);
+  model.header = mergeDocumentMetaHeader(model.header, documentMeta);
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = redrawHeader(doc, model.header, logoDataUrl);
@@ -66,5 +67,5 @@ export async function drawMonitoringPdf(record, { logoDataUrl, signatureUrls = {
   );
 
   drawPersonnelPageFooters(doc);
-  doc.save(monitoringExportFilename(record, "pdf"));
+  doc.save(fileName || monitoringExportFilename(record, "pdf"));
 }

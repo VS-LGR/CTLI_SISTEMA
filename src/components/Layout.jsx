@@ -14,7 +14,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStandardOptions } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments } from "@/lib/roles";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -26,6 +26,7 @@ import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroS
 import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
+import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 
 const REQ_ICONS = {
   "4": ListChecks,
@@ -199,6 +200,12 @@ const Layout = () => {
         </Collapsible>
       )}
 
+      {!technicianNav && canAccessMasterDocuments(user?.role) && (
+        <NavLink to={LISTA_MESTRA_PATH} className={navLinkClass} data-testid="nav-lista-mestra" onClick={onNavigate}>
+          <List size={18} weight="duotone" /> Lista Mestra
+        </NavLink>
+      )}
+
       {!technicianNav && (
         <>
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
@@ -244,6 +251,7 @@ const Layout = () => {
                     const navOpts = {
                       canColeta: canAccessColeta(user?.role),
                       canPersonnelStandardOptions: canEditPersonnelStandardOptions(user?.role),
+                      canMasterDocuments: canAccessMasterDocuments(user?.role),
                     };
                     const sidebarItems = buildFolderSidebarNav(r.id, f, navOpts);
                     const hasSidebar = folderHasSidebarNav(r.id, f);

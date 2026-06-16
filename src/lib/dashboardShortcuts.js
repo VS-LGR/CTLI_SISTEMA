@@ -1,8 +1,9 @@
-import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessMasterDocuments } from "@/lib/roles";
 import { getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { PR_66_PEDIDOS_PATH } from "@/lib/pedidosCompraRoutes";
 import { PR_66_QUOTATION_PATH } from "@/lib/quotationRequestsRoutes";
+import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 
 /** Atalhos da dashboard — atualizar `to` e `enabled` quando rotas forem definidas. */
 export const DASHBOARD_SHORTCUTS = [
@@ -43,7 +44,13 @@ export const DASHBOARD_SHORTCUTS = [
     cadastroSectionId: "pesos",
   },
   { id: "ensaio-proficiencia", label: "Ensaio de Proficiência", enabled: false },
-  { id: "lista-mestra", label: "Lista Mestra", enabled: false },
+  {
+    id: "lista-mestra",
+    label: "Lista Mestra",
+    to: LISTA_MESTRA_PATH,
+    enabled: true,
+    requiresMasterDocuments: true,
+  },
 ];
 
 /**
@@ -88,6 +95,15 @@ export function getVisibleDashboardShortcuts(role) {
         label: item.label,
         active: false,
         disabledReason: "Sem permissão para solicitações de orçamento",
+      };
+    }
+
+    if (item.requiresMasterDocuments && !canAccessMasterDocuments(role)) {
+      return {
+        id: item.id,
+        label: item.label,
+        active: false,
+        disabledReason: "Sem permissão para Lista Mestra",
       };
     }
 

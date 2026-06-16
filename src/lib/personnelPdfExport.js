@@ -6,6 +6,38 @@ import { getMonitoring } from "@/lib/personnelMonitoringsApi";
 import { getExperienceEvaluation } from "@/lib/personnelExperienceEvaluationsApi";
 import { getSelection } from "@/lib/personnelSelectionsApi";
 import { getAttendanceList } from "@/lib/personnelAttendanceListsApi";
+import { PERSONNEL_PDF_TEMPLATE_KEYS } from "@/lib/personnelDocMeta";
+import { prepareMasterDocumentExport, recordMasterDocumentExport } from "@/lib/masterDocuments/masterDocumentExportHelper";
+
+async function exportWithMasterDoc({
+  tenant,
+  templateKey,
+  record,
+  defaultTitle,
+  fileNameContext,
+  sourceModule,
+  sourceRecordId,
+  draw,
+}) {
+  const { meta, fileName } = await prepareMasterDocumentExport({
+    tenantId: tenant?.id,
+    templateKey,
+    code: record.document_code,
+    record,
+    defaultTitle,
+    fileNameContext,
+  });
+  await draw({ documentMeta: meta, fileName });
+  if (tenant?.id) {
+    await recordMasterDocumentExport({
+      tenantId: tenant.id,
+      meta,
+      fileName,
+      sourceModule,
+      sourceRecordId,
+    });
+  }
+}
 
 async function loadLogoDataUrl(tenant) {
   if (!tenant?.logo_storage_path) return null;
@@ -51,7 +83,16 @@ export async function exportPositionCompetencyPdf(positionId, tenant) {
   const position = await getPosition(positionId);
   const logoDataUrl = await loadLogoDataUrl(tenant);
   const mod = await import(/* webpackChunkName: "personnel-pdf" */ "@/lib/personnelPdf/drawCompetencyPdf");
-  mod.drawCompetencyPdf(position, { logoDataUrl });
+  await exportWithMasterDoc({
+    tenant,
+    templateKey: PERSONNEL_PDF_TEMPLATE_KEYS.competency,
+    record: position,
+    defaultTitle: "COMPETÊNCIA DO CARGO",
+    fileNameContext: { cargo: position.title },
+    sourceModule: "personnel-competency",
+    sourceRecordId: positionId,
+    draw: ({ documentMeta, fileName }) => mod.drawCompetencyPdf(position, { logoDataUrl, documentMeta, fileName }),
+  });
 }
 
 export async function exportAdequacyPdf(adequacyId, tenant) {
@@ -69,7 +110,16 @@ export async function exportAdequacyPdf(adequacyId, tenant) {
     loadSignatureDataUrl(empSnap.signature_storage_path),
   ]);
   const mod = await import(/* webpackChunkName: "personnel-pdf" */ "@/lib/personnelPdf/drawAdequacyPdf");
-  await mod.drawAdequacyPdf(record, { logoDataUrl, signatureUrls: { approval, occupant } });
+  await exportWithMasterDoc({
+    tenant,
+    templateKey: PERSONNEL_PDF_TEMPLATE_KEYS.adequacy,
+    record,
+    defaultTitle: "ADEQUAÇÃO DE COMPETÊNCIA",
+    fileNameContext: { nome: record.occupant_name, cargo: record.position_title },
+    sourceModule: "personnel-adequacy",
+    sourceRecordId: adequacyId,
+    draw: ({ documentMeta, fileName }) => mod.drawAdequacyPdf(record, { logoDataUrl, signatureUrls: { approval, occupant }, documentMeta, fileName }),
+  });
 }
 
 export async function exportMonitoringPdf(monitoringId, tenant) {
@@ -87,14 +137,32 @@ export async function exportMonitoringPdf(monitoringId, tenant) {
     loadSignatureDataUrl(empSnap.signature_storage_path),
   ]);
   const mod = await import(/* webpackChunkName: "personnel-pdf" */ "@/lib/personnelPdf/drawMonitoringPdf");
-  await mod.drawMonitoringPdf(record, { logoDataUrl, signatureUrls: { approval, occupant } });
+  await exportWithMasterDoc({
+    tenant,
+    templateKey: PERSONNEL_PDF_TEMPLATE_KEYS.monitoring,
+    record,
+    defaultTitle: "MONITORAMENTO DE PESSOAL",
+    fileNameContext: { nome: record.occupant_name, cargo: record.position_title },
+    sourceModule: "personnel-monitoring",
+    sourceRecordId: monitoringId,
+    draw: ({ documentMeta, fileName }) => mod.drawMonitoringPdf(record, { logoDataUrl, signatureUrls: { approval, occupant }, documentMeta, fileName }),
+  });
 }
 
 export async function exportExperienceEvaluationPdf(evaluationId, tenant) {
   const record = await getExperienceEvaluation(evaluationId);
   const logoDataUrl = await loadLogoDataUrl(tenant);
   const mod = await import(/* webpackChunkName: "personnel-pdf" */ "@/lib/personnelPdf/drawExperienceEvaluationPdf");
-  await mod.drawExperienceEvaluationPdf(record, { logoDataUrl });
+  await exportWithMasterDoc({
+    tenant,
+    templateKey: PERSONNEL_PDF_TEMPLATE_KEYS.experienceEvaluation,
+    record,
+    defaultTitle: "AVALIAÇÃO DO PERÍODO DE EXPERIÊNCIA",
+    fileNameContext: { nome: record.occupant_name, cargo: record.position_title },
+    sourceModule: "personnel-experience",
+    sourceRecordId: evaluationId,
+    draw: ({ documentMeta, fileName }) => mod.drawExperienceEvaluationPdf(record, { logoDataUrl, documentMeta, fileName }),
+  });
 }
 
 export async function exportSelectionPdf(selectionId, tenant) {
@@ -110,12 +178,30 @@ export async function exportSelectionPdf(selectionId, tenant) {
     signatureUrl = await loadSignatureDataUrl(data?.signature_storage_path);
   }
   const mod = await import(/* webpackChunkName: "personnel-pdf" */ "@/lib/personnelPdf/drawPersonnelSelectionPdf");
-  await mod.drawPersonnelSelectionPdf(record, { logoDataUrl, signatureUrl });
+  await exportWithMasterDoc({
+    tenant,
+    templateKey: PERSONNEL_PDF_TEMPLATE_KEYS.personnelSelection,
+    record,
+    defaultTitle: "SELEÇÃO DE PESSOAL",
+    fileNameContext: { nome: record.candidate_name, cargo: record.position_title || record.vacancy },
+    sourceModule: "personnel-selection",
+    sourceRecordId: selectionId,
+    draw: ({ documentMeta, fileName }) => mod.drawPersonnelSelectionPdf(record, { logoDataUrl, signatureUrl, documentMeta, fileName }),
+  });
 }
 
 export async function exportAttendanceListPdf(listId, tenant) {
   const record = await getAttendanceList(listId);
   const logoDataUrl = await loadLogoDataUrl(tenant);
   const mod = await import(/* webpackChunkName: "personnel-pdf" */ "@/lib/personnelPdf/drawAttendanceListPdf");
-  await mod.drawAttendanceListPdf(record, { logoDataUrl });
+  await exportWithMasterDoc({
+    tenant,
+    templateKey: PERSONNEL_PDF_TEMPLATE_KEYS.attendanceList,
+    record,
+    defaultTitle: "LISTA DE PRESENÇA",
+    fileNameContext: { curso: record.course_title, data: record.course_date },
+    sourceModule: "personnel-attendance",
+    sourceRecordId: listId,
+    draw: ({ documentMeta, fileName }) => mod.drawAttendanceListPdf(record, { logoDataUrl, documentMeta, fileName }),
+  });
 }

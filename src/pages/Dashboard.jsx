@@ -84,6 +84,9 @@ const Dashboard = () => {
   const pinned = data?.pinned_documents || [];
   const recent = data?.recent_documents || [];
   const reminders = data?.reminders || [];
+  const documentAlerts = data?.document_alerts;
+  const listaMestraPath = data?.lista_mestra_path;
+  const alertCount = documentAlerts?.totalCount || 0;
   const showReminders = canManageDashboardReminders(user?.role);
   const shortcuts = getVisibleDashboardShortcuts(user?.role);
 
@@ -128,6 +131,19 @@ const Dashboard = () => {
           />
         ))}
       </div>
+
+      {alertCount > 0 && listaMestraPath && (
+        <Alert className="border-amber-300 bg-amber-50">
+          <Info size={18} className="text-amber-700" />
+          <AlertTitle className="text-amber-950">Lista Mestra — {alertCount} alerta(s)</AlertTitle>
+          <AlertDescription className="text-amber-900/90">
+            Há documentos com análise crítica, consulta externa ou validação pendente.{" "}
+            <Link to={`${listaMestraPath.replace("lista_mestra_internos", "lista_mestra_alertas")}`} className="underline font-medium">
+              Ver alertas
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0 items-start">
         <Card className="lg:col-span-2 border-slate-200 min-w-0 self-start">

@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { buildAttendanceListPdfViewModel } from "./viewModels";
+import { buildAttendanceListPdfViewModel, mergeDocumentMetaHeader } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters, PERSONNEL_PDF_MARGINS, ensurePersonnelSpace } from "./drawPersonnelPdfHeader";
 import { drawLabelValueTable, drawSectionTitle, drawSectionBlock } from "./competencySections";
 import { attendanceExportFilename } from "@/lib/personnelExportFilename";
@@ -31,8 +31,9 @@ function drawParticipantsTable(doc, y, head, body, courseTitle, redrawHeader, he
   return doc.lastAutoTable.finalY + 4;
 }
 
-export async function drawAttendanceListPdf(record, { logoDataUrl } = {}) {
+export async function drawAttendanceListPdf(record, { logoDataUrl, documentMeta, fileName } = {}) {
   const model = buildAttendanceListPdfViewModel(record);
+  model.header = mergeDocumentMetaHeader(model.header, documentMeta);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = redrawHeader(doc, model.header, logoDataUrl);
   if (model.subjectMetaRows?.length) y = drawLabelValueTable(doc, y, model.subjectMetaRows);
@@ -53,5 +54,5 @@ export async function drawAttendanceListPdf(record, { logoDataUrl } = {}) {
   y = drawLabelValueTable(doc, y, model.movementRows);
 
   drawPersonnelPageFooters(doc);
-  doc.save(attendanceExportFilename(record, "pdf"));
+  doc.save(fileName || attendanceExportFilename(record, "pdf"));
 }

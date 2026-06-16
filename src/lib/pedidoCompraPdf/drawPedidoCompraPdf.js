@@ -141,8 +141,15 @@ function drawTwoColBlock(doc, y, leftTitle, leftLines, rightTitle, rightLines) {
   return y + 36;
 }
 
-export function drawPedidoCompraPdf(order, { logoDataUrl, employees = [] } = {}) {
+export function drawPedidoCompraPdf(order, { logoDataUrl, employees = [], documentMeta } = {}) {
   const model = buildPedidoCompraPdfViewModel(order, { employees });
+  if (documentMeta) {
+    model.header.code = documentMeta.code || model.header.code;
+    model.header.reference = documentMeta.reference || model.header.reference;
+    model.header.revision = documentMeta.revision || model.header.revision;
+    model.header.modelIssueDate = documentMeta.modelIssueDate || model.header.modelIssueDate;
+    model.header.title = documentMeta.title || model.header.title;
+  }
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = drawHeader(doc, model, logoDataUrl);
 

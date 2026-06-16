@@ -104,7 +104,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
     try {
       const logoDataUrl = await loadLogoDataUrl(tenant);
       const full = await getQuotationRequest(row.id);
-      await exportQuotationRequestPdf(full, { logoDataUrl });
+      await exportQuotationRequestPdf(full, { logoDataUrl, tenantId, userId: user?.id });
     } catch (e) {
       toast.error(e.message || "Falha ao exportar PDF");
     }

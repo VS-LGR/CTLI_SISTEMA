@@ -17,10 +17,19 @@ export function fmtDmy(isoDate) {
 export function buildColetaPdfViewModel(
   row,
   tenantName = "",
-  { envCerts = [], weightItems = [], tenant = null } = {},
+  { envCerts = [], weightItems = [], tenant = null, documentMeta = null } = {},
 ) {
   const p = mergeColetaPayload(row?.payload);
-  const meta = coletaDocMetaFromTenant(tenant);
+  const tenantMeta = coletaDocMetaFromTenant(tenant);
+  const meta = documentMeta
+    ? {
+        code: documentMeta.code || tenantMeta.code,
+        ref: documentMeta.reference || tenantMeta.ref,
+        revision: documentMeta.revision?.startsWith("Rev")
+          ? documentMeta.revision
+          : `Rev. ${documentMeta.revision || "00"}`,
+      }
+    : tenantMeta;
   const prop = row?.commercial_proposal_ref || "";
 
   const thermoLabel = p.ambiente.thermo_cert_id

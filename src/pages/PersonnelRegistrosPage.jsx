@@ -46,12 +46,12 @@ const PANEL_BY_TOPIC = {
   "re-62a": AdequaciesListPanel,
   "re-62e": MonitoringsListPanel,
   "re-62b": ExperienceEvaluationsListPanel,
-  "pr-62f": SelectionsListPanel,
+  "re-62f": SelectionsListPanel,
   "re-62d": AttendanceListsListPanel,
 };
 
 const DEFAULT_OPEN_TOPICS = Object.fromEntries(
-  PERSONNEL_REGISTRO_TOPICS.map((t) => [t.id, t.id === "pr-62f"]),
+  PERSONNEL_REGISTRO_TOPICS.map((t) => [t.id, t.id === "re-62f"]),
 );
 
 const filterFieldClass =

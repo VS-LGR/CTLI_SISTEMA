@@ -72,7 +72,7 @@ function initialForm(type, tenantId, year, orderNum) {
     observations: DEFAULT_OBSERVATIONS,
     discount: 0,
     taxes_mode: "incluso",
-    document_code: "RE-6.6E",
+    document_code: "RE-6.6D",
     document_revision: "00",
     document_reference: "PR-6.6",
     signature_slot_1_label: "Gerente Técnico",
@@ -284,7 +284,7 @@ export default function PedidoCompraEditorPage() {
       if (!full.inspection && inspection?.result) {
         toast.info("Inspeção ainda não guardada — incluída no PDF do formulário.");
       }
-      await exportPedidoCompraPdf(orderForPdf, { logoDataUrl, employees });
+      await exportPedidoCompraPdf(orderForPdf, { logoDataUrl, employees, tenantId: currentTenantId, userId: user?.id });
     } catch (e) {
       toast.error(e.message || "Falha no PDF");
     }
@@ -392,7 +392,7 @@ export default function PedidoCompraEditorPage() {
                   <Input
                     className="mt-1 bg-slate-50"
                     readOnly
-                    value={`${form.document_code || "RE-6.6E"} Rev. ${form.document_revision ?? "00"}`}
+                    value={`${form.document_code || "RE-6.6D"} Rev. ${form.document_revision ?? "00"}`}
                   />
                 </div>
               </CardContent>

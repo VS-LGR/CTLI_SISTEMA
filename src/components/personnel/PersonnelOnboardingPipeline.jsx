@@ -54,7 +54,7 @@ function PipelineRowActions({ row, variant = "active" }) {
           <Link to={path}>Ver adequação RE-6.2A</Link>
         </Button>
         <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-          <Link to={selectionEditorPath(row.selection.id)}>Ver PR-6.2F</Link>
+          <Link to={selectionEditorPath(row.selection.id)}>Ver RE-6.2F</Link>
         </Button>
       </div>
     );
@@ -68,7 +68,7 @@ function PipelineRowActions({ row, variant = "active" }) {
         <Link to={nextPath}>{actionLabel}</Link>
       </Button>
       <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-        <Link to={selectionEditorPath(row.selection.id)}>Ver PR-6.2F</Link>
+        <Link to={selectionEditorPath(row.selection.id)}>Ver RE-6.2F</Link>
       </Button>
     </div>
   );
@@ -149,7 +149,7 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
         <div className="space-y-2 sm:hidden">
           {active.length === 0 ? (
             <p className="text-sm text-slate-500 py-2 text-center">
-              Nenhum fluxo pendente. Aprove uma seleção (PR-6.2F) e vincule o colaborador.
+              Nenhum fluxo pendente. Aprove uma seleção (RE-6.2F) e vincule o colaborador.
             </p>
           ) : (
             active.map((row) => <PipelineRowCard key={row.selection.id} row={row} />)
@@ -174,7 +174,7 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
                 {active.length === 0 && (
                   <tr>
                     <td colSpan={7} className="p-4 text-center text-slate-500 text-sm">
-                      Nenhum fluxo pendente. Aprove uma seleção (PR-6.2F) e vincule o colaborador no cadastro.
+                      Nenhum fluxo pendente. Aprove uma seleção (RE-6.2F) e vincule o colaborador no cadastro.
                     </td>
                   </tr>
                 )}
@@ -293,7 +293,7 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
                           <td className="p-2">{fmtDate(row.selection.selection_date)}</td>
                           <td className="p-2">
                             <Button variant="ghost" size="sm" asChild>
-                              <Link to={selectionEditorPath(row.selection.id)}>PR-6.2F</Link>
+                              <Link to={selectionEditorPath(row.selection.id)}>RE-6.2F</Link>
                             </Button>
                           </td>
                         </tr>

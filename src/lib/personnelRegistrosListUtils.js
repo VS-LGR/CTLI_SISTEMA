@@ -97,6 +97,7 @@ export function computePersonnelTopicStats(topicId, rows) {
         attention: rejectedExperience + pendingOpinion,
       };
     }
+    case "re-62f":
     case "pr-62f": {
       const approvedSelections = list.filter((r) => r.conclusive_opinion_approved === true).length;
       const rejectedSelections = list.filter((r) => r.conclusive_opinion_approved === false).length;

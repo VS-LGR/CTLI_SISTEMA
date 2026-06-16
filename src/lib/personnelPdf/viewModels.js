@@ -29,6 +29,17 @@ function docHeaderFromRecord(record, defaultTitle) {
   };
 }
 
+export function mergeDocumentMetaHeader(header, documentMeta) {
+  if (!documentMeta) return header;
+  return {
+    title: documentMeta.title || header.title,
+    code: documentMeta.code || header.code,
+    reference: documentMeta.reference || header.reference,
+    revision: documentMeta.revision || header.revision,
+    modelIssueDate: documentMeta.modelIssueDate || header.modelIssueDate,
+  };
+}
+
 function listLabels(items) {
   if (!items) return [];
   if (Array.isArray(items) && items.length && typeof items[0] === "string") return items;

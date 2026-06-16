@@ -41,7 +41,7 @@ export default function PersonnelSelectionEditorPage() {
   const { currentTenantId, currentTenant } = useOutletContext();
   const isNew = id === "nova";
   const returnTo = searchParams.get("returnTo");
-  const registrosBack = returnTo || personnelRegistrosPath({ topic: "pr-62f" });
+  const registrosBack = returnTo || personnelRegistrosPath({ topic: "re-62f" });
   const [form, setForm] = useState(emptySelectionForm);
   const [employees, setEmployees] = useState([]);
   const [positions, setPositions] = useState([]);

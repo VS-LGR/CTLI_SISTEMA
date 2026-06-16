@@ -499,7 +499,7 @@ function drawVerso(doc, model) {
 export async function drawColetaPdf(row, tenantName = "", opts = {}) {
   const model = buildColetaPdfViewModel(row, tenantName, opts);
   const slug = coletaPdfFileSlug(row);
-  const { logoDataUrl } = opts;
+  const { logoDataUrl, fileName } = opts;
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   drawHeader(doc, model, logoDataUrl);
@@ -510,5 +510,5 @@ export async function drawColetaPdf(row, tenantName = "", opts = {}) {
   drawVerso(doc, model);
 
   drawInstitutionalPageFooters(doc);
-  doc.save(`coleta-${slug}.pdf`);
+  doc.save(fileName || `coleta-${slug}.pdf`);
 }

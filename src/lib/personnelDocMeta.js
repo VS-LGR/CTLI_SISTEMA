@@ -28,7 +28,7 @@ export const PERSONNEL_DOC_DEFAULTS = {
     modelIssueDate: "2025-06-30",
   },
   personnelSelection: {
-    code: "PR-6.2F",
+    code: "RE-6.2F",
     reference: "PR-6.2",
     revision: "00",
     title: "SELEÇÃO DE PESSOAL",
@@ -43,7 +43,14 @@ export const PERSONNEL_DOC_DEFAULTS = {
   },
 };
 
-export const ADEQUACY_AUTH_TEXT =
+export const PERSONNEL_PDF_TEMPLATE_KEYS = {
+  competency: "re-62c-competencias-cargo-pdf",
+  adequacy: "re-62a-adequacao-competencia-pdf",
+  monitoring: "re-62e-monitoramento-pessoal-pdf",
+  experienceEvaluation: "re-62b-avaliacao-periodo-experiencia-pdf",
+  personnelSelection: "re-62f-selecao-pessoal-pdf",
+  attendanceList: "re-62d-lista-presenca-pdf",
+};
   "ESTA ADEQUAÇÃO DE COMPETÊNCIA FOI ANALISADA PELO SUPERIOR DO FUNCIONÁRIO MENCIONADO ACIMA E ESTE CONCLUÍU QUE O MESMO SE ENCONTRA APTO, SENDO ASSIM ESTÁ AUTORIZADO A EXERCER O CARGO COM SUAS ATRIBUIÇÕES TÉCNICAS E GERENCIAIS DEFINIDAS NESTE DOCUMENTO.";
 
 export const COMPETENCY_AUTH_TEXT =

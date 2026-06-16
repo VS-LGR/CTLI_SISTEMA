@@ -6,12 +6,13 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
-import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, isTechnicianOnlyNav } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, canAccessMasterDocuments, isTechnicianOnlyNav } from "@/lib/roles";
 import { PERSONNEL_BASE_PATH, PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
 import { PERSONNEL_DASHBOARD_PATH } from "@/lib/personnelRegistrosRoutes";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
+import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 import "@/App.css";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -33,6 +34,7 @@ const PersonnelMonitoringEditorPage = lazy(() => import("@/pages/PersonnelMonito
 const ExperienceEvaluationEditorPage = lazy(() => import("@/pages/ExperienceEvaluationEditorPage"));
 const PersonnelSelectionEditorPage = lazy(() => import("@/pages/PersonnelSelectionEditorPage"));
 const AttendanceListEditorPage = lazy(() => import("@/pages/AttendanceListEditorPage"));
+const MasterDocumentDetailPage = lazy(() => import("@/pages/MasterDocumentDetailPage"));
 
 const pageSuspenseFallback = (
   <div className="p-8 text-center text-slate-500 text-sm">A carregar…</div>
@@ -44,7 +46,7 @@ const ColetaLegacyRedirect = () => {
   return <Navigate to={coletaEditorPath(id)} replace />;
 };
 
-const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false, personnelOnly = false }) => {
+const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false, personnelOnly = false, masterDocumentsOnly = false }) => {
   const { user } = useAuth();
   const loc = useLocation();
   if (user === null) {
@@ -66,6 +68,9 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOr
     return <Navigate to="/dashboard" replace />;
   }
   if (personnelOnly && !canAccessPersonnel(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (masterDocumentsOnly && !canAccessMasterDocuments(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (isTechnicianOnlyNav(user.role) && !isColetaPath(loc.pathname)) {
@@ -285,6 +290,17 @@ const App = () => (
                 <Protected personnelOnly>
                   <Suspense fallback={pageSuspenseFallback}>
                     <AttendanceListEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route path={LISTA_MESTRA_SHORT_PATH} element={<Navigate to={LISTA_MESTRA_PATH} replace />} />
+            <Route
+              path="/lista-mestra/:id"
+              element={(
+                <Protected masterDocumentsOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <MasterDocumentDetailPage />
                   </Suspense>
                 </Protected>
               )}

@@ -180,7 +180,7 @@ export function mapQuotationHeaderToPoForm(quotation, poType, { orderNumber, ord
       : DEFAULT_OBSERVATIONS,
     discount: 0,
     taxes_mode: "incluso",
-    document_code: "RE-6.6E",
+    document_code: "RE-6.6D",
     document_revision: "00",
     document_reference: "PR-6.6",
     preserveSnapshots: true,

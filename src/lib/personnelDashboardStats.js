@@ -156,7 +156,7 @@ export async function fetchPersonnelRegistrosTopicRows(tenantId) {
     "re-62a": adequacies,
     "re-62e": monitorings,
     "re-62b": experiences,
-    "pr-62f": selections,
+    "re-62f": selections,
     "re-62d": attendances,
   };
 }

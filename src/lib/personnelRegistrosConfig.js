@@ -66,7 +66,7 @@ export const PERSONNEL_REGISTRO_TOPICS = [
     ],
   },
   {
-    id: "pr-62f",
+    id: "re-62f",
     code: D.personnelSelection.code,
     label: `${D.personnelSelection.code} — Seleção de pessoal`,
     shortLabel: "Seleção de pessoal",
@@ -96,7 +96,7 @@ export const PERSONNEL_REGISTRO_GROUPS = [
   {
     id: "monitoramento-selecao",
     label: "Monitoramento e Seleção",
-    topicIds: ["re-62e", "pr-62f"],
+    topicIds: ["re-62e", "re-62f"],
   },
 ];
 

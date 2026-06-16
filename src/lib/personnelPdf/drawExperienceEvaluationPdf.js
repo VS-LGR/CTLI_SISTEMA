@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { buildExperienceEvaluationPdfViewModel } from "./viewModels";
+import { buildExperienceEvaluationPdfViewModel, mergeDocumentMetaHeader } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters, PERSONNEL_PDF_MARGINS, ensurePersonnelSpace } from "./drawPersonnelPdfHeader";
 import { drawLabelValueTable, drawSectionTitle, drawSectionBlock } from "./competencySections";
 import { experienceExportFilename } from "@/lib/personnelExportFilename";
@@ -34,8 +34,9 @@ function drawScoringTable(doc, y, items, redrawHeader, header, logoDataUrl) {
   return doc.lastAutoTable.finalY + 4;
 }
 
-export async function drawExperienceEvaluationPdf(record, { logoDataUrl } = {}) {
+export async function drawExperienceEvaluationPdf(record, { logoDataUrl, documentMeta, fileName } = {}) {
   const model = buildExperienceEvaluationPdfViewModel(record);
+  model.header = mergeDocumentMetaHeader(model.header, documentMeta);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = redrawHeader(doc, model.header, logoDataUrl);
   if (model.subjectMetaRows?.length) y = drawLabelValueTable(doc, y, model.subjectMetaRows);
@@ -102,5 +103,5 @@ export async function drawExperienceEvaluationPdf(record, { logoDataUrl } = {}) 
   doc.text(`Data: ${model.signatureDate}`, ML, y + 18);
 
   drawPersonnelPageFooters(doc);
-  doc.save(experienceExportFilename(record, "pdf"));
+  doc.save(fileName || experienceExportFilename(record, "pdf"));
 }

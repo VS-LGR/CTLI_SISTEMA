@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { buildCompetencyPdfViewModel } from "./viewModels";
+import { buildCompetencyPdfViewModel, mergeDocumentMetaHeader } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters } from "./drawPersonnelPdfHeader";
 import {
   drawLabelValueTable,
@@ -13,8 +13,9 @@ function redrawHeader(doc, header, logoDataUrl, yStart) {
   return drawPersonnelPdfHeader(doc, header, logoDataUrl, yStart);
 }
 
-export function drawCompetencyPdf(position, { logoDataUrl } = {}) {
+export function drawCompetencyPdf(position, { logoDataUrl, documentMeta, fileName } = {}) {
   const model = buildCompetencyPdfViewModel(position);
+  model.header = mergeDocumentMetaHeader(model.header, documentMeta);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = redrawHeader(doc, model.header, logoDataUrl);
   if (model.subjectMetaRows?.length) y = drawLabelValueTable(doc, y, model.subjectMetaRows);
@@ -40,5 +41,5 @@ export function drawCompetencyPdf(position, { logoDataUrl } = {}) {
   );
 
   drawPersonnelPageFooters(doc);
-  doc.save(competencyExportFilename(position, "pdf"));
+  doc.save(fileName || competencyExportFilename(position, "pdf"));
 }

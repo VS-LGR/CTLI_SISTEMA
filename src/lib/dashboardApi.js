@@ -10,6 +10,8 @@ import {
   isSupabaseDocumentsEnabled,
   toggleDocumentPin as toggleDocumentPinApi,
 } from "@/lib/documentsApi";
+import { getAllDocumentAlerts } from "@/lib/masterDocuments/masterDocumentAlerts";
+import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 
 const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").trim();
 const hasLegacyDashboardApi = Boolean(BACKEND_URL) && !isMockApiMode;
@@ -46,7 +48,7 @@ function emptyDashboardPayload(reminders) {
   };
 }
 
-function buildDashboardFromDocs(docs, reminders) {
+function buildDashboardFromDocs(docs, reminders, documentAlerts = null) {
   const by_requirement = {};
   for (const req of ["4", "5", "6", "7", "8"]) {
     const sub = docs.filter((d) => String(d.requirement) === req);
@@ -95,6 +97,8 @@ function buildDashboardFromDocs(docs, reminders) {
       pinned_at: d.pinned_at,
     })),
     reminders,
+    document_alerts: documentAlerts,
+    lista_mestra_path: LISTA_MESTRA_PATH,
   };
 }
 
@@ -115,7 +119,11 @@ export function fetchDashboard(tenantId) {
       if (isSupabaseDocumentsEnabled()) {
         try {
           const docs = await fetchDocumentStatsSupabase(tenantId);
-          return { data: buildDashboardFromDocs(docs, reminders) };
+          let documentAlerts = null;
+          try {
+            documentAlerts = await getAllDocumentAlerts(tenantId);
+          } catch { /* optional */ }
+          return { data: buildDashboardFromDocs(docs, reminders, documentAlerts) };
         } catch {
           return { data: emptyDashboardPayload(reminders) };
         }

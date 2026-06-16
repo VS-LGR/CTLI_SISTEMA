@@ -7,7 +7,7 @@ import {
 } from "@/lib/personnelRoutes";
 import { PIPELINE_STAGES } from "@/lib/personnelPipelineStats";
 
-export const PERSONNEL_ONBOARDING_RETURN_TO = personnelRegistrosPath({ topic: "pr-62f" });
+export const PERSONNEL_ONBOARDING_RETURN_TO = personnelRegistrosPath({ topic: "re-62f" });
 
 const ACTION_LABELS = {
   [PIPELINE_STAGES.AGUARDANDO_ADMISSAO]: "Vincular colaborador",

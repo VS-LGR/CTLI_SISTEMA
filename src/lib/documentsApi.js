@@ -122,6 +122,7 @@ async function createDocumentSupabase(body, userId) {
     content_html: body.content_html || "",
     status: body.status || "vigente",
     has_file: false,
+    master_document_id: body.master_document_id || null,
     created_by: userId || null,
     updated_by: userId || null,
   };

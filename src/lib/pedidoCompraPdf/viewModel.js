@@ -15,7 +15,7 @@ function snapField(obj, key) {
 }
 
 function formatIssueEmission(order) {
-  const code = order.document_code || "RE-6.6E";
+  const code = order.document_code || "RE-6.6D";
   const rev = order.document_revision ?? "00";
   return `${code} Rev. ${rev}`;
 }
@@ -37,7 +37,7 @@ export function buildPedidoCompraPdfViewModel(order, { employees = [] } = {}) {
       displayTitle: "Pedido de compras",
       typeLabel: typeMeta?.serviceTypeLabel || "",
       orderNumber: formatOrderNumber(order.order_number, order.order_year),
-      code: order.document_code || "RE-6.6E",
+      code: order.document_code || "RE-6.6D",
       revision: order.document_revision || "00",
       reference: order.document_reference || "PR-6.6",
       issueEmission: formatIssueEmission(order),

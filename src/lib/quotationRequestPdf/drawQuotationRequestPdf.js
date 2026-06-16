@@ -71,8 +71,15 @@ function drawKeyValueTable(doc, y, rows) {
   return doc.lastAutoTable.finalY + 4;
 }
 
-export function drawQuotationRequestPdf(request, { logoDataUrl } = {}) {
+export function drawQuotationRequestPdf(request, { logoDataUrl, documentMeta, fileName } = {}) {
   const model = buildQuotationRequestPdfViewModel(request);
+  if (documentMeta) {
+    model.header.title = documentMeta.title || model.header.title;
+    model.header.code = documentMeta.code || model.header.code;
+    model.header.reference = documentMeta.reference || model.header.reference;
+    model.header.revision = documentMeta.revision || model.header.revision;
+    model.header.modelIssueDate = documentMeta.modelIssueDate || model.header.modelIssueDate;
+  }
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = drawHeader(doc, model, logoDataUrl);
 
@@ -169,6 +176,5 @@ export function drawQuotationRequestPdf(request, { logoDataUrl } = {}) {
 
   drawInstitutionalPageFooters(doc);
 
-  const num = model.header.requestNumber.replace(/\//g, "-");
-  doc.save(`solicitacao-orcamento-${num}.pdf`);
+  doc.save(fileName || `solicitacao-orcamento-${model.header.requestNumber.replace(/\//g, "-")}.pdf`);
 }

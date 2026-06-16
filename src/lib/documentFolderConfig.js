@@ -10,6 +10,14 @@ export const DOCUMENT_SECTIONS = {
   assinatura: { id: "assinatura", label: "Assinaturas" },
   pedidos_compra: { id: "pedidos_compra", label: "Pedidos de compra" },
   solicitacoes_orcamento: { id: "solicitacoes_orcamento", label: "Solicitações de orçamento" },
+  lista_mestra_internos: { id: "lista_mestra_internos", label: "Documentos Internos" },
+  lista_mestra_externos: { id: "lista_mestra_externos", label: "Documentos Externos" },
+  lista_mestra_revisoes: { id: "lista_mestra_revisoes", label: "Histórico de Revisões" },
+  lista_mestra_distribuicao: { id: "lista_mestra_distribuicao", label: "Distribuição" },
+  lista_mestra_templates: { id: "lista_mestra_templates", label: "Templates de Exportação" },
+  lista_mestra_gerados: { id: "lista_mestra_gerados", label: "Registros Gerados" },
+  lista_mestra_alertas: { id: "lista_mestra_alertas", label: "Alertas" },
+  lista_mestra_config: { id: "lista_mestra_config", label: "Configurações" },
 };
 
 /** Pastas com regras especiais (requisito 5). Requisito 4 pr-4-1 usa default (procedimento + registro). */
@@ -31,6 +39,22 @@ const FOLDER_MODES = {
   "estrutura-organizacional": { sections: ["registro"], defaultSection: "registro", richEditor: true },
   "politica-qualidade": { sections: ["registro"], defaultSection: "registro", richEditor: true },
   assinaturas: { sections: ["assinatura"], defaultSection: "assinatura", richEditor: false, signatures: true },
+  "pr-8-3": {
+    sections: [
+      "procedimento",
+      "lista_mestra_internos",
+      "lista_mestra_externos",
+      "lista_mestra_revisoes",
+      "lista_mestra_distribuicao",
+      "lista_mestra_templates",
+      "lista_mestra_gerados",
+      "lista_mestra_alertas",
+      "lista_mestra_config",
+    ],
+    defaultSection: "lista_mestra_internos",
+    richEditor: true,
+    masterDocumentList: true,
+  },
 };
 
 const DEFAULT_MODE = {
@@ -42,7 +66,11 @@ const DEFAULT_MODE = {
 export function getFolderDocumentMode(requirementId, folderKey) {
   const rid = String(requirementId);
   if (folderKey && FOLDER_MODES[folderKey]) {
-    if (rid === "5" || (rid === "6" && (folderKey === "pr-6-6" || folderKey === "pr-6-2"))) {
+    if (
+      rid === "5"
+      || (rid === "6" && (folderKey === "pr-6-6" || folderKey === "pr-6-2"))
+      || (rid === "8" && folderKey === "pr-8-3")
+    ) {
       return { ...FOLDER_MODES[folderKey] };
     }
   }
@@ -72,4 +100,8 @@ export function isFileOnlyFolder(requirementId, folderKey) {
 
 export function allowsRichEditor(requirementId, folderKey) {
   return getFolderDocumentMode(requirementId, folderKey).richEditor !== false;
+}
+
+export function isMasterDocumentListFolder(requirementId, folderKey) {
+  return getFolderDocumentMode(requirementId, folderKey).masterDocumentList === true;
 }

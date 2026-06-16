@@ -40,6 +40,10 @@ export const canAccessPersonnel = canAccessPurchaseOrders;
 export const canEditPersonnelStandardOptions = (role) =>
   ["admin", "client", "gerente_qualidade", "diretor"].includes(role);
 
+/** Lista Mestra de Documentos (PR-8.3). */
+export const canAccessMasterDocuments = (role) =>
+  ["admin", "client", "diretor", "gerente_qualidade", "gerente_tecnico"].includes(role);
+
 export const canManageTechnicians = (role) =>
   role === "admin" || role === "client";
 

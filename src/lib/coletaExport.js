@@ -15,10 +15,36 @@ export async function exportColetaPdf(
   tenantName = "",
   { logoDataUrl, envCerts = [], weightItems = [], tenant = null } = {},
 ) {
+  const { prepareMasterDocumentExport, recordMasterDocumentExport } = await import(
+    "./masterDocuments/masterDocumentExportHelper"
+  );
+  const p = row?.payload?.cliente || row?.payload || {};
+  const clienteName = p.cliente?.razao_social || row?.client_name || "";
+  const { meta, fileName } = await prepareMasterDocumentExport({
+    tenantId: tenant?.id,
+    templateKey: "re-72a-coleta-pdf",
+    code: "RE-7.2A",
+    record: row,
+    defaultTitle: "COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA",
+    fileNameContext: {
+      numero: row.collection_number || row.id?.slice?.(0, 8),
+      cliente: clienteName,
+      numeroSerie: row.scale_serial,
+    },
+  });
   const { renderColetaPdf } = await import(
     /* webpackChunkName: "coleta-pdf" */ "./coletaPdf/renderToPdf"
   );
-  await renderColetaPdf(row, tenantName, { logoDataUrl, envCerts, weightItems, tenant });
+  await renderColetaPdf(row, tenantName, { logoDataUrl, envCerts, weightItems, tenant, documentMeta: meta, fileName });
+  if (tenant?.id) {
+    await recordMasterDocumentExport({
+      tenantId: tenant.id,
+      meta,
+      fileName,
+      sourceModule: "coleta",
+      sourceRecordId: row.id,
+    });
+  }
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   isFileOnlyFolder,
   allowsRichEditor,
   isPurchaseOrdersFolder,
+  isMasterDocumentListFolder,
 } from "@/lib/documentFolderConfig";
 import PurchaseOrdersListPanel from "@/components/purchaseOrders/PurchaseOrdersListPanel";
 import QuotationRequestsListPanel from "@/components/quotationRequests/QuotationRequestsListPanel";
@@ -49,13 +50,16 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
 import { PERSONNEL_REQ_ID, PERSONNEL_FOLDER_KEY } from "@/lib/personnelRegistrosRoutes";
-import { canAccessColeta, canAccessPersonnel } from "@/lib/roles";
+import { canAccessColeta, canAccessPersonnel, canAccessMasterDocuments } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import AssinaturasSection from "@/components/documents/AssinaturasSection";
+import { findMasterDocumentByCode } from "@/lib/masterDocuments/masterDocumentsApi";
+import { inferProcedureCodeFromFolder } from "@/lib/masterDocuments/masterDocumentRoutes";
 
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const PersonnelRegistrosPage = lazy(() => import("@/pages/PersonnelRegistrosPage"));
+const MasterDocumentHub = lazy(() => import("@/components/masterDocuments/MasterDocumentHub"));
 
 function filterBySearch(docs, searchQuery) {
   if (!searchQuery.trim()) return docs;
@@ -114,6 +118,13 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
         status: "vigente",
       };
       if (requiresFolderNav(requirement) && folderKey) body.folder_key = folderKey;
+      const procCode = inferProcedureCodeFromFolder(folderKey);
+      if (procCode && tenantId) {
+        try {
+          const masterDoc = await findMasterDocumentByCode(tenantId, procCode);
+          if (masterDoc?.id) body.master_document_id = masterDoc.id;
+        } catch { /* optional link */ }
+      }
       let data = await createDocument(body, user?.id);
       if (file) {
         try {
@@ -511,7 +522,8 @@ const RequirementView = () => {
   const fileOnly = isFileOnlyFolder(id, folderKey);
   const purchaseOrdersTab = isPurchaseOrdersFolder(id, folderKey) && section === "pedidos_compra";
   const quotationRequestsTab = isPurchaseOrdersFolder(id, folderKey) && section === "solicitacoes_orcamento";
-  const moduleTab = purchaseOrdersTab || quotationRequestsTab;
+  const masterDocumentTab = isMasterDocumentListFolder(id, folderKey) && section.startsWith("lista_mestra_");
+  const moduleTab = purchaseOrdersTab || quotationRequestsTab || masterDocumentTab;
   const variant = status === "vigente" ? "vigente" : "obsoleto";
   const currentSectionMeta = visibleSections.find((s) => s.id === section);
 
@@ -595,7 +607,11 @@ const RequirementView = () => {
         </div>
 
         <TabsContent value={section} className="mt-4">
-          {purchaseOrdersTab ? (
+          {masterDocumentTab && canAccessMasterDocuments(user?.role) ? (
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar Lista Mestra…</div>}>
+              <MasterDocumentHub tenantId={currentTenantId} tenant={currentTenant} section={section} />
+            </Suspense>
+          ) : purchaseOrdersTab ? (
             <PurchaseOrdersListPanel tenantId={currentTenantId} tenant={currentTenant} />
           ) : quotationRequestsTab ? (
             <QuotationRequestsListPanel tenantId={currentTenantId} tenant={currentTenant} />

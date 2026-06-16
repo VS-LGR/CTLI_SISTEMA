@@ -150,7 +150,7 @@ function buildOrderPayload(form, tenantId, items) {
     taxes_mode: form.taxes_mode || "incluso",
     subtotal,
     final_value,
-    document_code: form.document_code || "RE-6.6E",
+    document_code: form.document_code || "RE-6.6D",
     document_revision: form.document_revision || "00",
     document_reference: form.document_reference || "PR-6.6",
     signature_slot_1_label: form.signature_slot_1_label || "Gerente Técnico",

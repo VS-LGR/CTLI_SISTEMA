@@ -107,7 +107,7 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
       }
       const { getPurchaseOrder } = await import("@/lib/purchaseOrdersApi");
       const full = await getPurchaseOrder(row.id);
-      await exportPedidoCompraPdf(full, { logoDataUrl, employees });
+      await exportPedidoCompraPdf(full, { logoDataUrl, employees, tenantId, userId: user?.id });
     } catch (e) {
       toast.error(e.message || "Falha ao exportar PDF");
     }
