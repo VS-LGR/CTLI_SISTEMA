@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalPdfHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-import { ML, MR, TEXT } from "@/lib/institutionalPdf/theme";
+import { ML, MR, PAGE_W, TEXT } from "@/lib/institutionalPdf/theme";
 import { listMasterDocuments, listExternalDocuments, listControlledSoftware } from "@/lib/masterDocuments/masterDocumentsApi";
 import { getActiveDocumentByCode } from "@/lib/masterDocuments/masterDocumentResolver";
 import { typeLabel, statusLabel } from "@/lib/masterDocuments/masterDocumentConstants";
@@ -35,14 +35,39 @@ function sectionTitle(doc, y, text) {
   return y + 8;
 }
 
-function drawDocTable(doc, startY, headers, rows) {
+const TABLE_MARGIN = { left: ML, right: PAGE_W - MR };
+
+const INTERNAL_COL_WIDTHS = {
+  0: { cellWidth: 22 },
+  1: { cellWidth: 10 },
+  2: { cellWidth: 58 },
+  3: { cellWidth: 18 },
+  4: { cellWidth: 18 },
+  5: { cellWidth: 18 },
+  6: { cellWidth: 18 },
+  7: { cellWidth: 18 },
+};
+
+const EXTERNAL_COL_WIDTHS = {
+  0: { cellWidth: 48 },
+  1: { cellWidth: 22 },
+  2: { cellWidth: 16 },
+  3: { cellWidth: 18 },
+  4: { cellWidth: 18 },
+  5: { cellWidth: 14 },
+  6: { cellWidth: 44 },
+};
+
+function drawDocTable(doc, startY, headers, rows, columnStyles = INTERNAL_COL_WIDTHS) {
   autoTable(doc, {
     startY,
     head: [headers],
     body: rows,
-    margin: { left: ML, right: MR },
-    styles: { fontSize: 7, cellPadding: 1.5 },
+    margin: TABLE_MARGIN,
+    theme: "grid",
+    styles: { fontSize: 7, cellPadding: 1.5, overflow: "linebreak", textColor: TEXT },
     headStyles: { fillColor: [240, 240, 240], textColor: TEXT, fontStyle: "bold" },
+    columnStyles,
   });
   return doc.lastAutoTable.finalY + 6;
 }
@@ -92,29 +117,36 @@ export async function exportMasterDocumentListPdf(tenantId, tenant) {
   y = sectionTitle(doc, y, "Procedimentos");
   y = drawDocTable(doc, y, headers, procedures.map(rowMap));
 
-  if (y > 250) { doc.addPage(); y = 20; }
   y = sectionTitle(doc, y, "Registros da Qualidade");
   y = drawDocTable(doc, y, headers, records.map(rowMap));
 
   if (software.length) {
-    if (y > 240) { doc.addPage(); y = 20; }
     y = sectionTitle(doc, y, "Planilhas / Softwares Controlados");
-    y = drawDocTable(doc, y, ["Título", "Revisão", "Última validação", "Status"], software.map((s) => [
-      s.title, s.revision, formatDateBr(s.last_validation_date), s.status,
-    ]));
+    y = drawDocTable(
+      doc,
+      y,
+      ["Título", "Revisão", "Última validação", "Status"],
+      software.map((s) => [s.title, s.revision, formatDateBr(s.last_validation_date), s.status]),
+      { 0: { cellWidth: 90 }, 1: { cellWidth: 20 }, 2: { cellWidth: 35 }, 3: { cellWidth: 35 } },
+    );
   }
 
   if (externals.length) {
-    doc.addPage();
-    y = 20;
     y = sectionTitle(doc, y, "Documentos Externos Controlados");
-    y = drawDocTable(doc, y,
+    y = drawDocTable(
+      doc,
+      y,
       ["Título", "Local", "Revisão", "Últ. consulta", "Próx.", "Revisão?", "Procedimentos"],
       externals.map((e) => [
-        e.title, e.consultation_location, e.external_revision,
-        formatDateBr(e.last_consultation_date), formatDateBr(e.next_consultation_date),
-        e.has_revision ? "Sim" : "Não", e.involved_procedures,
+        e.title,
+        e.consultation_location,
+        e.external_revision,
+        formatDateBr(e.last_consultation_date),
+        formatDateBr(e.next_consultation_date),
+        e.has_revision ? "Sim" : "Não",
+        e.involved_procedures,
       ]),
+      EXTERNAL_COL_WIDTHS,
     );
   }
 
