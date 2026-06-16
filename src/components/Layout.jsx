@@ -4,10 +4,11 @@ import { useAuth } from "@/context/AuthContext";
 import api, { asArray, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import {
-  House, SignOut, CaretDown, ShieldCheck,
+  House, SignOut, CaretDown,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
   Buildings, CaretRight, ClipboardText, List, X,
 } from "@phosphor-icons/react";
+import AppBrand from "@/components/branding/AppBrand";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -36,18 +37,10 @@ const REQ_ICONS = {
   "8": GearSix,
 };
 
-function SidebarBrand() {
+function SidebarBrand({ collapsed = false }) {
   return (
     <div className="px-4 sm:px-6 py-5 border-b border-slate-800 shrink-0">
-      <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-md bg-blue-600 flex items-center justify-center shrink-0">
-          <ShieldCheck size={20} weight="bold" />
-        </div>
-        <div className="min-w-0">
-          <div className="font-display font-bold text-lg tracking-tight truncate">ProcVault</div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">QMS</div>
-        </div>
-      </div>
+      <AppBrand variant={collapsed ? "sidebar-collapsed" : "sidebar"} />
     </div>
   );
 }
