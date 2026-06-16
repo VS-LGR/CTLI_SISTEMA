@@ -443,11 +443,11 @@ const RequirementView = () => {
   const visibleSections = useMemo(() => getVisibleSections(id, folderKey), [id, folderKey]);
   const defaultSection = folderMode.defaultSection;
   const tabFromUrl = searchParams.get("tab");
-  const initialSection = tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)
-    ? tabFromUrl
-    : defaultSection;
+  const section = useMemo(() => {
+    if (tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)) return tabFromUrl;
+    return defaultSection;
+  }, [tabFromUrl, visibleSections, defaultSection]);
 
-  const [section, setSection] = useState(initialSection);
   const [status, setStatus] = useState("vigente");
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -478,27 +478,13 @@ const RequirementView = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (!visibleSections.some((s) => s.id === section)) {
-      setSection(visibleSections[0]?.id || defaultSection);
-    }
-  }, [id, folderKey, visibleSections, section, defaultSection]);
-
-  useEffect(() => {
-    if (tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)) {
-      setSection(tabFromUrl);
-    }
-  }, [tabFromUrl, id, folderKey, visibleSections]);
-
   const onTabChange = useCallback((next) => {
-    setSection(next);
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev);
-      if (next === defaultSection) p.delete("tab");
-      else p.set("tab", next);
+      p.set("tab", next);
       return p;
     }, { replace: true });
-  }, [defaultSection, setSearchParams]);
+  }, [setSearchParams]);
 
   const filteredDocs = useMemo(() => filterBySearch(docs, searchQuery), [docs, searchQuery]);
 

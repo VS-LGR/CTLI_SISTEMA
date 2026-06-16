@@ -7,6 +7,7 @@ export const PERSONNEL_FOLDER_KEY = "pr-6-2";
 
 export const PERSONNEL_DASHBOARD_PATH = `/requirement/${PERSONNEL_REQ_ID}/${PERSONNEL_FOLDER_KEY}`;
 export const PERSONNEL_REGISTROS_PATH = `${PERSONNEL_DASHBOARD_PATH}?tab=registro`;
+export const PERSONNEL_PROCEDIMENTOS_PATH = `${PERSONNEL_DASHBOARD_PATH}?tab=procedimento`;
 
 const VALID_TOPIC_IDS = new Set(PERSONNEL_REGISTRO_TOPICS.map((t) => t.id));
 

@@ -43,7 +43,15 @@ Requer permissão: `canEditPersonnelStandardOptions` (listas) ou `canAccessColet
 |-------|-----|
 | `?tab=procedimento` | Aba procedimentos |
 | `?tab=registro` | Aba registros / módulo embutido |
-| `?topic=re-62a,re-62b` | Filtro multi-tópico no dashboard Pessoal |
+| `?tab=pedidos_compra` / `?tab=solicitacoes_orcamento` | Abas PR-6.6 |
+| `?topic=re-62a,re-62b` | Filtro multi-tópico no dashboard Pessoal (preservado ao mudar de aba) |
+
+### Sincronização sidebar ↔ página
+
+- Links da sidebar usam **sempre** `?tab={secção}` (ex.: `/requirement/6/pr-6-2?tab=procedimento`).
+- `RequirementView` deriva a aba ativa **só da URL** (`searchParams.get("tab")`), sem estado local dessincronizado.
+- As abas na página atualizam a URL com `?tab=` explícito; `Layout` destaca o item correto comparando o param `tab`.
+- URLs antigas sem `?tab=` continuam válidas: cai na `defaultSection` da pasta (`registro` em PR-6.2, `procedimento` na maioria).
 
 ### Módulos embutidos em RequirementView
 
@@ -57,10 +65,12 @@ Quando `section === registro` e a pasta é especial, `RequirementView` renderiza
 ### Checklist de revisão
 
 - [ ] Sidebar mostra Procedimentos, Registros e atalhos sem duplicar entradas
-- [ ] PR-6.2 abre por defeito na aba Registros
+- [ ] Alternar Procedimentos ↔ Registros pela **sidebar** e pelas **abas da página** (PR-6.2, PR-7.2, PR-6.6)
+- [ ] Apenas um item de secção destacado por pasta na sidebar
+- [ ] PR-6.2 abre por defeito na aba Registros (URL sem `?tab=` ou `?tab=registro`)
 - [ ] Atalho Coleta leva à listagem standalone
 - [ ] Técnico de campo só vê coleta na navegação
-- [ ] URLs com `?topic=` filtram corretamente o dashboard Pessoal
+- [ ] URLs com `?topic=` filtram corretamente o dashboard Pessoal e persistem ao mudar de aba
 
 ---
 

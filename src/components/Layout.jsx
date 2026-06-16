@@ -51,6 +51,15 @@ function SidebarBrand() {
   );
 }
 
+function isFolderSectionNavActive(location, item) {
+  const [path, query] = item.to.split("?");
+  if (location.pathname !== path) return false;
+  const expected = new URLSearchParams(query || "");
+  const expectedTab = expected.get("tab") || item.folderDefaultSection;
+  const currentTab = new URLSearchParams(location.search).get("tab") || item.folderDefaultSection;
+  return currentTab === expectedTab;
+}
+
 const Layout = () => {
   const { user, logout, currentTenantId, selectTenant } = useAuth();
   const navigate = useNavigate();
@@ -255,6 +264,11 @@ const Layout = () => {
                               title={c.label}
                               data-testid={`nav-req-${r.id}-${f.folderKey}-${c.key}`}
                               onClick={onNavigate}
+                              isActive={
+                                c.kind === "section"
+                                  ? ({ location: loc }) => isFolderSectionNavActive(loc, c)
+                                  : undefined
+                              }
                             >
                               <span className="truncate">{c.label}</span>
                             </NavLink>

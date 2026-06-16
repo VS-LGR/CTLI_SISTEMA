@@ -117,11 +117,14 @@ export function buildFolderSidebarNav(requirementId, folder, { canColeta = false
   const sections = getVisibleSections(rid, fk);
   const base = buildRequirementListPath(rid, fk);
 
-  const sectionItems = sections.map((section) => {
-    const isDefault = section.id === mode.defaultSection;
-    const to = isDefault ? base : `${base}?tab=${section.id}`;
-    return { key: `section-${section.id}`, label: section.label, to };
-  });
+  const sectionItems = sections.map((section) => ({
+    key: `section-${section.id}`,
+    label: section.label,
+    to: `${base}?tab=${section.id}`,
+    kind: "section",
+    sectionId: section.id,
+    folderDefaultSection: mode.defaultSection,
+  }));
 
   const extras = getFolderNavChildren(folder, { canColeta, canPersonnelStandardOptions });
   return [...sectionItems, ...extras];

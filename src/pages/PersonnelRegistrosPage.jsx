@@ -60,7 +60,6 @@ const filterFieldClass =
 function syncTopicsToSearchParams(topics, setSearchParams) {
   setSearchParams((prev) => {
     const p = new URLSearchParams(prev);
-    p.set("tab", "registro");
     const formatted = formatPersonnelTopicsParam(topics);
     if (formatted) p.set("topic", formatted);
     else p.delete("topic");
@@ -190,7 +189,6 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
     setFilters(EMPTY_PERSONNEL_REGISTROS_FILTERS);
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev);
-      p.set("tab", "registro");
       p.delete("topic");
       return p;
     }, { replace: true });
