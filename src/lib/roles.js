@@ -19,6 +19,13 @@ export const isCtliAdmin = (role) => role === "admin";
 export const canAccessColeta = (role) =>
   ["admin", "client", "tecnico_campo"].includes(role);
 
+/** Papéis que podem aprovar certificados (signatário interno). */
+export const canApproveCalibrationCertificate = (role) =>
+  ["admin", "client", "diretor", "gerente_qualidade", "gerente_tecnico"].includes(role);
+
+/** Papéis que podem emitir certificado oficial. */
+export const canEmitCalibrationCertificate = canApproveCalibrationCertificate;
+
 /** Certificados RE-7.2B — coleta + papéis internos de calibração. */
 export const canAccessCalibrationCertificates = (role) =>
   [

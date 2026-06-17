@@ -48,14 +48,23 @@ export function validateBeforeApproval(cert, points, standards, environmental, c
   return { ok: !errors.length, errors };
 }
 
-export function validateBeforeEmit(cert, points, standards) {
+export function validateBeforeEmit(cert, points, standards, environmental) {
   const errors = [];
   if (!cert?.signatory_id) errors.push("Signatário deve aprovar antes da emissão");
   if (!cert?.certificate_number) errors.push("Número do certificado obrigatório");
   if (cert?.status !== "aprovado") errors.push("Certificado deve estar aprovado");
   if (cert?.is_preview_only) errors.push("Prévia técnica não pode ser emitida oficialmente");
+  if (!cert?.validity_date && !cert?.calibration_date) {
+    errors.push("Data de validade ou calibração obrigatória");
+  }
 
-  const base = validateBeforeApproval(cert, points, standards, {}, { calculations_ok: true, preview_reviewed: true });
+  const base = validateBeforeApproval(
+    cert,
+    points,
+    standards,
+    environmental || cert?.environmental || {},
+    { calculations_ok: true, preview_reviewed: true },
+  );
   errors.push(...base.errors.filter((e) => !e.startsWith("Análise crítica")));
 
   return { ok: !errors.length, errors: [...new Set(errors)] };

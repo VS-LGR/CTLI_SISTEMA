@@ -11,6 +11,20 @@ export function assertSupabaseCertificates() {
   if (!isSupabaseAuthMode) throw new Error("Certificados requerem ligação Supabase.");
 }
 
+async function syncPreviewOnlyFromColeta(certificate) {
+  if (!certificate?.collection_id || certificate.status === "emitido") return certificate;
+  const { data: coll } = await supabase
+    .from("scale_calibration_collections")
+    .select("workflow_status")
+    .eq("id", certificate.collection_id)
+    .maybeSingle();
+  if (!coll) return certificate;
+  const official = canColetaGenerateOfficial(coll.workflow_status);
+  if (official === !certificate.is_preview_only) return certificate;
+  await updateCertificateHeader(certificate.id, { is_preview_only: !official });
+  return { ...certificate, is_preview_only: !official };
+}
+
 export async function suggestNextCertificateNumber(tenantId, year = new Date().getFullYear()) {
   assertSupabaseCertificates();
   const { data, error } = await supabase.rpc("next_calibration_certificate_number", {
@@ -160,6 +174,16 @@ export async function createCertificateFromColeta(tenantId, collectionId, { cert
   });
   if (confErr) throw confErr;
 
+  await supabase.from("scale_calibration_collections").update({
+    certificate_id: certId,
+  }).eq("id", collectionId);
+
+  try {
+    await recalculateCertificate(certId);
+  } catch {
+    /* cálculo pode falhar se dados incompletos — certificado fica em rascunho */
+  }
+
   return getCertificate(certId);
 }
 
@@ -172,6 +196,12 @@ export async function updateCertificateHeader(id, patch, userId) {
   if (error) throw error;
 }
 
+export async function updateCertificateStandard(standardId, patch) {
+  assertSupabaseCertificates();
+  const { error } = await supabase.from("calibration_certificate_standards").update(patch).eq("id", standardId);
+  if (error) throw error;
+}
+
 export async function updateCertificatePoint(pointId, patch) {
   assertSupabaseCertificates();
   const { error } = await supabase.from("calibration_certificate_points").update(patch).eq("id", pointId);
@@ -179,7 +209,8 @@ export async function updateCertificatePoint(pointId, patch) {
 }
 
 export async function recalculateCertificate(id, { weightItems, weightCerts } = {}) {
-  const full = await getCertificate(id);
+  let full = await getCertificate(id);
+  full = await syncPreviewOnlyFromColeta(full);
   if (!["rascunho", "calculado", "em_revisao_tecnica", "reprovado"].includes(full.status)) {
     throw new Error("Certificado bloqueado para recálculo.");
   }
@@ -242,6 +273,9 @@ export async function transitionCertificateStatus(id, newStatus, { userId, notes
   }
 
   if (newStatus === "aguardando_aprovacao") {
+    if (full.is_preview_only) {
+      throw new Error("Prévia técnica não pode seguir para aprovação oficial — confira a coleta primeiro");
+    }
     const v = validateBeforeApproval(full, full.points, full.standards, full.environmental, checklist);
     if (!v.ok) throw new Error(v.errors.join("; "));
     await supabase.from("calibration_certificate_reviews").insert({
@@ -254,6 +288,8 @@ export async function transitionCertificateStatus(id, newStatus, { userId, notes
   }
 
   if (newStatus === "aprovado") {
+    const signatory = (await loadCadastrosForImport(full.tenant_id)).employees
+      .find((e) => e.id === (employeeId || full.signatory_id));
     await supabase.from("calibration_certificate_reviews").insert({
       certificate_id: id,
       review_type: "aprovacao",
@@ -265,6 +301,7 @@ export async function transitionCertificateStatus(id, newStatus, { userId, notes
       status: newStatus,
       approval_date: new Date().toISOString().slice(0, 10),
       approval_notes: notes || "",
+      signatory_name: signatory?.full_name || full.signatory_name || "",
     }, userId);
     return getCertificate(id);
   }
@@ -284,7 +321,10 @@ export async function transitionCertificateStatus(id, newStatus, { userId, notes
 
 export async function emitCertificate(id, { userId, documentMeta, fileName } = {}) {
   const full = await getCertificate(id);
-  const v = validateBeforeEmit(full, full.points, full.standards);
+  if (!canTransitionCertificateStatus(full.status, "emitido")) {
+    throw new Error(`Transição inválida: ${full.status} → emitido`);
+  }
+  const v = validateBeforeEmit(full, full.points, full.standards, full.environmental);
   if (!v.ok) throw new Error(v.errors.join("; "));
 
   const cad = await loadCadastrosForImport(full.tenant_id);
@@ -322,6 +362,8 @@ export async function emitCertificate(id, { userId, documentMeta, fileName } = {
     validity_date: full.validity_date || defaultValidityDate(full.calibration_date),
     emitted_by: userId || null,
     is_preview_only: false,
+    signatory_name: signatory?.full_name || full.signatory_name || "",
+    executor_name: executor?.full_name || full.executor_name || "",
     technical_snapshot: technicalSnapshot,
     document_snapshot: documentSnapshot,
   }, userId);
@@ -426,6 +468,9 @@ export async function substituteCertificate(id, { userId, reason, certificateTyp
 export async function cancelCertificate(id, { userId, reason } = {}) {
   const full = await getCertificate(id);
   if (full.status === "cancelado") throw new Error("Certificado já cancelado.");
+  if (!canTransitionCertificateStatus(full.status, "cancelado")) {
+    throw new Error(`Não é possível cancelar certificado com status ${full.status}`);
+  }
 
   await updateCertificateHeader(id, {
     status: "cancelado",

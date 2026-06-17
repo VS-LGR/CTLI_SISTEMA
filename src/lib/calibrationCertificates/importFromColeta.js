@@ -1,4 +1,4 @@
-import { mergeColetaPayload, resolveEndCustomerId } from "@/lib/coletaSchema";
+import { determineInstrumentClass } from "@/lib/certificateCalculations";
 import { canColetaGenerateOfficial } from "./certificateSchema";
 import { defaultValidityDate } from "./certificateDateUtils";
 
@@ -115,7 +115,10 @@ export function buildImportFromColeta({
   };
 
   const balance = payload.balanca || {};
-  const instrumentClass = balance.portaria_inmetro ? "" : "";
+  const legalApplicable = Boolean(balance.portaria_inmetro || balance.etiqueta_ipem);
+  const classResult = legalApplicable
+    ? determineInstrumentClass(balance.capacidade, balance.resolucao, balance.unidade)
+    : { instrumentClass: "" };
 
   return {
     certificate: {
@@ -144,8 +147,8 @@ export function buildImportFromColeta({
     standards,
     environmental,
     conformity: {
-      legal_metrology_applicable: Boolean(balance.portaria_inmetro || balance.etiqueta_ipem),
-      instrument_class: instrumentClass,
+      legal_metrology_applicable: legalApplicable,
+      instrument_class: classResult.instrumentClass || "",
       applicable_ordinance: balance.portaria_inmetro || "",
       customer_criterion: payload.controle?.pontos_solicitados || "",
       decision_rule: "simples",

@@ -49,7 +49,9 @@ async function loadCertificateSignatures(cert) {
   return { executor, signatory };
 }
 
-export async function exportCertificatePdfPreview(cert, tenantName = "", { logoDataUrl, tenant = null, cancelled = false } = {}) {
+export async function exportCertificatePdfPreview(cert, tenantName = "", {
+  logoDataUrl, tenant = null, cancelled = false, skipRecordExport = false,
+} = {}) {
   const { prepareMasterDocumentExport, recordMasterDocumentExport } = await import(
     "./masterDocuments/masterDocumentExportHelper"
   );
@@ -90,7 +92,7 @@ export async function exportCertificatePdfPreview(cert, tenantName = "", { logoD
     platformDiagrams,
   });
 
-  if (tenant?.id && cert.status === "emitido" && !cert.is_preview_only) {
+  if (tenant?.id && cert.status === "emitido" && !cert.is_preview_only && !skipRecordExport) {
     await recordMasterDocumentExport({
       tenantId: tenant.id,
       meta,

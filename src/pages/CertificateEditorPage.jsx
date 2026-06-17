@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { isSupabaseAuthMode } from "@/lib/api";
-import { canAccessCalibrationCertificates } from "@/lib/roles";
+import { canAccessCalibrationCertificates, canApproveCalibrationCertificate, canEmitCalibrationCertificate } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ import {
   emitCertificate,
   substituteCertificate,
   cancelCertificate,
+  updateCertificateStandard,
 } from "@/lib/calibrationCertificates/certificateApi";
 import {
   certificateStatusLabel,
@@ -34,8 +35,9 @@ import {
   isCertificateEditable,
   CERTIFICATE_TYPES,
   conformityLabel,
+  canColetaGenerateOfficial,
 } from "@/lib/calibrationCertificates/certificateSchema";
-import { validateExpiredStandards } from "@/lib/calibrationCertificates/certificateValidation";
+import { validateExpiredStandards, validateBeforeEmit } from "@/lib/calibrationCertificates/certificateValidation";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatCalcDisplay } from "@/lib/certificateCalculations";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
@@ -60,6 +62,7 @@ export default function CertificateEditorPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [substituteReason, setSubstituteReason] = useState("");
   const [validityTouched, setValidityTouched] = useState(false);
+  const [approvalNotes, setApprovalNotes] = useState("");
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -176,12 +179,17 @@ export default function CertificateEditorPage() {
     }
   };
 
+  const canApprove = canApproveCalibrationCertificate(user?.role);
+  const canEmit = canEmitCalibrationCertificate(user?.role);
+
   const handleApprove = async () => {
     if (!cert.signatory_id) return toast.error("Defina o signatário");
+    if (!canApprove) return toast.error("Sem permissão para aprovar certificados");
     try {
       const updated = await transitionCertificateStatus(cert.id, "aprovado", {
         userId: user.id,
         employeeId: cert.signatory_id,
+        notes: approvalNotes,
       });
       setCert(updated);
       toast.success("Certificado aprovado");
@@ -191,8 +199,11 @@ export default function CertificateEditorPage() {
   };
 
   const handleEmit = async () => {
+    if (!canEmit) return toast.error("Sem permissão para emitir certificados");
+    const pre = validateBeforeEmit(cert, cert.points, cert.standards, cert.environmental);
+    if (!pre.ok) return toast.error(pre.errors.join("; "));
     try {
-      const { prepareMasterDocumentExport } = await import("@/lib/masterDocuments/masterDocumentExportHelper");
+      const { prepareMasterDocumentExport, recordMasterDocumentExport } = await import("@/lib/masterDocuments/masterDocumentExportHelper");
       const { meta, fileName } = await prepareMasterDocumentExport({
         tenantId: currentTenantId,
         templateKey: "re-72b-certificado-calibracao-pdf",
@@ -206,7 +217,6 @@ export default function CertificateEditorPage() {
         },
       });
       const emitted = await emitCertificate(cert.id, { userId: user.id, documentMeta: meta, fileName });
-      const { recordMasterDocumentExport } = await import("@/lib/masterDocuments/masterDocumentExportHelper");
       await recordMasterDocumentExport({
         tenantId: currentTenantId,
         meta,
@@ -218,9 +228,25 @@ export default function CertificateEditorPage() {
       await exportCertificatePdfPreview(emitted, currentTenant?.name || "", {
         logoDataUrl,
         tenant: currentTenant,
+        skipRecordExport: true,
       });
       setCert(emitted);
       toast.success("Certificado emitido");
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const toggleStandardOverride = async (standard) => {
+    if (!editable) return;
+    try {
+      const next = !standard.expired_override;
+      await updateCertificateStandard(standard.id, {
+        expired_override: next,
+        expired_override_reason: next ? "Autorizado pelo responsável técnico" : "",
+      });
+      await load();
+      toast.success(next ? "Exceção de validade registrada" : "Exceção removida");
     } catch (e) {
       toast.error(e.message);
     }
@@ -287,6 +313,18 @@ export default function CertificateEditorPage() {
           </Button>
         </div>
       </div>
+
+      {cert.is_preview_only && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Prévia técnica — a coleta deve estar conferida ou aprovada para certificado antes da emissão oficial.
+          {cert.collection_snapshot?.workflow_status && (
+            <span className="block mt-1 text-xs">
+              Status da coleta: {cert.collection_snapshot.workflow_status}
+              {!canColetaGenerateOfficial(cert.collection_snapshot.workflow_status) && " (ainda não apta)"}
+            </span>
+          )}
+        </div>
+      )}
 
       {expiredStandards.length > 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -357,6 +395,15 @@ export default function CertificateEditorPage() {
                 />
               </div>
               <div><Label>Proposta</Label><Input className="mt-1 h-10" value={cert.commercial_proposal_ref} disabled /></div>
+              <div className="sm:col-span-2">
+                <Label>Local da calibração</Label>
+                <Input
+                  className="mt-1 h-10"
+                  value={cert.calibration_location || ""}
+                  disabled={!editable}
+                  onChange={(e) => patch({ calibration_location: e.target.value })}
+                />
+              </div>
               <div>
                 <Label>Executor</Label>
                 <Select
@@ -444,18 +491,37 @@ export default function CertificateEditorPage() {
                     <th className="p-2">Certificado</th>
                     <th className="p-2">Validade</th>
                     <th className="p-2">Laboratório</th>
+                    {editable && <th className="p-2">Vencido</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {(cert.standards || []).map((s) => (
+                  {(cert.standards || []).map((s) => {
+                    const expired = s.valid_until && cert.calibration_date && s.valid_until < cert.calibration_date;
+                    return (
                     <tr key={s.id} className="border-t">
                       <td className="p-2">{s.standard_type}</td>
                       <td className="p-2">{s.identification_code}</td>
                       <td className="p-2">{s.certificate_number}</td>
                       <td className="p-2">{s.valid_until || "—"}</td>
                       <td className="p-2">{s.laboratory}</td>
+                      {editable && (
+                        <td className="p-2">
+                          {expired ? (
+                            <Button
+                              type="button"
+                              variant={s.expired_override ? "secondary" : "outline"}
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => toggleStandardOverride(s)}
+                            >
+                              {s.expired_override ? "Exceção ativa" : "Autorizar uso"}
+                            </Button>
+                          ) : "—"}
+                        </td>
+                      )}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </CardContent>
@@ -566,24 +632,38 @@ export default function CertificateEditorPage() {
           <Card>
             <CardContent className="p-6 space-y-4">
               {cert.status === "calculado" || cert.status === "em_revisao_tecnica" || cert.status === "reprovado" ? (
-                <Button onClick={() => setCriticalOpen(true)}>
+                <Button onClick={() => setCriticalOpen(true)} disabled={cert.is_preview_only}>
                   <CheckCircle size={16} className="mr-1" /> Enviar para Aprovação
                 </Button>
               ) : null}
+              {cert.is_preview_only && (cert.status === "calculado" || cert.status === "reprovado") && (
+                <p className="text-xs text-amber-700">
+                  Atualize o status da coleta para conferida/aprovada e recalcule para liberar a aprovação oficial.
+                </p>
+              )}
               {cert.status === "aguardando_aprovacao" && (
-                <div className="flex gap-2">
-                  <Button onClick={handleApprove}><CheckCircle size={16} className="mr-1" /> Aprovar</Button>
+                <div className="space-y-3">
+                  <div>
+                    <Label>Notas da aprovação (opcional)</Label>
+                    <Textarea value={approvalNotes} onChange={(e) => setApprovalNotes(e.target.value)} className="mt-1" />
+                  </div>
+                  <div className="flex gap-2">
+                  <Button onClick={handleApprove} disabled={!canApprove}><CheckCircle size={16} className="mr-1" /> Aprovar</Button>
                   <Button variant="outline" onClick={() => transitionCertificateStatus(cert.id, "reprovado", { userId: user.id }).then(load)}>
                     <XCircle size={16} className="mr-1" /> Reprovar
                   </Button>
+                  </div>
                 </div>
               )}
               {cert.status === "aprovado" && !cert.is_preview_only && (
-                <Button onClick={handleEmit}><FilePdf size={16} className="mr-1" /> Emitir PDF oficial</Button>
+                <Button onClick={handleEmit} disabled={!canEmit}><FilePdf size={16} className="mr-1" /> Emitir PDF oficial</Button>
               )}
               {cert.status === "emitido" && (
                 <div className="space-y-3">
                   <p className="text-sm text-emerald-700">Certificado emitido em {cert.issue_date}.</p>
+                  <Button variant="outline" onClick={handlePreview}>
+                    <FilePdf size={16} className="mr-1" /> Baixar PDF emitido
+                  </Button>
                   <div>
                     <Label>Motivo da substituição</Label>
                     <Textarea value={substituteReason} onChange={(e) => setSubstituteReason(e.target.value)} className="mt-1" />

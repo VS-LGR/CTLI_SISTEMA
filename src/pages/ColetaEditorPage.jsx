@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useOutletContext, useParams }
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
-import { canAccessColeta } from "@/lib/roles";
+import { canAccessColeta, canAccessCalibrationCertificates } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -15,7 +15,7 @@ import {
 } from "@/lib/coletaSchema";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { certificateEditorPath } from "@/lib/certificateRoutes";
-import { COLETA_WORKFLOW_STATUSES } from "@/lib/calibrationCertificates/certificateSchema";
+import { COLETA_WORKFLOW_STATUSES, CERTIFICATE_TYPES, canColetaGenerateOfficial } from "@/lib/calibrationCertificates/certificateSchema";
 import { createCertificateFromColeta } from "@/lib/calibrationCertificates/certificateApi";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -38,6 +38,9 @@ const ColetaEditorPage = () => {
   const [payload, setPayload] = useState(() => emptyColetaPayload());
   const [commercialProposalRef, setCommercialProposalRef] = useState("");
   const [workflowStatus, setWorkflowStatus] = useState("rascunho");
+  const [certificateId, setCertificateId] = useState(null);
+  const [certType, setCertType] = useState("rastreavel");
+  const [generatingCert, setGeneratingCert] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [weightItems, setWeightItems] = useState([]);
@@ -109,6 +112,7 @@ const ColetaEditorPage = () => {
       setPayload(mergeColetaPayload(data.payload));
       setCommercialProposalRef(data.commercial_proposal_ref || "");
       setWorkflowStatus(data.workflow_status || "rascunho");
+      setCertificateId(data.certificate_id || null);
     } finally {
       setLoading(false);
     }
@@ -186,13 +190,36 @@ const ColetaEditorPage = () => {
     }
   };
 
+  const persistColeta = async () => {
+    const row = buildRow();
+    const { error } = await supabase
+      .from("scale_calibration_collections")
+      .update(row)
+      .eq("id", id);
+    if (error) throw error;
+  };
+
   const generateCertificate = async () => {
+    if (!canAccessCalibrationCertificates(user?.role)) {
+      toast.error("Sem permissão para gerar certificados");
+      return;
+    }
+    setGeneratingCert(true);
     try {
-      const cert = await createCertificateFromColeta(currentTenantId, id, { userId: user.id });
-      toast.success("Certificado gerado a partir da coleta");
+      await persistColeta();
+      const cert = await createCertificateFromColeta(currentTenantId, id, {
+        userId: user.id,
+        certificateType: certType,
+      });
+      const msg = canColetaGenerateOfficial(workflowStatus)
+        ? "Certificado gerado a partir da coleta"
+        : "Prévia técnica gerada — confira a coleta antes da emissão oficial";
+      toast.success(msg);
       navigate(certificateEditorPath(cert.id));
     } catch (e) {
       toast.error(e?.message || "Falha ao gerar certificado");
+    } finally {
+      setGeneratingCert(false);
     }
   };
 
@@ -212,9 +239,17 @@ const ColetaEditorPage = () => {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          {!isNew && workflowStatus !== "certificado_gerado" && (
-            <Button variant="outline" type="button" onClick={generateCertificate}>
-              <Certificate size={16} className="mr-1" /> Gerar Certificado
+          {!isNew && workflowStatus === "certificado_gerado" && certificateId && (
+            <Button asChild variant="outline" type="button">
+              <Link to={certificateEditorPath(certificateId)}>
+                <Certificate size={16} className="mr-1" /> Ver certificado
+              </Link>
+            </Button>
+          )}
+          {!isNew && workflowStatus !== "certificado_gerado" && canAccessCalibrationCertificates(user?.role) && (
+            <Button variant="outline" type="button" onClick={generateCertificate} disabled={generatingCert}>
+              <Certificate size={16} className="mr-1" />
+              {generatingCert ? "A gerar…" : "Gerar Certificado"}
             </Button>
           )}
           {!isNew && (
@@ -247,11 +282,32 @@ const ColetaEditorPage = () => {
           <Select value={workflowStatus} onValueChange={setWorkflowStatus}>
             <SelectTrigger className="h-10 mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {COLETA_WORKFLOW_STATUSES.filter((s) => s.value !== "certificado_gerado").map((s) => (
+              {COLETA_WORKFLOW_STATUSES.map((s) => (
                 <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {!isNew && canAccessCalibrationCertificates(user?.role) && workflowStatus !== "certificado_gerado" && (
+        <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
+          <div>
+            <Label>Tipo de certificado</Label>
+            <Select value={certType} onValueChange={setCertType}>
+              <SelectTrigger className="h-10 mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CERTIFICATE_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {!canColetaGenerateOfficial(workflowStatus) && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 self-end">
+              Coleta ainda não conferida — será gerada uma prévia técnica (marca d&apos;água).
+            </div>
+          )}
         </div>
       )}
 
