@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
+import { denormalizeFromPayload } from "@/lib/coletaSchema";
 import { buildImportFromColeta } from "./importFromColeta";
 import { buildTechnicalSnapshot } from "./certificateSnapshots";
 import { validateBeforeCalculate, validateBeforeEmit, validateBeforeApproval } from "./certificateValidation";
@@ -20,9 +21,20 @@ async function syncPreviewOnlyFromColeta(certificate) {
     .maybeSingle();
   if (!coll) return certificate;
   const official = canColetaGenerateOfficial(coll.workflow_status);
-  if (official === !certificate.is_preview_only) return certificate;
-  await updateCertificateHeader(certificate.id, { is_preview_only: !official });
-  return { ...certificate, is_preview_only: !official };
+  const patch = {};
+  if (official !== !certificate.is_preview_only) {
+    patch.is_preview_only = !official;
+  }
+  const snapStatus = certificate.collection_snapshot?.workflow_status;
+  if (snapStatus !== coll.workflow_status) {
+    patch.collection_snapshot = {
+      ...(certificate.collection_snapshot || {}),
+      workflow_status: coll.workflow_status,
+    };
+  }
+  if (!Object.keys(patch).length) return certificate;
+  await updateCertificateHeader(certificate.id, patch);
+  return { ...certificate, ...patch };
 }
 
 export async function suggestNextCertificateNumber(tenantId, year = new Date().getFullYear()) {
@@ -76,7 +88,7 @@ export async function getCertificate(id) {
     supabase.from("calibration_certificate_reviews").select("*").eq("certificate_id", id).order("created_at", { ascending: false }),
   ]);
 
-  return {
+  const result = {
     ...cert,
     points: pointsRes.data || [],
     standards: standardsRes.data || [],
@@ -84,6 +96,7 @@ export async function getCertificate(id) {
     conformity: confRes.data || null,
     reviews: reviewsRes.data || [],
   };
+  return syncPreviewOnlyFromColeta(result);
 }
 
 async function loadCadastrosForImport(tenantId) {
@@ -178,13 +191,54 @@ export async function createCertificateFromColeta(tenantId, collectionId, { cert
     certificate_id: certId,
   }).eq("id", collectionId);
 
+  let recalcWarning = null;
   try {
     await recalculateCertificate(certId);
-  } catch {
-    /* cálculo pode falhar se dados incompletos — certificado fica em rascunho */
+  } catch (e) {
+    recalcWarning = e?.message || "Cálculo não concluído automaticamente";
   }
 
-  return getCertificate(certId);
+  return {
+    certificate: await getCertificate(certId),
+    recalcWarning,
+  };
+}
+
+export async function createCertificateWithNewColeta(
+  tenantId,
+  { payload, commercialProposalRef, certificateType = "rastreavel", workflowStatus = "rascunho", userId } = {},
+) {
+  assertSupabaseCertificates();
+
+  const payloadWithMeta = {
+    ...payload,
+    meta: { ...(payload?.meta || {}), origem: "certificado_manual" },
+  };
+  const denorm = denormalizeFromPayload(payloadWithMeta, commercialProposalRef || "");
+
+  const { data: collection, error } = await supabase
+    .from("scale_calibration_collections")
+    .insert({
+      tenant_id: tenantId,
+      commercial_proposal_ref: denorm.commercial_proposal_ref,
+      payload: denorm.payload,
+      client_name: denorm.client_name,
+      responsible_name: denorm.responsible_name,
+      scale_serial: denorm.scale_serial,
+      calibration_date: denorm.calibration_date || null,
+      workflow_status: workflowStatus,
+      created_by: userId || null,
+      updated_by: userId || null,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  const result = await createCertificateFromColeta(tenantId, collection.id, {
+    certificateType,
+    userId,
+  });
+  return { collectionId: collection.id, ...result };
 }
 
 export async function updateCertificateHeader(id, patch, userId) {
@@ -301,6 +355,7 @@ export async function transitionCertificateStatus(id, newStatus, { userId, notes
       status: newStatus,
       approval_date: new Date().toISOString().slice(0, 10),
       approval_notes: notes || "",
+      signatory_id: employeeId || full.signatory_id || null,
       signatory_name: signatory?.full_name || full.signatory_name || "",
     }, userId);
     return getCertificate(id);
@@ -486,6 +541,13 @@ export async function cancelCertificate(id, { userId, reason } = {}) {
     reviewed_by: userId || null,
   });
 
+  if (full.collection_id) {
+    await supabase.from("scale_calibration_collections").update({
+      workflow_status: "conferida",
+      certificate_id: null,
+    }).eq("id", full.collection_id);
+  }
+
   return getCertificate(id);
 }
 
@@ -541,11 +603,32 @@ export async function duplicateCertificate(id, { userId } = {}) {
 export async function listColetasForCertificate(tenantId) {
   const { data, error } = await supabase
     .from("scale_calibration_collections")
-    .select("id, client_name, scale_serial, calibration_date, workflow_status, commercial_proposal_ref")
+    .select("id, client_name, scale_serial, calibration_date, workflow_status, commercial_proposal_ref, certificate_id")
     .eq("tenant_id", tenantId)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data || []).filter((c) => !["cancelada", "certificado_gerado"].includes(c.workflow_status || "rascunho"));
+
+  const coletas = (data || []).filter((c) => c.workflow_status !== "cancelada");
+  const geradoIds = coletas
+    .filter((c) => c.workflow_status === "certificado_gerado")
+    .map((c) => c.id);
+  if (!geradoIds.length) return coletas.filter((c) => c.workflow_status !== "certificado_gerado");
+
+  const { data: certs } = await supabase
+    .from("calibration_certificates")
+    .select("collection_id, status")
+    .in("collection_id", geradoIds);
+
+  const activeCertByCollection = new Set(
+    (certs || [])
+      .filter((c) => !["cancelado", "substituido"].includes(c.status))
+      .map((c) => c.collection_id),
+  );
+
+  return coletas.filter((c) => {
+    if (c.workflow_status !== "certificado_gerado") return true;
+    return !activeCertByCollection.has(c.id);
+  });
 }
 
 export { canColetaGenerateOfficial };

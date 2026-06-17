@@ -14,6 +14,7 @@ import {
   envCertIdentification,
   applyEndCustomerToCliente,
   resolveEndCustomerId,
+  nominalFromWeightIds,
 } from "@/lib/coletaSchema";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
@@ -113,6 +114,17 @@ export default function ColetaForm({
   const setCalPonto = (idx, k, v) => {
     const pontos = [...payload.calibracao.pontos];
     pontos[idx] = { ...pontos[idx], [k]: v };
+    onChange({ ...payload, calibracao: { ...payload.calibracao, pontos } });
+  };
+
+  const setCalPontoPesos = (idx, ids) => {
+    const pontos = [...payload.calibracao.pontos];
+    const nominal = nominalFromWeightIds(ids, weightItems);
+    pontos[idx] = {
+      ...pontos[idx],
+      pesos_padrao_ids: ids,
+      peso_nominal: nominal || pontos[idx].peso_nominal,
+    };
     onChange({ ...payload, calibracao: { ...payload.calibracao, pontos } });
   };
 
@@ -395,7 +407,7 @@ export default function ColetaForm({
                   <PesoPadraoMultiSelect
                     weightItems={weightItems}
                     value={pt.pesos_padrao_ids || []}
-                    onChange={(ids) => setCalPonto(i, "pesos_padrao_ids", ids)}
+                    onChange={(ids) => setCalPontoPesos(i, ids)}
                   />
                 </Field>
               </FormRowCard>
@@ -428,7 +440,7 @@ export default function ColetaForm({
                     <PesoPadraoMultiSelect
                       weightItems={weightItems}
                       value={pt.pesos_padrao_ids || []}
-                      onChange={(ids) => setCalPonto(i, "pesos_padrao_ids", ids)}
+                      onChange={(ids) => setCalPontoPesos(i, ids)}
                     />
                   </td>
                 </tr>

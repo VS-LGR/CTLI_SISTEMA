@@ -182,6 +182,16 @@ export default function CertificateEditorPage() {
   const canApprove = canApproveCalibrationCertificate(user?.role);
   const canEmit = canEmitCalibrationCertificate(user?.role);
 
+  const handleReprove = async () => {
+    try {
+      const updated = await transitionCertificateStatus(cert.id, "reprovado", { userId: user.id });
+      setCert(updated);
+      toast.success("Certificado reprovado");
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
   const handleApprove = async () => {
     if (!cert.signatory_id) return toast.error("Defina o signatário");
     if (!canApprove) return toast.error("Sem permissão para aprovar certificados");
@@ -649,7 +659,7 @@ export default function CertificateEditorPage() {
                   </div>
                   <div className="flex gap-2">
                   <Button onClick={handleApprove} disabled={!canApprove}><CheckCircle size={16} className="mr-1" /> Aprovar</Button>
-                  <Button variant="outline" onClick={() => transitionCertificateStatus(cert.id, "reprovado", { userId: user.id }).then(load)}>
+                  <Button variant="outline" onClick={handleReprove}>
                     <XCircle size={16} className="mr-1" /> Reprovar
                   </Button>
                   </div>

@@ -1,3 +1,4 @@
+import { mergeColetaPayload, resolveEndCustomerId } from "@/lib/coletaSchema";
 import { determineInstrumentClass } from "@/lib/certificateCalculations";
 import { canColetaGenerateOfficial } from "./certificateSchema";
 import { defaultValidityDate } from "./certificateDateUtils";

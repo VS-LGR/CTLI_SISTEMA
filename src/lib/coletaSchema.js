@@ -279,6 +279,7 @@ export function mergeColetaPayload(raw) {
         linhas,
       },
     },
+    ...(raw.meta && typeof raw.meta === "object" ? { meta: raw.meta } : {}),
   };
 }
 
@@ -359,4 +360,34 @@ export function formatPesosIds(ids, weightItems) {
     .filter(Boolean)
     .map(weightItemLabel)
     .join("; ");
+}
+
+function parseNominalNumber(value) {
+  if (value == null || value === "") return null;
+  const n = Number(String(value).trim().replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatNominalPart(value, unit) {
+  const n = parseNominalNumber(value);
+  if (n == null) return String(value || "").trim();
+  const u = (unit || "g").trim();
+  return `${n} ${u}`.trim();
+}
+
+/** Deriva valor nominal de referência a partir dos pesos padrão selecionados. */
+export function nominalFromWeightIds(ids, weightItems = []) {
+  if (!ids?.length || !weightItems?.length) return "";
+  const items = ids
+    .map((id) => weightItems.find((w) => w.id === id))
+    .filter(Boolean);
+  if (!items.length) return "";
+
+  const units = [...new Set(items.map((w) => (w.unit || "g").trim().toLowerCase()))];
+  if (units.length === 1) {
+    const sum = items.reduce((acc, w) => acc + (parseNominalNumber(w.nominal_value) || 0), 0);
+    if (sum > 0) return `${sum} ${items[0].unit || "g"}`.trim();
+  }
+
+  return items.map((w) => formatNominalPart(w.nominal_value, w.unit)).join(" + ");
 }

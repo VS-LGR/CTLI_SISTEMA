@@ -9,9 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus } from "@phosphor-icons/react";
+import { ArrowLeft, PencilSimple, Plus } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { CERTIFICATE_LIST_PATH, certificateEditorPath } from "@/lib/certificateRoutes";
+import { COLETA_NEW_PATH } from "@/lib/coletaRoutes";
 import {
   listColetasForCertificate,
   createCertificateFromColeta,
@@ -30,6 +31,7 @@ export default function CertificateNewPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { currentTenantId } = useOutletContext();
+  const [mode, setMode] = useState("coleta");
   const [coletas, setColetas] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [certType, setCertType] = useState("rastreavel");
@@ -55,18 +57,25 @@ export default function CertificateNewPage() {
     return <Navigate to="/dashboard" replace />;
   }
 
+  if (!isSupabaseAuthMode || !currentTenantId) {
+    return <Navigate to={CERTIFICATE_LIST_PATH} replace />;
+  }
+
   const handleCreate = async () => {
     if (!selectedId) return toast.error("Selecione uma coleta");
     setCreating(true);
     try {
-      const cert = await createCertificateFromColeta(currentTenantId, selectedId, {
+      const { certificate, recalcWarning } = await createCertificateFromColeta(currentTenantId, selectedId, {
         certificateType: certType,
         userId: user.id,
       });
       toast.success(canColetaGenerateOfficial(coletas.find((c) => c.id === selectedId)?.workflow_status)
         ? "Certificado criado"
         : "Prévia técnica criada (coleta ainda não conferida)");
-      navigate(certificateEditorPath(cert.id));
+      if (recalcWarning) {
+        toast.warning(`Certificado criado, mas o cálculo automático falhou: ${recalcWarning}`);
+      }
+      navigate(certificateEditorPath(certificate.id));
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -74,13 +83,32 @@ export default function CertificateNewPage() {
     }
   };
 
+  const manualColetaPath = `${COLETA_NEW_PATH}?origem=certificado&certType=${encodeURIComponent(certType)}`;
+
   return (
     <div className="space-y-6 max-w-3xl w-full min-w-0">
       <div className="flex items-center gap-3">
         <Button asChild variant="ghost" size="sm">
           <Link to={CERTIFICATE_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
         </Button>
-        <h1 className="font-display text-xl font-semibold text-slate-900">Gerar Certificado a partir da Coleta</h1>
+        <h1 className="font-display text-xl font-semibold text-slate-900">Novo Certificado de Calibração</h1>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant={mode === "coleta" ? "default" : "outline"}
+          onClick={() => setMode("coleta")}
+        >
+          Coleta existente
+        </Button>
+        <Button
+          type="button"
+          variant={mode === "manual" ? "default" : "outline"}
+          onClick={() => setMode("manual")}
+        >
+          Entrada manual
+        </Button>
       </div>
 
       <Card>
@@ -97,39 +125,56 @@ export default function CertificateNewPage() {
             </Select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-slate-700">Coleta RE-7.2A</label>
-            {loading ? (
-              <p className="text-sm text-slate-500 mt-2">A carregar coletas…</p>
-            ) : !coletas.length ? (
-              <p className="text-sm text-slate-500 mt-2">Nenhuma coleta disponível.</p>
-            ) : (
-              <div className="mt-2 space-y-2 max-h-64 overflow-y-auto border rounded-lg divide-y">
-                {coletas.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setSelectedId(c.id)}
-                    className={`w-full text-left p-3 hover:bg-slate-50 transition ${selectedId === c.id ? "bg-blue-50 ring-1 ring-blue-200" : ""}`}
-                  >
-                    <div className="flex justify-between gap-2">
-                      <span className="font-medium text-sm">{c.client_name}</span>
-                      <Badge variant="outline" className="text-[10px]">{coletaWorkflowLabel(c.workflow_status)}</Badge>
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">
-                      Série {c.scale_serial} · {fmtDmy(c.calibration_date)}
-                      {!canColetaGenerateOfficial(c.workflow_status) && " · somente prévia"}
-                    </div>
-                  </button>
-                ))}
+          {mode === "coleta" ? (
+            <>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Coleta RE-7.2A</label>
+                {loading ? (
+                  <p className="text-sm text-slate-500 mt-2">A carregar coletas…</p>
+                ) : !coletas.length ? (
+                  <p className="text-sm text-slate-500 mt-2">Nenhuma coleta disponível.</p>
+                ) : (
+                  <div className="mt-2 space-y-2 max-h-64 overflow-y-auto border rounded-lg divide-y">
+                    {coletas.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedId(c.id)}
+                        className={`w-full text-left p-3 hover:bg-slate-50 transition ${selectedId === c.id ? "bg-blue-50 ring-1 ring-blue-200" : ""}`}
+                      >
+                        <div className="flex justify-between gap-2">
+                          <span className="font-medium text-sm">{c.client_name}</span>
+                          <Badge variant="outline" className="text-[10px]">{coletaWorkflowLabel(c.workflow_status)}</Badge>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          Série {c.scale_serial} · {fmtDmy(c.calibration_date)}
+                          {!canColetaGenerateOfficial(c.workflow_status) && " · somente prévia"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <Button onClick={handleCreate} disabled={creating || !selectedId} className="w-full sm:w-auto">
-            <Plus size={18} className="mr-1" />
-            {creating ? "A gerar…" : "Gerar Certificado"}
-          </Button>
+              <Button onClick={handleCreate} disabled={creating || !selectedId} className="w-full sm:w-auto">
+                <Plus size={18} className="mr-1" />
+                {creating ? "A gerar…" : "Gerar Certificado"}
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">
+                Será criada uma coleta RE-7.2A para controle documental; em seguida o certificado será gerado
+                com os dados preenchidos manualmente.
+              </p>
+              <Button asChild className="w-full sm:w-auto">
+                <Link to={manualColetaPath}>
+                  <PencilSimple size={18} className="mr-1" />
+                  Preencher dados manualmente
+                </Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
