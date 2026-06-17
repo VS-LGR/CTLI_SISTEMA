@@ -4,6 +4,7 @@
  */
 
 import { COLETA_LIST_PATH } from "./coletaRoutes";
+import { CERTIFICATE_LIST_PATH } from "./certificateRoutes";
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 import { LISTA_MESTRA_PATH } from "./masterDocuments/masterDocumentRoutes";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
@@ -70,6 +71,12 @@ const FOLDERS = {
           to: COLETA_LIST_PATH,
           requiresColeta: true,
         },
+        {
+          key: "certificados",
+          label: "Certificados de Calibração (RE-7.2B)",
+          to: CERTIFICATE_LIST_PATH,
+          requiresCalibrationCertificates: true,
+        },
       ],
     },
     { folderKey: "pr-7-2-2", label: "PR-7.2.2 Validação de Métodos" },
@@ -110,10 +117,11 @@ export function getFoldersForRequirement(requirementId) {
 }
 
 /** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2, listas em PR-6.2). */
-export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false } = {}) {
+export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false } = {}) {
   const list = folder?.children || [];
   return list.filter((c) => {
     if (c.requiresColeta && !canColeta) return false;
+    if (c.requiresCalibrationCertificates && !canCalibrationCertificates) return false;
     if (c.requiresPersonnelStandardOptions && !canPersonnelStandardOptions) return false;
     if (c.requiresMasterDocuments && !canMasterDocuments) return false;
     return true;
@@ -121,7 +129,7 @@ export function getFolderNavChildren(folder, { canColeta = false, canPersonnelSt
 }
 
 /** Itens de sidebar: secções da pasta (Procedimentos, Registros, …) + extras configurados. */
-export function buildFolderSidebarNav(requirementId, folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false } = {}) {
+export function buildFolderSidebarNav(requirementId, folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false } = {}) {
   const rid = String(requirementId);
   const fk = folder?.folderKey;
   if (!fk) return [];
@@ -139,7 +147,7 @@ export function buildFolderSidebarNav(requirementId, folder, { canColeta = false
     folderDefaultSection: mode.defaultSection,
   }));
 
-  const extras = getFolderNavChildren(folder, { canColeta, canPersonnelStandardOptions, canMasterDocuments });
+  const extras = getFolderNavChildren(folder, { canColeta, canPersonnelStandardOptions, canMasterDocuments, canCalibrationCertificates });
   return [...sectionItems, ...extras];
 }
 

@@ -15,7 +15,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates } from "@/lib/roles";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -243,6 +243,7 @@ const Layout = () => {
                   {folders.map((f) => {
                     const navOpts = {
                       canColeta: canAccessColeta(user?.role),
+                      canCalibrationCertificates: canAccessCalibrationCertificates(user?.role),
                       canPersonnelStandardOptions: canEditPersonnelStandardOptions(user?.role),
                       canMasterDocuments: canAccessMasterDocuments(user?.role),
                     };

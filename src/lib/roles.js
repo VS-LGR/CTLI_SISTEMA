@@ -19,6 +19,17 @@ export const isCtliAdmin = (role) => role === "admin";
 export const canAccessColeta = (role) =>
   ["admin", "client", "tecnico_campo"].includes(role);
 
+/** Certificados RE-7.2B — coleta + papéis internos de calibração. */
+export const canAccessCalibrationCertificates = (role) =>
+  [
+    "admin",
+    "client",
+    "tecnico_campo",
+    "diretor",
+    "gerente_qualidade",
+    "gerente_tecnico",
+  ].includes(role);
+
 /** Pedidos de compra: admin, cliente, gerentes e administrativo/vendas. */
 export const canAccessPurchaseOrders = (role) =>
   [

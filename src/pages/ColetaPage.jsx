@@ -19,6 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { COLETA_NEW_PATH, coletaEditorPath } from "@/lib/coletaRoutes";
+import { coletaWorkflowLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { formatColetaDocFullTitle } from "@/lib/coletaDocMeta";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import {
@@ -361,6 +362,7 @@ const ColetaPage = ({ embedded = false }) => {
                 <th className="text-left p-3 font-medium">Proposta</th>
                 <th className="text-left p-3 font-medium">Nº série</th>
                 <th className="text-left p-3 font-medium">Data calibração</th>
+                <th className="text-left p-3 font-medium">Status</th>
                 <th className="text-left p-3 font-medium">Exportação</th>
                 <th className="text-left p-3 font-medium">Atualizado</th>
                 <th className="p-3 w-40" />
@@ -373,6 +375,11 @@ const ColetaPage = ({ embedded = false }) => {
                   <td className="p-3 font-mono text-xs">{row.commercial_proposal_ref || "—"}</td>
                   <td className="p-3 font-mono text-xs">{row.scale_serial || "—"}</td>
                   <td className="p-3">{fmtDmy(row.calibration_date)}</td>
+                  <td className="p-3">
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      {coletaWorkflowLabel(row.workflow_status || "rascunho")}
+                    </Badge>
+                  </td>
                   <td className="p-3">
                     <ExportDownloadBadge row={row} />
                   </td>

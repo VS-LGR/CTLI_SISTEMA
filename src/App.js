@@ -6,10 +6,11 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
-import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, canAccessMasterDocuments, isTechnicianOnlyNav } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, canAccessMasterDocuments, canAccessCalibrationCertificates, isTechnicianOnlyNav } from "@/lib/roles";
 import { PERSONNEL_BASE_PATH, PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
 import { PERSONNEL_DASHBOARD_PATH } from "@/lib/personnelRegistrosRoutes";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
+import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH, certificateEditorPath, isCertificatePath, isPr72ModulePath } from "@/lib/certificateRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
@@ -23,6 +24,9 @@ const BackupView = lazy(() => import("@/pages/BackupView"));
 const CadastrosPage = lazy(() => import("@/pages/CadastrosPage"));
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
+const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
+const CertificateNewPage = lazy(() => import("@/pages/CertificateNewPage"));
+const CertificateEditorPage = lazy(() => import("@/pages/CertificateEditorPage"));
 const PedidosCompraPage = lazy(() => import("@/pages/PedidosCompraPage"));
 const PedidoCompraEditorPage = lazy(() => import("@/pages/PedidoCompraEditorPage"));
 const QuotationRequestsPage = lazy(() => import("@/pages/QuotationRequestsPage"));
@@ -46,7 +50,7 @@ const ColetaLegacyRedirect = () => {
   return <Navigate to={coletaEditorPath(id)} replace />;
 };
 
-const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false, personnelOnly = false, masterDocumentsOnly = false }) => {
+const Protected = ({ children, adminOnly = false, coletaOnly = false, certificatesOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false, personnelOnly = false, masterDocumentsOnly = false }) => {
   const { user } = useAuth();
   const loc = useLocation();
   if (user === null) {
@@ -61,6 +65,9 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOr
   if (coletaOnly && !canAccessColeta(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
+  if (certificatesOnly && !canAccessCalibrationCertificates(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
   if (purchaseOrdersOnly && !canAccessPurchaseOrders(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -73,7 +80,7 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, purchaseOr
   if (masterDocumentsOnly && !canAccessMasterDocuments(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (isTechnicianOnlyNav(user.role) && !isColetaPath(loc.pathname)) {
+  if (isTechnicianOnlyNav(user.role) && !isPr72ModulePath(loc.pathname)) {
     return <Navigate to={COLETA_LIST_PATH} replace />;
   }
   return children;
@@ -134,6 +141,36 @@ const App = () => (
                 <Protected coletaOnly>
                   <Suspense fallback={pageSuspenseFallback}>
                     <ColetaEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/certificados"
+              element={(
+                <Protected certificatesOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <CertificateListPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/certificados/nova"
+              element={(
+                <Protected certificatesOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <CertificateNewPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/certificados/:id"
+              element={(
+                <Protected certificatesOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <CertificateEditorPage />
                   </Suspense>
                 </Protected>
               )}

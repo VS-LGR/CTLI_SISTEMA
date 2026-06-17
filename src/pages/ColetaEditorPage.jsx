@@ -8,12 +8,19 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, FloppyDisk, FilePdf, FileText, CaretDown } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, FilePdf, FileText, CaretDown, Certificate } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   emptyColetaPayload, mergeColetaPayload, denormalizeFromPayload,
 } from "@/lib/coletaSchema";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
+import { certificateEditorPath } from "@/lib/certificateRoutes";
+import { COLETA_WORKFLOW_STATUSES } from "@/lib/calibrationCertificates/certificateSchema";
+import { createCertificateFromColeta } from "@/lib/calibrationCertificates/certificateApi";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 
 const ColetaForm = lazy(() => import("@/components/coleta/ColetaForm"));
@@ -30,6 +37,7 @@ const ColetaEditorPage = () => {
 
   const [payload, setPayload] = useState(() => emptyColetaPayload());
   const [commercialProposalRef, setCommercialProposalRef] = useState("");
+  const [workflowStatus, setWorkflowStatus] = useState("rascunho");
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [weightItems, setWeightItems] = useState([]);
@@ -100,6 +108,7 @@ const ColetaEditorPage = () => {
       }
       setPayload(mergeColetaPayload(data.payload));
       setCommercialProposalRef(data.commercial_proposal_ref || "");
+      setWorkflowStatus(data.workflow_status || "rascunho");
     } finally {
       setLoading(false);
     }
@@ -128,6 +137,7 @@ const ColetaEditorPage = () => {
       responsible_name: denorm.responsible_name,
       scale_serial: denorm.scale_serial,
       calibration_date: denorm.calibration_date || null,
+      workflow_status: workflowStatus,
       updated_by: user.id,
     };
   };
@@ -176,6 +186,16 @@ const ColetaEditorPage = () => {
     }
   };
 
+  const generateCertificate = async () => {
+    try {
+      const cert = await createCertificateFromColeta(currentTenantId, id, { userId: user.id });
+      toast.success("Certificado gerado a partir da coleta");
+      navigate(certificateEditorPath(cert.id));
+    } catch (e) {
+      toast.error(e?.message || "Falha ao gerar certificado");
+    }
+  };
+
   if (loading) {
     return <p className="text-sm text-slate-500 py-12 text-center">A carregar formulário…</p>;
   }
@@ -192,6 +212,11 @@ const ColetaEditorPage = () => {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          {!isNew && workflowStatus !== "certificado_gerado" && (
+            <Button variant="outline" type="button" onClick={generateCertificate}>
+              <Certificate size={16} className="mr-1" /> Gerar Certificado
+            </Button>
+          )}
           {!isNew && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -215,6 +240,20 @@ const ColetaEditorPage = () => {
           </Button>
         </div>
       </div>
+
+      {!isNew && (
+        <div className="max-w-xs">
+          <Label>Status da coleta</Label>
+          <Select value={workflowStatus} onValueChange={setWorkflowStatus}>
+            <SelectTrigger className="h-10 mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {COLETA_WORKFLOW_STATUSES.filter((s) => s.value !== "certificado_gerado").map((s) => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <Suspense fallback={<p className="text-sm text-slate-500 py-8 text-center">A carregar formulário…</p>}>
         <ColetaForm
