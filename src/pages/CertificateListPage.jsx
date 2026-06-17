@@ -26,6 +26,7 @@ import {
   isCertificateEditable,
 } from "@/lib/calibrationCertificates/certificateSchema";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
+import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
@@ -194,9 +195,12 @@ export default function CertificateListPage() {
                         <PencilSimple size={16} />
                       </Button>
                       {isCertificateEditable(r.status) && (
-                        <Button variant="ghost" size="sm" onClick={() => handleRecalc(r)} title="Recalcular">
-                          <Calculator size={16} />
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => handleRecalc(r)} title="Recalcular">
+                            <Calculator size={16} />
+                          </Button>
+                          <CertificateCalculationsHelp iconOnly />
+                        </>
                       )}
                       <Button variant="ghost" size="sm" onClick={() => handlePreview(r)} title="Prévia PDF">
                         <FilePdf size={16} />

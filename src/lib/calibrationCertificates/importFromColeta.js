@@ -1,5 +1,6 @@
 import { mergeColetaPayload, resolveEndCustomerId } from "@/lib/coletaSchema";
 import { canColetaGenerateOfficial } from "./certificateSchema";
+import { defaultValidityDate } from "./certificateDateUtils";
 
 function matchEmployeeByName(name, employees = []) {
   const n = (name || "").trim().toLowerCase();
@@ -131,7 +132,8 @@ export function buildImportFromColeta({
       scale_serial: collectionRow?.scale_serial || balance.serie || "",
       commercial_proposal_ref: collectionRow?.commercial_proposal_ref || "",
       calibration_date: calDate,
-      calibration_location: balance.local || endCustomer?.address || "",
+      validity_date: defaultValidityDate(calDate),
+      calibration_location: balance.local || endCustomer?.full_address || endCustomer?.address || "",
       is_preview_only: isPreviewOnly,
       balance_snapshot: balance,
       collection_snapshot: { id: collectionRow.id, workflow_status: workflowStatus, payload },

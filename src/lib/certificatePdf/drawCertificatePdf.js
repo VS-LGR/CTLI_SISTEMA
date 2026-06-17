@@ -1,11 +1,22 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { buildCertificatePdfViewModel } from "./viewModel";
-import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-
-const ML = 10;
-const MR = 200;
-const PAGE_W = 210;
+import {
+  ML,
+  MR,
+  PAGE_W,
+  CW,
+  FORM_COLORS,
+  drawCertificateHeader,
+  drawCertificateDocumentFooters,
+  drawSectionBar,
+  drawFieldGrid,
+  drawMeasureBlock,
+  ensureSpace,
+  underlineField,
+  drawNumberedObservations,
+  tableHeadStyles,
+} from "./certificatePdfLayout";
 
 function s(v) {
   return v == null ? "" : String(v);
@@ -23,121 +34,284 @@ function drawWatermark(doc, text) {
   }
 }
 
-function drawHeader(doc, model, logoDataUrl) {
-  const headerTop = 6;
-  if (logoDataUrl) {
-    try {
-      doc.addImage(logoDataUrl, "PNG", ML, headerTop, 32, 13);
-    } catch { /* optional */ }
+function drawClientSection(doc, model, y, ctx) {
+  ({ y } = ensureSpace(doc, y, 28, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "DADOS DO CLIENTE");
+  y = drawFieldGrid(doc, ML, y, CW, 2, [
+    { label: "Cliente", value: model.client.name },
+    { label: "C.N.P.J.", value: model.client.cnpj },
+    { label: "Endereço", value: model.client.address },
+    { label: "Cidade", value: model.client.city },
+  ]);
+  if (model.client.website || model.tenantWebsite) {
+    doc.setFontSize(7);
+    doc.text(model.client.website || model.tenantWebsite, ML, y);
+    y += 4;
   }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text(model.header.title, PAGE_W / 2, headerTop + 9, { align: "center", maxWidth: 160 });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.text(model.header.codeLine, PAGE_W / 2, headerTop + 14, { align: "center" });
-  doc.setFontSize(9);
-  doc.text(`Nº ${model.certificateNumber}  Rev. ${model.revision}`, PAGE_W / 2, headerTop + 19, { align: "center" });
-  return headerTop + 24;
+  return y + 2;
 }
 
-export function drawCertificatePdf(doc, model, { logoDataUrl } = {}) {
-  let y = drawHeader(doc, model, logoDataUrl);
+function drawTechnicalSection(doc, model, y, ctx) {
+  ({ y } = ensureSpace(doc, y, 42, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "INFORMAÇÕES TÉCNICAS");
+  y = drawFieldGrid(doc, ML, y, CW, 3, [
+    { label: "Marca", value: model.balance.fabricante },
+    { label: "Modelo", value: model.balance.modelo },
+    { label: "Número de Série", value: model.balance.serie },
+    { label: "TAG", value: model.balance.tag },
+    { label: "Tipo de Balança", value: model.balance.tipo },
+    { label: "Etiqueta INMETRO", value: model.balance.etiqueta },
+    { label: "Faixa de Indicação", value: model.balance.faixa },
+    { label: "Resolução", value: model.balance.resolucao ? `${model.balance.resolucao} ${model.unit}` : "" },
+    { label: "Unidade", value: model.balance.unidade },
+    { label: "Local da Calibração", value: model.balance.local },
+    { label: "Tipo de Plataforma", value: model.balance.plataforma },
+    { label: "Validação", value: model.calibrationDate ? model.calibrationDate.split("/").pop() : "" },
+  ]);
+  y = underlineField(doc, ML, y, "Certificado número", model.certificateNumber, 55);
+  y = underlineField(doc, ML + 60, y - 5, "Data da Calibração", model.calibrationDate, 45);
+  y = underlineField(doc, ML + 110, y - 5, "Data de Validade", model.validityDate, 45);
+  return y + 2;
+}
 
-  doc.setFontSize(8);
+function drawEnvironmentalSection(doc, model, y, ctx) {
+  ({ y } = ensureSpace(doc, y, 30, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "CONDIÇÕES AMBIENTAIS DURANTE A CALIBRAÇÃO");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...FORM_COLORS.text);
+  y = underlineField(doc, ML, y + 2, "Estado", model.environmental.state, 40);
+  const colW = (CW - 4) / 2;
+  const yLeft = drawMeasureBlock(doc, ML, y, colW, "Temperatura", model.environmental.temperature);
+  const yRight = drawMeasureBlock(doc, ML + colW + 4, y, colW, "Umidade Relativa", model.environmental.humidity);
+  y = Math.max(yLeft, yRight);
+  y = drawMeasureBlock(doc, ML, y, CW, "Pressão Atmosférica", model.environmental.pressure);
+  y = underlineField(doc, ML, y, "Massa específica do ar", model.environmental.airDensity, 70);
+  y = underlineField(doc, ML + 75, y - 5, "Termo-baro-higrômetro", model.environmental.thermoHygrometer, CW - 78);
+  return y + 2;
+}
+
+function drawStandardsSection(doc, model, y, ctx) {
+  if (!model.standards?.length) return y;
+  ({ y } = ensureSpace(doc, y, 20, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "PADRÕES DE REFERÊNCIA - RASTREABILIDADE");
+  autoTable(doc, {
+    startY: y,
+    margin: { left: ML, right: PAGE_W - MR },
+    head: [["Número do Certificado", "Data de Calibração", "Data de Validade", "Rastreabilidade"]],
+    body: model.standards.map((st) => [
+      s(st.certificate),
+      s(st.calibrationDate),
+      s(st.validUntil),
+      s(st.traceability),
+    ]),
+    styles: { fontSize: 6.5, cellPadding: 1.2, lineWidth: 0.1 },
+    headStyles: tableHeadStyles(doc),
+    theme: "grid",
+  });
+  return doc.lastAutoTable.finalY + 4;
+}
+
+function drawResultsTables(doc, model, y, ctx) {
+  if (!model.points?.length) return y;
+  ({ y } = ensureSpace(doc, y, 35, ctx));
+
+  const th = tableHeadStyles(doc);
+  const halfW = (CW - 4) / 2;
+  const leftMargin = ML;
+  const rightMargin = ML + halfW + 4;
+
   doc.setFont("helvetica", "bold");
-  doc.text("CLIENTE", ML, y);
-  y += 4;
-  doc.setFont("helvetica", "normal");
-  doc.text(`Razão Social: ${s(model.client.name)}`, ML, y);
-  y += 4;
-  doc.text(`CNPJ: ${s(model.client.cnpj)}  Responsável: ${s(model.client.responsible)}`, ML, y);
-  y += 4;
-  doc.text(`Local: ${s(model.client.address)}`, ML, y);
-  y += 6;
-
-  doc.setFont("helvetica", "bold");
-  doc.text("INSTRUMENTO CALIBRADO", ML, y);
-  y += 4;
-  doc.setFont("helvetica", "normal");
-  const balLines = [
-    `Fabricante: ${s(model.balance.fabricante)}  Modelo: ${s(model.balance.modelo)}`,
-    `Nº Série: ${s(model.balance.serie)}  Tag: ${s(model.balance.tag)}`,
-    `Capacidade: ${s(model.balance.capacidade)} ${s(model.balance.unidade)}  Resolução: ${s(model.balance.resolucao)}`,
-    `Tipo: ${s(model.balance.tipo)}  Plataforma: ${s(model.balance.plataforma)}`,
-    `Data da calibração: ${s(model.calibrationDate)}  Proposta: ${s(model.proposalRef)}`,
-  ];
-  balLines.forEach((ln) => { doc.text(ln, ML, y); y += 4; });
-  y += 2;
-
-  const env = model.environmental || {};
-  doc.setFont("helvetica", "bold");
-  doc.text("CONDIÇÕES AMBIENTAIS", ML, y);
-  y += 4;
-  doc.setFont("helvetica", "normal");
-  doc.text(
-    `Temp: ${s(env.initial_temperature)} a ${s(env.final_temperature)} °C  Umidade: ${s(env.initial_humidity)} a ${s(env.final_humidity)} %  Pressão: ${s(env.initial_pressure)} a ${s(env.final_pressure)} hPa`,
-    ML, y, { maxWidth: MR - ML },
-  );
-  y += 6;
-
-  if (model.standards?.length) {
-    autoTable(doc, {
-      startY: y,
-      margin: { left: ML, right: PAGE_W - MR },
-      head: [["Padrão", "Identificação", "Certificado", "Validade", "Laboratório"]],
-      body: model.standards.map((st) => [
-        st.type === "termo_baro_higrometro" ? "TBH" : "Peso",
-        s(st.code),
-        s(st.certificate),
-        s(st.validUntil),
-        s(st.laboratory),
-      ]),
-      styles: { fontSize: 7, cellPadding: 1.5 },
-      headStyles: { fillColor: [30, 58, 138], textColor: 255 },
-    });
-    y = doc.lastAutoTable.finalY + 4;
-  }
-
-  if (model.points?.length) {
-    autoTable(doc, {
-      startY: y,
-      margin: { left: ML, right: PAGE_W - MR },
-      head: [["Ponto", "Nominal", "Média", "Erro", "Repetitividade", "Incerteza Exp.", "k"]],
-      body: model.points.map((p) => [
-        p.label, p.nominal, p.average, p.error, p.repeatability, p.expandedUncertainty, p.k,
-      ]),
-      styles: { fontSize: 7, cellPadding: 1.5 },
-      headStyles: { fillColor: [30, 58, 138], textColor: 255 },
-    });
-    y = doc.lastAutoTable.finalY + 4;
-  }
-
-  if (model.conformity?.legal_metrology_applicable) {
-    doc.setFont("helvetica", "bold");
-    doc.text("CONFORMIDADE / METROLOGIA LEGAL", ML, y);
-    y += 4;
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      `Classe: ${s(model.conformity.instrument_class)}  Portaria: ${s(model.conformity.applicable_ordinance)}  Resultado: ${s(model.conformity.general_conformity_result)}`,
-      ML, y, { maxWidth: MR - ML },
-    );
-    y += 6;
-  }
-
   doc.setFontSize(7);
-  doc.text(model.legalText, ML, y, { maxWidth: MR - ML });
-  y += 8;
-
-  doc.text(`Executor: ${s(model.executorName)}`, ML, y);
-  doc.text(`Signatário: ${s(model.signatoryName)}`, MR - 60, y);
+  doc.text("Resultados Obtidos Antes do Ajuste", leftMargin + halfW / 2, y, { align: "center" });
+  doc.text("Resultados Obtidos", rightMargin + halfW / 2, y, { align: "center" });
   y += 4;
-  if (model.issueDate) doc.text(`Data de emissão: ${s(model.issueDate)}`, ML, y);
+
+  const beforeBody = model.points.map((p) => [
+    s(p.referenceValue),
+    s(p.beforeAdjustment.l1),
+    s(p.beforeAdjustment.error),
+  ]);
+  const resultsBody = model.points.map((p) => [
+    s(p.referenceValue),
+    s(p.results.average),
+    s(p.results.indicationError),
+    s(p.results.expandedUncertainty),
+    s(p.results.veff),
+    s(p.results.k),
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: leftMargin, right: PAGE_W - leftMargin - halfW },
+    tableWidth: halfW,
+    head: [[
+      { content: "Valor de Referência\n(v.r)", rowSpan: 2 },
+      { content: "Leitura 01\n(l1)", rowSpan: 2 },
+      { content: "Erro de Indicação\n(l1-v.r)", rowSpan: 2 },
+    ]],
+    body: beforeBody,
+    styles: { fontSize: 6, cellPadding: 1, halign: "center", valign: "middle" },
+    headStyles: { ...th, fontSize: 5.5 },
+    theme: "grid",
+  });
+  const yAfterLeft = doc.lastAutoTable.finalY;
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: rightMargin, right: PAGE_W - MR },
+    tableWidth: halfW,
+    head: [[
+      { content: "Valor de Referência\n(v.r)", rowSpan: 2 },
+      { content: "Média das Leituras\n(X)", rowSpan: 2 },
+      { content: "Erro de Indicação\n(X-v.r)", rowSpan: 2 },
+      { content: "Incerteza Expandida\n(Ue)", rowSpan: 2 },
+      { content: "Veff", rowSpan: 2 },
+      { content: "k", rowSpan: 2 },
+    ]],
+    body: resultsBody,
+    styles: { fontSize: 5.5, cellPadding: 0.8, halign: "center", valign: "middle" },
+    headStyles: { ...th, fontSize: 5 },
+    columnStyles: {
+      3: { cellWidth: 18 },
+      4: { cellWidth: 10 },
+      5: { cellWidth: 8 },
+    },
+    theme: "grid",
+  });
+
+  y = Math.max(yAfterLeft, doc.lastAutoTable.finalY) + 2;
+
+  if (model.adjustmentNote) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7);
+    doc.text(model.adjustmentNote, ML, y);
+    y += 5;
+  }
+  return y;
+}
+
+function drawEccentricitySection(doc, model, y, ctx) {
+  if (!model.eccentricity?.applicable) return y;
+  ({ y } = ensureSpace(doc, y, 35, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE");
+
+  doc.setFontSize(7.5);
+  y = underlineField(doc, ML, y + 2, "Valor Aplicado", model.eccentricity.appliedValue, 50);
+
+  const diagramX = ML + CW - 42;
+  const diagramY = y - 2;
+  doc.setFontSize(6);
+  doc.text("Local na plataforma\nonde foi aplicada a carga", diagramX, diagramY);
+  const cx = diagramX + 18;
+  const cy = diagramY + 14;
+  doc.setDrawColor(...FORM_COLORS.border);
+  doc.rect(cx - 12, cy - 8, 24, 16, "S");
+  [[0, -6], [-8, 4], [8, 4], [-8, -4], [8, -4]].forEach(([dx, dy], i) => {
+    doc.circle(cx + dx, cy + dy, 2.5, "S");
+    doc.text(String(i + 1), cx + dx - 1, cy + dy + 1);
+  });
+
+  autoTable(doc, {
+    startY: y + 2,
+    margin: { left: ML, right: PAGE_W - ML - 48 },
+    tableWidth: CW - 48,
+    head: [["Ponto", "Antes do ajuste", "Depois do ajuste"]],
+    body: model.eccentricity.points.map((pt) => [String(pt.number), s(pt.before), s(pt.after)]),
+    styles: { fontSize: 6.5, cellPadding: 1.2 },
+    headStyles: tableHeadStyles(doc),
+    theme: "grid",
+  });
+  return doc.lastAutoTable.finalY + 4;
+}
+
+function drawRepeatabilitySection(doc, model, y, ctx) {
+  if (!model.repeatability?.applicable || !model.repeatability.rows?.length) return y;
+  ({ y } = ensureSpace(doc, y, 25, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE");
+  autoTable(doc, {
+    startY: y,
+    margin: { left: ML, right: PAGE_W - MR },
+    head: [["Linha", "Valor nominal", "Leitura 1", "Leitura 2", "Leitura 3"]],
+    body: model.repeatability.rows.map((r) => [
+      s(r.label), s(r.nominal), s(r.reading1), s(r.reading2), s(r.reading3),
+    ]),
+    styles: { fontSize: 6.5, cellPadding: 1.2 },
+    headStyles: tableHeadStyles(doc),
+    theme: "grid",
+  });
+  y = doc.lastAutoTable.finalY + 2;
+  if (model.repeatability.observations) {
+    y = underlineField(doc, ML, y, "Observações", model.repeatability.observations, CW);
+  }
+  return y + 2;
+}
+
+function drawObservationsSection(doc, model, y, ctx) {
+  ({ y } = ensureSpace(doc, y, 40, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES");
+  return drawNumberedObservations(doc, ML + 1, y + 1, model.observations, CW - 2) + 3;
+}
+
+function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
+  ({ y } = ensureSpace(doc, y, 38, ctx));
+
+  const colW = (CW - 8) / 2;
+  const leftX = ML;
+  const rightX = ML + colW + 8;
+  const sigH = 10;
+  const sigW = 25;
+
+  const drawSignature = (x, sigY, url) => {
+    if (!url) return;
+    try {
+      doc.addImage(url, "PNG", x, sigY, sigW, sigH);
+    } catch { /* opcional */ }
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.text("Técnico Responsável", leftX + colW / 2, y, { align: "center" });
+  doc.text("Aprovação", rightX + colW / 2, y, { align: "center" });
+  y += 4;
+
+  drawSignature(leftX + colW / 2 - sigW / 2, y, signatureUrls.executor);
+  drawSignature(rightX + colW / 2 - sigW / 2, y, signatureUrls.signatory);
+  y += sigH + 2;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text(s(model.executorName), leftX + colW / 2, y, { align: "center" });
+  doc.text(s(model.signatoryName), rightX + colW / 2, y, { align: "center" });
+  y += 5;
+
+  y = underlineField(doc, leftX, y, "Data da calibração", model.calibrationDate, colW - 2);
+  y = underlineField(doc, rightX, y - 5, "Data da emissão do Certificado", model.issueDate || model.approvalDate, colW - 2);
+
+  y += 4;
+  doc.setFontSize(7);
+  doc.text(`Pontos Calibrados: ${model.calibratedPointsCount}`, ML, y);
+  doc.text(`Números de Leituras: ${model.readingsPerPoint}`, ML + 80, y);
+  return y + 4;
+}
+
+export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls } = {}) {
+  const ctx = { model, logoDataUrl, compactHeader: true };
+  let y = drawCertificateHeader(doc, model, logoDataUrl);
+
+  y = drawClientSection(doc, model, y, ctx);
+  y = drawTechnicalSection(doc, model, y, ctx);
+  y = drawEnvironmentalSection(doc, model, y, ctx);
+  y = drawStandardsSection(doc, model, y, ctx);
+  y = drawResultsTables(doc, model, y, ctx);
+  y = drawEccentricitySection(doc, model, y, ctx);
+  y = drawRepeatabilitySection(doc, model, y, ctx);
+  y = drawObservationsSection(doc, model, y, ctx);
+  drawApprovalBlock(doc, model, y, ctx, signatureUrls);
+
+  drawCertificateDocumentFooters(doc, model);
 
   if (model.preview) drawWatermark(doc, "PRÉVIA TÉCNICA");
   if (model.cancelled) drawWatermark(doc, "CANCELADO");
-
-  drawInstitutionalPageFooters(doc, { rightX: PAGE_W - 10 });
 }
 
 export async function renderCertificatePdf(cert, tenantName, opts = {}) {

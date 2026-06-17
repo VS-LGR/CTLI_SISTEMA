@@ -36,9 +36,12 @@ import {
   conformityLabel,
 } from "@/lib/calibrationCertificates/certificateSchema";
 import { validateExpiredStandards } from "@/lib/calibrationCertificates/certificateValidation";
+import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatCalcDisplay } from "@/lib/certificateCalculations";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CriticalAnalysisDialog from "@/components/calibrationCertificates/CriticalAnalysisDialog";
+import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
+import PointCalculationMemory from "@/components/calibrationCertificates/PointCalculationMemory";
 import { supabase } from "@/lib/supabaseClient";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { jobLabel } from "@/lib/cadastroConstants";
@@ -56,6 +59,7 @@ export default function CertificateEditorPage() {
   const [criticalOpen, setCriticalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [substituteReason, setSubstituteReason] = useState("");
+  const [validityTouched, setValidityTouched] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -72,6 +76,15 @@ export default function CertificateEditorPage() {
   }, [id, navigate]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!cert?.calibration_date) {
+      setValidityTouched(false);
+      return;
+    }
+    const auto = defaultValidityDate(cert.calibration_date);
+    setValidityTouched(Boolean(cert.validity_date && auto && cert.validity_date !== auto));
+  }, [cert?.id, cert?.calibration_date, cert?.validity_date]);
 
   useEffect(() => {
     if (!currentTenantId) return;
@@ -116,6 +129,7 @@ export default function CertificateEditorPage() {
         signatory_id: cert.signatory_id,
         executor_name: cert.executor_name,
         calibration_date: cert.calibration_date,
+        validity_date: cert.validity_date,
         calibration_location: cert.calibration_location,
       }, user.id);
       toast.success("Dados guardados");
@@ -261,9 +275,12 @@ export default function CertificateEditorPage() {
             </Button>
           )}
           {editable && (
-            <Button variant="outline" size="sm" onClick={handleRecalc}>
-              <Calculator size={16} className="mr-1" /> Calcular
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={handleRecalc}>
+                <Calculator size={16} className="mr-1" /> Calcular
+              </Button>
+              <CertificateCalculationsHelp />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={handlePreview}>
             <FilePdf size={16} className="mr-1" /> Prévia PDF
@@ -309,7 +326,36 @@ export default function CertificateEditorPage() {
               </div>
               <div><Label>Cliente</Label><Input className="mt-1 h-10" value={cert.client_name} disabled /></div>
               <div><Label>Série</Label><Input className="mt-1 h-10" value={cert.scale_serial} disabled /></div>
-              <div><Label>Data calibração</Label><Input type="date" className="mt-1 h-10" value={cert.calibration_date || ""} disabled={!editable} onChange={(e) => patch({ calibration_date: e.target.value })} /></div>
+              <div>
+                <Label>Data calibração</Label>
+                <Input
+                  type="date"
+                  className="mt-1 h-10"
+                  value={cert.calibration_date || ""}
+                  disabled={!editable}
+                  onChange={(e) => {
+                    const calibration_date = e.target.value;
+                    const updates = { calibration_date };
+                    if (!validityTouched) {
+                      updates.validity_date = defaultValidityDate(calibration_date) || "";
+                    }
+                    patch(updates);
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Data de validade</Label>
+                <Input
+                  type="date"
+                  className="mt-1 h-10"
+                  value={cert.validity_date || ""}
+                  disabled={!editable}
+                  onChange={(e) => {
+                    setValidityTouched(true);
+                    patch({ validity_date: e.target.value });
+                  }}
+                />
+              </div>
               <div><Label>Proposta</Label><Input className="mt-1 h-10" value={cert.commercial_proposal_ref} disabled /></div>
               <div>
                 <Label>Executor</Label>
@@ -343,7 +389,7 @@ export default function CertificateEditorPage() {
         <TabsContent value="pontos" className="mt-4">
           <Card>
             <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-sm min-w-[640px]">
+              <table className="w-full text-sm min-w-[720px]">
                 <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                   <tr>
                     <th className="p-2">Ponto</th>
@@ -354,6 +400,7 @@ export default function CertificateEditorPage() {
                     <th className="p-2">U expandida</th>
                     <th className="p-2">k</th>
                     <th className="p-2">Status</th>
+                    <th className="p-2">Memória</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -361,7 +408,7 @@ export default function CertificateEditorPage() {
                     const hasData = p.nominal_value || p.reading1;
                     if (!hasData) return null;
                     return (
-                      <tr key={p.id} className="border-t">
+                      <tr key={p.id} className="border-t align-top">
                         <td className="p-2">P{p.point_number}</td>
                         <td className="p-2">{formatCalcDisplay(p.nominal_value, 4)}</td>
                         <td className="p-2">{formatCalcDisplay(p.average_reading, 4)}</td>
@@ -372,6 +419,9 @@ export default function CertificateEditorPage() {
                         <td className="p-2">
                           <Badge variant="outline" className="text-[10px]">{p.calc_status}</Badge>
                           {p.calc_error && <span className="text-xs text-red-600 block">{p.calc_error}</span>}
+                        </td>
+                        <td className="p-2 min-w-[88px]">
+                          <PointCalculationMemory point={p} />
                         </td>
                       </tr>
                     );
@@ -434,14 +484,76 @@ export default function CertificateEditorPage() {
 
         <TabsContent value="conformidade" className="mt-4">
           <Card>
-            <CardContent className="p-6 space-y-3 text-sm">
+            <CardContent className="p-6 space-y-4 text-sm">
               {cert.conformity ? (
                 <>
-                  <div>Metrologia legal: {cert.conformity.legal_metrology_applicable ? "Sim" : "Não"}</div>
-                  <div>Classe: {cert.conformity.instrument_class || "—"}</div>
-                  <div>Portaria: {cert.conformity.applicable_ordinance || "—"}</div>
-                  <div>Regra de decisão: {cert.conformity.decision_rule || "—"}</div>
-                  <div>Resultado geral: {conformityLabel(cert.conformity.general_conformity_result)}</div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge
+                      className={
+                        cert.conformity.general_conformity_result === "conforme"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : cert.conformity.general_conformity_result === "nao_conforme"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-slate-100 text-slate-700"
+                      }
+                    >
+                      Resultado geral: {conformityLabel(cert.conformity.general_conformity_result)}
+                    </Badge>
+                    {cert.conformity.legal_metrology_applicable && (
+                      <CertificateCalculationsHelp variant="link" initialSection="conformidade" />
+                    )}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div>Metrologia legal: {cert.conformity.legal_metrology_applicable ? "Sim" : "Não"}</div>
+                    <div>Classe: {cert.conformity.instrument_class || "—"}</div>
+                    <div>Portaria: {cert.conformity.applicable_ordinance || "—"}</div>
+                    <div>Regra de decisão: {cert.conformity.decision_rule === "erro_mais_incerteza" ? "Erro + incerteza" : "Simples (só erro)"}</div>
+                  </div>
+                  {cert.conformity.legal_metrology_applicable && (cert.conformity.point_results || []).length > 0 ? (
+                    <div className="overflow-x-auto -mx-2 px-2">
+                      <table className="w-full text-xs sm:text-sm min-w-[520px]">
+                        <thead className="bg-slate-50 text-[10px] uppercase text-slate-500">
+                          <tr>
+                            <th className="p-2 text-left">Ponto</th>
+                            <th className="p-2 text-left">Tolerância (+)</th>
+                            <th className="p-2 text-left">E</th>
+                            <th className="p-2 text-left">U</th>
+                            <th className="p-2 text-left">Resultado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(cert.conformity.point_results || []).map((pr) => {
+                            const pt = (cert.points || []).find((p) => p.point_number === pr.pointNumber);
+                            return (
+                              <tr key={pr.pointNumber} className="border-t border-slate-100">
+                                <td className="p-2">P{pr.pointNumber}</td>
+                                <td className="p-2 font-mono text-xs">
+                                  {pr.tolerance?.positive != null
+                                    ? formatCalcDisplay(pr.tolerance.positive, 4)
+                                    : "—"}
+                                </td>
+                                <td className="p-2 font-mono text-xs">
+                                  {formatCalcDisplay(pt?.indication_error, 4)}
+                                </td>
+                                <td className="p-2 font-mono text-xs">
+                                  {formatCalcDisplay(pt?.expanded_uncertainty, 4)}
+                                </td>
+                                <td className="p-2">
+                                  <Badge variant="outline" className="text-[10px]">
+                                    {conformityLabel(pr.result)}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : cert.conformity.legal_metrology_applicable ? (
+                    <p className="text-slate-500 text-xs">
+                      Execute Calcular para avaliar conformidade por ponto.
+                    </p>
+                  ) : null}
                 </>
               ) : (
                 <p className="text-slate-500">Conformidade não avaliada.</p>

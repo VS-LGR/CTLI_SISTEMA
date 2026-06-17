@@ -4,6 +4,7 @@ import { buildImportFromColeta } from "./importFromColeta";
 import { buildTechnicalSnapshot } from "./certificateSnapshots";
 import { validateBeforeCalculate, validateBeforeEmit, validateBeforeApproval } from "./certificateValidation";
 import { canTransitionCertificateStatus, canColetaGenerateOfficial } from "./certificateSchema";
+import { defaultValidityDate } from "./certificateDateUtils";
 import { calculateCertificatePoints, calculateConformityForCertificate } from "@/lib/certificateCalculations";
 
 export function assertSupabaseCertificates() {
@@ -318,6 +319,7 @@ export async function emitCertificate(id, { userId, documentMeta, fileName } = {
   await updateCertificateHeader(id, {
     status: "emitido",
     issue_date: new Date().toISOString().slice(0, 10),
+    validity_date: full.validity_date || defaultValidityDate(full.calibration_date),
     emitted_by: userId || null,
     is_preview_only: false,
     technical_snapshot: technicalSnapshot,
@@ -359,6 +361,7 @@ export async function substituteCertificate(id, { userId, reason, certificateTyp
       scale_serial: original.scale_serial,
       commercial_proposal_ref: original.commercial_proposal_ref,
       calibration_date: original.calibration_date,
+      validity_date: original.validity_date,
       calibration_location: original.calibration_location,
       replaces_certificate_id: id,
       replacement_reason: reason || "",
@@ -461,6 +464,7 @@ export async function duplicateCertificate(id, { userId } = {}) {
       scale_serial: full.scale_serial,
       commercial_proposal_ref: full.commercial_proposal_ref,
       calibration_date: full.calibration_date,
+      validity_date: full.validity_date,
       calibration_location: full.calibration_location,
       balance_snapshot: full.balance_snapshot,
       collection_snapshot: full.collection_snapshot,
