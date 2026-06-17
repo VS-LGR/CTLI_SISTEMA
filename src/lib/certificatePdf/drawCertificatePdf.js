@@ -246,7 +246,19 @@ function drawPlatformDiagramStrip(doc, model, y, ctx) {
 
     if (panel.dataUrl) {
       try {
-        doc.addImage(panel.dataUrl, "PNG", x + 1, y + 1, colW - 2, imgH);
+        const pad = 1;
+        const maxW = colW - pad * 2;
+        const maxH = imgH;
+        const aspect = panel.aspectRatio > 0 ? panel.aspectRatio : 1;
+        let drawW = maxW;
+        let drawH = drawW / aspect;
+        if (drawH > maxH) {
+          drawH = maxH;
+          drawW = drawH * aspect;
+        }
+        const drawX = x + pad + (maxW - drawW) / 2;
+        const drawY = y + pad + (maxH - drawH) / 2;
+        doc.addImage(panel.dataUrl, "PNG", drawX, drawY, drawW, drawH);
       } catch { /* fallback silencioso */ }
     }
 

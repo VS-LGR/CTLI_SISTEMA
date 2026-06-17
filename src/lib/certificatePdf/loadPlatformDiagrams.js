@@ -1,6 +1,5 @@
 import {
   PLATFORM_DIAGRAM_PANELS,
-  PLATFORM_DIAGRAM_SOURCE,
   resolveActivePlatformPanel,
   platformPanelDisplayLabel,
 } from "./platformDiagramAssets";
@@ -18,32 +17,39 @@ function loadImage(src) {
   });
 }
 
-function cropPanelToDataUrl(img, panel) {
+function imageToPngDataUrl(img) {
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
-  const sy = Math.round(panel.yStart * h);
-  const sh = Math.max(1, Math.round((panel.yEnd - panel.yStart) * h));
   const canvas = document.createElement("canvas");
   canvas.width = w;
-  canvas.height = sh;
+  canvas.height = h;
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, sy, w, sh, 0, 0, w, sh);
-  return canvas.toDataURL("image/png");
+  ctx.drawImage(img, 0, 0, w, h);
+  return {
+    dataUrl: canvas.toDataURL("image/png"),
+    aspectRatio: w / h,
+  };
+}
+
+async function loadPanelAsset(panel) {
+  const img = await loadImage(panel.src);
+  const { dataUrl, aspectRatio } = imageToPngDataUrl(img);
+  return {
+    id: panel.id,
+    label: panel.label,
+    dataUrl,
+    aspectRatio,
+  };
 }
 
 async function buildPanelDataUrls() {
-  const img = await loadImage(PLATFORM_DIAGRAM_SOURCE);
-  return PLATFORM_DIAGRAM_PANELS.map((panel) => ({
-    id: panel.id,
-    label: panel.label,
-    dataUrl: cropPanelToDataUrl(img, panel),
-  }));
+  return Promise.all(PLATFORM_DIAGRAM_PANELS.map(loadPanelAsset));
 }
 
 /**
- * Carrega e recorta os 3 painéis de Balanças.png (com cache em memória).
+ * Carrega os 3 diagramas WebP de plataforma (com cache em memória).
  * @param {string} [tipoPlataforma]
- * @returns {Promise<{ panels: Array<{ id, label, dataUrl }>, activePanelId: string|null, ok: boolean }>}
+ * @returns {Promise<{ panels: Array<{ id, label, dataUrl, aspectRatio }>, activePanelId: string|null, ok: boolean }>}
  */
 export async function loadPlatformDiagramPanels(tipoPlataforma = "") {
   const activePanelId = resolveActivePlatformPanel(tipoPlataforma);

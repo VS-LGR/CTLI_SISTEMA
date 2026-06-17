@@ -42,4 +42,11 @@ describe("platformDiagramAssets", () => {
     expect(platformPanelDisplayLabel(rodPanel, "ferroviaria")).toBe("Rodoviária / Ferroviária");
     expect(platformPanelDisplayLabel(rodPanel, "rodoviaria")).toBe("Rodoviária");
   });
+
+  test("each panel points to dedicated webp asset", () => {
+    expect(PLATFORM_DIAGRAM_PANELS).toHaveLength(3);
+    expect(PLATFORM_DIAGRAM_PANELS[0].src).toContain("Retangular_QuadradaBalanças.webp");
+    expect(PLATFORM_DIAGRAM_PANELS[1].src).toContain("RedondaBalanças.webp");
+    expect(PLATFORM_DIAGRAM_PANELS[2].src).toContain("RodoviariaBalanças.webp");
+  });
 });

@@ -1,32 +1,25 @@
-/** Imagem composta com os 3 tipos de plataforma (public/Balanças.png). */
-export const PLATFORM_DIAGRAM_SOURCE = `${process.env.PUBLIC_URL || ""}/Balanças.png`;
+const PUBLIC = process.env.PUBLIC_URL || "";
 
-/**
- * Painéis verticais na imagem composta.
- * yStart/yEnd são frações da altura total (0–1).
- */
+/** Diagramas individuais por tipo de plataforma (public/). */
 export const PLATFORM_DIAGRAM_PANELS = [
   {
     id: "retangular_quadrada",
     label: "Retangular ou Quadrada",
     platformValues: ["retangular_quadrada"],
-    yStart: 0,
-    yEnd: 0.34,
+    src: `${PUBLIC}/Retangular_QuadradaBalanças.webp`,
   },
   {
     id: "redondo",
     label: "Redonda",
     platformValues: ["redondo"],
-    yStart: 0.34,
-    yEnd: 0.67,
+    src: `${PUBLIC}/RedondaBalanças.webp`,
   },
   {
     id: "rodoviaria",
     label: "Rodoviária",
     /** ferroviaria usa o mesmo painel visual (layout horizontal). */
     platformValues: ["rodoviaria", "ferroviaria"],
-    yStart: 0.67,
-    yEnd: 1,
+    src: `${PUBLIC}/RodoviariaBalanças.webp`,
     ferroviariaLabel: "Rodoviária / Ferroviária",
   },
 ];
