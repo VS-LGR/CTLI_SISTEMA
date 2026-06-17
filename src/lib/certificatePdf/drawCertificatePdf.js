@@ -190,31 +190,92 @@ function drawResultsTables(doc, model, y, ctx) {
   return y;
 }
 
-function drawEccentricitySection(doc, model, y, ctx) {
-  if (!model.eccentricity?.applicable) return y;
-  ({ y } = ensureSpace(doc, y, 35, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE");
-
-  doc.setFontSize(7.5);
-  y = underlineField(doc, ML, y + 2, "Valor Aplicado", model.eccentricity.appliedValue, 50);
-
-  const diagramX = ML + CW - 42;
-  const diagramY = y - 2;
+function drawVectorEccentricityFallback(doc, x, y, w) {
   doc.setFontSize(6);
-  doc.text("Local na plataforma\nonde foi aplicada a carga", diagramX, diagramY);
-  const cx = diagramX + 18;
-  const cy = diagramY + 14;
+  doc.text("Local na plataforma\nonde foi aplicada a carga", x, y);
+  const cx = x + w / 2;
+  const cy = y + 14;
   doc.setDrawColor(...FORM_COLORS.border);
   doc.rect(cx - 12, cy - 8, 24, 16, "S");
   [[0, -6], [-8, 4], [8, 4], [-8, -4], [8, -4]].forEach(([dx, dy], i) => {
     doc.circle(cx + dx, cy + dy, 2.5, "S");
     doc.text(String(i + 1), cx + dx - 1, cy + dy + 1);
   });
+  return y + 24;
+}
+
+function drawPlatformDiagramStrip(doc, model, y, ctx) {
+  const platformDiagrams = ctx.platformDiagrams;
+  if (!platformDiagrams?.ok || !platformDiagrams.panels?.length) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...FORM_COLORS.text);
+    doc.text("Tipos de Plataforma", ML, y);
+    y += 4;
+    return drawVectorEccentricityFallback(doc, ML, y, CW);
+  }
+
+  const gap = 2;
+  const colCount = platformDiagrams.panels.length;
+  const colW = (CW - gap * (colCount - 1)) / colCount;
+  const imgH = 22;
+  const labelH = 5;
+  const stripH = imgH + labelH + 4;
+
+  ({ y } = ensureSpace(doc, y, stripH + 4, ctx));
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text("Tipos de Plataforma", ML, y);
+  y += 4;
+
+  platformDiagrams.panels.forEach((panel, i) => {
+    const x = ML + i * (colW + gap);
+    const active = panel.id === platformDiagrams.activePanelId;
+    const boxH = imgH + 2;
+
+    if (active) {
+      doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
+      doc.rect(x, y, colW, boxH + labelH, "F");
+    }
+
+    doc.setDrawColor(...(active ? FORM_COLORS.brand : FORM_COLORS.border));
+    doc.setLineWidth(active ? 0.35 : 0.12);
+    doc.rect(x, y, colW, boxH, "S");
+
+    if (panel.dataUrl) {
+      try {
+        doc.addImage(panel.dataUrl, "PNG", x + 1, y + 1, colW - 2, imgH);
+      } catch { /* fallback silencioso */ }
+    }
+
+    doc.setFont("helvetica", active ? "bold" : "normal");
+    doc.setFontSize(5.5);
+    doc.setTextColor(...FORM_COLORS.text);
+    const label = panel.displayLabel || panel.label;
+    doc.text(label, x + colW / 2, y + boxH + 3.5, { align: "center", maxWidth: colW - 2 });
+  });
+
+  doc.setLineWidth(0.12);
+  return y + stripH;
+}
+
+function drawEccentricitySection(doc, model, y, ctx) {
+  if (!model.eccentricity?.applicable) return y;
+  ({ y } = ensureSpace(doc, y, 55, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE");
+
+  doc.setFontSize(7.5);
+  y = underlineField(doc, ML, y + 2, "Valor Aplicado", model.eccentricity.appliedValue, 50);
+  y += 2;
+
+  y = drawPlatformDiagramStrip(doc, model, y, ctx);
+  y += 2;
 
   autoTable(doc, {
-    startY: y + 2,
-    margin: { left: ML, right: PAGE_W - ML - 48 },
-    tableWidth: CW - 48,
+    startY: y,
+    margin: { left: ML, right: PAGE_W - MR },
     head: [["Ponto", "Antes do ajuste", "Depois do ajuste"]],
     body: model.eccentricity.points.map((pt) => [String(pt.number), s(pt.before), s(pt.after)]),
     styles: { fontSize: 6.5, cellPadding: 1.2 },
@@ -294,8 +355,8 @@ function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
   return y + 4;
 }
 
-export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls } = {}) {
-  const ctx = { model, logoDataUrl, compactHeader: true };
+export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls, platformDiagrams } = {}) {
+  const ctx = { model, logoDataUrl, compactHeader: true, platformDiagrams };
   let y = drawCertificateHeader(doc, model, logoDataUrl);
 
   y = drawClientSection(doc, model, y, ctx);

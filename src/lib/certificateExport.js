@@ -70,8 +70,14 @@ export async function exportCertificatePdfPreview(cert, tenantName = "", { logoD
   const { renderCertificatePdf } = await import(
     /* webpackChunkName: "certificate-pdf" */ "./certificatePdf/drawCertificatePdf"
   );
+  const { loadPlatformDiagramPanels } = await import(
+    /* webpackChunkName: "certificate-pdf" */ "./certificatePdf/loadPlatformDiagrams"
+  );
 
-  const signatureUrls = await loadCertificateSignatures(cert);
+  const [signatureUrls, platformDiagrams] = await Promise.all([
+    loadCertificateSignatures(cert),
+    loadPlatformDiagramPanels(cert.balance_snapshot?.tipo_plataforma),
+  ]);
   const preview = cert.status !== "emitido" || cert.is_preview_only;
   await renderCertificatePdf(cert, tenantName, {
     logoDataUrl,
@@ -81,6 +87,7 @@ export async function exportCertificatePdfPreview(cert, tenantName = "", { logoD
     preview,
     cancelled,
     signatureUrls,
+    platformDiagrams,
   });
 
   if (tenant?.id && cert.status === "emitido" && !cert.is_preview_only) {

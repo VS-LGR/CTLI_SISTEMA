@@ -209,6 +209,8 @@ export function buildCertificatePdfViewModel(cert, {
       unidade: unit,
       tipo: labelFromOptions(TIPO_BALANCA_OPTIONS, balance.tipo_balanca),
       plataforma: labelFromOptions(TIPO_PLATAFORMA_OPTIONS, balance.tipo_plataforma),
+      tipoPlataformaValue: balance.tipo_plataforma || "",
+      tipoPlataformaLabel: labelFromOptions(TIPO_PLATAFORMA_OPTIONS, balance.tipo_plataforma),
       portaria: balance.portaria_inmetro || "",
       etiqueta: balance.etiqueta_ipem || "",
       local: balance.local || cert.calibration_location || "",
