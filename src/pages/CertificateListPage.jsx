@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, PencilSimple, FilePdf, Calculator, MagnifyingGlass } from "@phosphor-icons/react";
+import { Plus, PencilSimple, FilePdf, Calculator, MagnifyingGlass, Archive, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   CERTIFICATE_NEW_PATH,
@@ -18,13 +18,19 @@ import {
 import {
   listCertificates,
   recalculateCertificate,
+  markCertificateObsolete,
+  deleteCertificate,
 } from "@/lib/calibrationCertificates/certificateApi";
 import {
   certificateStatusLabel,
   certificateTypeLabel,
   formatCertificateNumber,
   isCertificateEditable,
+  canMarkCertificateObsolete,
+  canDeleteCertificate,
 } from "@/lib/calibrationCertificates/certificateSchema";
+import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
+import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
@@ -46,6 +52,7 @@ const statusTone = {
   emitido: "bg-emerald-200 text-emerald-900",
   substituido: "bg-slate-200 text-slate-600",
   cancelado: "bg-red-100 text-red-800",
+  obsoleto: "bg-amber-100 text-amber-900",
   reprovado: "bg-red-100 text-red-700",
 };
 
@@ -58,6 +65,10 @@ export default function CertificateListPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [logoDataUrl, setLogoDataUrl] = useState(null);
+  const [lifecycleRow, setLifecycleRow] = useState(null);
+  const [obsoleteOpen, setObsoleteOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!currentTenantId) return;
@@ -120,6 +131,52 @@ export default function CertificateListPage() {
     }
   };
 
+  const openObsolete = (row) => {
+    setLifecycleRow(row);
+    setObsoleteOpen(true);
+  };
+
+  const openDelete = (row) => {
+    setLifecycleRow(row);
+    setDeleteOpen(true);
+  };
+
+  const handleMarkObsolete = async (reason) => {
+    if (!lifecycleRow) return;
+    setLifecycleBusy(true);
+    try {
+      await markCertificateObsolete(lifecycleRow.id, { userId: user.id, reason });
+      toast.success("Certificado marcado como obsoleto");
+      setObsoleteOpen(false);
+      setLifecycleRow(null);
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!lifecycleRow) return;
+    setLifecycleBusy(true);
+    try {
+      await deleteCertificate(lifecycleRow.id, { tenantId: currentTenantId });
+      toast.success("Certificado removido permanentemente");
+      setDeleteOpen(false);
+      setLifecycleRow(null);
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  const lifecycleLabel = lifecycleRow
+    ? formatCertificateNumber(lifecycleRow.certificate_number, lifecycleRow.certificate_year)
+    : "";
+
   return (
     <div className="space-y-6 max-w-6xl w-full min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -152,6 +209,7 @@ export default function CertificateListPage() {
             <SelectItem value="aprovado">Aprovado</SelectItem>
             <SelectItem value="emitido">Emitido</SelectItem>
             <SelectItem value="cancelado">Cancelado</SelectItem>
+            <SelectItem value="obsoleto">Obsoleto</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -205,6 +263,16 @@ export default function CertificateListPage() {
                       <Button variant="ghost" size="sm" onClick={() => handlePreview(r)} title="Prévia PDF">
                         <FilePdf size={16} />
                       </Button>
+                      {canMarkCertificateObsolete(r.status) && (
+                        <Button variant="ghost" size="sm" className="text-amber-700" onClick={() => openObsolete(r)} title="Marcar obsoleto">
+                          <Archive size={16} />
+                        </Button>
+                      )}
+                      {canDeleteCertificate(r.status) && (
+                        <Button variant="ghost" size="sm" className="text-red-600" onClick={() => openDelete(r)} title="Remover permanentemente">
+                          <Trash size={16} />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -213,6 +281,27 @@ export default function CertificateListPage() {
           </table>
         </CardContent>
       </Card>
+
+      <CertificateObsoleteDialog
+        open={obsoleteOpen}
+        onOpenChange={(open) => {
+          setObsoleteOpen(open);
+          if (!open) setLifecycleRow(null);
+        }}
+        certificateLabel={lifecycleLabel}
+        onConfirm={handleMarkObsolete}
+        busy={lifecycleBusy}
+      />
+      <CertificatePermanentDeleteDialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) setLifecycleRow(null);
+        }}
+        certificateLabel={lifecycleLabel}
+        onConfirm={handlePermanentDelete}
+        busy={lifecycleBusy}
+      />
     </div>
   );
 }

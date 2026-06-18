@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft, FloppyDisk, FilePdf, Calculator, CheckCircle, XCircle, ArrowsClockwise,
+  ArrowLeft, FloppyDisk, FilePdf, Calculator, CheckCircle, XCircle, ArrowsClockwise, Archive, Trash,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
@@ -26,6 +26,8 @@ import {
   emitCertificate,
   substituteCertificate,
   cancelCertificate,
+  markCertificateObsolete,
+  deleteCertificate,
   updateCertificateStandard,
   updateCertificatePoint,
   updateCertificateEnvironmental,
@@ -38,6 +40,8 @@ import {
   CERTIFICATE_TYPES,
   conformityLabel,
   canColetaGenerateOfficial,
+  canMarkCertificateObsolete,
+  canDeleteCertificate,
 } from "@/lib/calibrationCertificates/certificateSchema";
 import { validateExpiredStandards, validateBeforeEmit } from "@/lib/calibrationCertificates/certificateValidation";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
@@ -46,6 +50,8 @@ import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CriticalAnalysisDialog from "@/components/calibrationCertificates/CriticalAnalysisDialog";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
 import PointCalculationMemory from "@/components/calibrationCertificates/PointCalculationMemory";
+import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
+import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
 import { supabase } from "@/lib/supabaseClient";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { jobLabel } from "@/lib/cadastroConstants";
@@ -65,6 +71,9 @@ export default function CertificateEditorPage() {
   const [substituteReason, setSubstituteReason] = useState("");
   const [validityTouched, setValidityTouched] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
+  const [obsoleteOpen, setObsoleteOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -323,6 +332,36 @@ export default function CertificateEditorPage() {
       toast.success("Certificado cancelado");
     } catch (e) {
       toast.error(e.message);
+    }
+  };
+
+  const certLabel = formatCertificateNumber(cert.certificate_number, cert.certificate_year);
+
+  const handleMarkObsolete = async (reason) => {
+    setLifecycleBusy(true);
+    try {
+      const updated = await markCertificateObsolete(cert.id, { userId: user.id, reason });
+      setCert(updated);
+      setObsoleteOpen(false);
+      toast.success("Certificado marcado como obsoleto");
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    setLifecycleBusy(true);
+    try {
+      await deleteCertificate(cert.id, { tenantId: currentTenantId });
+      toast.success("Certificado removido permanentemente");
+      navigate(CERTIFICATE_LIST_PATH);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLifecycleBusy(false);
+      setDeleteOpen(false);
     }
   };
 
@@ -820,10 +859,56 @@ export default function CertificateEditorPage() {
               )}
               {cert.replacement_reason && <p className="text-sm">Motivo substituição: {cert.replacement_reason}</p>}
               {cert.cancellation_reason && <p className="text-sm text-red-700">Cancelado: {cert.cancellation_reason}</p>}
+              {cert.obsolete_reason && <p className="text-sm text-amber-800">Obsoleto: {cert.obsolete_reason}</p>}
+              <div className="pt-4 mt-4 border-t space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Remoção</p>
+                {canMarkCertificateObsolete(cert.status) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-amber-300 text-amber-800 hover:bg-amber-50"
+                    onClick={() => setObsoleteOpen(true)}
+                  >
+                    <Archive size={16} className="mr-1" /> Marcar como obsoleto
+                  </Button>
+                )}
+                {cert.status === "emitido" && (
+                  <p className="text-xs text-slate-500">
+                    Certificados emitidos devem ser cancelados ou substituídos antes de marcar como obsoleto.
+                  </p>
+                )}
+                {canDeleteCertificate(cert.status) && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    <Trash size={16} className="mr-1" /> Remover permanentemente
+                  </Button>
+                )}
+                {!canMarkCertificateObsolete(cert.status) && !canDeleteCertificate(cert.status) && cert.status !== "emitido" && (
+                  <p className="text-xs text-slate-500">Este certificado não pode ser removido no estado atual.</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <CertificateObsoleteDialog
+        open={obsoleteOpen}
+        onOpenChange={setObsoleteOpen}
+        certificateLabel={certLabel}
+        onConfirm={handleMarkObsolete}
+        busy={lifecycleBusy}
+      />
+      <CertificatePermanentDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        certificateLabel={certLabel}
+        onConfirm={handlePermanentDelete}
+        busy={lifecycleBusy}
+      />
 
       <CriticalAnalysisDialog
         open={criticalOpen}

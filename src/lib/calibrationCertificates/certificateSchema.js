@@ -22,6 +22,7 @@ export const CERTIFICATE_STATUSES = [
   { value: "emitido", label: "Emitido" },
   { value: "substituido", label: "Substituído" },
   { value: "cancelado", label: "Cancelado" },
+  { value: "obsoleto", label: "Obsoleto" },
   { value: "reprovado", label: "Reprovado" },
 ];
 
@@ -61,7 +62,7 @@ export const COLETA_OFFICIAL_STATUSES = ["conferida", "aprovada_certificado"];
 export const COLETA_PREVIEW_STATUSES = ["rascunho", "preenchida", ...COLETA_OFFICIAL_STATUSES];
 
 export const EDITABLE_CERTIFICATE_STATUSES = ["rascunho", "calculado", "em_revisao_tecnica", "reprovado"];
-export const LOCKED_CERTIFICATE_STATUSES = ["aprovado", "emitido", "substituido", "cancelado"];
+export const LOCKED_CERTIFICATE_STATUSES = ["aprovado", "emitido", "substituido", "cancelado", "obsoleto"];
 
 export function coletaWorkflowLabel(value) {
   return COLETA_WORKFLOW_STATUSES.find((s) => s.value === value)?.label || value || "—";
@@ -98,15 +99,32 @@ export function emptyCriticalChecklist() {
 
 export function canTransitionCertificateStatus(from, to) {
   const map = {
-    rascunho: ["calculado", "cancelado"],
-    calculado: ["em_revisao_tecnica", "aguardando_aprovacao", "rascunho", "cancelado"],
-    em_revisao_tecnica: ["aguardando_aprovacao", "calculado", "cancelado"],
-    aguardando_aprovacao: ["aprovado", "reprovado", "cancelado"],
-    aprovado: ["emitido", "cancelado"],
-    reprovado: ["calculado", "rascunho", "cancelado"],
+    rascunho: ["calculado", "cancelado", "obsoleto"],
+    calculado: ["em_revisao_tecnica", "aguardando_aprovacao", "rascunho", "cancelado", "obsoleto"],
+    em_revisao_tecnica: ["aguardando_aprovacao", "calculado", "cancelado", "obsoleto"],
+    aguardando_aprovacao: ["aprovado", "reprovado", "cancelado", "obsoleto"],
+    aprovado: ["emitido", "cancelado", "obsoleto"],
+    reprovado: ["calculado", "rascunho", "cancelado", "obsoleto"],
     emitido: ["substituido", "cancelado"],
-    substituido: [],
-    cancelado: [],
+    substituido: ["obsoleto"],
+    cancelado: ["obsoleto"],
+    obsoleto: [],
   };
   return (map[from] || []).includes(to);
+}
+
+/** Certificados emitidos devem ser cancelados ou substituídos antes de obsoletar. */
+export const OBSOLETABLE_CERTIFICATE_STATUSES = [
+  "cancelado", "substituido", "reprovado", "rascunho", "calculado",
+  "em_revisao_tecnica", "aguardando_aprovacao", "aprovado",
+];
+
+export const INACTIVE_CERTIFICATE_STATUSES = ["cancelado", "substituido", "obsoleto"];
+
+export function canMarkCertificateObsolete(status) {
+  return OBSOLETABLE_CERTIFICATE_STATUSES.includes(status);
+}
+
+export function canDeleteCertificate(status) {
+  return status === "obsoleto";
 }

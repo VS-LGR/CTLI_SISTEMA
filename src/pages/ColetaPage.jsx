@@ -20,6 +20,8 @@ import {
 import { toast } from "sonner";
 import { COLETA_NEW_PATH, coletaEditorPath } from "@/lib/coletaRoutes";
 import { coletaWorkflowLabel } from "@/lib/calibrationCertificates/certificateSchema";
+import { deleteColeta } from "@/lib/coletaApi";
+import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import { formatColetaDocFullTitle } from "@/lib/coletaDocMeta";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import {
@@ -111,6 +113,8 @@ const ColetaPage = ({ embedded = false }) => {
   const [weightItems, setWeightItems] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [logoDataUrl, setLogoDataUrl] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
@@ -191,13 +195,20 @@ const ColetaPage = ({ embedded = false }) => {
     );
   }
 
-  const remove = async (row) => {
-    if (!window.confirm(`Excluir coleta de ${row.client_name || "cliente"}?`)) return;
-    const { error } = await supabase.from("scale_calibration_collections").delete().eq("id", row.id);
-    if (error) toast.error(error.message);
-    else {
+  const remove = (row) => setDeleteTarget(row);
+
+  const confirmRemoveColeta = async () => {
+    if (!deleteTarget || !currentTenantId) return;
+    setDeleting(true);
+    try {
+      await deleteColeta(currentTenantId, deleteTarget.id);
       toast.success("Coleta excluída");
+      setDeleteTarget(null);
       load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -417,6 +428,19 @@ const ColetaPage = ({ embedded = false }) => {
           </table>
         </div>
       )}
+      <ConfirmDeleteDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null); }}
+        title="Excluir coleta?"
+        description={
+          deleteTarget
+            ? `A coleta de ${deleteTarget.client_name || "cliente"} (série ${deleteTarget.scale_serial || "—"}) será removida permanentemente. Não é possível excluir se houver certificado ativo vinculado.`
+            : ""
+        }
+        confirmLabel="Excluir coleta"
+        onConfirm={confirmRemoveColeta}
+        busy={deleting}
+      />
     </div>
   );
 };

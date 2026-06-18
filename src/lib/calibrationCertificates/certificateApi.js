@@ -3,7 +3,7 @@ import { isSupabaseAuthMode } from "@/lib/api";
 import { buildImportFromColeta, buildCertificateFromPayload } from "./buildCertificatePayload";
 import { buildTechnicalSnapshot } from "./certificateSnapshots";
 import { validateBeforeCalculate, validateBeforeEmit, validateBeforeApproval } from "./certificateValidation";
-import { canTransitionCertificateStatus, canColetaGenerateOfficial } from "./certificateSchema";
+import { canTransitionCertificateStatus, canColetaGenerateOfficial, canMarkCertificateObsolete, canDeleteCertificate, INACTIVE_CERTIFICATE_STATUSES } from "./certificateSchema";
 import { defaultValidityDate } from "./certificateDateUtils";
 import { calculateCertificatePoints, calculateConformityForCertificate } from "@/lib/certificateCalculations";
 
@@ -174,7 +174,7 @@ export async function createCertificateFromColeta(tenantId, collectionId, { cert
     .from("calibration_certificates")
     .select("id, status")
     .eq("collection_id", collectionId);
-  const active = (existing || []).find((c) => !["cancelado", "substituido"].includes(c.status));
+  const active = (existing || []).find((c) => !INACTIVE_CERTIFICATE_STATUSES.includes(c.status));
   if (active) throw new Error("Já existe certificado ativo para esta coleta.");
 
   const cadastros = await loadCadastrosForImport(tenantId);
@@ -574,6 +574,57 @@ export async function cancelCertificate(id, { userId, reason } = {}) {
   return getCertificate(id);
 }
 
+export async function markCertificateObsolete(id, { userId, reason } = {}) {
+  const full = await getCertificate(id);
+  if (full.status === "obsoleto") throw new Error("Certificado já está obsoleto.");
+  if (!canMarkCertificateObsolete(full.status)) {
+    if (full.status === "emitido") {
+      throw new Error("Certificado emitido deve ser cancelado ou substituído antes de marcar como obsoleto.");
+    }
+    throw new Error(`Não é possível marcar como obsoleto com status ${full.status}.`);
+  }
+  if (!canTransitionCertificateStatus(full.status, "obsoleto")) {
+    throw new Error(`Transição inválida: ${full.status} → obsoleto`);
+  }
+
+  await updateCertificateHeader(id, {
+    status: "obsoleto",
+    obsolete_reason: reason || "",
+    obsoleted_at: new Date().toISOString(),
+    obsoleted_by: userId || null,
+  }, userId);
+
+  await supabase.from("calibration_certificate_reviews").insert({
+    certificate_id: id,
+    review_type: "obsolescencia",
+    notes: reason || "",
+    reviewed_by: userId || null,
+  });
+
+  if (full.collection_id) {
+    await supabase.from("scale_calibration_collections").update({
+      certificate_id: null,
+      workflow_status: "conferida",
+    }).eq("id", full.collection_id);
+  }
+
+  return getCertificate(id);
+}
+
+export async function deleteCertificate(id, { tenantId } = {}) {
+  const full = await getCertificate(id);
+  if (tenantId && full.tenant_id !== tenantId) {
+    throw new Error("Certificado não pertence a este ambiente.");
+  }
+  if (!canDeleteCertificate(full.status)) {
+    throw new Error("Somente certificados obsoletos podem ser removidos permanentemente. Marque como obsoleto primeiro.");
+  }
+
+  const { error } = await supabase.from("calibration_certificates").delete().eq("id", id);
+  if (error) throw error;
+  return { id };
+}
+
 export async function duplicateCertificate(id, { userId } = {}) {
   const full = await getCertificate(id);
   const nextNum = await suggestNextCertificateNumber(full.tenant_id, full.certificate_year);
@@ -644,7 +695,7 @@ export async function listColetasForCertificate(tenantId) {
 
   const activeCertByCollection = new Set(
     (certs || [])
-      .filter((c) => !["cancelado", "substituido"].includes(c.status))
+      .filter((c) => !INACTIVE_CERTIFICATE_STATUSES.includes(c.status))
       .map((c) => c.collection_id),
   );
 
