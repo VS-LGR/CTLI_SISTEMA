@@ -14,7 +14,7 @@ import {
   emptyColetaPayload, mergeColetaPayload, denormalizeFromPayload,
 } from "@/lib/coletaSchema";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
-import { certificateEditorPath } from "@/lib/certificateRoutes";
+import { certificateEditorPath, CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "@/lib/certificateRoutes";
 import { COLETA_WORKFLOW_STATUSES, CERTIFICATE_TYPES, canColetaGenerateOfficial } from "@/lib/calibrationCertificates/certificateSchema";
 import { createCertificateFromColeta } from "@/lib/calibrationCertificates/certificateApi";
 import {
@@ -246,6 +246,13 @@ const ColetaEditorPage = () => {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          {canAccessCalibrationCertificates(user?.role) && (
+            <Button asChild variant="outline" type="button">
+              <Link to={CERTIFICATE_LIST_PATH}>
+                <Certificate size={16} className="mr-1" /> Certificados
+              </Link>
+            </Button>
+          )}
           {!isNew && workflowStatus === "certificado_gerado" && certificateId && (
             <Button asChild variant="outline" type="button">
               <Link to={certificateEditorPath(certificateId)}>

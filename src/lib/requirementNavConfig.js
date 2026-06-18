@@ -3,8 +3,8 @@
  * Conteúdo editável aqui; rotas usam folderKey na URL (sem dois-pontos).
  */
 
-import { COLETA_LIST_PATH } from "./coletaRoutes";
-import { CERTIFICATE_LIST_PATH } from "./certificateRoutes";
+import { COLETA_LIST_PATH, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "./coletaRoutes";
+import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "./certificateRoutes";
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 import { LISTA_MESTRA_PATH } from "./masterDocuments/masterDocumentRoutes";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
@@ -180,3 +180,12 @@ export function buildRequirementListPath(requirementId, folderKey) {
   }
   return `/requirement/${rid}`;
 }
+
+/** Verifica se pathname está num submódulo (coleta/certificados) da pasta PR-7.2. */
+export function isPr72OperationalPath(pathname) {
+  if (!pathname) return false;
+  const base = `/requirement/${COLETA_REQ_ID}/${COLETA_FOLDER_KEY}`;
+  return pathname.startsWith(`${base}/coleta`) || pathname.startsWith(`${base}/certificados`);
+}
+
+export { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH, COLETA_LIST_PATH };

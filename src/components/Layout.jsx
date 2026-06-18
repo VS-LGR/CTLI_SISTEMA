@@ -22,6 +22,7 @@ import {
   buildFolderSidebarNav,
   folderHasSidebarNav,
   requiresFolderNav,
+  isPr72OperationalPath,
 } from "@/lib/requirementNavConfig";
 import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
@@ -46,12 +47,19 @@ function SidebarBrand({ collapsed = false }) {
 }
 
 function isFolderSectionNavActive(location, item) {
+  if (isPr72OperationalPath(location.pathname)) return false;
   const [path, query] = item.to.split("?");
   if (location.pathname !== path) return false;
   const expected = new URLSearchParams(query || "");
   const expectedTab = expected.get("tab") || item.folderDefaultSection;
   const currentTab = new URLSearchParams(location.search).get("tab") || item.folderDefaultSection;
   return currentTab === expectedTab;
+}
+
+function isModuleNavActive(location, to) {
+  const { pathname } = location;
+  if (pathname === to || pathname.startsWith(`${to}/`)) return true;
+  return false;
 }
 
 const Layout = () => {
@@ -125,22 +133,29 @@ const Layout = () => {
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all ${
       isActive
-        ? "bg-blue-600 text-white"
+        ? "bg-blue-600 text-white font-medium shadow-sm"
         : "text-slate-300 hover:bg-slate-800 hover:text-white"
     }`;
 
   const subNavLinkClass = ({ isActive }) =>
     `flex items-center gap-2 pl-9 pr-3 py-2 rounded-md text-xs transition-all leading-snug ${
       isActive
-        ? "bg-blue-600 text-white"
-        : "text-slate-400 hover:bg-slate-800 hover:text-white"
+        ? "bg-slate-800 text-white font-medium ring-1 ring-inset ring-blue-500/40"
+        : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
     }`;
 
-  const subNavNestedLinkClass = ({ isActive }) =>
-    `flex items-center gap-2 pl-12 pr-3 py-1.5 rounded-md text-xs transition-all leading-snug ${
+  const folderSectionNavClass = ({ isActive }) =>
+    `flex items-center gap-2 pl-9 pr-3 py-1.5 rounded-md text-xs transition-all leading-snug ${
       isActive
-        ? "bg-blue-600 text-white"
-        : "text-slate-400 hover:bg-slate-800 hover:text-white"
+        ? "bg-slate-800/90 text-white border-l-2 border-blue-400 pl-[2.125rem]"
+        : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 border-l-2 border-transparent pl-[2.125rem]"
+    }`;
+
+  const folderModuleNavClass = ({ isActive }) =>
+    `flex items-center gap-2 pl-9 pr-3 py-1.5 rounded-md text-xs transition-all leading-snug ${
+      isActive
+        ? "bg-blue-600 text-white font-medium shadow-sm"
+        : "text-slate-300 hover:bg-slate-800 hover:text-white border-l-2 border-transparent pl-[2.125rem]"
     }`;
 
   const reqGroupPathPrefix = (rid) => `/requirement/${rid}`;
@@ -250,31 +265,42 @@ const Layout = () => {
                     const sidebarItems = buildFolderSidebarNav(r.id, f, navOpts);
                     const hasSidebar = folderHasSidebarNav(r.id, f);
                     if (hasSidebar) {
+                      const folderActive = location.pathname.startsWith(`/requirement/${r.id}/${f.folderKey}`);
                       return (
                         <div key={f.folderKey} className="space-y-0.5">
                           <div
-                            className="px-3 py-1.5 text-xs font-medium text-slate-400 truncate"
+                            className={`px-3 py-1.5 text-xs font-medium truncate ${
+                              folderActive && isPr72OperationalPath(location.pathname)
+                                ? "text-blue-300"
+                                : folderActive
+                                  ? "text-slate-300"
+                                  : "text-slate-500"
+                            }`}
                             title={f.label}
                           >
                             {f.label}
                           </div>
-                          {sidebarItems.map((c) => (
-                            <NavLink
-                              key={c.key}
-                              to={c.to}
-                              className={subNavNestedLinkClass}
-                              title={c.label}
-                              data-testid={`nav-req-${r.id}-${f.folderKey}-${c.key}`}
-                              onClick={onNavigate}
-                              isActive={
-                                c.kind === "section"
-                                  ? ({ location: loc }) => isFolderSectionNavActive(loc, c)
-                                  : undefined
-                              }
-                            >
-                              <span className="truncate">{c.label}</span>
-                            </NavLink>
-                          ))}
+                          {sidebarItems.map((c) => {
+                            const isModule = c.kind !== "section";
+                            return (
+                              <NavLink
+                                key={c.key}
+                                to={c.to}
+                                end={isModule}
+                                className={isModule ? folderModuleNavClass : folderSectionNavClass}
+                                title={c.label}
+                                data-testid={`nav-req-${r.id}-${f.folderKey}-${c.key}`}
+                                onClick={onNavigate}
+                                isActive={
+                                  isModule
+                                    ? ({ location: loc }) => isModuleNavActive(loc, c.to)
+                                    : ({ location: loc }) => isFolderSectionNavActive(loc, c)
+                                }
+                              >
+                                <span className="truncate">{c.label}</span>
+                              </NavLink>
+                            );
+                          })}
                         </div>
                       );
                     }

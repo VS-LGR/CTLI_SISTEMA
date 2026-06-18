@@ -185,7 +185,7 @@ export default function CertificateListPage() {
           <p className="text-sm text-slate-500 mt-1">RE-7.2B — emissão manual ou importação opcional da coleta RE-7.2A</p>
         </div>
         <Button asChild>
-          <Link to={CERTIFICATE_NEW_PATH}><Plus size={18} className="mr-1" /> Novo a partir da Coleta</Link>
+          <Link to={CERTIFICATE_NEW_PATH}><Plus size={18} className="mr-1" /> Novo certificado</Link>
         </Button>
       </div>
 

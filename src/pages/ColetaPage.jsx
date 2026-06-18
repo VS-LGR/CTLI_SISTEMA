@@ -15,11 +15,13 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Plus, PencilSimple, Trash, FilePdf, FileText, CaretDown, Scales, CheckCircle, Clock, MagnifyingGlass,
+  Plus, PencilSimple, Trash, FilePdf, FileText, CaretDown, Scales, CheckCircle, Clock, MagnifyingGlass, Certificate,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { COLETA_NEW_PATH, coletaEditorPath } from "@/lib/coletaRoutes";
+import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "@/lib/certificateRoutes";
 import { coletaWorkflowLabel } from "@/lib/calibrationCertificates/certificateSchema";
+import { canAccessCalibrationCertificates } from "@/lib/roles";
 import { deleteColeta } from "@/lib/coletaApi";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import { formatColetaDocFullTitle } from "@/lib/coletaDocMeta";
@@ -249,11 +251,20 @@ const ColetaPage = ({ embedded = false }) => {
             </p>
           </div>
         )}
-        <Button asChild className="bg-blue-600 hover:bg-blue-700 shrink-0">
-          <Link to={COLETA_NEW_PATH}>
-            <Plus size={18} className="mr-1" /> Nova coleta
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {canAccessCalibrationCertificates(user?.role) && (
+            <Button asChild variant="outline">
+              <Link to={CERTIFICATE_LIST_PATH}>
+                <Certificate size={18} className="mr-1" /> Certificados
+              </Link>
+            </Button>
+          )}
+          <Button asChild className="bg-blue-600 hover:bg-blue-700">
+            <Link to={COLETA_NEW_PATH}>
+              <Plus size={18} className="mr-1" /> Nova coleta
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4" data-testid="coleta-kpis">
