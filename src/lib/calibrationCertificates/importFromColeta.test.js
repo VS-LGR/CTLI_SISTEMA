@@ -77,7 +77,34 @@ describe("buildCertificateFromPayload", () => {
     expect(result.certificate.collection_id).toBeNull();
     expect(result.certificate.is_preview_only).toBe(false);
     expect(result.certificate.client_name).toBe("Manual Cliente");
-    expect(result.points[0].nominal_value).toBe("100 g");
-    expect(result.points[0].reading1).toBe("100.01");
+    expect(result.points[0].nominal_value).toBe(100);
+    expect(result.points[0].reading1).toBe(100.01);
+  });
+
+  it("ignora valores não numéricos da coleta e gera avisos", () => {
+    const payload = emptyColetaPayload();
+    payload.calibracao.pontos[0] = {
+      ...payload.calibracao.pontos[0],
+      peso_nominal: "MA-07",
+      rep1: "100,02 g",
+      rep2: "#N/D",
+      rep3: "abc",
+    };
+
+    const result = buildCertificateFromPayload({
+      payload,
+      certificateType: "rastreavel",
+      certificateYear: 2026,
+      certificateNumber: 11,
+      collectionId: null,
+      collectionSnapshot: null,
+      isPreviewOnly: false,
+    });
+
+    expect(result.points[0].nominal_value).toBeNull();
+    expect(result.points[0].reading1).toBe(100.02);
+    expect(result.points[0].reading2).toBeNull();
+    expect(result.points[0].reading3).toBeNull();
+    expect(result.importWarnings.length).toBeGreaterThanOrEqual(2);
   });
 });

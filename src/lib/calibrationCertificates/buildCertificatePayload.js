@@ -2,6 +2,7 @@ import { mergeColetaPayload, resolveEndCustomerId } from "@/lib/coletaSchema";
 import { determineInstrumentClass } from "@/lib/certificateCalculations";
 import { canColetaGenerateOfficial } from "./certificateSchema";
 import { defaultValidityDate } from "./certificateDateUtils";
+import { mapColetaPointForDb } from "./certificateImportSanitize";
 
 function matchEmployeeByName(name, employees = []) {
   const n = (name || "").trim().toLowerCase();
@@ -110,17 +111,11 @@ export function buildCertificateFromPayload({
   const year = certificateYear || (calDate ? new Date(calDate).getFullYear() : new Date().getFullYear());
   const executorMatch = matchEmployeeByName(payload.controle?.nome_executor, employees);
   const balance = payload.balanca || {};
+  const importWarnings = [];
 
-  const points = (payload.calibracao?.pontos || []).slice(0, 10).map((pt, i) => ({
-    point_number: i + 1,
-    nominal_value: pt.peso_nominal || null,
-    reading_before_adjustment: pt.leitura_antes || null,
-    reading1: pt.rep1 || null,
-    reading2: pt.rep2 || null,
-    reading3: pt.rep3 || null,
-    standard_weight_ids: pt.pesos_padrao_ids || [],
-    notes: "",
-  }));
+  const points = (payload.calibracao?.pontos || []).slice(0, 10).map((pt, i) =>
+    mapColetaPointForDb(pt, i + 1, importWarnings),
+  );
 
   const envIds = [payload.ambiente?.thermo_cert_id, payload.ambiente?.thermo_cert_id_2].filter(Boolean);
   const standards = buildStandardsFromPoints(points, weightItems, weightCerts, envCerts, envIds);
@@ -177,6 +172,7 @@ export function buildCertificateFromPayload({
     environmental,
     conformity: buildConformity(balance, payload.controle),
     endCustomer,
+    importWarnings,
   };
 }
 
@@ -218,5 +214,6 @@ export function buildImportFromColeta({
     ...built,
     isPreviewOnly,
     workflowStatus,
+    importWarnings: built.importWarnings || [],
   };
 }

@@ -207,7 +207,7 @@ const ColetaEditorPage = () => {
     setGeneratingCert(true);
     try {
       await persistColeta();
-      const { certificate, recalcWarning } = await createCertificateFromColeta(currentTenantId, id, {
+      const { certificate, recalcWarning, importWarnings } = await createCertificateFromColeta(currentTenantId, id, {
         userId: user.id,
         certificateType: certType,
       });
@@ -215,6 +215,12 @@ const ColetaEditorPage = () => {
         ? "Certificado gerado a partir da coleta"
         : "Prévia técnica gerada — confira a coleta antes da emissão oficial";
       toast.success(msg);
+      if (importWarnings?.length) {
+        toast.warning(
+          `Importação: ${importWarnings.length} valor(es) não numérico(s) ignorado(s). Revise os pontos no certificado.`,
+          { duration: 8000 },
+        );
+      }
       if (recalcWarning) {
         toast.warning(`Certificado criado, mas o cálculo automático falhou: ${recalcWarning}`);
       }

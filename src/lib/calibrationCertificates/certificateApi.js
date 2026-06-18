@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { buildImportFromColeta, buildCertificateFromPayload } from "./buildCertificatePayload";
+import { sanitizePointsForDb, enrichEnvironmentalAirDensity } from "./certificateImportSanitize";
 import { buildTechnicalSnapshot } from "./certificateSnapshots";
 import { validateBeforeCalculate, validateBeforeEmit, validateBeforeApproval } from "./certificateValidation";
 import { canTransitionCertificateStatus, canColetaGenerateOfficial, canMarkCertificateObsolete, canDeleteCertificate, INACTIVE_CERTIFICATE_STATUSES } from "./certificateSchema";
@@ -91,7 +92,7 @@ export async function getCertificate(id) {
     ...cert,
     points: pointsRes.data || [],
     standards: standardsRes.data || [],
-    environmental: envRes.data || null,
+    environmental: enrichEnvironmentalAirDensity(envRes.data || null, cert),
     conformity: confRes.data || null,
     reviews: reviewsRes.data || [],
   };
@@ -133,7 +134,7 @@ async function insertCertificateBundle(tenantId, imported, { userId, certificate
 
   if (imported.points.length) {
     const { error: ptErr } = await supabase.from("calibration_certificate_points").insert(
-      imported.points.map((p) => ({ ...p, certificate_id: certId })),
+      sanitizePointsForDb(imported.points).map((p) => ({ ...p, certificate_id: certId })),
     );
     if (ptErr) throw ptErr;
   }
@@ -206,6 +207,7 @@ export async function createCertificateFromColeta(tenantId, collectionId, { cert
   return {
     certificate: await getCertificate(certId),
     recalcWarning,
+    importWarnings: imported.importWarnings || [],
   };
 }
 
@@ -252,6 +254,7 @@ export async function createCertificateManual(tenantId, input, { userId } = {}) 
   return {
     certificate: await getCertificate(certId),
     recalcWarning,
+    importWarnings: imported.importWarnings || [],
   };
 }
 

@@ -44,6 +44,7 @@ import {
   canDeleteCertificate,
 } from "@/lib/calibrationCertificates/certificateSchema";
 import { validateExpiredStandards, validateBeforeEmit } from "@/lib/calibrationCertificates/certificateValidation";
+import { sanitizePointRowForDb } from "@/lib/calibrationCertificates/certificateImportSanitize";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatCalcDisplay } from "@/lib/certificateCalculations";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
@@ -176,13 +177,16 @@ export default function CertificateEditorPage() {
 
       if (isStandalone) {
         await Promise.all(
-          (cert.points || []).map((p) => updateCertificatePoint(p.id, {
-            nominal_value: p.nominal_value,
-            reading_before_adjustment: p.reading_before_adjustment,
-            reading1: p.reading1,
-            reading2: p.reading2,
-            reading3: p.reading3,
-          })),
+          (cert.points || []).map((p) => {
+            const sanitized = sanitizePointRowForDb(p);
+            return updateCertificatePoint(p.id, {
+              nominal_value: sanitized.nominal_value,
+              reading_before_adjustment: sanitized.reading_before_adjustment,
+              reading1: sanitized.reading1,
+              reading2: sanitized.reading2,
+              reading3: sanitized.reading3,
+            });
+          }),
         );
       }
 
