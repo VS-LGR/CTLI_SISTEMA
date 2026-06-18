@@ -376,7 +376,7 @@ function formatNominalPart(value, unit) {
 }
 
 /** Deriva valor nominal de referência a partir dos pesos padrão selecionados. */
-export function nominalFromWeightIds(ids, weightItems = []) {
+export function nominalFromWeightIds(ids, weightItems = [], preferConventional = false) {
   if (!ids?.length || !weightItems?.length) return "";
   const items = ids
     .map((id) => weightItems.find((w) => w.id === id))
@@ -385,9 +385,15 @@ export function nominalFromWeightIds(ids, weightItems = []) {
 
   const units = [...new Set(items.map((w) => (w.unit || "g").trim().toLowerCase()))];
   if (units.length === 1) {
-    const sum = items.reduce((acc, w) => acc + (parseNominalNumber(w.nominal_value) || 0), 0);
+    const sum = items.reduce((acc, w) => {
+      const raw = preferConventional && w.conventional_value ? w.conventional_value : w.nominal_value;
+      return acc + (parseNominalNumber(raw) || 0);
+    }, 0);
     if (sum > 0) return `${sum} ${items[0].unit || "g"}`.trim();
   }
 
-  return items.map((w) => formatNominalPart(w.nominal_value, w.unit)).join(" + ");
+  return items.map((w) => {
+    const raw = preferConventional && w.conventional_value ? w.conventional_value : w.nominal_value;
+    return formatNominalPart(raw, w.unit);
+  }).join(" + ");
 }

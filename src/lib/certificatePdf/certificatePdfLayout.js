@@ -35,28 +35,64 @@ export const LOGO_H = 13;
 /** @returns {number} y para início do conteúdo após cabeçalho */
 export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6) {
   const headerTop = yStart;
+  const labX = ML;
+  let labBottom = headerTop;
 
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, "PNG", ML, headerTop, LOGO_W, LOGO_H);
+      doc.addImage(logoDataUrl, "PNG", labX, headerTop, LOGO_W, LOGO_H);
+      labBottom = headerTop + LOGO_H + 1;
     } catch { /* opcional */ }
   }
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+  doc.setTextColor(...FORM_COLORS.text);
+  const labLines = [
+    model.lab?.name || model.tenantName || "",
+    model.lab?.address || "",
+    [model.lab?.phone, model.lab?.website].filter(Boolean).join(" · "),
+  ].filter(Boolean);
+  labLines.forEach((line, i) => {
+    doc.text(line, labX, labBottom + 3 + i * 3.2, { maxWidth: 70 });
+  });
+  labBottom += labLines.length * 3.2 + 2;
 
   const centerX = PAGE_W / 2;
   doc.setTextColor(...FORM_COLORS.text);
   doc.setFont("helvetica", "bold");
+  const titleSuffix = model.certificateType === "rbc" ? " RBC" : "";
+  doc.setFontSize(10);
+  doc.text(`CERTIFICADO DE CALIBRAÇÃO${titleSuffix}`, centerX, headerTop + 8, { align: "center" });
   doc.setFontSize(11);
-  doc.text("CERTIFICADO DE CALIBRAÇÃO Nº", centerX, headerTop + 8, { align: "center" });
-  doc.setFontSize(12);
-  doc.text(model.certificateNumber || "—", centerX, headerTop + 15, { align: "center" });
+  doc.text(`Nº ${model.certificateNumber || "—"}`, centerX, headerTop + 15, { align: "center" });
 
+  const accX = PAGE_W - ML;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
   if (model.certificateType === "rbc") {
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
-    doc.text("RBC", PAGE_W - ML, headerTop + 6, { align: "right" });
+    doc.text("RBC", accX, headerTop + 4, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.text("CREDENCIADO CGCRE/INMETRO", accX, headerTop + 9, { align: "right" });
+    doc.text("NBR ISO/IEC 17025:2017", accX, headerTop + 13, { align: "right" });
+    if (model.lab?.cgcreCalNumber) {
+      doc.text(`CAL ${model.lab.cgcreCalNumber}`, accX, headerTop + 17, { align: "right" });
+    }
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("CREDENCIADA IPEM-MG", accX, headerTop + 6, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    if (model.lab?.ipemNumber) {
+      doc.text(model.lab.ipemNumber, accX, headerTop + 11, { align: "right" });
+    }
   }
 
-  return Math.max(headerTop + LOGO_H + 2, headerTop + 18) + 2;
+  return Math.max(labBottom, headerTop + 22) + 2;
 }
 
 /** Rodapé documental em todas as páginas (Código, Ref, Emissão, Página). */

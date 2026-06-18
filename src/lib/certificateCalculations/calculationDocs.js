@@ -6,9 +6,9 @@
 export const perPointFormulas = [
   {
     id: "vn",
-    result: "Valor nominal (VN)",
-    formula: "Campo da coleta ou soma dos pesos-padrão selecionados",
-    source: "Coleta RE-7.2A — peso_nominal / pesos_padrao_ids",
+    result: "Valor de referência (V.R.)",
+    formula: "Soma dos V.V.C (valor convencional) dos pesos-padrão selecionados",
+    source: "Planilha — aba CAD PESOS-PADRÃO / P1–P10",
   },
   {
     id: "media",
@@ -43,8 +43,8 @@ export const perPointFormulas = [
   {
     id: "upad",
     result: "Contribuição do padrão (u_pad)",
-    formula: "u_pad = ((VN_kg / 10⁶) × AR_ppm) / √3",
-    source: "AR = maior incerteza (ppm) dos certificados dos pesos; padrão 2 ppm se ausente",
+    formula: "u_pad = Ue_combinada / k_padrão (RSS das Ue dos pesos) ou fallback ppm",
+    source: "Planilha P1 coluna AD — Ue em gramas do cadastro de pesos",
   },
   {
     id: "uind",

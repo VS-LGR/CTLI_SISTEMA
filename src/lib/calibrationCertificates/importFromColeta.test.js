@@ -1,3 +1,4 @@
+import { buildCertificateFromPayload } from "./buildCertificatePayload";
 import { buildImportFromColeta } from "./importFromColeta";
 import { emptyColetaPayload } from "@/lib/coletaSchema";
 
@@ -43,5 +44,40 @@ describe("buildImportFromColeta", () => {
     });
 
     expect(result.certificate.is_preview_only).toBe(false);
+  });
+});
+
+describe("buildCertificateFromPayload", () => {
+  it("cria certificado manual sem collection_id", () => {
+    const payload = emptyColetaPayload();
+    payload.cliente.cliente = "Manual Cliente";
+    payload.balanca.serie = "MAN-999";
+    payload.controle.data_calibracao = "2026-06-15";
+    payload.calibracao.pontos[0] = {
+      ...payload.calibracao.pontos[0],
+      peso_nominal: "100 g",
+      rep1: "100.01",
+      rep2: "100.02",
+      rep3: "100.03",
+    };
+
+    const result = buildCertificateFromPayload({
+      payload,
+      certificateType: "rastreavel",
+      certificateYear: 2026,
+      certificateNumber: 10,
+      clientName: "Manual Cliente",
+      scaleSerial: "MAN-999",
+      calibrationDate: "2026-06-15",
+      collectionId: null,
+      collectionSnapshot: null,
+      isPreviewOnly: false,
+    });
+
+    expect(result.certificate.collection_id).toBeNull();
+    expect(result.certificate.is_preview_only).toBe(false);
+    expect(result.certificate.client_name).toBe("Manual Cliente");
+    expect(result.points[0].nominal_value).toBe("100 g");
+    expect(result.points[0].reading1).toBe("100.01");
   });
 });

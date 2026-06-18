@@ -125,7 +125,7 @@ export default function CertificateListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-xl font-semibold text-slate-900">Certificados de Calibração</h1>
-          <p className="text-sm text-slate-500 mt-1">RE-7.2B — gerados a partir da coleta RE-7.2A</p>
+          <p className="text-sm text-slate-500 mt-1">RE-7.2B — emissão manual ou importação opcional da coleta RE-7.2A</p>
         </div>
         <Button asChild>
           <Link to={CERTIFICATE_NEW_PATH}><Plus size={18} className="mr-1" /> Novo a partir da Coleta</Link>

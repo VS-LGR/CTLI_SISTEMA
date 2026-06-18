@@ -1,7 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
-import { denormalizeFromPayload } from "@/lib/coletaSchema";
-import { buildImportFromColeta } from "./importFromColeta";
+import { buildImportFromColeta, buildCertificateFromPayload } from "./buildCertificatePayload";
 import { buildTechnicalSnapshot } from "./certificateSnapshots";
 import { validateBeforeCalculate, validateBeforeEmit, validateBeforeApproval } from "./certificateValidation";
 import { canTransitionCertificateStatus, canColetaGenerateOfficial } from "./certificateSchema";
@@ -116,42 +115,13 @@ async function loadCadastrosForImport(tenantId) {
   };
 }
 
-export async function createCertificateFromColeta(tenantId, collectionId, { certificateType = "rastreavel", userId } = {}) {
-  assertSupabaseCertificates();
-
-  const { data: collection, error: collErr } = await supabase
-    .from("scale_calibration_collections")
-    .select("*")
-    .eq("id", collectionId)
-    .single();
-  if (collErr) throw collErr;
-
-  const { data: existing } = await supabase
-    .from("calibration_certificates")
-    .select("id, status")
-    .eq("collection_id", collectionId);
-  const active = (existing || []).find((c) => !["cancelado", "substituido"].includes(c.status));
-  if (active) throw new Error("Já existe certificado ativo para esta coleta.");
-
-  const cadastros = await loadCadastrosForImport(tenantId);
-  const calDate = collection.calibration_date || collection.payload?.controle?.data_calibracao;
-  const year = calDate ? new Date(calDate).getFullYear() : new Date().getFullYear();
-  const nextNum = await suggestNextCertificateNumber(tenantId, year);
-
-  const imported = buildImportFromColeta({
-    collectionRow: collection,
-    ...cadastros,
-    certificateType,
-    certificateYear: year,
-    certificateNumber: nextNum,
-  });
-
+async function insertCertificateBundle(tenantId, imported, { userId, certificateNumber }) {
   const { data: cert, error: certErr } = await supabase
     .from("calibration_certificates")
     .insert({
       tenant_id: tenantId,
       ...imported.certificate,
-      certificate_number: nextNum,
+      certificate_number: certificateNumber,
       created_by: userId || null,
       updated_by: userId || null,
     })
@@ -187,6 +157,41 @@ export async function createCertificateFromColeta(tenantId, collectionId, { cert
   });
   if (confErr) throw confErr;
 
+  return certId;
+}
+
+export async function createCertificateFromColeta(tenantId, collectionId, { certificateType = "rastreavel", userId } = {}) {
+  assertSupabaseCertificates();
+
+  const { data: collection, error: collErr } = await supabase
+    .from("scale_calibration_collections")
+    .select("*")
+    .eq("id", collectionId)
+    .single();
+  if (collErr) throw collErr;
+
+  const { data: existing } = await supabase
+    .from("calibration_certificates")
+    .select("id, status")
+    .eq("collection_id", collectionId);
+  const active = (existing || []).find((c) => !["cancelado", "substituido"].includes(c.status));
+  if (active) throw new Error("Já existe certificado ativo para esta coleta.");
+
+  const cadastros = await loadCadastrosForImport(tenantId);
+  const calDate = collection.calibration_date || collection.payload?.controle?.data_calibracao;
+  const year = calDate ? new Date(calDate).getFullYear() : new Date().getFullYear();
+  const nextNum = await suggestNextCertificateNumber(tenantId, year);
+
+  const imported = buildImportFromColeta({
+    collectionRow: collection,
+    ...cadastros,
+    certificateType,
+    certificateYear: year,
+    certificateNumber: nextNum,
+  });
+
+  const certId = await insertCertificateBundle(tenantId, imported, { userId, certificateNumber: nextNum });
+
   await supabase.from("scale_calibration_collections").update({
     certificate_id: certId,
   }).eq("id", collectionId);
@@ -204,41 +209,50 @@ export async function createCertificateFromColeta(tenantId, collectionId, { cert
   };
 }
 
-export async function createCertificateWithNewColeta(
-  tenantId,
-  { payload, commercialProposalRef, certificateType = "rastreavel", workflowStatus = "rascunho", userId } = {},
-) {
+export async function createCertificateManual(tenantId, input, { userId } = {}) {
   assertSupabaseCertificates();
 
-  const payloadWithMeta = {
-    ...payload,
-    meta: { ...(payload?.meta || {}), origem: "certificado_manual" },
-  };
-  const denorm = denormalizeFromPayload(payloadWithMeta, commercialProposalRef || "");
+  const cadastros = await loadCadastrosForImport(tenantId);
+  const calDate = input.calibrationDate || new Date().toISOString().slice(0, 10);
+  const year = input.certificateYear || new Date(calDate).getFullYear();
+  const nextNum = await suggestNextCertificateNumber(tenantId, year);
 
-  const { data: collection, error } = await supabase
-    .from("scale_calibration_collections")
-    .insert({
-      tenant_id: tenantId,
-      commercial_proposal_ref: denorm.commercial_proposal_ref,
-      payload: denorm.payload,
-      client_name: denorm.client_name,
-      responsible_name: denorm.responsible_name,
-      scale_serial: denorm.scale_serial,
-      calibration_date: denorm.calibration_date || null,
-      workflow_status: workflowStatus,
-      created_by: userId || null,
-      updated_by: userId || null,
-    })
-    .select("id")
-    .single();
-  if (error) throw error;
-
-  const result = await createCertificateFromColeta(tenantId, collection.id, {
-    certificateType,
-    userId,
+  const imported = buildCertificateFromPayload({
+    payload: input.payload,
+    ...cadastros,
+    certificateType: input.certificateType || "rastreavel",
+    certificateYear: year,
+    certificateNumber: nextNum,
+    commercialProposalRef: input.commercialProposalRef || "",
+    clientName: input.clientName,
+    scaleSerial: input.scaleSerial,
+    calibrationDate: calDate,
+    collectionId: null,
+    collectionSnapshot: null,
+    isPreviewOnly: false,
+    scaleRegistrationId: input.scaleRegistrationId || null,
+    repeatabilitySnapshot: input.repeatabilitySnapshot || null,
   });
-  return { collectionId: collection.id, ...result };
+
+  if (input.executorId) imported.certificate.executor_id = input.executorId;
+  if (input.executorName) imported.certificate.executor_name = input.executorName;
+  if (input.endCustomerId) imported.certificate.end_customer_id = input.endCustomerId;
+  if (input.validityDate) imported.certificate.validity_date = input.validityDate;
+  if (input.calibrationLocation) imported.certificate.calibration_location = input.calibrationLocation;
+
+  const certId = await insertCertificateBundle(tenantId, imported, { userId, certificateNumber: nextNum });
+
+  let recalcWarning = null;
+  try {
+    await recalculateCertificate(certId);
+  } catch (e) {
+    recalcWarning = e?.message || "Cálculo não concluído automaticamente";
+  }
+
+  return {
+    certificate: await getCertificate(certId),
+    recalcWarning,
+  };
 }
 
 export async function updateCertificateHeader(id, patch, userId) {
@@ -259,6 +273,15 @@ export async function updateCertificateStandard(standardId, patch) {
 export async function updateCertificatePoint(pointId, patch) {
   assertSupabaseCertificates();
   const { error } = await supabase.from("calibration_certificate_points").update(patch).eq("id", pointId);
+  if (error) throw error;
+}
+
+export async function updateCertificateEnvironmental(certificateId, patch) {
+  assertSupabaseCertificates();
+  const { error } = await supabase
+    .from("calibration_certificate_environmental")
+    .update(patch)
+    .eq("certificate_id", certificateId);
   if (error) throw error;
 }
 

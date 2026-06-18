@@ -1,6 +1,11 @@
 import { formatCertificateNumber, certificateTypeLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatCalcDisplay } from "@/lib/certificateCalculations";
+import {
+  environmentalAverage,
+  environmentalUncertainty,
+  ENV_UNCERTAINTY_CONSTANTS,
+} from "@/lib/certificateCalculations/environmentalCalculations";
 import { unidadeLabel, TIPO_BALANCA_OPTIONS, TIPO_PLATAFORMA_OPTIONS } from "@/lib/coletaSchema";
 import { fmtDmy } from "@/lib/coletaPdf/viewModel";
 import { getCertificateObservations } from "./legalObservations";
@@ -15,38 +20,13 @@ function parseNum(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-function avgEnv(initial, final) {
-  const a = parseNum(initial);
-  const b = parseNum(final);
-  if (a != null && b != null) return (a + b) / 2;
-  return a ?? b;
-}
-
-function formatEnvValue(value, uncertainty, unit) {
-  if (value == null || value === "") return "—";
-  const v = typeof value === "number" ? formatCalcDisplay(value, 1) : String(value);
-  const u = uncertainty != null && uncertainty !== "" ? ` ± ${uncertainty}` : "";
-  return `${v} ${unit}${u}`.trim();
-}
-
-function parseCityFromAddress(address) {
-  const addr = String(address || "").trim();
-  if (!addr) return "";
-  const parts = addr.split(" - ").map((p) => p.trim()).filter(Boolean);
-  if (parts.length >= 2) {
-    const last = parts[parts.length - 1];
-    if (last.length <= 3) return parts[parts.length - 2] || "";
-    return last;
-  }
-  return "";
-}
-
-function formatVeff(veff) {
-  if (veff == null || veff === "") return "—";
-  const n = Number(veff);
-  if (!Number.isFinite(n)) return String(veff);
-  if (n >= 1e6 || !Number.isFinite(1 / n)) return "∞";
-  return formatCalcDisplay(n, 0);
+function formatEnvCell(initial, final, constant, unit) {
+  const avg = environmentalAverage(initial, final);
+  const unc = environmentalUncertainty(initial, final, constant);
+  if (avg == null) return "—";
+  const v = formatCalcDisplay(avg, 1);
+  const u = unc != null ? ` ± ${formatCalcDisplay(unc, 1)}` : "";
+  return `${v}${u} ${unit}`.trim();
 }
 
 function withUnit(value, unit, decimals = 4) {
@@ -69,9 +49,30 @@ function resolveClient(cert) {
     cnpj: snap.cnpj || "",
     address,
     city: snap.city || parseCityFromAddress(address),
+    state: snap.state || "",
     representative: snap.representative_name || "",
     website: snap.website || "",
   };
+}
+
+function parseCityFromAddress(address) {
+  const addr = String(address || "").trim();
+  if (!addr) return "";
+  const parts = addr.split(" - ").map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const last = parts[parts.length - 1];
+    if (last.length <= 3) return parts[parts.length - 2] || "";
+    return last;
+  }
+  return "";
+}
+
+function formatVeff(veff) {
+  if (veff == null || veff === "") return "—";
+  const n = Number(veff);
+  if (!Number.isFinite(n)) return String(veff);
+  if (n >= 1e6 || !Number.isFinite(1 / n)) return "∞";
+  return formatCalcDisplay(n, 0);
 }
 
 function resolveEnvironmental(cert) {
@@ -80,30 +81,33 @@ function resolveEnvironmental(cert) {
   const collPayload = cert.collection_snapshot?.payload || {};
   const ambSnap = collPayload.ambiente || snap || {};
 
-  const tbhStandard = (cert.standards || []).find((s) => s.standard_type === "termo_baro_higrometro");
-  const tbhUncertainty = tbhStandard?.uncertainty;
+  const tempIni = env.initial_temperature || ambSnap.temp_inicial;
+  const tempFin = env.final_temperature || ambSnap.temp_final;
+  const humIni = env.initial_humidity || ambSnap.umidade_inicial;
+  const humFin = env.final_humidity || ambSnap.umidade_final;
+  const pressIni = env.initial_pressure || ambSnap.pressao_inicial;
+  const pressFin = env.final_pressure || ambSnap.pressao_final;
 
-  const tempAvg = avgEnv(env.initial_temperature || ambSnap.temp_inicial, env.final_temperature || ambSnap.temp_final);
-  const humAvg = avgEnv(env.initial_humidity || ambSnap.umidade_inicial, env.final_humidity || ambSnap.umidade_final);
-  const pressAvg = avgEnv(env.initial_pressure || ambSnap.pressao_inicial, env.final_pressure || ambSnap.pressao_final);
-
-  const rep = collPayload.verso?.repetitividade || {};
-  const massaEspecifica = ambSnap.massa_especifica
+  const rep = cert.repeatability_snapshot || collPayload.verso?.repetitividade || {};
+  const massaEspecifica = env.air_density
+    || ambSnap.massa_especifica
     || rep.massa_especifica_estimada
     || snap.massa_especifica
     || "";
 
-  const state = ambSnap.estado || ambSnap.uf || parseCityFromAddress(resolveClient(cert).address).split(" ").pop() || "";
-
   return {
-    state,
-    temperature: formatEnvValue(tempAvg, tbhUncertainty ?? "1,0", "ºC"),
-    humidity: formatEnvValue(humAvg, tbhUncertainty ?? "8", "%"),
-    pressure: formatEnvValue(pressAvg, tbhUncertainty ?? "5", "hPa"),
+    initialFinal: {
+      temperature: { initial: tempIni || "—", final: tempFin || "—" },
+      humidity: { initial: humIni || "—", final: humFin || "—" },
+      pressure: { initial: pressIni || "—", final: pressFin || "—" },
+    },
+    temperature: formatEnvCell(tempIni, tempFin, ENV_UNCERTAINTY_CONSTANTS.temperature, "ºC"),
+    humidity: formatEnvCell(humIni, humFin, ENV_UNCERTAINTY_CONSTANTS.humidity, "%"),
+    pressure: formatEnvCell(pressIni, pressFin, ENV_UNCERTAINTY_CONSTANTS.pressure, "hPa"),
     airDensity: massaEspecifica ? `${massaEspecifica} kg/m³` : "—",
-    thermoHygrometer: tbhStandard?.identification_code || tbhStandard?.description || "—",
     balanceAdjusted: env.balance_adjusted || ambSnap.balanca_ajustada || "",
     notes: env.notes || ambSnap.observacoes || "",
+    popReference: "",
   };
 }
 
@@ -125,8 +129,7 @@ function resolveEccentricity(cert) {
 }
 
 function resolveRepeatability(cert) {
-  const collPayload = cert.collection_snapshot?.payload || {};
-  const rep = collPayload.verso?.repetitividade || {};
+  const rep = cert.repeatability_snapshot || cert.collection_snapshot?.payload?.verso?.repetitividade || {};
   if (rep.aplicavel === false) return { applicable: false, rows: [], observations: "" };
 
   const linhas = rep.linhas || [];
@@ -157,6 +160,15 @@ function resolveRepeatability(cert) {
   };
 }
 
+function conformityDeclaration(cert) {
+  const conf = cert.conformity || {};
+  if (!conf.legal_metrology_applicable) return "";
+  const result = conf.general_conformity_result;
+  if (result === "conforme") return "CERTIFICADO: CONFORME";
+  if (result === "nao_conforme") return "CERTIFICADO: NÃO CONFORME";
+  return "";
+}
+
 export function buildCertificatePdfViewModel(cert, {
   documentMeta = null,
   tenantName = "",
@@ -169,10 +181,33 @@ export function buildCertificatePdfViewModel(cert, {
   const unit = unidadeLabel(balance.unidade);
   const points = activePoints(cert);
   const env = resolveEnvironmental(cert);
+  env.popReference = tenant?.pop_calibration_code || "POP-CAL-02";
+
   const eccentricity = resolveEccentricity(cert);
   const repeatability = resolveRepeatability(cert);
-
   const validityDate = cert.validity_date || defaultValidityDate(cert.calibration_date);
+
+  const weightStandards = (cert.standards || [])
+    .filter((s) => s.standard_type === "peso_padrao" || s.standard_type === "outro")
+    .map((s) => ({
+      code: s.identification_code,
+      description: s.description,
+      certificate: s.certificate_number,
+      calibrationDate: fmtDmy(s.calibration_date),
+      validUntil: fmtDmy(s.valid_until),
+      traceability: s.traceability || s.laboratory || "",
+    }));
+
+  const instrumentStandards = (cert.standards || [])
+    .filter((s) => s.standard_type === "termo_baro_higrometro")
+    .map((s) => ({
+      code: s.identification_code,
+      description: s.description,
+      certificate: s.certificate_number,
+      calibrationDate: fmtDmy(s.calibration_date),
+      validUntil: fmtDmy(s.valid_until),
+      traceability: s.traceability || s.laboratory || "",
+    }));
 
   const adjustmentPerformed = (() => {
     const v = String(env.balanceAdjusted || "").trim().toLowerCase();
@@ -184,7 +219,16 @@ export function buildCertificatePdfViewModel(cert, {
 
   return {
     tenantName: tenantName || tenant?.name || "",
-    tenantWebsite: tenant?.website || "",
+    tenantWebsite: tenant?.lab_website || tenant?.website || "",
+    lab: {
+      name: tenantName || tenant?.name || "",
+      address: tenant?.lab_address || "",
+      phone: tenant?.lab_phone || "",
+      website: tenant?.lab_website || tenant?.website || "",
+      ipemNumber: tenant?.ipem_accreditation_number || "",
+      cgcreCalNumber: tenant?.cgcre_cal_number || "",
+      popCode: tenant?.pop_calibration_code || "POP-CAL-02",
+    },
     preview,
     cancelled,
     certificateType: cert.certificate_type,
@@ -200,12 +244,23 @@ export function buildCertificatePdfViewModel(cert, {
     },
     client: resolveClient(cert),
     balance: {
+      identificacao: balance.tag || balance.codigo || "",
       fabricante: balance.fabricante || "",
       modelo: balance.modelo || "",
+      descricao: balance.descricao || "",
       serie: balance.serie || cert.scale_serial || "",
       tag: balance.tag || "",
       capacidade: balance.capacidade || "",
+      capacidade2: balance.capacidade_2 || "",
+      capacidade3: balance.capacidade_3 || "",
       resolucao: balance.resolucao || "",
+      resolucao2: balance.resolucao_2 || "",
+      resolucao3: balance.resolucao_3 || "",
+      divisao: balance.divisao_verificacao || "",
+      divisao2: balance.divisao_verificacao_2 || "",
+      divisao3: balance.divisao_verificacao_3 || "",
+      classe: balance.classe || "",
+      pontoTrabalho: balance.ponto_trabalho || "",
       unidade: unit,
       tipo: labelFromOptions(TIPO_BALANCA_OPTIONS, balance.tipo_balanca),
       plataforma: labelFromOptions(TIPO_PLATAFORMA_OPTIONS, balance.tipo_plataforma),
@@ -221,29 +276,26 @@ export function buildCertificatePdfViewModel(cert, {
     issueDate: fmtDmy(cert.issue_date),
     proposalRef: cert.commercial_proposal_ref || "",
     environmental: env,
-    standards: (cert.standards || [])
-      .filter((s) => s.standard_type === "peso_padrao" || s.standard_type === "outro")
-      .map((s) => ({
-        type: s.standard_type,
-        code: s.identification_code,
-        description: s.description,
-        certificate: s.certificate_number,
-        calibrationDate: fmtDmy(s.calibration_date),
-        validUntil: fmtDmy(s.valid_until),
-        traceability: s.traceability || s.laboratory || "",
-      })),
+    weightStandards,
+    instrumentStandards,
+    standards: weightStandards,
     points: points.map((p) => ({
       label: String(p.point_number),
-      referenceValue: withUnit(p.nominal_value, unit),
+      referenceValue: withUnit(p.nominal_value, unit, p.display_decimals ?? 4),
       referenceRaw: p.nominal_value,
       beforeAdjustment: {
-        l1: withUnit(p.reading_before_adjustment, unit),
-        error: withUnit(p.error_before_adjustment, unit),
+        l1: withUnit(p.reading_before_adjustment, unit, p.display_decimals ?? 4),
+        error: withUnit(p.error_before_adjustment, unit, p.display_decimals ?? 4),
+      },
+      readings: {
+        r1: withUnit(p.reading1, unit, p.display_decimals ?? 4),
+        r2: withUnit(p.reading2, unit, p.display_decimals ?? 4),
+        r3: withUnit(p.reading3, unit, p.display_decimals ?? 4),
       },
       results: {
-        average: withUnit(p.average_reading, unit),
-        indicationError: withUnit(p.indication_error, unit),
-        expandedUncertainty: withUnit(p.expanded_uncertainty, unit),
+        average: withUnit(p.average_reading, unit, p.display_decimals ?? 4),
+        indicationError: withUnit(p.indication_error, unit, p.display_decimals ?? 4),
+        expandedUncertainty: withUnit(p.expanded_uncertainty, unit, p.display_decimals ?? 4),
         veff: formatVeff(p.degrees_of_freedom),
         k: formatCalcDisplay(p.coverage_factor, 2),
       },
@@ -256,6 +308,7 @@ export function buildCertificatePdfViewModel(cert, {
     calibratedPointsCount: points.length,
     readingsPerPoint: 3,
     conformity: cert.conformity || {},
+    conformityDeclaration: conformityDeclaration(cert),
     executorName: cert.executor_name || cert.technical_snapshot?.executorSnapshot?.full_name || "",
     signatoryName: cert.signatory_name || cert.technical_snapshot?.signatorySnapshot?.full_name || "",
     approvalDate: fmtDmy(cert.approval_date),

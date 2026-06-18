@@ -80,7 +80,11 @@ export function calculateResolutionContribution(resolution, unit = "g") {
   return { value: contrib, valid: true, reason: "", halfResolution: half.value };
 }
 
-export function calculateStandardUncertaintyContribution(nominalKg, standardUncertaintyPpm) {
+export function calculateStandardUncertaintyContribution(nominalKg, standardUncertaintyPpm, standardUncertaintyAbs = null) {
+  if (standardUncertaintyAbs != null && Number.isFinite(standardUncertaintyAbs)) {
+    const contrib = standardUncertaintyAbs / SQRT3;
+    return { value: contrib, valid: true, reason: "", absolute: standardUncertaintyAbs };
+  }
   const nom = parseCalibrationNumber(nominalKg);
   const unc = parseCalibrationNumber(standardUncertaintyPpm);
   if (!nom.valid) return { value: null, valid: false, reason: "Valor nominal ausente" };
@@ -103,7 +107,13 @@ export function calculateEccentricityError(reading, reference) {
   return { value: r.value - ref.value, valid: true, reason: "" };
 }
 
-export function calculateCalibrationPoint(point, { resolution, unit = "g", standardUncertaintyPpm = 0, errorBeforeAdjustment = null } = {}) {
+export function calculateCalibrationPoint(point, {
+  resolution,
+  unit = "g",
+  standardUncertaintyPpm = 0,
+  standardUncertaintyAbs = null,
+  errorBeforeAdjustment = null,
+} = {}) {
   const readings = [point.reading1, point.reading2, point.reading3].filter((r) => r != null && String(r).trim() !== "");
   if (!readings.length && !point.nominal_value) {
     return { calcStatus: "pendente", calcError: "", results: {} };
@@ -123,7 +133,7 @@ export function calculateCalibrationPoint(point, { resolution, unit = "g", stand
   const repeatability = calculateRepeatability(readings);
   const resolutionContrib = calculateResolutionContribution(resolution, unit);
   const nomKg = toKg(nom.value, unit);
-  const standardContrib = calculateStandardUncertaintyContribution(nomKg, standardUncertaintyPpm);
+  const standardContrib = calculateStandardUncertaintyContribution(nomKg, standardUncertaintyPpm, standardUncertaintyAbs);
 
   let errorBefore = null;
   if (errorBeforeAdjustment != null) {

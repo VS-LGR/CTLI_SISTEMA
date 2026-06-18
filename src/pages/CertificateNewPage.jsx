@@ -9,17 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, PencilSimple, Plus } from "@phosphor-icons/react";
+import { ArrowLeft, Plus } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { CERTIFICATE_LIST_PATH, certificateEditorPath } from "@/lib/certificateRoutes";
-import { COLETA_NEW_PATH } from "@/lib/coletaRoutes";
 import {
   listColetasForCertificate,
   createCertificateFromColeta,
+  createCertificateManual,
   canColetaGenerateOfficial,
 } from "@/lib/calibrationCertificates/certificateApi";
 import { coletaWorkflowLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { CERTIFICATE_TYPES } from "@/lib/calibrationCertificates/certificateSchema";
+import CertificateManualForm from "@/components/calibrationCertificates/CertificateManualForm";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -31,7 +32,7 @@ export default function CertificateNewPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { currentTenantId } = useOutletContext();
-  const [mode, setMode] = useState("coleta");
+  const [mode, setMode] = useState("manual");
   const [coletas, setColetas] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [certType, setCertType] = useState("rastreavel");
@@ -61,7 +62,7 @@ export default function CertificateNewPage() {
     return <Navigate to={CERTIFICATE_LIST_PATH} replace />;
   }
 
-  const handleCreate = async () => {
+  const handleImportFromColeta = async () => {
     if (!selectedId) return toast.error("Selecione uma coleta");
     setCreating(true);
     try {
@@ -83,7 +84,23 @@ export default function CertificateNewPage() {
     }
   };
 
-  const manualColetaPath = `${COLETA_NEW_PATH}?origem=certificado&certType=${encodeURIComponent(certType)}`;
+  const handleManualSubmit = async (input) => {
+    setCreating(true);
+    try {
+      const { certificate, recalcWarning } = await createCertificateManual(currentTenantId, input, {
+        userId: user.id,
+      });
+      toast.success("Certificado manual criado");
+      if (recalcWarning) {
+        toast.warning(`Certificado criado, mas o cálculo automático falhou: ${recalcWarning}`);
+      }
+      navigate(certificateEditorPath(certificate.id));
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-3xl w-full min-w-0">
@@ -97,17 +114,17 @@ export default function CertificateNewPage() {
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
-          variant={mode === "coleta" ? "default" : "outline"}
-          onClick={() => setMode("coleta")}
-        >
-          Coleta existente
-        </Button>
-        <Button
-          type="button"
           variant={mode === "manual" ? "default" : "outline"}
           onClick={() => setMode("manual")}
         >
           Entrada manual
+        </Button>
+        <Button
+          type="button"
+          variant={mode === "coleta" ? "default" : "outline"}
+          onClick={() => setMode("coleta")}
+        >
+          Importar de coleta
         </Button>
       </div>
 
@@ -128,7 +145,7 @@ export default function CertificateNewPage() {
           {mode === "coleta" ? (
             <>
               <div>
-                <label className="text-sm font-medium text-slate-700">Coleta RE-7.2A</label>
+                <label className="text-sm font-medium text-slate-700">Coleta RE-7.2A (opcional)</label>
                 {loading ? (
                   <p className="text-sm text-slate-500 mt-2">A carregar coletas…</p>
                 ) : !coletas.length ? (
@@ -156,24 +173,18 @@ export default function CertificateNewPage() {
                 )}
               </div>
 
-              <Button onClick={handleCreate} disabled={creating || !selectedId} className="w-full sm:w-auto">
+              <Button onClick={handleImportFromColeta} disabled={creating || !selectedId} className="w-full sm:w-auto">
                 <Plus size={18} className="mr-1" />
-                {creating ? "A gerar…" : "Gerar Certificado"}
+                {creating ? "A importar…" : "Importar da coleta"}
               </Button>
             </>
           ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-slate-600">
-                Será criada uma coleta RE-7.2A para controle documental; em seguida o certificado será gerado
-                com os dados preenchidos manualmente.
-              </p>
-              <Button asChild className="w-full sm:w-auto">
-                <Link to={manualColetaPath}>
-                  <PencilSimple size={18} className="mr-1" />
-                  Preencher dados manualmente
-                </Link>
-              </Button>
-            </div>
+            <CertificateManualForm
+              tenantId={currentTenantId}
+              certType={certType}
+              onSubmit={handleManualSubmit}
+              submitting={creating}
+            />
           )}
         </CardContent>
       </Card>

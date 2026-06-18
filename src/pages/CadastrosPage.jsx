@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useOutletContext, useParams, useSearchPara
 import { useAuth } from "@/context/AuthContext";
 import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
+import ScaleRegistrationSection from "@/components/cadastros/ScaleRegistrationSection";
 import ColetaTenantConfig from "@/components/cadastros/ColetaTenantConfig";
 import { cadastroSectionPath, getCadastroSectionLabel, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { supabase } from "@/lib/supabaseClient";
@@ -87,6 +88,7 @@ const CadastrosPage = () => {
   const [positions, setPositions] = useState([]);
   const [weightCerts, setWeightCerts] = useState([]);
   const [weightItems, setWeightItems] = useState([]);
+  const [scaleRegistrations, setScaleRegistrations] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
 
   const [yearWeight, setYearWeight] = useState("all");
@@ -96,13 +98,14 @@ const CadastrosPage = () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
     const tid = currentTenantId;
     await ensureDefaultPositionsSeeded(tid).catch(() => {});
-    const [s, e, em, pos, w, wi, v] = await Promise.all([
+    const [s, e, em, pos, w, wi, sr, v] = await Promise.all([
       supabase.from("supplier_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("end_customer_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("employee_registrations").select("*").eq("tenant_id", tid).order("full_name"),
       supabase.from("personnel_positions").select("id, title, status").eq("tenant_id", tid).eq("status", "ativo").order("title"),
       supabase.from("weight_standard_certificates").select("*").eq("tenant_id", tid).order("calibration_date", { ascending: false }),
       supabase.from("standard_weight_items").select("*").eq("tenant_id", tid).eq("active", true).order("identification"),
+      supabase.from("scale_registrations").select("*").eq("tenant_id", tid).eq("active", true).order("serial_number"),
       supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", tid).order("calibration_date", { ascending: false }),
     ]);
     if (s.error) toast.error(s.error.message);
@@ -117,6 +120,8 @@ const CadastrosPage = () => {
     else setWeightCerts(w.data || []);
     if (wi.error) toast.error(wi.error.message);
     else setWeightItems(wi.data || []);
+    if (sr.error) toast.error(sr.error.message);
+    else setScaleRegistrations(sr.data || []);
     if (v.error) toast.error(v.error.message);
     else setEnvCerts(v.data || []);
   }, [currentTenantId]);
@@ -202,6 +207,13 @@ const CadastrosPage = () => {
           <PesoItemSection
             rows={weightItems}
             weightCerts={weightCerts}
+            tenantId={currentTenantId}
+            onRefresh={loadAll}
+          />
+        )}
+        {activeSection === "balancas" && (
+          <ScaleRegistrationSection
+            rows={scaleRegistrations}
             tenantId={currentTenantId}
             onRefresh={loadAll}
           />

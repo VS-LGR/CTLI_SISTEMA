@@ -19,10 +19,11 @@ describe("legalObservations", () => {
     expect(getRbcObservations()[3]).toContain("17025");
   });
 
-  test("Rastreável omits acreditação wording in item 4", () => {
+  test("Rastreável menciona credenciamento IPEM-MG", () => {
     const items = getRastreavelObservations();
     expect(items).toHaveLength(7);
-    expect(items[3]).toContain("rastreável");
+    expect(items[3]).toContain("IPEM-MG");
+    expect(items[3]).not.toContain("sem símbolo");
     expect(items[3]).not.toContain("17025");
   });
 });

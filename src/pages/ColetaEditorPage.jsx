@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
@@ -28,9 +28,6 @@ const ColetaForm = lazy(() => import("@/components/coleta/ColetaForm"));
 const ColetaEditorPage = () => {
   const { id } = useParams();
   const { pathname } = useLocation();
-  const [searchParams] = useSearchParams();
-  const fromCertificate = searchParams.get("origem") === "certificado";
-  const queryCertType = searchParams.get("certType");
   // Rota dedicada /coleta/nova não expõe :id — detectar pelo path
   const isNew = id === "nova" || pathname.endsWith("/coleta/nova");
   const navigate = useNavigate();
@@ -125,11 +122,6 @@ const ColetaEditorPage = () => {
   useEffect(() => { loadCerts(); }, [loadCerts]);
   useEffect(() => { loadEndCustomers(); }, [loadEndCustomers]);
   useEffect(() => { loadLogo(); }, [loadLogo]);
-  useEffect(() => {
-    if (queryCertType && CERTIFICATE_TYPES.some((t) => t.value === queryCertType)) {
-      setCertType(queryCertType);
-    }
-  }, [queryCertType]);
 
   if (!canAccessColeta(user?.role)) {
     return <Navigate to="/dashboard" replace />;
@@ -139,14 +131,8 @@ const ColetaEditorPage = () => {
     return <Navigate to={COLETA_LIST_PATH} replace />;
   }
 
-  const buildRow = (withManualMeta = false) => {
-    const payloadForSave = withManualMeta
-      ? {
-        ...payload,
-        meta: { ...(payload.meta || {}), origem: "certificado_manual" },
-      }
-      : payload;
-    const denorm = denormalizeFromPayload(payloadForSave, commercialProposalRef);
+  const buildRow = () => {
+    const denorm = denormalizeFromPayload(payload, commercialProposalRef);
     return {
       tenant_id: currentTenantId,
       commercial_proposal_ref: denorm.commercial_proposal_ref,
@@ -240,49 +226,6 @@ const ColetaEditorPage = () => {
     }
   };
 
-  const saveAndGenerateCertificate = async () => {
-    if (!canAccessCalibrationCertificates(user?.role)) {
-      toast.error("Sem permissão para gerar certificados");
-      return;
-    }
-    setSaving(true);
-    try {
-      const row = buildRow(true);
-      let collectionId = id;
-      if (isNew) {
-        const { data, error } = await supabase
-          .from("scale_calibration_collections")
-          .insert({ ...row, created_by: user.id })
-          .select("id")
-          .single();
-        if (error) throw error;
-        collectionId = data.id;
-      } else {
-        const { error } = await supabase
-          .from("scale_calibration_collections")
-          .update(row)
-          .eq("id", id);
-        if (error) throw error;
-      }
-      const { certificate, recalcWarning } = await createCertificateFromColeta(currentTenantId, collectionId, {
-        userId: user.id,
-        certificateType: certType,
-      });
-      const msg = canColetaGenerateOfficial(workflowStatus)
-        ? "Coleta criada e certificado gerado"
-        : "Coleta criada e prévia técnica gerada — confira a coleta antes da emissão oficial";
-      toast.success(msg);
-      if (recalcWarning) {
-        toast.warning(`Certificado criado, mas o cálculo automático falhou: ${recalcWarning}`);
-      }
-      navigate(certificateEditorPath(certificate.id));
-    } catch (e) {
-      toast.error(e?.message || "Falha ao guardar e gerar certificado");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const showGenerateCert = !isNew
     && workflowStatus !== "certificado_gerado"
     && canAccessCalibrationCertificates(user?.role);
@@ -316,17 +259,6 @@ const ColetaEditorPage = () => {
               {generatingCert ? "A gerar…" : "Gerar Certificado"}
             </Button>
           )}
-          {isNew && fromCertificate && canAccessCalibrationCertificates(user?.role) && (
-            <Button
-              type="button"
-              onClick={saveAndGenerateCertificate}
-              disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Certificate size={16} className="mr-1" />
-              {saving ? "A gerar…" : "Guardar e gerar certificado"}
-            </Button>
-          )}
           {!isNew && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -344,21 +276,12 @@ const ColetaEditorPage = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {!(isNew && fromCertificate) && (
-            <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-              <FloppyDisk size={18} className="mr-1" />
-              {saving ? "A guardar…" : "Guardar"}
-            </Button>
-          )}
+          <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+            <FloppyDisk size={18} className="mr-1" />
+            {saving ? "A guardar…" : "Guardar"}
+          </Button>
         </div>
       </div>
-
-      {fromCertificate && isNew && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-          Entrada manual para certificado: preencha a coleta RE-7.2A abaixo. Ao guardar, será criada a coleta
-          para controle documental e o certificado será gerado em seguida.
-        </div>
-      )}
 
       {!isNew && (
         <div className="max-w-xs">
@@ -374,7 +297,7 @@ const ColetaEditorPage = () => {
         </div>
       )}
 
-      {(fromCertificate || (!isNew && canAccessCalibrationCertificates(user?.role) && workflowStatus !== "certificado_gerado")) && (
+      {!isNew && canAccessCalibrationCertificates(user?.role) && workflowStatus !== "certificado_gerado" && (
         <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
           <div>
             <Label>Tipo de certificado</Label>

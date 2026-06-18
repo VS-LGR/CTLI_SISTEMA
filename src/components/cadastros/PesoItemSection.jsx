@@ -23,6 +23,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const [identification, setIdentification] = useState("");
   const [nominalValue, setNominalValue] = useState("");
   const [unit, setUnit] = useState("g");
+  const [conventionalValue, setConventionalValue] = useState("");
+  const [expandedUncertainty, setExpandedUncertainty] = useState("");
   const [certificateNumber, setCertificateNumber] = useState("");
   const [weightCertificateId, setWeightCertificateId] = useState("");
 
@@ -40,6 +42,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setEditing(null);
     setIdentification("");
     setNominalValue("");
+    setConventionalValue("");
+    setExpandedUncertainty("");
     setUnit("g");
     setCertificateNumber("");
     setWeightCertificateId("");
@@ -52,6 +56,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
       tenant_id: tenantId,
       identification: identification.trim(),
       nominal_value: nominalValue.trim(),
+      conventional_value: conventionalValue.trim(),
+      expanded_uncertainty: expandedUncertainty.trim(),
       unit: unit || "g",
       active: true,
       certificate_number: certificateNumber.trim(),
@@ -89,6 +95,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setEditing(r);
     setIdentification(r.identification);
     setNominalValue(r.nominal_value);
+    setConventionalValue(r.conventional_value || "");
+    setExpandedUncertainty(r.expanded_uncertainty || "");
     setUnit(r.unit || "g");
     setCertificateNumber(r.certificate_number || "");
     setWeightCertificateId(r.weight_certificate_id || "");
@@ -120,7 +128,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
             <thead className="bg-slate-50 text-left text-xs text-slate-600">
               <tr>
                 <th className="p-2">Identificação</th>
-                <th className="p-2">Valor nominal</th>
+                <th className="p-2">V.V.C</th>
+                <th className="p-2">Ue</th>
                 <th className="p-2">Nº certificado</th>
                 <th className="p-2">Status</th>
                 <th className="p-2 w-24" />
@@ -128,7 +137,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="p-4 text-center text-slate-500">Nenhum peso encontrado.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-slate-500">Nenhum peso encontrado.</td></tr>
               )}
               {filtered.map((r) => {
                 const st = weightItemCertStatus(r, weightCerts);
@@ -136,6 +145,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   <tr key={r.id} className="border-t border-slate-100">
                     <td className="p-2 font-mono">{r.identification}</td>
                     <td className="p-2">{r.nominal_value} {r.unit}</td>
+                    <td className="p-2">{r.conventional_value || "—"} {r.conventional_value ? r.unit : ""}</td>
+                    <td className="p-2">{r.expanded_uncertainty || "—"} {r.expanded_uncertainty ? r.unit : ""}</td>
                     <td className="p-2">{weightItemCertNumber(r, weightCerts)}</td>
                     <td className="p-2">
                       {st.vigente == null ? (
@@ -172,8 +183,18 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Valor nominal</Label>
+                  <Label>V.N (valor nominal)</Label>
                   <Input value={nominalValue} onChange={(e) => setNominalValue(e.target.value)} />
+                </div>
+                <div>
+                  <Label>V.V.C (valor convencional)</Label>
+                  <Input value={conventionalValue} onChange={(e) => setConventionalValue(e.target.value)} placeholder="Em gramas" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Ue (incerteza expandida)</Label>
+                  <Input value={expandedUncertainty} onChange={(e) => setExpandedUncertainty(e.target.value)} placeholder="Em gramas" />
                 </div>
                 <div>
                   <Label>Unidade</Label>

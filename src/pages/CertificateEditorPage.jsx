@@ -27,6 +27,8 @@ import {
   substituteCertificate,
   cancelCertificate,
   updateCertificateStandard,
+  updateCertificatePoint,
+  updateCertificateEnvironmental,
 } from "@/lib/calibrationCertificates/certificateApi";
 import {
   certificateStatusLabel,
@@ -115,11 +117,19 @@ export default function CertificateEditorPage() {
   }
 
   const editable = isCertificateEditable(cert.status);
+  const isStandalone = !cert.collection_id;
   const expiredStandards = validateExpiredStandards(cert.standards, cert.calibration_date);
   const signatories = employees.filter((e) => e.job_role === "signatario");
   const executors = employees.filter((e) => ["tecnico_em_balancas", "gerente_tecnico", "signatario"].includes(e.job_role));
 
   const patch = (fields) => setCert((c) => ({ ...c, ...fields }));
+
+  const patchPoint = (pointId, fields) => {
+    setCert((c) => ({
+      ...c,
+      points: (c.points || []).map((p) => (p.id === pointId ? { ...p, ...fields } : p)),
+    }));
+  };
 
   const saveHeader = async () => {
     setSaving(true);
@@ -134,7 +144,39 @@ export default function CertificateEditorPage() {
         calibration_date: cert.calibration_date,
         validity_date: cert.validity_date,
         calibration_location: cert.calibration_location,
+        ...(isStandalone ? {
+          client_name: cert.client_name,
+          scale_serial: cert.scale_serial,
+          balance_snapshot: cert.balance_snapshot,
+        } : {}),
       }, user.id);
+
+      if (isStandalone && cert.environmental?.id) {
+        await updateCertificateEnvironmental(cert.id, {
+          initial_temperature: cert.environmental.initial_temperature,
+          final_temperature: cert.environmental.final_temperature,
+          initial_humidity: cert.environmental.initial_humidity,
+          final_humidity: cert.environmental.final_humidity,
+          initial_pressure: cert.environmental.initial_pressure,
+          final_pressure: cert.environmental.final_pressure,
+          air_density: cert.environmental.air_density,
+          balance_adjusted: cert.environmental.balance_adjusted,
+          notes: cert.environmental.notes,
+        });
+      }
+
+      if (isStandalone) {
+        await Promise.all(
+          (cert.points || []).map((p) => updateCertificatePoint(p.id, {
+            nominal_value: p.nominal_value,
+            reading_before_adjustment: p.reading_before_adjustment,
+            reading1: p.reading1,
+            reading2: p.reading2,
+            reading3: p.reading3,
+          })),
+        );
+      }
+
       toast.success("Dados guardados");
       load();
     } catch (e) {
@@ -324,7 +366,7 @@ export default function CertificateEditorPage() {
         </div>
       </div>
 
-      {cert.is_preview_only && (
+      {cert.is_preview_only && cert.collection_id && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           Prévia técnica — a coleta deve estar conferida ou aprovada para certificado antes da emissão oficial.
           {cert.collection_snapshot?.workflow_status && (
@@ -333,6 +375,12 @@ export default function CertificateEditorPage() {
               {!canColetaGenerateOfficial(cert.collection_snapshot.workflow_status) && " (ainda não apta)"}
             </span>
           )}
+        </div>
+      )}
+
+      {isStandalone && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          Certificado manual — sem vínculo com coleta RE-7.2A. Pontos, ambiente e dados do instrumento são editáveis.
         </div>
       )}
 
@@ -372,8 +420,24 @@ export default function CertificateEditorPage() {
                   <Input type="number" value={cert.certificate_year ?? ""} disabled={!editable} onChange={(e) => patch({ certificate_year: Number(e.target.value) })} />
                 </div>
               </div>
-              <div><Label>Cliente</Label><Input className="mt-1 h-10" value={cert.client_name} disabled /></div>
-              <div><Label>Série</Label><Input className="mt-1 h-10" value={cert.scale_serial} disabled /></div>
+              <div>
+                <Label>Cliente</Label>
+                <Input
+                  className="mt-1 h-10"
+                  value={cert.client_name}
+                  disabled={!editable || !isStandalone}
+                  onChange={(e) => patch({ client_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Série</Label>
+                <Input
+                  className="mt-1 h-10"
+                  value={cert.scale_serial}
+                  disabled={!editable || !isStandalone}
+                  onChange={(e) => patch({ scale_serial: e.target.value })}
+                />
+              </div>
               <div>
                 <Label>Data calibração</Label>
                 <Input
@@ -451,6 +515,14 @@ export default function CertificateEditorPage() {
                   <tr>
                     <th className="p-2">Ponto</th>
                     <th className="p-2">Nominal</th>
+                    {isStandalone && editable && (
+                      <>
+                        <th className="p-2">Antes</th>
+                        <th className="p-2">L1</th>
+                        <th className="p-2">L2</th>
+                        <th className="p-2">L3</th>
+                      </>
+                    )}
                     <th className="p-2">Média</th>
                     <th className="p-2">Erro</th>
                     <th className="p-2">Repet.</th>
@@ -463,11 +535,35 @@ export default function CertificateEditorPage() {
                 <tbody>
                   {(cert.points || []).map((p) => {
                     const hasData = p.nominal_value || p.reading1;
-                    if (!hasData) return null;
+                    if (!hasData && !(isStandalone && editable)) return null;
                     return (
                       <tr key={p.id} className="border-t align-top">
                         <td className="p-2">P{p.point_number}</td>
-                        <td className="p-2">{formatCalcDisplay(p.nominal_value, 4)}</td>
+                        <td className="p-2">
+                          {isStandalone && editable ? (
+                            <Input
+                              className="h-8 w-24"
+                              value={p.nominal_value ?? ""}
+                              onChange={(e) => patchPoint(p.id, { nominal_value: e.target.value })}
+                            />
+                          ) : formatCalcDisplay(p.nominal_value, 4)}
+                        </td>
+                        {isStandalone && editable && (
+                          <>
+                            <td className="p-2">
+                              <Input className="h-8 w-20" value={p.reading_before_adjustment ?? ""} onChange={(e) => patchPoint(p.id, { reading_before_adjustment: e.target.value })} />
+                            </td>
+                            <td className="p-2">
+                              <Input className="h-8 w-20" value={p.reading1 ?? ""} onChange={(e) => patchPoint(p.id, { reading1: e.target.value })} />
+                            </td>
+                            <td className="p-2">
+                              <Input className="h-8 w-20" value={p.reading2 ?? ""} onChange={(e) => patchPoint(p.id, { reading2: e.target.value })} />
+                            </td>
+                            <td className="p-2">
+                              <Input className="h-8 w-20" value={p.reading3 ?? ""} onChange={(e) => patchPoint(p.id, { reading3: e.target.value })} />
+                            </td>
+                          </>
+                        )}
                         <td className="p-2">{formatCalcDisplay(p.average_reading, 4)}</td>
                         <td className="p-2">{formatCalcDisplay(p.indication_error, 4)}</td>
                         <td className="p-2">{formatCalcDisplay(p.repeatability, 6)}</td>
@@ -543,14 +639,29 @@ export default function CertificateEditorPage() {
             <CardContent className="p-6 grid gap-3 sm:grid-cols-2 text-sm">
               {cert.environmental && (
                 <>
-                  <div>Horário: {cert.environmental.start_time} – {cert.environmental.end_time}</div>
-                  <div>Temperatura: {cert.environmental.initial_temperature} – {cert.environmental.final_temperature} °C</div>
-                  <div>Umidade: {cert.environmental.initial_humidity} – {cert.environmental.final_humidity} %</div>
-                  <div>Pressão: {cert.environmental.initial_pressure} – {cert.environmental.final_pressure} hPa</div>
-                  <div>Balança ajustada: {cert.environmental.balance_adjusted}</div>
-                  <div>Balança nivelada: {cert.environmental.balance_leveled}</div>
-                  <div>Vibração: {cert.environmental.has_vibration}</div>
-                  <div>Corrente de ar: {cert.environmental.has_air_flow}</div>
+                  {isStandalone && editable ? (
+                    <>
+                      <div><Label className="text-xs">Temp. inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_temperature || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_temperature: e.target.value } })} /></div>
+                      <div><Label className="text-xs">Temp. final</Label><Input className="mt-1 h-9" value={cert.environmental.final_temperature || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_temperature: e.target.value } })} /></div>
+                      <div><Label className="text-xs">UR inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_humidity || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_humidity: e.target.value } })} /></div>
+                      <div><Label className="text-xs">UR final</Label><Input className="mt-1 h-9" value={cert.environmental.final_humidity || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_humidity: e.target.value } })} /></div>
+                      <div><Label className="text-xs">Pressão inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_pressure: e.target.value } })} /></div>
+                      <div><Label className="text-xs">Pressão final</Label><Input className="mt-1 h-9" value={cert.environmental.final_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_pressure: e.target.value } })} /></div>
+                      <div><Label className="text-xs">Massa específica ar</Label><Input className="mt-1 h-9" value={cert.environmental.air_density || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, air_density: e.target.value } })} /></div>
+                      <div><Label className="text-xs">Balança ajustada</Label><Input className="mt-1 h-9" value={cert.environmental.balance_adjusted || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, balance_adjusted: e.target.value } })} /></div>
+                    </>
+                  ) : (
+                    <>
+                      <div>Horário: {cert.environmental.start_time} – {cert.environmental.end_time}</div>
+                      <div>Temperatura: {cert.environmental.initial_temperature} – {cert.environmental.final_temperature} °C</div>
+                      <div>Umidade: {cert.environmental.initial_humidity} – {cert.environmental.final_humidity} %</div>
+                      <div>Pressão: {cert.environmental.initial_pressure} – {cert.environmental.final_pressure} hPa</div>
+                      <div>Balança ajustada: {cert.environmental.balance_adjusted}</div>
+                      <div>Balança nivelada: {cert.environmental.balance_leveled}</div>
+                      <div>Vibração: {cert.environmental.has_vibration}</div>
+                      <div>Corrente de ar: {cert.environmental.has_air_flow}</div>
+                    </>
+                  )}
                   {cert.environmental.notes && <div className="sm:col-span-2">Obs.: {cert.environmental.notes}</div>}
                 </>
               )}
