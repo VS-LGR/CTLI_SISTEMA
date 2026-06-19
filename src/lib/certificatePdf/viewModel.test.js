@@ -95,4 +95,15 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
     expect(model.observations).toHaveLength(7);
     expect(model.observations[1]).toContain("CTLI");
   });
+
+  test("repeatabilityRows com 10 linhas e colunas valor/unidade", () => {
+    const model = buildCertificatePdfViewModel(EMISSAO_TESTE_CERT);
+    expect(model.repeatabilityRows).toHaveLength(10);
+    expect(model.repeatabilityRows[0].reference.value).toBeTruthy();
+    expect(model.repeatabilityRows[0].reference.unit).toBe("kg");
+    expect(model.repeatabilityRows[1].empty).toBe(true);
+    expect(model.repeatabilityRows[1].reference.value).toBe("--");
+    expect(model.calibratedPointsCount).toBe(1);
+    expect(model.readingsPerPoint).toBe("3");
+  });
 });

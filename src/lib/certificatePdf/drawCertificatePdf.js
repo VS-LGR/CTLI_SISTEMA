@@ -306,15 +306,63 @@ function drawEccentricitySection(doc, model, y, ctx) {
   return Math.max(tableEndY, diagramEndY) + 3;
 }
 
+function cellPair(m) {
+  return [s(m?.value ?? "--"), s(m?.unit ?? "")];
+}
+
+function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signatureUrls = {}) {
+  const lineH = 4.2;
+  const metaY = y + 1;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+  doc.setTextColor(...FORM_COLORS.text);
+
+  const metaLines = [
+    `Número de Leituras: ${s(model.readingsPerPoint)}`,
+    `Números de Pontos Calibrados: ${model.calibratedPointsCount ?? "—"}`,
+    `Data da calibração: ${s(model.calibrationDate)}`,
+    `Data da emissão do Certificado: ${s(model.issueDate || model.approvalDate)}`,
+    `Técnico Responsável: ${s(model.executorName)}`,
+  ];
+  metaLines.forEach((line, i) => {
+    doc.text(line, ML, metaY + i * lineH);
+  });
+
+  const sigW = Math.min(rightW * 0.75, 55);
+  const sigX = rightX + (rightW - sigW) / 2;
+  const sigLineY = metaY + 10;
+
+  if (signatureUrls.signatory) {
+    try {
+      doc.addImage(signatureUrls.signatory, "PNG", sigX, metaY, sigW, 9);
+    } catch { /* opcional */ }
+  }
+
+  doc.setDrawColor(...FORM_COLORS.border);
+  doc.setLineWidth(0.15);
+  doc.line(sigX, sigLineY, sigX + sigW, sigLineY);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.text("SIGNATÁRIO", sigX, sigLineY + 3.5);
+  doc.setFont("helvetica", "normal");
+  doc.text(s(model.signatoryName), sigX + sigW, sigLineY + 3.5, { align: "right" });
+
+  return Math.max(metaY + metaLines.length * lineH, sigLineY + 7) + 2;
+}
+
 function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
-  if (!model.points?.length) return y;
-  const cols = model.points.slice(0, 10);
-  const leftW = CW * 0.38;
-  const rightW = CW * 0.60;
+  const rows = model.repeatabilityRows || [];
+  if (!rows.some((r) => !r.empty) && !model.points?.length) return y;
+
+  const unitLabel = model.unit || model.balance?.unidade || "kg";
+  const leftW = CW * 0.42;
+  const rightW = CW * 0.56;
   const gap = CW * 0.02;
   const rightX = ML + leftW + gap;
 
-  ({ y } = ensureSpace(doc, y, 40, ctx));
+  ({ y } = ensureSpace(doc, y, 72, ctx));
   y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE");
   y = drawDualSubsectionTitles(
     doc,
@@ -327,20 +375,66 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     gap,
   );
 
-  const pointHead = cols.map((p) => ({ content: p.label, styles: { halign: "center", fontSize: 5 } }));
+  const tableHead = [
+    "Valor de Referência",
+    unitLabel,
+    "Leitura 01",
+    unitLabel,
+    "Erro de Indicação",
+    unitLabel,
+  ];
+
+  const leftBody = rows.map((r) => [
+    ...cellPair(r.reference),
+    ...cellPair(r.beforeReading),
+    ...cellPair(r.beforeError),
+  ]);
+
+  const rightHead = [
+    "Valor de Referência",
+    unitLabel,
+    "Média das Leituras",
+    unitLabel,
+    "Erro de Indicação",
+    unitLabel,
+    "Incerteza Expandida",
+    "",
+    "Veff",
+    "k",
+  ];
+
+  const rightBody = rows.map((r) => [
+    ...cellPair(r.reference),
+    ...cellPair(r.average),
+    ...cellPair(r.indicationError),
+    s(r.expandedUncertainty?.value ?? "--"),
+    s(r.expandedUncertainty?.unit ?? unitLabel),
+    s(r.veff),
+    s(r.k),
+  ]);
+
+  const sharedStyles = {
+    fontSize: 5.5,
+    cellPadding: 0.8,
+    halign: "center",
+    valign: "middle",
+    lineWidth: 0.1,
+  };
+
+  const unitColStyle = { cellWidth: 7, fontSize: 5, halign: "center" };
 
   autoTable(doc, {
     startY: y,
     margin: { left: ML, right: PAGE_W - ML - leftW },
-    head: [[{ content: "", styles: { cellWidth: 18 } }, ...pointHead]],
-    body: [
-      ["Valor de Referência", ...cols.map((p) => s(p.referenceValue))],
-      ["Leitura 01", ...cols.map((p) => s(p.beforeAdjustment.l1))],
-      ["Erro de Indicação", ...cols.map((p) => s(p.beforeAdjustment.error))],
-    ],
-    styles: { fontSize: 5, cellPadding: 0.6, halign: "center", valign: "middle" },
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5 },
-    columnStyles: { 0: { halign: "left", fontStyle: "bold", cellWidth: 22 } },
+    head: [tableHead],
+    body: leftBody,
+    styles: sharedStyles,
+    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5, halign: "center" },
+    columnStyles: {
+      1: unitColStyle,
+      3: unitColStyle,
+      5: unitColStyle,
+    },
     theme: "grid",
   });
   const leftEndY = doc.lastAutoTable.finalY;
@@ -348,18 +442,18 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   autoTable(doc, {
     startY: y,
     margin: { left: rightX, right: ML },
-    head: [[{ content: "", styles: { cellWidth: 22 } }, ...pointHead]],
-    body: [
-      ["Valor de Referência", ...cols.map((p) => s(p.referenceValue))],
-      ["Média das Leituras", ...cols.map((p) => s(p.results.average))],
-      ["Erro de Indicação", ...cols.map((p) => s(p.results.indicationError))],
-      ["Incerteza Expandida", ...cols.map((p) => s(p.results.expandedUncertainty))],
-      ["Veff", ...cols.map((p) => s(p.results.veff))],
-      ["k", ...cols.map((p) => s(p.results.k))],
-    ],
-    styles: { fontSize: 5, cellPadding: 0.6, halign: "center", valign: "middle" },
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5 },
-    columnStyles: { 0: { halign: "left", fontStyle: "bold", cellWidth: 26 } },
+    head: [rightHead],
+    body: rightBody,
+    styles: sharedStyles,
+    headStyles: { ...tableHeadStyles(doc), fontSize: 5, halign: "center" },
+    columnStyles: {
+      1: unitColStyle,
+      3: unitColStyle,
+      5: unitColStyle,
+      7: unitColStyle,
+      8: { cellWidth: 10 },
+      9: { cellWidth: 8 },
+    },
     theme: "grid",
   });
   y = Math.max(leftEndY, doc.lastAutoTable.finalY) + 2;
@@ -370,6 +464,16 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     doc.text(model.adjustmentNote, ML, y);
     y += 4;
   }
+
+  y = drawRepeatabilityMetaFooter(
+    doc,
+    model,
+    y,
+    leftW,
+    rightX,
+    rightW,
+    ctx.signatureUrls || {},
+  );
   return y;
 }
 
@@ -411,48 +515,15 @@ function drawObservationsSection(doc, model, y, ctx) {
 }
 
 function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
+  if (model.repeatabilityRows?.some((r) => !r.empty) || model.points?.length) {
+    return y;
+  }
   ({ y } = ensureSpace(doc, y, 36, ctx));
-
-  const colW = (CW - 8) / 2;
-  const leftX = ML;
-  const rightX = ML + colW + 8;
-  const sigH = 10;
-  const sigW = 25;
-
-  const drawSignature = (x, sigY, url) => {
-    if (!url) return;
-    try {
-      doc.addImage(url, "PNG", x, sigY, sigW, sigH);
-    } catch { /* opcional */ }
-  };
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.text("Técnico Responsável", leftX + colW / 2, y, { align: "center" });
-  doc.text("SIGNATÁRIO", rightX + colW / 2, y, { align: "center" });
-  y += 4;
-
-  drawSignature(leftX + colW / 2 - sigW / 2, y, signatureUrls.executor);
-  drawSignature(rightX + colW / 2 - sigW / 2, y, signatureUrls.signatory);
-  y += sigH + 2;
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.text(s(model.executorName), leftX + colW / 2, y, { align: "center" });
-  doc.text(s(model.signatoryName), rightX + colW / 2, y, { align: "center" });
-  y += 5;
-
-  doc.setFontSize(6.5);
-  doc.text(`Data da calibração: ${s(model.calibrationDate)}`, leftX, y);
-  doc.text(`Data da emissão do Certificado: ${s(model.issueDate || model.approvalDate)}`, rightX, y);
-  y += 4;
-  doc.text(`Número de Leituras: ${model.readingsPerPoint}`, leftX, y);
-  doc.text(`Números de Pontos Calibrados: ${model.calibratedPointsCount}`, rightX, y);
-  return y + 4;
+  return drawRepeatabilityMetaFooter(doc, model, y, CW * 0.42, ML + CW * 0.44, CW * 0.56, signatureUrls);
 }
 
 export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls, platformDiagrams } = {}) {
-  const ctx = { model, logoDataUrl, compactHeader: true, platformDiagrams };
+  const ctx = { model, logoDataUrl, compactHeader: true, platformDiagrams, signatureUrls };
   let y = drawCertificateHeader(doc, model, logoDataUrl);
 
   y = drawClientSection(doc, model, y, ctx);

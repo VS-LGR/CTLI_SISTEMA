@@ -1,6 +1,6 @@
 import { formatCertificateNumber, certificateTypeLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
-import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal } from "@/lib/certificateCalculations";
+import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter } from "@/lib/certificateCalculations";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import {
   environmentalAverage,
@@ -45,6 +45,74 @@ function formatEnvCell(initial, final, constant, suffix, uncDecimals = 1) {
   return `${v} ${suffix}${u}`.trim();
 }
 
+function pdfMeasure(value, unit, decimals) {
+  if (value == null || value === "") {
+    return { value: "--", unit: unit || "" };
+  }
+  return {
+    value: formatCalcDisplay(value, decimals).replace(".", ","),
+    unit: unit || "",
+  };
+}
+
+function emptyRepeatabilityRow(unit) {
+  const u = unit || "kg";
+  const dash = { value: "--", unit: u };
+  return {
+    empty: true,
+    reference: dash,
+    beforeReading: dash,
+    beforeError: dash,
+    average: dash,
+    indicationError: dash,
+    expandedUncertainty: dash,
+    veff: "--",
+    k: "--",
+  };
+}
+
+function mapRepeatabilityRow(p, unit, decimals) {
+  const m = (v) => pdfMeasure(v, unit, decimals);
+  return {
+    empty: false,
+    reference: m(p.nominal_value),
+    beforeReading: m(p.reading_before_adjustment),
+    beforeError: m(p.error_before_adjustment),
+    average: m(p.average_reading),
+    indicationError: m(p.indication_error),
+    expandedUncertainty: m(p.expanded_uncertainty),
+    veff: p.degrees_of_freedom != null && p.degrees_of_freedom !== ""
+      ? formatVeff(p.degrees_of_freedom)
+      : "--",
+    k: p.coverage_factor != null && p.coverage_factor !== ""
+      ? formatCalcDisplay(p.coverage_factor, 2).replace(".", ",")
+      : "--",
+  };
+}
+
+function buildRepeatabilityRows(certPoints, balance, unit) {
+  const activeByNum = Object.fromEntries(
+    (certPoints || []).map((p) => [p.point_number, p]),
+  );
+  return Array.from({ length: 10 }, (_, i) => {
+    const n = i + 1;
+    const p = activeByNum[n];
+    if (!p) return emptyRepeatabilityRow(unit);
+    const decimals = resolveDisplayDecimals(p, balance, unit);
+    return mapRepeatabilityRow(p, unit, decimals);
+  });
+}
+
+function resolveReadingsPerPoint(cert) {
+  const pts = activePoints(cert);
+  const counts = pts
+    .map((p) => resolveReadingsAfter(p).length)
+    .filter((c) => c > 0);
+  if (!counts.length) return "—";
+  const uniq = [...new Set(counts)];
+  return uniq.length === 1 ? String(uniq[0]) : uniq.join(" / ");
+}
+
 function withUnit(value, unit, decimals = 4) {
   if (value == null || value === "") return "—";
   const formatted = formatCalcDisplay(value, decimals);
@@ -53,7 +121,8 @@ function withUnit(value, unit, decimals = 4) {
 
 function activePoints(cert) {
   return (cert.points || []).filter(
-    (p) => p.nominal_value || p.reading1 || p.reading2 || p.reading3 || p.reading_before_adjustment,
+    (p) => p.nominal_value || p.reading1 || p.reading2 || p.reading3
+      || p.reading_before_adjustment || (resolveReadingsAfter(p).length > 0),
   );
 }
 
@@ -332,7 +401,8 @@ export function buildCertificatePdfViewModel(cert, {
     adjustmentPerformed,
     adjustmentNote: adjustmentPerformed === false ? "Não foi realizado o ajuste do equipamento" : "",
     calibratedPointsCount: points.length,
-    readingsPerPoint: 3,
+    readingsPerPoint: resolveReadingsPerPoint(cert),
+    repeatabilityRows: buildRepeatabilityRows(points, balance, unit),
     conformity: cert.conformity || {},
     conformityDeclaration: conformityDeclaration(cert),
     executorName: cert.executor_name || cert.technical_snapshot?.executorSnapshot?.full_name || "",
