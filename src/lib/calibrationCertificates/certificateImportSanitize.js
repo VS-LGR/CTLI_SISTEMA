@@ -62,6 +62,58 @@ export function sanitizePointsForDb(points = []) {
   return points.map((p) => sanitizePointRowForDb(p));
 }
 
+const STANDARD_NUMERIC_FIELDS = ["uncertainty"];
+
+export function sanitizeStandardRowForDb(standard) {
+  const next = { ...standard };
+  for (const field of STANDARD_NUMERIC_FIELDS) {
+    if (next[field] == null || next[field] === "") {
+      next[field] = null;
+      continue;
+    }
+    if (typeof next[field] === "number" && Number.isFinite(next[field])) continue;
+    next[field] = toDbNumeric(next[field]);
+  }
+  return next;
+}
+
+export function sanitizeStandardsForDb(standards = []) {
+  return standards.map((s) => sanitizeStandardRowForDb(s));
+}
+
+const CALCULATED_POINT_NUMERIC_FIELDS = [
+  "nominal_value",
+  "reading_before_adjustment",
+  "reading1",
+  "reading2",
+  "reading3",
+  "average_reading",
+  "indication_error",
+  "error_before_adjustment",
+  "repeatability",
+  "resolution",
+  "standard_uncertainty",
+  "expanded_uncertainty",
+  "coverage_factor",
+  "degrees_of_freedom",
+  "tolerance_positive",
+  "tolerance_negative",
+];
+
+export function sanitizeCalculatedPointPatchForDb(patch) {
+  const next = { ...patch };
+  for (const field of CALCULATED_POINT_NUMERIC_FIELDS) {
+    if (!(field in next)) continue;
+    if (next[field] == null || next[field] === "") {
+      next[field] = null;
+      continue;
+    }
+    if (typeof next[field] === "number" && Number.isFinite(next[field])) continue;
+    next[field] = toDbNumeric(next[field]);
+  }
+  return next;
+}
+
 export function enrichEnvironmentalAirDensity(environmental, certificate = {}) {
   if (!environmental) return environmental;
   if (environmental.air_density != null && String(environmental.air_density).trim()) {

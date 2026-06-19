@@ -1,4 +1,4 @@
-export { parseCalibrationNumber, parseImportNumeric, toDbNumeric, formatCalcDisplay } from "./parseNumber";
+export { parseCalibrationNumber, parseImportNumeric, toDbNumeric, formatCalcDisplay, decimalPlacesFromResolution, normalizeDecimalString } from "./parseNumber";
 export {
   calculatePointAverage,
   calculateIndicationError,
@@ -31,6 +31,7 @@ import {
 } from "./pointCalculations";
 import { sumConventionalFromWeightIds } from "./environmentalCalculations";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { decimalPlacesFromResolution } from "./parseNumber";
 
 export function calculateCertificatePoints(points, balance, weightItems = [], weightCerts = []) {
   const unit = balance?.unidade || "g";
@@ -50,20 +51,21 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       if (sum.valid) nominal = sum.value;
     }
 
-    const resolution = resolveResolutionForNominal(nominal ?? pt.nominal_value, balance, unit);
+    const resolutionStr = resolveResolutionForNominal(nominal ?? pt.nominal_value, balance, unit);
     const ueAbs = standardUncertaintyAbsFromWeightIds(pt.standard_weight_ids, weightItems, unit);
     const ppm = maxStandardUncertaintyPpm(pt.standard_weight_ids, weightItems, weightCerts);
     const calc = calculateCalibrationPoint(
       { ...pt, nominal_value: nominal },
       {
-        resolution,
+        resolution: resolutionStr,
         unit,
         standardUncertaintyPpm: ppm,
         standardUncertaintyAbs: ueAbs.valid ? ueAbs.value : null,
       },
     );
 
-    const decimals = decimalPlacesForPoint(balance, pt.point_number || 1);
+    const decimalsFromResolution = decimalPlacesFromResolution(resolutionStr);
+    const decimals = decimalsFromResolution ?? decimalPlacesForPoint(balance, pt.point_number || 1);
 
     return {
       ...pt,

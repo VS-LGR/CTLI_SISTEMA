@@ -1,6 +1,7 @@
 import { formatCertificateNumber, certificateTypeLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
-import { formatCalcDisplay } from "@/lib/certificateCalculations";
+import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal } from "@/lib/certificateCalculations";
+import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import {
   environmentalAverage,
   environmentalUncertainty,
@@ -12,6 +13,14 @@ import { getCertificateObservations } from "./legalObservations";
 
 function labelFromOptions(options, value) {
   return options.find((o) => o.value === value)?.label || value || "";
+}
+
+function resolveDisplayDecimals(point, balance, unit) {
+  if (point.display_decimals != null && Number.isFinite(Number(point.display_decimals))) {
+    return Number(point.display_decimals);
+  }
+  const resolutionStr = resolveResolutionForNominal(point.nominal_value, balance, unit);
+  return decimalPlacesFromResolution(resolutionStr) ?? decimalPlacesForPoint(balance, point.point_number || 1);
 }
 
 function parseNum(v) {
@@ -280,28 +289,31 @@ export function buildCertificatePdfViewModel(cert, {
     weightStandards,
     instrumentStandards,
     standards: weightStandards,
-    points: points.map((p) => ({
+    points: points.map((p) => {
+      const decimals = resolveDisplayDecimals(p, balance, unit);
+      return {
       label: String(p.point_number),
-      referenceValue: withUnit(p.nominal_value, unit, p.display_decimals ?? 4),
+      referenceValue: withUnit(p.nominal_value, unit, decimals),
       referenceRaw: p.nominal_value,
       beforeAdjustment: {
-        l1: withUnit(p.reading_before_adjustment, unit, p.display_decimals ?? 4),
-        error: withUnit(p.error_before_adjustment, unit, p.display_decimals ?? 4),
+        l1: withUnit(p.reading_before_adjustment, unit, decimals),
+        error: withUnit(p.error_before_adjustment, unit, decimals),
       },
       readings: {
-        r1: withUnit(p.reading1, unit, p.display_decimals ?? 4),
-        r2: withUnit(p.reading2, unit, p.display_decimals ?? 4),
-        r3: withUnit(p.reading3, unit, p.display_decimals ?? 4),
+        r1: withUnit(p.reading1, unit, decimals),
+        r2: withUnit(p.reading2, unit, decimals),
+        r3: withUnit(p.reading3, unit, decimals),
       },
       results: {
-        average: withUnit(p.average_reading, unit, p.display_decimals ?? 4),
-        indicationError: withUnit(p.indication_error, unit, p.display_decimals ?? 4),
-        expandedUncertainty: withUnit(p.expanded_uncertainty, unit, p.display_decimals ?? 4),
+        average: withUnit(p.average_reading, unit, decimals),
+        indicationError: withUnit(p.indication_error, unit, decimals),
+        expandedUncertainty: withUnit(p.expanded_uncertainty, unit, decimals),
         veff: formatVeff(p.degrees_of_freedom),
         k: formatCalcDisplay(p.coverage_factor, 2),
       },
       conformity: p.conformity_result || "",
-    })),
+    };
+    }),
     eccentricity,
     repeatability,
     adjustmentPerformed,

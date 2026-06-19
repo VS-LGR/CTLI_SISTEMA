@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { buildImportFromColeta, buildCertificateFromPayload } from "./buildCertificatePayload";
-import { sanitizePointsForDb, enrichEnvironmentalAirDensity } from "./certificateImportSanitize";
+import { sanitizePointsForDb, sanitizeStandardsForDb, sanitizeCalculatedPointPatchForDb, enrichEnvironmentalAirDensity } from "./certificateImportSanitize";
 import { buildTechnicalSnapshot } from "./certificateSnapshots";
 import { validateBeforeCalculate, validateBeforeEmit, validateBeforeApproval } from "./certificateValidation";
 import { canTransitionCertificateStatus, canColetaGenerateOfficial, canMarkCertificateObsolete, canDeleteCertificate, INACTIVE_CERTIFICATE_STATUSES } from "./certificateSchema";
@@ -143,7 +143,7 @@ async function insertCertificateBundle(tenantId, imported, { userId, certificate
 
   if (imported.standards.length) {
     const { error: stErr } = await supabase.from("calibration_certificate_standards").insert(
-      imported.standards.map((s) => ({ ...s, certificate_id: certId })),
+      sanitizeStandardsForDb(imported.standards).map((s) => ({ ...s, certificate_id: certId })),
     );
     if (stErr) throw stErr;
   }
@@ -324,7 +324,7 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
   for (const pt of calculated) {
     if (!pt.id) continue;
     const conf = confByPoint[pt.point_number];
-    await updateCertificatePoint(pt.id, {
+    await updateCertificatePoint(pt.id, sanitizeCalculatedPointPatchForDb({
       nominal_value: pt.nominal_value,
       average_reading: pt.average_reading,
       indication_error: pt.indication_error,
@@ -341,7 +341,7 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
       conformity_result: conf?.result || "nao_avaliado",
       tolerance_positive: conf?.tolerance?.positive ?? null,
       tolerance_negative: conf?.tolerance?.negative ?? null,
-    });
+    }));
   }
 
   if (full.conformity?.id) {

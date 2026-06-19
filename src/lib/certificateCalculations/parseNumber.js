@@ -12,9 +12,32 @@ function stripUnitSuffixes(value) {
   return s;
 }
 
+/** Normaliza vírgula/ponto decimal (BR e US) para ponto. */
+export function normalizeDecimalString(raw) {
+  let s = stripUnitSuffixes(String(raw ?? "").trim());
+  if (!s) return s;
+
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+
+  if (hasComma && hasDot) {
+    const lastComma = s.lastIndexOf(",");
+    const lastDot = s.lastIndexOf(".");
+    if (lastComma > lastDot) {
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      s = s.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    s = s.replace(",", ".");
+  }
+
+  return s;
+}
+
 export function parseCalibrationNumber(raw) {
   if (raw == null) return { value: null, valid: false, reason: "Valor ausente" };
-  const s = String(raw).trim().replace(",", ".");
+  const s = normalizeDecimalString(raw);
   if (INVALID.has(s.toLowerCase())) return { value: null, valid: false, reason: "Valor inválido" };
   if (!s) return { value: null, valid: false, reason: "Valor ausente" };
   const n = Number(s);
@@ -29,7 +52,7 @@ export function parseImportNumeric(raw) {
   if (!s || s === "-" || s === "—") return { value: null, valid: false, reason: "Valor ausente", raw };
   if (INVALID.has(s.toLowerCase())) return { value: null, valid: false, reason: "Valor inválido", raw };
 
-  s = stripUnitSuffixes(s.replace(",", "."));
+  s = normalizeDecimalString(s);
 
   const match = s.match(/^-?\d+(?:\.\d+)?/);
   if (match) {
@@ -50,4 +73,16 @@ export function toDbNumeric(raw) {
 export function formatCalcDisplay(n, decimals = 4) {
   if (n == null || !Number.isFinite(n)) return "—";
   return n.toFixed(decimals).replace(/\.?0+$/, (m) => (m === "." ? "" : m));
+}
+
+/** Casas decimais de exibição a partir da resolução cadastrada (ex.: "0,0004" → 4). */
+export function decimalPlacesFromResolution(resolution) {
+  if (resolution == null || String(resolution).trim() === "") return null;
+  const normalized = normalizeDecimalString(resolution);
+  if (!normalized) return null;
+  const dotIdx = normalized.indexOf(".");
+  if (dotIdx === -1) return 0;
+  const fraction = normalized.slice(dotIdx + 1);
+  if (!fraction) return 0;
+  return fraction.length;
 }

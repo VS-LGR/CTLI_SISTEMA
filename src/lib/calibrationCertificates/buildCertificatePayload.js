@@ -1,5 +1,6 @@
 import { mergeColetaPayload, resolveEndCustomerId } from "@/lib/coletaSchema";
 import { determineInstrumentClass } from "@/lib/certificateCalculations";
+import { toDbNumeric } from "@/lib/certificateCalculations/parseNumber";
 import { canColetaGenerateOfficial } from "./certificateSchema";
 import { defaultValidityDate } from "./certificateDateUtils";
 import { mapColetaPointForDb } from "./certificateImportSanitize";
@@ -19,7 +20,7 @@ export function buildWeightStandardRow(item, cert) {
     certificate_number: item.certificate_number || cert?.certificate_number || "",
     calibration_date: cert?.calibration_date || null,
     valid_until: cert?.expiry_date || null,
-    uncertainty: item.expanded_uncertainty || null,
+    uncertainty: toDbNumeric(item.expanded_uncertainty),
     laboratory: cert?.calibrated_by || "",
     traceability: cert?.set_name || "",
     snapshot: { item, cert },
