@@ -44,9 +44,9 @@ import {
   canDeleteCertificate,
 } from "@/lib/calibrationCertificates/certificateSchema";
 import { validateExpiredStandards, validateBeforeEmit } from "@/lib/calibrationCertificates/certificateValidation";
-import { sanitizePointRowForDb } from "@/lib/calibrationCertificates/certificateImportSanitize";
+import { sanitizePointRowForDb, enrichEnvironmentalAirDensity } from "@/lib/calibrationCertificates/certificateImportSanitize";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
-import { formatCalcDisplay } from "@/lib/certificateCalculations";
+import { formatCalcDisplay, formatAirDensityDisplay } from "@/lib/certificateCalculations";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CriticalAnalysisDialog from "@/components/calibrationCertificates/CriticalAnalysisDialog";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
@@ -162,6 +162,7 @@ export default function CertificateEditorPage() {
       }, user.id);
 
       if (isStandalone && cert.environmental?.id) {
+        const enrichedEnv = enrichEnvironmentalAirDensity(cert.environmental, cert);
         await updateCertificateEnvironmental(cert.id, {
           initial_temperature: cert.environmental.initial_temperature,
           final_temperature: cert.environmental.final_temperature,
@@ -169,7 +170,7 @@ export default function CertificateEditorPage() {
           final_humidity: cert.environmental.final_humidity,
           initial_pressure: cert.environmental.initial_pressure,
           final_pressure: cert.environmental.final_pressure,
-          air_density: cert.environmental.air_density,
+          air_density: enrichedEnv.air_density,
           balance_adjusted: cert.environmental.balance_adjusted,
           notes: cert.environmental.notes,
         });
@@ -727,7 +728,7 @@ export default function CertificateEditorPage() {
                       <div><Label className="text-xs">UR final</Label><Input className="mt-1 h-9" value={cert.environmental.final_humidity || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_humidity: e.target.value } })} /></div>
                       <div><Label className="text-xs">Pressão inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_pressure: e.target.value } })} /></div>
                       <div><Label className="text-xs">Pressão final</Label><Input className="mt-1 h-9" value={cert.environmental.final_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_pressure: e.target.value } })} /></div>
-                      <div><Label className="text-xs">Massa específica ar</Label><Input className="mt-1 h-9" value={cert.environmental.air_density || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, air_density: e.target.value } })} /></div>
+                      <div><Label className="text-xs">Massa específica do ar (calculada)</Label><Input className="mt-1 h-9 bg-slate-50" readOnly value={`${formatAirDensityDisplay(enrichEnvironmentalAirDensity(cert.environmental, cert).air_density)} kg/m³`} /></div>
                       <div><Label className="text-xs">Balança ajustada</Label><Input className="mt-1 h-9" value={cert.environmental.balance_adjusted || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, balance_adjusted: e.target.value } })} /></div>
                     </>
                   ) : (
@@ -736,6 +737,7 @@ export default function CertificateEditorPage() {
                       <div>Temperatura: {cert.environmental.initial_temperature} – {cert.environmental.final_temperature} °C</div>
                       <div>Umidade: {cert.environmental.initial_humidity} – {cert.environmental.final_humidity} %</div>
                       <div>Pressão: {cert.environmental.initial_pressure} – {cert.environmental.final_pressure} hPa</div>
+                      <div>Massa específica do ar: {formatAirDensityDisplay(enrichEnvironmentalAirDensity(cert.environmental, cert).air_density)} kg/m³</div>
                       <div>Balança ajustada: {cert.environmental.balance_adjusted}</div>
                       <div>Balança nivelada: {cert.environmental.balance_leveled}</div>
                       <div>Vibração: {cert.environmental.has_vibration}</div>

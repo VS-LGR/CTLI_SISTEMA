@@ -148,7 +148,7 @@ export function buildCertificateFromPayload({
     has_vibration: payload.ambiente?.existe_vibracao || "",
     has_air_flow: payload.ambiente?.existe_corrente_ar || "",
     notes: payload.ambiente?.observacoes || "",
-    air_density: payload.ambiente?.massa_especifica || payload.verso?.repetitividade?.massa_especifica_estimada || "",
+    air_density: "",
     snapshot: payload.ambiente,
   };
 

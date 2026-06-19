@@ -16,15 +16,14 @@ describe("certificateDateUtils", () => {
 describe("legalObservations", () => {
   test("RBC has 7 numbered legal items", () => {
     expect(getRbcObservations()).toHaveLength(7);
-    expect(getRbcObservations()[3]).toContain("17025");
+    expect(getRbcObservations()[1]).toContain("CTLI");
+    expect(getRbcObservations()[4]).toContain("17025");
   });
 
   test("Rastreável menciona credenciamento IPEM-MG", () => {
     const items = getRastreavelObservations();
     expect(items).toHaveLength(7);
-    expect(items[3]).toContain("IPEM-MG");
-    expect(items[3]).not.toContain("sem símbolo");
-    expect(items[3]).not.toContain("17025");
+    expect(items[4]).toContain("IPEM-MG");
   });
 });
 

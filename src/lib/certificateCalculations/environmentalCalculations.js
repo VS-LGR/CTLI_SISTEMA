@@ -60,7 +60,38 @@ export function environmentalUncertainty(initial, final, constant = 0) {
 }
 
 export const ENV_UNCERTAINTY_CONSTANTS = {
-  temperature: 0.5,
+  temperature: 0,
   humidity: 3,
   pressure: 2,
 };
+
+/**
+ * Massa específica do ar (kg/m³) — fórmula planilha xlsm:
+ * ((0,348444 × P) − (UR × ((0,00252 × T) − 0,020582))) / (273,15 + T)
+ * T, UR, P = médias inicial/final; arredondamento 2 casas decimais.
+ */
+export function calculateAirDensity(tAvg, urAvg, pAvg) {
+  if (!Number.isFinite(tAvg) || !Number.isFinite(urAvg) || !Number.isFinite(pAvg)) {
+    return { value: null, valid: false, reason: "Dados ambientais incompletos" };
+  }
+  const denominator = 273.15 + tAvg;
+  if (denominator === 0) return { value: null, valid: false, reason: "Temperatura inválida" };
+  const numerator = (0.348444 * pAvg) - (urAvg * ((0.00252 * tAvg) - 0.020582));
+  const raw = numerator / denominator;
+  const value = Math.round(raw * 100) / 100;
+  if (!Number.isFinite(value)) return { value: null, valid: false, reason: "Cálculo inválido" };
+  return { value, valid: true, reason: "" };
+}
+
+export function calculateAirDensityFromEnvironmental(environmental = {}) {
+  const tAvg = environmentalAverage(environmental.initial_temperature, environmental.final_temperature);
+  const urAvg = environmentalAverage(environmental.initial_humidity, environmental.final_humidity);
+  const pAvg = environmentalAverage(environmental.initial_pressure, environmental.final_pressure);
+  return calculateAirDensity(tAvg, urAvg, pAvg);
+}
+
+/** Formata ρ_ar para exibição BR (ex.: 1,12). */
+export function formatAirDensityDisplay(value) {
+  if (value == null || value === "" || !Number.isFinite(Number(value))) return "—";
+  return Number(value).toFixed(2).replace(".", ",");
+}

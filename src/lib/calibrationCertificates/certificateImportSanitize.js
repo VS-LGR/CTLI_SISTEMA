@@ -1,4 +1,5 @@
 import { parseImportNumeric, toDbNumeric } from "@/lib/certificateCalculations/parseNumber";
+import { calculateAirDensityFromEnvironmental } from "@/lib/certificateCalculations/environmentalCalculations";
 
 const POINT_NUMERIC_FIELDS = [
   "nominal_value",
@@ -114,15 +115,27 @@ export function sanitizeCalculatedPointPatchForDb(patch) {
   return next;
 }
 
+export function resolveEnvironmentalFields(environmental, certificate = {}) {
+  if (!environmental) return null;
+  const snap = environmental.snapshot || {};
+  const collPayload = certificate.collection_snapshot?.payload || {};
+  const ambSnap = collPayload.ambiente || snap || {};
+  return {
+    initial_temperature: environmental.initial_temperature || ambSnap.temp_inicial,
+    final_temperature: environmental.final_temperature || ambSnap.temp_final,
+    initial_humidity: environmental.initial_humidity || ambSnap.umidade_inicial,
+    final_humidity: environmental.final_humidity || ambSnap.umidade_final,
+    initial_pressure: environmental.initial_pressure || ambSnap.pressao_inicial,
+    final_pressure: environmental.final_pressure || ambSnap.pressao_final,
+  };
+}
+
 export function enrichEnvironmentalAirDensity(environmental, certificate = {}) {
   if (!environmental) return environmental;
-  if (environmental.air_density != null && String(environmental.air_density).trim()) {
-    return environmental;
-  }
-  const snap = environmental.snapshot || {};
-  const rep = certificate.repeatability_snapshot || {};
+  const merged = resolveEnvironmentalFields(environmental, certificate);
+  const calc = calculateAirDensityFromEnvironmental(merged);
   return {
     ...environmental,
-    air_density: snap.massa_especifica || rep.massa_especifica_estimada || "",
+    air_density: calc.valid ? String(calc.value) : "",
   };
 }

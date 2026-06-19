@@ -16,6 +16,16 @@ export {
   welchSatterthwaiteNuEff,
 } from "./pointCalculations";
 export {
+  sumConventionalFromWeightIds,
+  combinedExpandedUncertaintyFromWeightIds,
+  environmentalAverage,
+  environmentalUncertainty,
+  calculateAirDensity,
+  calculateAirDensityFromEnvironmental,
+  formatAirDensityDisplay,
+  ENV_UNCERTAINTY_CONSTANTS,
+} from "./environmentalCalculations";
+export {
   determineInstrumentClass,
   calculateToleranceOiml,
   evaluatePointConformity,

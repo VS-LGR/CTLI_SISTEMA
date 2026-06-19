@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { emptyColetaPayload, nominalFromWeightIds } from "@/lib/coletaSchema";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { calculateAirDensityFromEnvironmental, formatAirDensityDisplay } from "@/lib/certificateCalculations/environmentalCalculations";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
 
 const POINT_COUNT = 10;
@@ -72,6 +73,15 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
   }, [scaleId, scales]);
 
   const setAmbiente = (k, v) => setPayload((p) => ({ ...p, ambiente: { ...p.ambiente, [k]: v } }));
+
+  const calculatedAirDensity = calculateAirDensityFromEnvironmental({
+    initial_temperature: payload.ambiente.temp_inicial,
+    final_temperature: payload.ambiente.temp_final,
+    initial_humidity: payload.ambiente.umidade_inicial,
+    final_humidity: payload.ambiente.umidade_final,
+    initial_pressure: payload.ambiente.pressao_inicial,
+    final_pressure: payload.ambiente.pressao_final,
+  });
   const setControle = (k, v) => setPayload((p) => ({ ...p, controle: { ...p.controle, [k]: v } }));
 
   const setPoint = (idx, k, v) => {
@@ -154,7 +164,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
           <div className="grid sm:grid-cols-3 gap-3">
             <div><Label className="text-xs">Temp. inicial</Label><Input value={payload.ambiente.temp_inicial} onChange={(e) => setAmbiente("temp_inicial", e.target.value)} /></div>
             <div><Label className="text-xs">Temp. final</Label><Input value={payload.ambiente.temp_final} onChange={(e) => setAmbiente("temp_final", e.target.value)} /></div>
-            <div><Label className="text-xs">Massa específica ar</Label><Input value={payload.ambiente.massa_especifica || ""} onChange={(e) => setAmbiente("massa_especifica", e.target.value)} /></div>
+            <div><Label className="text-xs">Massa específica do ar (calculada)</Label><Input readOnly className="bg-slate-50" value={`${formatAirDensityDisplay(calculatedAirDensity.valid ? calculatedAirDensity.value : null)} kg/m³`} /></div>
             <div><Label className="text-xs">UR inicial</Label><Input value={payload.ambiente.umidade_inicial} onChange={(e) => setAmbiente("umidade_inicial", e.target.value)} /></div>
             <div><Label className="text-xs">UR final</Label><Input value={payload.ambiente.umidade_final} onChange={(e) => setAmbiente("umidade_final", e.target.value)} /></div>
             <div>

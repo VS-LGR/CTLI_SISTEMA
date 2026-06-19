@@ -3,6 +3,8 @@ import {
   combinedExpandedUncertaintyFromWeightIds,
   environmentalAverage,
   environmentalUncertainty,
+  calculateAirDensity,
+  calculateAirDensityFromEnvironmental,
   ENV_UNCERTAINTY_CONSTANTS,
 } from "./environmentalCalculations";
 
@@ -26,8 +28,27 @@ describe("environmentalCalculations", () => {
 
   test("environmentalAverage e incerteza conforme planilha PREENCHER", () => {
     expect(environmentalAverage("22.0", "24.0")).toBe(23);
-    expect(environmentalUncertainty("22.0", "24.0", ENV_UNCERTAINTY_CONSTANTS.temperature)).toBe(1.5);
+    expect(environmentalUncertainty("22.0", "24.0", ENV_UNCERTAINTY_CONSTANTS.temperature)).toBe(1);
     expect(environmentalUncertainty("50", "56", ENV_UNCERTAINTY_CONSTANTS.humidity)).toBe(6);
     expect(environmentalUncertainty("920", "924", ENV_UNCERTAINTY_CONSTANTS.pressure)).toBe(4);
+  });
+
+  test("calculateAirDensity — golden EmissãoTeste (T=20,5 UR=50,5 P=950,5 → 1,12)", () => {
+    const result = calculateAirDensity(20.5, 50.5, 950.5);
+    expect(result.valid).toBe(true);
+    expect(result.value).toBe(1.12);
+  });
+
+  test("calculateAirDensityFromEnvironmental usa médias inicial/final", () => {
+    const result = calculateAirDensityFromEnvironmental({
+      initial_temperature: "20",
+      final_temperature: "21",
+      initial_humidity: "50",
+      final_humidity: "51",
+      initial_pressure: "950",
+      final_pressure: "951",
+    });
+    expect(result.valid).toBe(true);
+    expect(result.value).toBeCloseTo(1.12, 1);
   });
 });

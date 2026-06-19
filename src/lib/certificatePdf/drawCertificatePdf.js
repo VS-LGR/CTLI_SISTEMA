@@ -34,49 +34,77 @@ function drawWatermark(doc, text) {
 }
 
 function drawClientSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 28, ctx));
+  ({ y } = ensureSpace(doc, y, 32, ctx));
   y = drawSectionBar(doc, ML, y, CW, "DADOS DO CLIENTE");
   y = drawFieldGrid(doc, ML, y, CW, 2, [
-    { label: "Empresa", value: model.client.name },
+    { label: "Cliente", value: model.client.name },
     { label: "C.N.P.J.", value: model.client.cnpj },
+    { label: "Responsável", value: model.client.representative },
     { label: "Endereço", value: model.client.address },
-    { label: "Cidade/Estado", value: [model.client.city, model.client.state].filter(Boolean).join(" / ") },
+    { label: "Cidade", value: model.client.city },
+    { label: "Estado", value: model.client.state },
+    { label: "Unidade", value: model.client.unit },
   ]);
   return y + 2;
 }
 
 function drawInstrumentSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 52, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "DADOS DO INSTRUMENTO");
-  y = drawFieldGrid(doc, ML, y, CW, 3, [
-    { label: "Identificação", value: model.balance.identificacao },
-    { label: "Fabricante", value: model.balance.fabricante },
-    { label: "Descrição", value: model.balance.descricao },
-    { label: "Modelo", value: model.balance.modelo },
-    { label: "Nº Série", value: model.balance.serie },
-    { label: "Local", value: model.balance.local },
-  ]);
+  ({ y } = ensureSpace(doc, y, 58, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "INFORMAÇÕES TÉCNICAS");
 
   autoTable(doc, {
     startY: y,
     margin: { left: ML, right: PAGE_W - MR },
-    head: [["", "C1", "C2", "C3", "d", "e", "Classe", "Ponto de Trabalho", "Unidade"]],
+    head: [[
+      "Tipo de Balança", "Fabricante", "Modelo", "Nº Série",
+      "Faixa de Indicação", "Resolução", "Divisão de Verificação", "Unidade",
+    ]],
     body: [[
-      "Faixa",
+      s(model.balance.tipo),
+      s(model.balance.fabricante),
+      s(model.balance.modelo),
+      s(model.balance.serie),
       s(model.balance.capacidade),
-      s(model.balance.capacidade2),
-      s(model.balance.capacidade3),
       s(model.balance.resolucao),
       s(model.balance.divisao),
-      s(model.balance.classe),
-      s(model.balance.pontoTrabalho),
       s(model.balance.unidade),
     ]],
-    styles: { fontSize: 6.5, cellPadding: 1.2, halign: "center" },
+    styles: { fontSize: 6, cellPadding: 1.2, halign: "center" },
     headStyles: tableHeadStyles(doc),
     theme: "grid",
   });
-  y = doc.lastAutoTable.finalY + 3;
+  y = doc.lastAutoTable.finalY + 2;
+
+  if (model.balance.capacidade2 || model.balance.resolucao2) {
+    autoTable(doc, {
+      startY: y,
+      margin: { left: ML, right: PAGE_W - MR },
+      head: [["", "C2", "C3", "d2", "d3", "e2", "e3", "Classe", "Ponto de Trabalho"]],
+      body: [[
+        "Faixas adicionais",
+        s(model.balance.capacidade2),
+        s(model.balance.capacidade3),
+        s(model.balance.resolucao2),
+        s(model.balance.resolucao3),
+        s(model.balance.divisao2),
+        s(model.balance.divisao3),
+        s(model.balance.classe),
+        s(model.balance.pontoTrabalho),
+      ]],
+      styles: { fontSize: 6, cellPadding: 1, halign: "center" },
+      headStyles: tableHeadStyles(doc),
+      theme: "grid",
+    });
+    y = doc.lastAutoTable.finalY + 2;
+  }
+
+  y = drawFieldGrid(doc, ML, y, CW, 2, [
+    { label: "Local da Calibração", value: model.balance.local },
+    { label: "Etiqueta IPEM", value: model.balance.etiqueta },
+    { label: "Identificação", value: model.balance.identificacao || model.balance.tag },
+    { label: "Tipo de Plataforma", value: model.balance.plataforma },
+  ]);
+  y += 2;
   y = underlineField(doc, ML, y, "Certificado número", model.certificateNumber, 55);
   y = underlineField(doc, ML + 60, y - 5, "Data da Calibração", model.calibrationDate, 45);
   y = underlineField(doc, ML + 110, y - 5, "Data de Validade", model.validityDate, 45);
@@ -84,56 +112,12 @@ function drawInstrumentSection(doc, model, y, ctx) {
 }
 
 function drawTraceabilitySection(doc, model, y, ctx) {
-  const hasWeights = model.weightStandards?.length;
-  const hasInstruments = model.instrumentStandards?.length;
-  if (!hasWeights && !hasInstruments) return y;
-
-  ({ y } = ensureSpace(doc, y, 24, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "RASTREABILIDADE");
-
-  if (hasWeights) {
-    autoTable(doc, {
-      startY: y,
-      margin: { left: ML, right: PAGE_W - MR },
-      head: [["Identificação", "Descrição", "Nº cert.", "Calibrado por", "Validade"]],
-      body: model.weightStandards.map((st) => [
-        s(st.code),
-        s(st.description),
-        s(st.certificate),
-        s(st.traceability),
-        s(st.validUntil),
-      ]),
-      styles: { fontSize: 6, cellPadding: 1 },
-      headStyles: tableHeadStyles(doc),
-      theme: "grid",
-    });
-    y = doc.lastAutoTable.finalY + 3;
-  }
-
-  if (hasInstruments) {
-    autoTable(doc, {
-      startY: y,
-      margin: { left: ML, right: PAGE_W - MR },
-      head: [["Instrumento", "Descrição", "Nº cert.", "Calibrado por", "Validade"]],
-      body: model.instrumentStandards.map((st) => [
-        s(st.code),
-        s(st.description),
-        s(st.certificate),
-        s(st.traceability),
-        s(st.validUntil),
-      ]),
-      styles: { fontSize: 6, cellPadding: 1 },
-      headStyles: tableHeadStyles(doc),
-      theme: "grid",
-    });
-    y = doc.lastAutoTable.finalY + 4;
-  }
   return y;
 }
 
 function drawEnvironmentalSection(doc, model, y, ctx) {
   ({ y } = ensureSpace(doc, y, 38, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "CONDIÇÕES AMBIENTAIS");
+  y = drawSectionBar(doc, ML, y, CW, "CONDIÇÕES AMBIENTAIS - DURANTE A CALIBRAÇÃO");
 
   autoTable(doc, {
     startY: y,
@@ -151,15 +135,59 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
   y = doc.lastAutoTable.finalY + 3;
   y = underlineField(doc, ML, y, "Massa específica do ar", model.environmental.airDensity, 70);
   y = underlineField(doc, ML + 75, y - 5, "Referência", `${model.environmental.popReference || model.lab?.popCode || "POP-CAL-02"} Rev.`, CW - 78);
+
+  if (model.instrumentStandards?.length) {
+    y += 2;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.text("Termo-Higrômetro / Barômetro", ML, y);
+    y += 3;
+    autoTable(doc, {
+      startY: y,
+      margin: { left: ML, right: PAGE_W - MR },
+      head: [["Identificação", "Nº cert.", "Data Calibração", "Validade"]],
+      body: model.instrumentStandards.map((st) => [
+        s(st.code),
+        s(st.certificate),
+        s(st.calibrationDate),
+        s(st.validUntil),
+      ]),
+      styles: { fontSize: 6, cellPadding: 1 },
+      headStyles: tableHeadStyles(doc),
+      theme: "grid",
+    });
+    y = doc.lastAutoTable.finalY + 3;
+  }
+
+  if (model.weightStandards?.length) {
+    y = drawSectionBar(doc, ML, y, CW, "PADRÕES DE REFERÊNCIA");
+    autoTable(doc, {
+      startY: y,
+      margin: { left: ML, right: PAGE_W - MR },
+      head: [["Identificação", "Nº cert.", "Data Calibração", "Validade", "Rastreabilidade"]],
+      body: model.weightStandards.map((st) => [
+        s(st.code),
+        s(st.certificate),
+        s(st.calibrationDate),
+        s(st.validUntil),
+        s(st.traceability),
+      ]),
+      styles: { fontSize: 6, cellPadding: 1 },
+      headStyles: tableHeadStyles(doc),
+      theme: "grid",
+    });
+    y = doc.lastAutoTable.finalY + 4;
+  }
+
   return y + 2;
 }
 
-function drawWeighingTestsSection(doc, model, y, ctx) {
+function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   if (!model.points?.length) return y;
   const cols = model.points.slice(0, 10);
 
   ({ y } = ensureSpace(doc, y, 28, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "ENSAIOS DE PESAGEM");
+  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE");
 
   const beforeHead = [[
     { content: "", rowSpan: 1 },
@@ -337,15 +365,15 @@ function drawEccentricitySection(doc, model, y, ctx) {
   return doc.lastAutoTable.finalY + 4;
 }
 
-function drawRepeatabilitySection(doc, model, y, ctx) {
-  if (!model.repeatability?.applicable || !model.repeatability.rows?.length) return y;
+function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
+  if (!model.substitutionRepeatability?.applicable || !model.substitutionRepeatability.rows?.length) return y;
   ({ y } = ensureSpace(doc, y, 25, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE");
+  y = drawSectionBar(doc, ML, y, CW, "REPETIBILIDADE COM LOTE DE CARGA");
   autoTable(doc, {
     startY: y,
     margin: { left: ML, right: PAGE_W - MR },
     head: [["Linha", "Valor nominal", "Leitura 1", "Leitura 2", "Leitura 3"]],
-    body: model.repeatability.rows.map((r) => [
+    body: model.substitutionRepeatability.rows.map((r) => [
       s(r.label), s(r.nominal), s(r.reading1), s(r.reading2), s(r.reading3),
     ]),
     styles: { fontSize: 6.5, cellPadding: 1.2 },
@@ -353,15 +381,15 @@ function drawRepeatabilitySection(doc, model, y, ctx) {
     theme: "grid",
   });
   y = doc.lastAutoTable.finalY + 2;
-  if (model.repeatability.observations) {
-    y = underlineField(doc, ML, y, "Observações", model.repeatability.observations, CW);
+  if (model.substitutionRepeatability.observations) {
+    y = underlineField(doc, ML, y, "Observações", model.substitutionRepeatability.observations, CW);
   }
   return y + 2;
 }
 
 function drawObservationsSection(doc, model, y, ctx) {
   ({ y } = ensureSpace(doc, y, 44, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "NOTAS");
+  y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES");
   y = drawNumberedObservations(doc, ML + 1, y + 1, model.observations, CW - 2) + 3;
   if (model.conformityDeclaration) {
     doc.setFont("helvetica", "bold");
@@ -390,8 +418,8 @@ function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.text("Técnico Executor", leftX + colW / 2, y, { align: "center" });
-  doc.text("Gerente Técnico", rightX + colW / 2, y, { align: "center" });
+  doc.text("Técnico Responsável", leftX + colW / 2, y, { align: "center" });
+  doc.text("SIGNATÁRIO", rightX + colW / 2, y, { align: "center" });
   y += 4;
 
   drawSignature(leftX + colW / 2 - sigW / 2, y, signatureUrls.executor);
@@ -409,8 +437,8 @@ function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
 
   y += 4;
   doc.setFontSize(7);
-  doc.text(`Pontos Calibrados: ${model.calibratedPointsCount}`, ML, y);
-  doc.text(`Números de Leituras: ${model.readingsPerPoint}`, ML + 80, y);
+  doc.text(`Números de Pontos Calibrados: ${model.calibratedPointsCount}`, ML, y);
+  doc.text(`Número de Leituras: ${model.readingsPerPoint}`, ML + 80, y);
   return y + 4;
 }
 
@@ -423,8 +451,8 @@ export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls, pla
   y = drawTraceabilitySection(doc, model, y, ctx);
   y = drawEnvironmentalSection(doc, model, y, ctx);
   y = drawEccentricitySection(doc, model, y, ctx);
-  y = drawWeighingTestsSection(doc, model, y, ctx);
-  y = drawRepeatabilitySection(doc, model, y, ctx);
+  y = drawRepeatabilityCalibrationSection(doc, model, y, ctx);
+  y = drawSubstitutionRepeatabilitySection(doc, model, y, ctx);
   y = drawObservationsSection(doc, model, y, ctx);
   drawApprovalBlock(doc, model, y, ctx, signatureUrls);
 

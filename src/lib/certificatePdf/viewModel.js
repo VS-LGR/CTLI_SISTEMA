@@ -5,6 +5,8 @@ import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistratio
 import {
   environmentalAverage,
   environmentalUncertainty,
+  calculateAirDensityFromEnvironmental,
+  formatAirDensityDisplay,
   ENV_UNCERTAINTY_CONSTANTS,
 } from "@/lib/certificateCalculations/environmentalCalculations";
 import { unidadeLabel, TIPO_BALANCA_OPTIONS, TIPO_PLATAFORMA_OPTIONS } from "@/lib/coletaSchema";
@@ -98,12 +100,17 @@ function resolveEnvironmental(cert) {
   const pressIni = env.initial_pressure || ambSnap.pressao_inicial;
   const pressFin = env.final_pressure || ambSnap.pressao_final;
 
-  const rep = cert.repeatability_snapshot || collPayload.verso?.repetitividade || {};
-  const massaEspecifica = env.air_density
-    || ambSnap.massa_especifica
-    || rep.massa_especifica_estimada
-    || snap.massa_especifica
-    || "";
+  const airCalc = calculateAirDensityFromEnvironmental({
+    initial_temperature: tempIni,
+    final_temperature: tempFin,
+    initial_humidity: humIni,
+    final_humidity: humFin,
+    initial_pressure: pressIni,
+    final_pressure: pressFin,
+  });
+  const massaEspecifica = airCalc.valid
+    ? formatAirDensityDisplay(airCalc.value)
+    : formatAirDensityDisplay(env.air_density);
 
   return {
     initialFinal: {
@@ -114,7 +121,7 @@ function resolveEnvironmental(cert) {
     temperature: formatEnvCell(tempIni, tempFin, ENV_UNCERTAINTY_CONSTANTS.temperature, "ºC"),
     humidity: formatEnvCell(humIni, humFin, ENV_UNCERTAINTY_CONSTANTS.humidity, "%"),
     pressure: formatEnvCell(pressIni, pressFin, ENV_UNCERTAINTY_CONSTANTS.pressure, "hPa"),
-    airDensity: massaEspecifica ? `${massaEspecifica} kg/m³` : "—",
+    airDensity: massaEspecifica !== "—" ? `${massaEspecifica} kg/m³` : "—",
     balanceAdjusted: env.balance_adjusted || ambSnap.balanca_ajustada || "",
     notes: env.notes || ambSnap.observacoes || "",
     popReference: "",
@@ -315,6 +322,7 @@ export function buildCertificatePdfViewModel(cert, {
     };
     }),
     eccentricity,
+    substitutionRepeatability: repeatability,
     repeatability,
     adjustmentPerformed,
     adjustmentNote: adjustmentPerformed === false ? "Não foi realizado o ajuste do equipamento" : "",

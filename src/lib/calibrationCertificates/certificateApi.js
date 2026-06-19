@@ -149,7 +149,9 @@ async function insertCertificateBundle(tenantId, imported, { userId, certificate
   }
 
   const { error: envErr } = await supabase.from("calibration_certificate_environmental").insert({
-    ...imported.environmental,
+    ...enrichEnvironmentalAirDensity(imported.environmental, {
+      collection_snapshot: imported.certificate?.collection_snapshot,
+    }),
     certificate_id: certId,
   });
   if (envErr) throw envErr;
@@ -350,6 +352,11 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
       general_conformity_result: confResult.general,
       point_results: confResult.pointResults,
     }).eq("id", full.conformity.id);
+  }
+
+  const enrichedEnv = enrichEnvironmentalAirDensity(full.environmental, full);
+  if (full.environmental?.certificate_id || full.environmental?.id) {
+    await updateCertificateEnvironmental(id, { air_density: enrichedEnv.air_density || "" });
   }
 
   await updateCertificateHeader(id, { status: "calculado" });

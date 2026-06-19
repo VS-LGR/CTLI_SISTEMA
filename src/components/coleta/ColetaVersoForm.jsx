@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SUBSTITUICAO_LINHA_DEFS, isSubstituicaoLinhaSoloL } from "@/lib/coletaSchema";
+import { calculateAirDensityFromEnvironmental, formatAirDensityDisplay } from "@/lib/certificateCalculations/environmentalCalculations";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import FormRowCard from "@/components/forms/FormRowCard";
 import FormRowsTableShell, { FormRowsTableHead, FormRowsTableBody } from "@/components/forms/FormRowsTableShell";
@@ -48,8 +49,18 @@ function SimNaoRow({ label, value, onChange, disabled }) {
   );
 }
 
-function RepetitividadeLinhaFields({ def, row, soloL, aplicavel, setLinha }) {
+function RepetitividadeLinhaFields({ def, row, soloL, aplicavel, setLinha, globalAirDensity }) {
   const inputCls = "h-10 text-sm";
+  const lineAirDensity = (!soloL && (row.temp || row.umidade || row.pressao))
+    ? calculateAirDensityFromEnvironmental({
+      initial_temperature: row.temp,
+      final_temperature: row.temp,
+      initial_humidity: row.umidade,
+      final_humidity: row.umidade,
+      initial_pressure: row.pressao,
+      final_pressure: row.pressao,
+    })
+    : globalAirDensity;
   const ambientField = (field, label) => (
     <Field key={field} label={label}>
       {soloL ? (
@@ -87,10 +98,21 @@ function RepetitividadeLinhaFields({ def, row, soloL, aplicavel, setLinha }) {
           </Field>
         ) : null
       ))}
-      {ambientField("massa_especifica", "Massa específica")}
       {ambientField("temp", "°C")}
       {ambientField("umidade", "% ur")}
       {ambientField("pressao", "hPa")}
+      <Field label="Massa específica (calc.)">
+        {soloL ? (
+          <span className="text-slate-400 block text-center py-2 text-sm">—</span>
+        ) : (
+          <Input
+            readOnly
+            className={`${inputCls} bg-slate-50`}
+            value={`${formatAirDensityDisplay(lineAirDensity.valid ? lineAirDensity.value : null)} kg/m³`}
+            disabled={!aplicavel}
+          />
+        )}
+      </Field>
     </>
   );
 }
@@ -117,6 +139,16 @@ export default function ColetaVersoForm({ payload, onChange }) {
     }
     setRep("linhas", next);
   };
+
+  const ambiente = payload.ambiente || {};
+  const globalAirDensity = calculateAirDensityFromEnvironmental({
+    initial_temperature: ambiente.temp_inicial,
+    final_temperature: ambiente.temp_final,
+    initial_humidity: ambiente.umidade_inicial,
+    final_humidity: ambiente.umidade_final,
+    initial_pressure: ambiente.pressao_inicial,
+    final_pressure: ambiente.pressao_final,
+  });
 
   return (
     <div className="space-y-6 border-t pt-6">
@@ -192,10 +224,11 @@ export default function ColetaVersoForm({ payload, onChange }) {
                   disabled={!aplicavel}
                 />
               </Field>
-              <Field label="Massa específica estimada (kg/m³)">
+              <Field label="Massa específica estimada (kg/m³) — calculada">
                 <Input
-                  value={rep.massa_especifica_estimada || ""}
-                  onChange={(e) => setRep("massa_especifica_estimada", e.target.value)}
+                  readOnly
+                  className="bg-slate-50"
+                  value={`${formatAirDensityDisplay(globalAirDensity.valid ? globalAirDensity.value : null)} kg/m³`}
                   disabled={!aplicavel}
                 />
               </Field>
@@ -222,6 +255,7 @@ export default function ColetaVersoForm({ payload, onChange }) {
                         soloL={soloL}
                         aplicavel={aplicavel}
                         setLinha={setLinha}
+                        globalAirDensity={globalAirDensity}
                       />
                     </FormRowCard>
                   );
@@ -260,6 +294,16 @@ export default function ColetaVersoForm({ payload, onChange }) {
                         />
                       )
                     );
+                    const lineAirDensity = (!soloL && (row.temp || row.umidade || row.pressao))
+                      ? calculateAirDensityFromEnvironmental({
+                        initial_temperature: row.temp,
+                        final_temperature: row.temp,
+                        initial_humidity: row.umidade,
+                        final_humidity: row.umidade,
+                        initial_pressure: row.pressao,
+                        final_pressure: row.pressao,
+                      })
+                      : globalAirDensity;
                     return (
                       <tr key={def.key} className="border-b border-slate-100">
                         <td className="p-2 font-mono align-top whitespace-nowrap sticky left-0 z-[1] bg-white font-medium">
@@ -287,7 +331,9 @@ export default function ColetaVersoForm({ payload, onChange }) {
                             )}
                           </td>
                         ))}
-                        <td className="p-1 align-top">{ambientCell("massa_especifica")}</td>
+                        <td className="p-1 align-top text-xs text-slate-700">
+                          {soloL ? "—" : `${formatAirDensityDisplay(lineAirDensity.valid ? lineAirDensity.value : null)} kg/m³`}
+                        </td>
                         <td className="p-1 align-top">{ambientCell("temp")}</td>
                         <td className="p-1 align-top">{ambientCell("umidade")}</td>
                         <td className="p-1 align-top">{ambientCell("pressao")}</td>
