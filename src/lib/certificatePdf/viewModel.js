@@ -31,13 +31,18 @@ function parseNum(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-function formatEnvCell(initial, final, constant, unit) {
+function formatBr(n, decimals = 1) {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return formatCalcDisplay(n, decimals).replace(".", ",");
+}
+
+function formatEnvCell(initial, final, constant, suffix, uncDecimals = 1) {
   const avg = environmentalAverage(initial, final);
   const unc = environmentalUncertainty(initial, final, constant);
   if (avg == null) return "—";
-  const v = formatCalcDisplay(avg, 1);
-  const u = unc != null ? ` ± ${formatCalcDisplay(unc, 1)}` : "";
-  return `${v}${u} ${unit}`.trim();
+  const v = formatBr(avg, 1);
+  const u = unc != null ? ` ± ${formatBr(unc, uncDecimals)}` : "";
+  return `${v} ${suffix}${u}`.trim();
 }
 
 function withUnit(value, unit, decimals = 4) {
@@ -118,9 +123,9 @@ function resolveEnvironmental(cert) {
       humidity: { initial: humIni || "—", final: humFin || "—" },
       pressure: { initial: pressIni || "—", final: pressFin || "—" },
     },
-    temperature: formatEnvCell(tempIni, tempFin, ENV_UNCERTAINTY_CONSTANTS.temperature, "ºC"),
-    humidity: formatEnvCell(humIni, humFin, ENV_UNCERTAINTY_CONSTANTS.humidity, "%"),
-    pressure: formatEnvCell(pressIni, pressFin, ENV_UNCERTAINTY_CONSTANTS.pressure, "hPa"),
+    temperature: formatEnvCell(tempIni, tempFin, ENV_UNCERTAINTY_CONSTANTS.temperature, "°C", 2),
+    humidity: formatEnvCell(humIni, humFin, ENV_UNCERTAINTY_CONSTANTS.humidity, "%", 1),
+    pressure: formatEnvCell(pressIni, pressFin, ENV_UNCERTAINTY_CONSTANTS.pressure, "hPA", 1),
     airDensity: massaEspecifica !== "—" ? `${massaEspecifica} kg/m³` : "—",
     balanceAdjusted: env.balance_adjusted || ambSnap.balanca_ajustada || "",
     notes: env.notes || ambSnap.observacoes || "",

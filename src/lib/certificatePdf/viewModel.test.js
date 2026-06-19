@@ -73,6 +73,23 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
     expect(model.balance.plataforma).toBeTruthy();
   });
 
+  test("formata condições ambientais no padrão EmissãoTeste", () => {
+    const model = buildCertificatePdfViewModel({
+      ...EMISSAO_TESTE_CERT,
+      environmental: {
+        initial_temperature: "19,5",
+        final_temperature: "21,5",
+        initial_humidity: "50",
+        final_humidity: "51",
+        initial_pressure: "947",
+        final_pressure: "954",
+      },
+    });
+    expect(model.environmental.temperature).toMatch(/20,5 °C ± 1,00/);
+    expect(model.environmental.humidity).toMatch(/50,5 % ± 3,5/);
+    expect(model.environmental.pressure).toMatch(/950,5 hPA ± 5,5/);
+  });
+
   test("observações legais com 7 itens", () => {
     const model = buildCertificatePdfViewModel(EMISSAO_TESTE_CERT);
     expect(model.observations).toHaveLength(7);

@@ -11,14 +11,20 @@ import {
   drawCertificateDocumentFooters,
   drawSectionBar,
   drawFieldGrid,
+  drawCompactMeasureRow,
+  drawDualSubsectionTitles,
   ensureSpace,
-  underlineField,
   drawNumberedObservations,
   tableHeadStyles,
 } from "./certificatePdfLayout";
 
 function s(v) {
   return v == null ? "" : String(v);
+}
+
+function joinSlash(items) {
+  const vals = (items || []).map((v) => s(v).trim()).filter(Boolean);
+  return vals.length ? vals.join(" / ") : "—";
 }
 
 function drawWatermark(doc, text) {
@@ -34,9 +40,9 @@ function drawWatermark(doc, text) {
 }
 
 function drawClientSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 32, ctx));
+  ({ y } = ensureSpace(doc, y, 28, ctx));
   y = drawSectionBar(doc, ML, y, CW, "DADOS DO CLIENTE");
-  y = drawFieldGrid(doc, ML, y, CW, 2, [
+  y = drawFieldGrid(doc, ML, y, CW, 3, [
     { label: "Cliente", value: model.client.name },
     { label: "C.N.P.J.", value: model.client.cnpj },
     { label: "Responsável", value: model.client.representative },
@@ -45,11 +51,11 @@ function drawClientSection(doc, model, y, ctx) {
     { label: "Estado", value: model.client.state },
     { label: "Unidade", value: model.client.unit },
   ]);
-  return y + 2;
+  return y + 1;
 }
 
 function drawInstrumentSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 58, ctx));
+  ({ y } = ensureSpace(doc, y, 36, ctx));
   y = drawSectionBar(doc, ML, y, CW, "INFORMAÇÕES TÉCNICAS");
 
   autoTable(doc, {
@@ -69,8 +75,24 @@ function drawInstrumentSection(doc, model, y, ctx) {
       s(model.balance.divisao),
       s(model.balance.unidade),
     ]],
+    styles: { fontSize: 6, cellPadding: 1.2, halign: "center", valign: "middle" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
+    theme: "grid",
+  });
+  y = doc.lastAutoTable.finalY + 1;
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: ML, right: PAGE_W - MR },
+    head: [["Local da Calibração", "Etiqueta IPEM", "Identificação", "Tipo de Plataforma"]],
+    body: [[
+      s(model.balance.local),
+      s(model.balance.etiqueta),
+      s(model.balance.identificacao || model.balance.tag),
+      s(model.balance.plataforma),
+    ]],
     styles: { fontSize: 6, cellPadding: 1.2, halign: "center" },
-    headStyles: tableHeadStyles(doc),
+    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
     theme: "grid",
   });
   y = doc.lastAutoTable.finalY + 2;
@@ -79,7 +101,7 @@ function drawInstrumentSection(doc, model, y, ctx) {
     autoTable(doc, {
       startY: y,
       margin: { left: ML, right: PAGE_W - MR },
-      head: [["", "C2", "C3", "d2", "d3", "e2", "e3", "Classe", "Ponto de Trabalho"]],
+      head: [["", "C2", "C3", "d2", "d3", "e2", "e3"]],
       body: [[
         "Faixas adicionais",
         s(model.balance.capacidade2),
@@ -88,286 +110,272 @@ function drawInstrumentSection(doc, model, y, ctx) {
         s(model.balance.resolucao3),
         s(model.balance.divisao2),
         s(model.balance.divisao3),
-        s(model.balance.classe),
-        s(model.balance.pontoTrabalho),
       ]],
-      styles: { fontSize: 6, cellPadding: 1, halign: "center" },
+      styles: { fontSize: 5.5, cellPadding: 1, halign: "center" },
       headStyles: tableHeadStyles(doc),
       theme: "grid",
     });
     y = doc.lastAutoTable.finalY + 2;
   }
 
-  y = drawFieldGrid(doc, ML, y, CW, 2, [
-    { label: "Local da Calibração", value: model.balance.local },
-    { label: "Etiqueta IPEM", value: model.balance.etiqueta },
-    { label: "Identificação", value: model.balance.identificacao || model.balance.tag },
-    { label: "Tipo de Plataforma", value: model.balance.plataforma },
-  ]);
-  y += 2;
-  y = underlineField(doc, ML, y, "Certificado número", model.certificateNumber, 55);
-  y = underlineField(doc, ML + 60, y - 5, "Data da Calibração", model.calibrationDate, 45);
-  y = underlineField(doc, ML + 110, y - 5, "Data de Validade", model.validityDate, 45);
-  return y + 2;
-}
-
-function drawTraceabilitySection(doc, model, y, ctx) {
   return y;
 }
 
 function drawEnvironmentalSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 38, ctx));
+  ({ y } = ensureSpace(doc, y, 32, ctx));
   y = drawSectionBar(doc, ML, y, CW, "CONDIÇÕES AMBIENTAIS - DURANTE A CALIBRAÇÃO");
 
-  autoTable(doc, {
-    startY: y,
-    margin: { left: ML, right: PAGE_W - MR },
-    head: [["", "Inicial", "Final", "Média ± incerteza"]],
-    body: [
-      ["Temperatura (ºC)", s(model.environmental.initialFinal.temperature.initial), s(model.environmental.initialFinal.temperature.final), s(model.environmental.temperature)],
-      ["Umidade Relativa (%)", s(model.environmental.initialFinal.humidity.initial), s(model.environmental.initialFinal.humidity.final), s(model.environmental.humidity)],
-      ["Pressão (hPa)", s(model.environmental.initialFinal.pressure.initial), s(model.environmental.initialFinal.pressure.final), s(model.environmental.pressure)],
-    ],
-    styles: { fontSize: 6.5, cellPadding: 1.2 },
-    headStyles: tableHeadStyles(doc),
-    theme: "grid",
-  });
-  y = doc.lastAutoTable.finalY + 3;
-  y = underlineField(doc, ML, y, "Massa específica do ar", model.environmental.airDensity, 70);
-  y = underlineField(doc, ML + 75, y - 5, "Referência", `${model.environmental.popReference || model.lab?.popCode || "POP-CAL-02"} Rev.`, CW - 78);
+  y = drawCompactMeasureRow(doc, ML, y, CW, [
+    { label: "Temperatura", value: model.environmental.temperature },
+    { label: "Umidade Relativa", value: model.environmental.humidity },
+    { label: "Pressão Atmosférica", value: model.environmental.pressure },
+    { label: "Massa específica do ar", value: model.environmental.airDensity },
+  ]);
 
   if (model.instrumentStandards?.length) {
-    y += 2;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
-    doc.text("Termo-Higrômetro / Barômetro", ML, y);
-    y += 3;
+    y += 1;
     autoTable(doc, {
       startY: y,
       margin: { left: ML, right: PAGE_W - MR },
-      head: [["Identificação", "Nº cert.", "Data Calibração", "Validade"]],
-      body: model.instrumentStandards.map((st) => [
-        s(st.code),
-        s(st.certificate),
-        s(st.calibrationDate),
-        s(st.validUntil),
-      ]),
-      styles: { fontSize: 6, cellPadding: 1 },
-      headStyles: tableHeadStyles(doc),
+      head: [[
+        "Termo-Higrômetro / Barômetro",
+        "Certificado número",
+        "Data de Calibração",
+        "Data de Validade",
+      ]],
+      body: [[
+        joinSlash(model.instrumentStandards.map((st) => st.code)),
+        joinSlash(model.instrumentStandards.map((st) => st.certificate)),
+        joinSlash(model.instrumentStandards.map((st) => st.calibrationDate)),
+        joinSlash(model.instrumentStandards.map((st) => st.validUntil)),
+      ]],
+      styles: { fontSize: 6, cellPadding: 1.2, halign: "center" },
+      headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
+      theme: "grid",
+    });
+    y = doc.lastAutoTable.finalY + 2;
+  }
+
+  if (model.weightStandards?.length) {
+    y = drawSectionBar(doc, ML, y, CW, "PADRÕES DE REFERÊNCIA");
+    const pairs = [];
+    for (let i = 0; i < model.weightStandards.length; i += 2) {
+      const w1 = model.weightStandards[i];
+      const w2 = model.weightStandards[i + 1];
+      pairs.push([
+        s(w1?.code),
+        s(w1?.calibrationDate),
+        s(w1?.validUntil),
+        s(w1?.traceability),
+        s(w2?.code),
+        s(w2?.calibrationDate),
+        s(w2?.validUntil),
+        s(w2?.traceability),
+      ]);
+    }
+    autoTable(doc, {
+      startY: y,
+      margin: { left: ML, right: PAGE_W - MR },
+      head: [[
+        "Identificação", "Data Calibração", "Validade", "Rastreabilidade",
+        "Identificação", "Data Calibração", "Validade", "Rastreabilidade",
+      ]],
+      body: pairs,
+      styles: { fontSize: 5.5, cellPadding: 1, halign: "center" },
+      headStyles: { ...tableHeadStyles(doc), fontSize: 5 },
       theme: "grid",
     });
     y = doc.lastAutoTable.finalY + 3;
   }
 
-  if (model.weightStandards?.length) {
-    y = drawSectionBar(doc, ML, y, CW, "PADRÕES DE REFERÊNCIA");
-    autoTable(doc, {
-      startY: y,
-      margin: { left: ML, right: PAGE_W - MR },
-      head: [["Identificação", "Nº cert.", "Data Calibração", "Validade", "Rastreabilidade"]],
-      body: model.weightStandards.map((st) => [
-        s(st.code),
-        s(st.certificate),
-        s(st.calibrationDate),
-        s(st.validUntil),
-        s(st.traceability),
-      ]),
-      styles: { fontSize: 6, cellPadding: 1 },
-      headStyles: tableHeadStyles(doc),
-      theme: "grid",
+  return y;
+}
+
+function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
+  const platformDiagrams = ctx.platformDiagrams;
+  const caption = "Local na plataforma\nonde foi aplicada a carga";
+
+  if (!platformDiagrams?.ok || !platformDiagrams.panels?.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.5);
+    doc.text(caption, x + width / 2, y + 2, { align: "center" });
+    const cx = x + width / 2;
+    const cy = y + 12;
+    doc.setDrawColor(...FORM_COLORS.border);
+    doc.rect(cx - 10, cy - 6, 20, 12, "S");
+    [[0, -4], [-6, 3], [6, 3], [-6, -2], [6, -2]].forEach(([dx, dy], i) => {
+      doc.circle(cx + dx, cy + dy, 2, "S");
+      doc.text(String(i + 1), cx + dx - 1, cy + dy + 1);
     });
-    y = doc.lastAutoTable.finalY + 4;
+    return y + 24;
   }
 
-  return y + 2;
+  const gap = 1;
+  const panels = platformDiagrams.panels;
+  const colW = (width - gap * (panels.length - 1)) / panels.length;
+  const imgH = 18;
+  const labelH = 4;
+  let maxY = y;
+
+  panels.forEach((panel, i) => {
+    const px = x + i * (colW + gap);
+    const active = panel.id === platformDiagrams.activePanelId;
+    const boxH = imgH + 1;
+
+    if (active) {
+      doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
+      doc.rect(px, y, colW, boxH + labelH, "F");
+    }
+    doc.setDrawColor(...(active ? FORM_COLORS.brand : FORM_COLORS.border));
+    doc.setLineWidth(active ? 0.3 : 0.1);
+    doc.rect(px, y, colW, boxH, "S");
+
+    if (panel.dataUrl) {
+      try {
+        const pad = 0.5;
+        const maxW = colW - pad * 2;
+        const aspect = panel.aspectRatio > 0 ? panel.aspectRatio : 1;
+        let drawW = maxW;
+        let drawH = drawW / aspect;
+        if (drawH > imgH) {
+          drawH = imgH;
+          drawW = drawH * aspect;
+        }
+        doc.addImage(
+          panel.dataUrl,
+          "PNG",
+          px + pad + (maxW - drawW) / 2,
+          y + pad,
+          drawW,
+          drawH,
+        );
+      } catch { /* opcional */ }
+    }
+
+    doc.setFont("helvetica", active ? "bold" : "normal");
+    doc.setFontSize(4.5);
+    doc.setTextColor(...FORM_COLORS.text);
+    doc.text(
+      panel.displayLabel || panel.label,
+      px + colW / 2,
+      y + boxH + 2.8,
+      { align: "center", maxWidth: colW - 1 },
+    );
+    maxY = Math.max(maxY, y + boxH + labelH + 2);
+  });
+
+  doc.setLineWidth(0.12);
+  doc.setFontSize(5);
+  doc.text(caption, x + width / 2, maxY, { align: "center" });
+  return maxY + 4;
+}
+
+function drawEccentricitySection(doc, model, y, ctx) {
+  if (!model.eccentricity?.applicable) return y;
+  ({ y } = ensureSpace(doc, y, 52, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE");
+
+  const tableW = 42;
+  const gap = 3;
+  const diagramX = ML + tableW + gap;
+  const diagramW = CW - tableW - gap;
+  const contentY = y + 1;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.text("Erros", ML, contentY);
+  doc.text("Tipos de Plataforma", diagramX, contentY);
+  const tableStartY = contentY + 3;
+
+  autoTable(doc, {
+    startY: tableStartY,
+    margin: { left: ML, right: PAGE_W - ML - tableW },
+    head: [["", "Antes do Ajuste", "Resultados"]],
+    body: model.eccentricity.points.map((pt) => [
+      String(pt.number),
+      s(pt.before),
+      s(pt.after),
+    ]),
+    styles: { fontSize: 6, cellPadding: 1, halign: "center" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
+    theme: "grid",
+  });
+  const tableEndY = doc.lastAutoTable.finalY;
+  const diagramEndY = drawPlatformDiagramAt(doc, model, tableStartY, diagramX, diagramW, ctx);
+
+  return Math.max(tableEndY, diagramEndY) + 3;
 }
 
 function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   if (!model.points?.length) return y;
   const cols = model.points.slice(0, 10);
+  const leftW = CW * 0.38;
+  const rightW = CW * 0.60;
+  const gap = CW * 0.02;
+  const rightX = ML + leftW + gap;
 
-  ({ y } = ensureSpace(doc, y, 28, ctx));
+  ({ y } = ensureSpace(doc, y, 40, ctx));
   y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE");
+  y = drawDualSubsectionTitles(
+    doc,
+    ML,
+    y,
+    "Resultados Obtidos Antes do Ajuste",
+    "Resultados Obtidos",
+    leftW,
+    rightW,
+    gap,
+  );
 
-  const beforeHead = [[
-    { content: "", rowSpan: 1 },
-    ...cols.map((p) => ({ content: `${p.label}º ponto`, styles: { halign: "center" } })),
-  ]];
-  const beforeRows = [
-    { label: "V.R.", key: (p) => p.referenceValue },
-    { label: "Leitura 01", key: (p) => p.beforeAdjustment.l1 },
-    { label: "Erro", key: (p) => p.beforeAdjustment.error },
-  ].map((row) => [row.label, ...cols.map((p) => s(row.key(p)))]);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.text("Resultados Obtidos Antes do Ajuste", ML, y);
-  y += 3;
+  const pointHead = cols.map((p) => ({ content: p.label, styles: { halign: "center", fontSize: 5 } }));
 
   autoTable(doc, {
     startY: y,
-    margin: { left: ML, right: PAGE_W - MR },
-    head: beforeHead,
-    body: beforeRows,
-    styles: { fontSize: 5.5, cellPadding: 0.8, halign: "center", valign: "middle" },
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
-    columnStyles: { 0: { halign: "left", cellWidth: 22 } },
+    margin: { left: ML, right: PAGE_W - ML - leftW },
+    head: [[{ content: "", styles: { cellWidth: 18 } }, ...pointHead]],
+    body: [
+      ["Valor de Referência", ...cols.map((p) => s(p.referenceValue))],
+      ["Leitura 01", ...cols.map((p) => s(p.beforeAdjustment.l1))],
+      ["Erro de Indicação", ...cols.map((p) => s(p.beforeAdjustment.error))],
+    ],
+    styles: { fontSize: 5, cellPadding: 0.6, halign: "center", valign: "middle" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: 5 },
+    columnStyles: { 0: { halign: "left", fontStyle: "bold", cellWidth: 22 } },
     theme: "grid",
   });
-  y = doc.lastAutoTable.finalY + 4;
-
-  ({ y } = ensureSpace(doc, y, 32, ctx));
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.text("Resultados Obtidos", ML, y);
-  y += 3;
-
-  const resultsHead = [[
-    { content: "", rowSpan: 1 },
-    ...cols.map((p) => ({ content: `${p.label}º ponto`, styles: { halign: "center" } })),
-  ]];
-  const resultsRows = [
-    { label: "Leitura 1ª", key: (p) => p.readings.r1 },
-    { label: "Leitura 2ª", key: (p) => p.readings.r2 },
-    { label: "Leitura 3ª", key: (p) => p.readings.r3 },
-    { label: "Média", key: (p) => p.results.average },
-    { label: "Erro", key: (p) => p.results.indicationError },
-    { label: "Incerteza Expandida", key: (p) => p.results.expandedUncertainty },
-    { label: "Veff", key: (p) => p.results.veff },
-    { label: "k", key: (p) => p.results.k },
-  ].map((row) => [row.label, ...cols.map((p) => s(row.key(p)))]);
+  const leftEndY = doc.lastAutoTable.finalY;
 
   autoTable(doc, {
     startY: y,
-    margin: { left: ML, right: PAGE_W - MR },
-    head: resultsHead,
-    body: resultsRows,
-    styles: { fontSize: 5.5, cellPadding: 0.8, halign: "center", valign: "middle" },
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
-    columnStyles: { 0: { halign: "left", cellWidth: 28 } },
+    margin: { left: rightX, right: ML },
+    head: [[{ content: "", styles: { cellWidth: 22 } }, ...pointHead]],
+    body: [
+      ["Valor de Referência", ...cols.map((p) => s(p.referenceValue))],
+      ["Média das Leituras", ...cols.map((p) => s(p.results.average))],
+      ["Erro de Indicação", ...cols.map((p) => s(p.results.indicationError))],
+      ["Incerteza Expandida", ...cols.map((p) => s(p.results.expandedUncertainty))],
+      ["Veff", ...cols.map((p) => s(p.results.veff))],
+      ["k", ...cols.map((p) => s(p.results.k))],
+    ],
+    styles: { fontSize: 5, cellPadding: 0.6, halign: "center", valign: "middle" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: 5 },
+    columnStyles: { 0: { halign: "left", fontStyle: "bold", cellWidth: 26 } },
     theme: "grid",
   });
-  y = doc.lastAutoTable.finalY + 2;
+  y = Math.max(leftEndY, doc.lastAutoTable.finalY) + 2;
 
   if (model.adjustmentNote) {
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     doc.text(model.adjustmentNote, ML, y);
-    y += 5;
+    y += 4;
   }
   return y;
 }
 
-function drawVectorEccentricityFallback(doc, x, y, w) {
-  doc.setFontSize(6);
-  doc.text("Local na plataforma\nonde foi aplicada a carga", x, y);
-  const cx = x + w / 2;
-  const cy = y + 14;
-  doc.setDrawColor(...FORM_COLORS.border);
-  doc.rect(cx - 12, cy - 8, 24, 16, "S");
-  [[0, -6], [-8, 4], [8, 4], [-8, -4], [8, -4]].forEach(([dx, dy], i) => {
-    doc.circle(cx + dx, cy + dy, 2.5, "S");
-    doc.text(String(i + 1), cx + dx - 1, cy + dy + 1);
-  });
-  return y + 24;
-}
-
-function drawPlatformDiagramStrip(doc, model, y, ctx) {
-  const platformDiagrams = ctx.platformDiagrams;
-  if (!platformDiagrams?.ok || !platformDiagrams.panels?.length) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...FORM_COLORS.text);
-    doc.text("Tipos de Plataforma", ML, y);
-    y += 4;
-    return drawVectorEccentricityFallback(doc, ML, y, CW);
-  }
-
-  const gap = 2;
-  const colCount = platformDiagrams.panels.length;
-  const colW = (CW - gap * (colCount - 1)) / colCount;
-  const imgH = 22;
-  const labelH = 5;
-  const stripH = imgH + labelH + 4;
-
-  ({ y } = ensureSpace(doc, y, stripH + 4, ctx));
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(...FORM_COLORS.text);
-  doc.text("Tipos de Plataforma", ML, y);
-  y += 4;
-
-  platformDiagrams.panels.forEach((panel, i) => {
-    const x = ML + i * (colW + gap);
-    const active = panel.id === platformDiagrams.activePanelId;
-    const boxH = imgH + 2;
-
-    if (active) {
-      doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
-      doc.rect(x, y, colW, boxH + labelH, "F");
-    }
-
-    doc.setDrawColor(...(active ? FORM_COLORS.brand : FORM_COLORS.border));
-    doc.setLineWidth(active ? 0.35 : 0.12);
-    doc.rect(x, y, colW, boxH, "S");
-
-    if (panel.dataUrl) {
-      try {
-        const pad = 1;
-        const maxW = colW - pad * 2;
-        const maxH = imgH;
-        const aspect = panel.aspectRatio > 0 ? panel.aspectRatio : 1;
-        let drawW = maxW;
-        let drawH = drawW / aspect;
-        if (drawH > maxH) {
-          drawH = maxH;
-          drawW = drawH * aspect;
-        }
-        const drawX = x + pad + (maxW - drawW) / 2;
-        const drawY = y + pad + (maxH - drawH) / 2;
-        doc.addImage(panel.dataUrl, "PNG", drawX, drawY, drawW, drawH);
-      } catch { /* fallback silencioso */ }
-    }
-
-    doc.setFont("helvetica", active ? "bold" : "normal");
-    doc.setFontSize(5.5);
-    doc.setTextColor(...FORM_COLORS.text);
-    const label = panel.displayLabel || panel.label;
-    doc.text(label, x + colW / 2, y + boxH + 3.5, { align: "center", maxWidth: colW - 2 });
-  });
-
-  doc.setLineWidth(0.12);
-  return y + stripH;
-}
-
-function drawEccentricitySection(doc, model, y, ctx) {
-  if (!model.eccentricity?.applicable) return y;
-  ({ y } = ensureSpace(doc, y, 55, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE");
-
-  doc.setFontSize(7.5);
-  y = underlineField(doc, ML, y + 2, "Valor Aplicado", model.eccentricity.appliedValue, 50);
-  y += 2;
-
-  y = drawPlatformDiagramStrip(doc, model, y, ctx);
-  y += 2;
-
-  autoTable(doc, {
-    startY: y,
-    margin: { left: ML, right: PAGE_W - MR },
-    head: [["Ponto", "Antes do ajuste", "Depois do ajuste"]],
-    body: model.eccentricity.points.map((pt) => [String(pt.number), s(pt.before), s(pt.after)]),
-    styles: { fontSize: 6.5, cellPadding: 1.2 },
-    headStyles: tableHeadStyles(doc),
-    theme: "grid",
-  });
-  return doc.lastAutoTable.finalY + 4;
-}
-
 function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
   if (!model.substitutionRepeatability?.applicable || !model.substitutionRepeatability.rows?.length) return y;
-  ({ y } = ensureSpace(doc, y, 25, ctx));
+  ({ y } = ensureSpace(doc, y, 22, ctx));
   y = drawSectionBar(doc, ML, y, CW, "REPETIBILIDADE COM LOTE DE CARGA");
   autoTable(doc, {
     startY: y,
@@ -376,21 +384,23 @@ function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
     body: model.substitutionRepeatability.rows.map((r) => [
       s(r.label), s(r.nominal), s(r.reading1), s(r.reading2), s(r.reading3),
     ]),
-    styles: { fontSize: 6.5, cellPadding: 1.2 },
+    styles: { fontSize: 6, cellPadding: 1.2 },
     headStyles: tableHeadStyles(doc),
     theme: "grid",
   });
   y = doc.lastAutoTable.finalY + 2;
   if (model.substitutionRepeatability.observations) {
-    y = underlineField(doc, ML, y, "Observações", model.substitutionRepeatability.observations, CW);
+    doc.setFontSize(6.5);
+    doc.text(`Observações: ${model.substitutionRepeatability.observations}`, ML, y, { maxWidth: CW });
+    y += 5;
   }
-  return y + 2;
+  return y + 1;
 }
 
 function drawObservationsSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 44, ctx));
+  ({ y } = ensureSpace(doc, y, 40, ctx));
   y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES");
-  y = drawNumberedObservations(doc, ML + 1, y + 1, model.observations, CW - 2) + 3;
+  y = drawNumberedObservations(doc, ML + 1, y + 1, model.observations, CW - 2) + 2;
   if (model.conformityDeclaration) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
@@ -401,7 +411,7 @@ function drawObservationsSection(doc, model, y, ctx) {
 }
 
 function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
-  ({ y } = ensureSpace(doc, y, 38, ctx));
+  ({ y } = ensureSpace(doc, y, 36, ctx));
 
   const colW = (CW - 8) / 2;
   const leftX = ML;
@@ -427,18 +437,17 @@ function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
   y += sigH + 2;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
+  doc.setFontSize(7);
   doc.text(s(model.executorName), leftX + colW / 2, y, { align: "center" });
   doc.text(s(model.signatoryName), rightX + colW / 2, y, { align: "center" });
   y += 5;
 
-  y = underlineField(doc, leftX, y, "Data da calibração", model.calibrationDate, colW - 2);
-  y = underlineField(doc, rightX, y - 5, "Data da emissão do Certificado", model.issueDate || model.approvalDate, colW - 2);
-
+  doc.setFontSize(6.5);
+  doc.text(`Data da calibração: ${s(model.calibrationDate)}`, leftX, y);
+  doc.text(`Data da emissão do Certificado: ${s(model.issueDate || model.approvalDate)}`, rightX, y);
   y += 4;
-  doc.setFontSize(7);
-  doc.text(`Números de Pontos Calibrados: ${model.calibratedPointsCount}`, ML, y);
-  doc.text(`Número de Leituras: ${model.readingsPerPoint}`, ML + 80, y);
+  doc.text(`Número de Leituras: ${model.readingsPerPoint}`, leftX, y);
+  doc.text(`Números de Pontos Calibrados: ${model.calibratedPointsCount}`, rightX, y);
   return y + 4;
 }
 
@@ -448,13 +457,12 @@ export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls, pla
 
   y = drawClientSection(doc, model, y, ctx);
   y = drawInstrumentSection(doc, model, y, ctx);
-  y = drawTraceabilitySection(doc, model, y, ctx);
   y = drawEnvironmentalSection(doc, model, y, ctx);
   y = drawEccentricitySection(doc, model, y, ctx);
   y = drawRepeatabilityCalibrationSection(doc, model, y, ctx);
   y = drawSubstitutionRepeatabilitySection(doc, model, y, ctx);
-  y = drawObservationsSection(doc, model, y, ctx);
-  drawApprovalBlock(doc, model, y, ctx, signatureUrls);
+  y = drawApprovalBlock(doc, model, y, ctx, signatureUrls);
+  drawObservationsSection(doc, model, y, ctx);
 
   drawCertificateDocumentFooters(doc, model);
 

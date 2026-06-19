@@ -67,6 +67,15 @@ export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6) {
   doc.setFontSize(11);
   doc.text(`Nº ${model.certificateNumber || "—"}`, centerX, headerTop + 15, { align: "center" });
 
+  if (model.certificateType === "rbc") {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.5);
+    const accText = model.lab?.cgcreCalNumber
+      ? `Laboratório de Calibração acreditado pela Cgcre de acordo com a NORMA ABNT NBR ISO/IEC 17025:2017, sob o número CAL ${model.lab.cgcreCalNumber}`
+      : "Laboratório de Calibração acreditado pela Cgcre de acordo com a NORMA ABNT NBR ISO/IEC 17025:2017";
+    doc.text(accText, centerX, headerTop + 20, { align: "center", maxWidth: 120 });
+  }
+
   const accX = PAGE_W - ML;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
@@ -92,7 +101,46 @@ export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6) {
     }
   }
 
-  return Math.max(labBottom, headerTop + 22) + 2;
+  return Math.max(labBottom, headerTop + (model.certificateType === "rbc" ? 26 : 22)) + 2;
+}
+
+/** Linha de medidas ambientais compactas (4 células lado a lado). */
+export function drawCompactMeasureRow(doc, x, y, totalW, cells) {
+  const gap = 1;
+  const count = Math.max(cells.length, 1);
+  const cellW = (totalW - gap * (count - 1)) / count;
+  const headerH = 4.2;
+  const bodyH = 5.5;
+
+  cells.forEach((cell, i) => {
+    const cx = x + i * (cellW + gap);
+    doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
+    doc.rect(cx, y, cellW, headerH, "F");
+    doc.setDrawColor(...FORM_COLORS.border);
+    doc.setLineWidth(0.1);
+    doc.rect(cx, y, cellW, headerH + bodyH, "S");
+    doc.line(cx, y + headerH, cx + cellW, y + headerH);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(5.5);
+    doc.setTextColor(...FORM_COLORS.text);
+    doc.text(cell.label, cx + 0.4, y + 2.9, { maxWidth: cellW - 0.8 });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.text(cell.value || "—", cx + 0.4, y + headerH + 3.5, { maxWidth: cellW - 0.8 });
+  });
+
+  doc.setLineWidth(0.12);
+  return y + headerH + bodyH + 2;
+}
+
+/** Duas faixas de título sobre tabelas lado a lado. */
+export function drawDualSubsectionTitles(doc, x, y, leftText, rightText, leftW, rightW, gap = 2) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text(leftText, x, y);
+  doc.text(rightText, x + leftW + gap, y);
+  return y + 3;
 }
 
 /** Rodapé documental em todas as páginas (Código, Ref, Emissão, Página). */
