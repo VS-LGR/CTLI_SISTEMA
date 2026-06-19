@@ -50,6 +50,7 @@ function resolveClient(cert) {
     address,
     city: snap.city || parseCityFromAddress(address),
     state: snap.state || "",
+    unit: snap.unit || "",
     representative: snap.representative_name || "",
     website: snap.website || "",
   };

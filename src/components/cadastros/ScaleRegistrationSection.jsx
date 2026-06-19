@@ -10,13 +10,20 @@ import { toast } from "sonner";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
 import { PLATFORM_TYPE_OPTIONS } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { TIPO_BALANCA_OPTIONS } from "@/lib/coletaSchema";
 
 const emptyForm = () => ({
+  end_customer_id: "",
   serial_number: "",
   identification_code: "",
+  tag: "",
   manufacturer: "",
   model: "",
   description: "",
+  tipo_balanca: "",
+  local_instalacao: "",
+  etiqueta_ipem: "",
+  portaria_inmetro: "",
   capacity_1: "",
   capacity_2: "",
   capacity_3: "",
@@ -42,11 +49,13 @@ const emptyForm = () => ({
   decimal_places_p10: 2,
 });
 
-export default function ScaleRegistrationSection({ rows = [], tenantId, onRefresh }) {
+export default function ScaleRegistrationSection({ rows = [], endCustomers = [], tenantId, onRefresh }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(emptyForm);
+
+  const customerName = (id) => endCustomers.find((c) => c.id === id)?.name || "—";
 
   const filtered = useMemo(
     () => filterCadastroByQuery(rows, query, (r) => [
@@ -54,9 +63,9 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
       r.identification_code,
       r.manufacturer,
       r.model,
-      r.description,
+      endCustomers.find((c) => c.id === r.end_customer_id)?.name || "—",
     ]),
-    [rows, query],
+    [rows, query, endCustomers],
   );
 
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -71,6 +80,7 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
     setForm({
       ...emptyForm(),
       ...Object.fromEntries(Object.keys(emptyForm()).map((k) => [k, r[k] ?? emptyForm()[k]])),
+      end_customer_id: r.end_customer_id || "",
     });
     setOpen(true);
   };
@@ -81,8 +91,14 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
     const payload = {
       tenant_id: tenantId,
       ...form,
+      end_customer_id: form.end_customer_id || null,
       serial_number: form.serial_number.trim(),
       identification_code: form.identification_code.trim(),
+      tag: form.tag.trim(),
+      local_instalacao: form.local_instalacao.trim(),
+      etiqueta_ipem: form.etiqueta_ipem.trim(),
+      portaria_inmetro: form.portaria_inmetro.trim(),
+      tipo_balanca: form.tipo_balanca.trim(),
       decimal_places_p1: Number(form.decimal_places_p1) || 0,
       decimal_places_p2: Number(form.decimal_places_p2) || 0,
       decimal_places_p3: Number(form.decimal_places_p3) || 0,
@@ -124,7 +140,7 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-between gap-2">
-          <p className="text-sm text-slate-600">Cadastro de balanças para emissão de certificados (aba BALANÇAS da planilha matriz).</p>
+          <p className="text-sm text-slate-600">Cadastro de balanças por cliente do ambiente (aba BALANÇAS da planilha matriz).</p>
           <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}>
             <Plus size={16} className="mr-1" /> Nova balança
           </Button>
@@ -132,7 +148,7 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
         <CadastroListFilterBar
           query={query}
           onQueryChange={setQuery}
-          placeholder="Buscar por série, código, fabricante…"
+          placeholder="Buscar por série, código, fabricante, cliente…"
           filteredCount={filtered.length}
           totalCount={rows.length}
           onClear={() => setQuery("")}
@@ -142,8 +158,9 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-600">
               <tr>
+                <th className="p-2">Cliente</th>
                 <th className="p-2">Série</th>
-                <th className="p-2">Código</th>
+                <th className="p-2">Identificação</th>
                 <th className="p-2">Fabricante</th>
                 <th className="p-2">Modelo</th>
                 <th className="p-2">Classe</th>
@@ -152,12 +169,13 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-center text-slate-500">Nenhuma balança cadastrada.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-slate-500">Nenhuma balança cadastrada.</td></tr>
               )}
               {filtered.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
+                  <td className="p-2">{customerName(r.end_customer_id)}</td>
                   <td className="p-2 font-mono">{r.serial_number}</td>
-                  <td className="p-2">{r.identification_code}</td>
+                  <td className="p-2">{r.identification_code || r.tag || "—"}</td>
                   <td className="p-2">{r.manufacturer}</td>
                   <td className="p-2">{r.model}</td>
                   <td className="p-2">{r.instrument_class || "—"}</td>
@@ -174,11 +192,35 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Editar balança" : "Nova balança"}</DialogTitle></DialogHeader>
             <div className="grid sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <Label>Cliente do ambiente</Label>
+                <select
+                  value={form.end_customer_id}
+                  onChange={(e) => setF("end_customer_id", e.target.value)}
+                  className="w-full border rounded-md h-9 px-2 text-sm mt-1"
+                >
+                  <option value="">— Selecionar cliente —</option>
+                  {endCustomers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
               <div><Label>Nº de série *</Label><Input value={form.serial_number} onChange={(e) => setF("serial_number", e.target.value)} /></div>
-              <div><Label>Identificação / código</Label><Input value={form.identification_code} onChange={(e) => setF("identification_code", e.target.value)} /></div>
+              <div><Label>Identificação / TAG</Label><Input value={form.identification_code} onChange={(e) => setF("identification_code", e.target.value)} /></div>
+              <div><Label>TAG</Label><Input value={form.tag} onChange={(e) => setF("tag", e.target.value)} /></div>
+              <div>
+                <Label>Tipo de balança</Label>
+                <select value={form.tipo_balanca} onChange={(e) => setF("tipo_balanca", e.target.value)} className="w-full border rounded-md h-9 px-2 text-sm">
+                  <option value="">—</option>
+                  {TIPO_BALANCA_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
               <div><Label>Fabricante</Label><Input value={form.manufacturer} onChange={(e) => setF("manufacturer", e.target.value)} /></div>
               <div><Label>Modelo</Label><Input value={form.model} onChange={(e) => setF("model", e.target.value)} /></div>
               <div className="sm:col-span-2"><Label>Descrição</Label><Input value={form.description} onChange={(e) => setF("description", e.target.value)} /></div>
+              <div><Label>Local de instalação</Label><Input value={form.local_instalacao} onChange={(e) => setF("local_instalacao", e.target.value)} /></div>
+              <div><Label>Etiqueta IPEM</Label><Input value={form.etiqueta_ipem} onChange={(e) => setF("etiqueta_ipem", e.target.value)} /></div>
+              <div className="sm:col-span-2"><Label>Portaria INMETRO</Label><Input value={form.portaria_inmetro} onChange={(e) => setF("portaria_inmetro", e.target.value)} /></div>
               <div><Label>C1 (carga máx.)</Label><Input value={form.capacity_1} onChange={(e) => setF("capacity_1", e.target.value)} /></div>
               <div><Label>d1 (resolução)</Label><Input value={form.resolution_1} onChange={(e) => setF("resolution_1", e.target.value)} /></div>
               <div><Label>e1 (div. verificação)</Label><Input value={form.verification_division_1} onChange={(e) => setF("verification_division_1", e.target.value)} /></div>
@@ -204,7 +246,7 @@ export default function ScaleRegistrationSection({ rows = [], tenantId, onRefres
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <Label className="text-xs text-slate-600">Casas decimais por ponto (P1–P7 usados no certificado)</Label>
+                <Label className="text-xs text-slate-600">Casas decimais por ponto (P1–P10)</Label>
                 <div className="grid grid-cols-5 gap-2 mt-1">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <div key={n}>

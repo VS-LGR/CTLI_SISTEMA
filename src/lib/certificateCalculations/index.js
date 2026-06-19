@@ -10,6 +10,10 @@ export {
   calculateCalibrationPoint,
   sumNominalFromWeightIds,
   maxStandardUncertaintyPpm,
+  standardUncertaintyAbsFromWeightIds,
+  resolveResolutionForNominal,
+  coverageFactorFromNu,
+  welchSatterthwaiteNuEff,
 } from "./pointCalculations";
 export {
   determineInstrumentClass,
@@ -18,13 +22,18 @@ export {
   calculateConformityForCertificate,
 } from "./conformityCalculations";
 
-import { sumNominalFromWeightIds, maxStandardUncertaintyPpm, calculateCalibrationPoint } from "./pointCalculations";
-import { sumConventionalFromWeightIds, combinedExpandedUncertaintyFromWeightIds } from "./environmentalCalculations";
+import {
+  sumNominalFromWeightIds,
+  maxStandardUncertaintyPpm,
+  calculateCalibrationPoint,
+  standardUncertaintyAbsFromWeightIds,
+  resolveResolutionForNominal,
+} from "./pointCalculations";
+import { sumConventionalFromWeightIds } from "./environmentalCalculations";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 
 export function calculateCertificatePoints(points, balance, weightItems = [], weightCerts = []) {
   const unit = balance?.unidade || "g";
-  const resolution = balance?.resolucao || "";
 
   return (points || []).map((pt) => {
     const hasData = pt.nominal_value || pt.reading1 || pt.reading2 || pt.reading3;
@@ -41,7 +50,8 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       if (sum.valid) nominal = sum.value;
     }
 
-    const ueAbs = combinedExpandedUncertaintyFromWeightIds(pt.standard_weight_ids, weightItems, unit);
+    const resolution = resolveResolutionForNominal(nominal ?? pt.nominal_value, balance, unit);
+    const ueAbs = standardUncertaintyAbsFromWeightIds(pt.standard_weight_ids, weightItems, unit);
     const ppm = maxStandardUncertaintyPpm(pt.standard_weight_ids, weightItems, weightCerts);
     const calc = calculateCalibrationPoint(
       { ...pt, nominal_value: nominal },

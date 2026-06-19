@@ -203,6 +203,7 @@ export function emptyColetaPayload() {
       conferido_por: "",
       numero_certificado: "",
       nome_executor: "",
+      executor_id: "",
       data_calibracao: "",
       pontos_solicitados: "",
     },

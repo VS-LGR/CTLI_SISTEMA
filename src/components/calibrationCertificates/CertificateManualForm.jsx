@@ -8,7 +8,7 @@ import { emptyColetaPayload, nominalFromWeightIds } from "@/lib/coletaSchema";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
 
-const POINT_COUNT = 7;
+const POINT_COUNT = 10;
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);

@@ -2,12 +2,16 @@
 export function balanceSnapshotFromScaleRegistration(scale) {
   if (!scale) return {};
   return {
-    tag: scale.identification_code || "",
+    tag: scale.tag || scale.identification_code || "",
     codigo: scale.identification_code || "",
     fabricante: scale.manufacturer || "",
     modelo: scale.model || "",
     descricao: scale.description || "",
     serie: scale.serial_number || "",
+    local: scale.local_instalacao || "",
+    etiqueta_ipem: scale.etiqueta_ipem || "",
+    portaria_inmetro: scale.portaria_inmetro || "",
+    tipo_balanca: scale.tipo_balanca || "",
     capacidade: scale.capacity_1 || "",
     capacidade_2: scale.capacity_2 || "",
     capacidade_3: scale.capacity_3 || "",

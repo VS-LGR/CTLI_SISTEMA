@@ -18,6 +18,9 @@ export function buildEndCustomerSnapshot(customer) {
     cnpj: customer.cnpj || "",
     address: customer.full_address || customer.address || "",
     full_address: customer.full_address || customer.address || "",
+    city: customer.city || "",
+    state: customer.state || "",
+    unit: customer.unit || "",
     representative_name: customer.representative_name || "",
     email: customer.email || "",
   };

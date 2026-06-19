@@ -3,12 +3,12 @@ import { determineInstrumentClass } from "@/lib/certificateCalculations";
 import { canColetaGenerateOfficial } from "./certificateSchema";
 import { defaultValidityDate } from "./certificateDateUtils";
 import { mapColetaPointForDb } from "./certificateImportSanitize";
-
-function matchEmployeeByName(name, employees = []) {
-  const n = (name || "").trim().toLowerCase();
-  if (!n) return null;
-  return employees.find((e) => (e.full_name || "").trim().toLowerCase() === n) || null;
-}
+import {
+  resolveScaleRegistration,
+  mergeBalanceSnapshotFromScale,
+  resolveExecutor,
+  validateWeightIdsForCalibration,
+} from "./certificateResolvers";
 
 export function buildWeightStandardRow(item, cert) {
   return {
@@ -90,6 +90,7 @@ export function buildCertificateFromPayload({
   weightCerts = [],
   envCerts = [],
   employees = [],
+  scaleRegistrations = [],
   certificateType = "rastreavel",
   certificateYear,
   certificateNumber,
@@ -109,13 +110,23 @@ export function buildCertificateFromPayload({
 
   const calDate = calibrationDate || payload.controle?.data_calibracao || null;
   const year = certificateYear || (calDate ? new Date(calDate).getFullYear() : new Date().getFullYear());
-  const executorMatch = matchEmployeeByName(payload.controle?.nome_executor, employees);
-  const balance = payload.balanca || {};
+  const executor = resolveExecutor(payload, employees);
+  const serial = scaleSerial || payload.balanca?.serie || "";
+  const scaleReg = resolveScaleRegistration(serial, endCustomerId, scaleRegistrations);
+  const balance = mergeBalanceSnapshotFromScale(payload.balanca || {}, scaleReg);
   const importWarnings = [];
 
   const points = (payload.calibracao?.pontos || []).slice(0, 10).map((pt, i) =>
     mapColetaPointForDb(pt, i + 1, importWarnings),
   );
+
+  points.forEach((pt) => validateWeightIdsForCalibration(
+    pt.standard_weight_ids,
+    weightItems,
+    weightCerts,
+    calDate,
+    importWarnings,
+  ));
 
   const envIds = [payload.ambiente?.thermo_cert_id, payload.ambiente?.thermo_cert_id_2].filter(Boolean);
   const standards = buildStandardsFromPoints(points, weightItems, weightCerts, envCerts, envIds);
@@ -145,21 +156,21 @@ export function buildCertificateFromPayload({
   return {
     certificate: {
       collection_id: collectionId,
-      scale_registration_id: scaleRegistrationId || null,
+      scale_registration_id: scaleRegistrationId || scaleReg?.id || null,
       certificate_type: certificateType,
       certificate_year: year,
       certificate_number: certificateNumber ?? null,
       certificate_revision: "00",
       status: "rascunho",
       end_customer_id: endCustomerId || null,
-      executor_id: executorMatch?.id || null,
-      executor_name: payload.controle?.nome_executor || "",
+      executor_id: executor.executor_id,
+      executor_name: executor.executor_name,
       client_name: clientName || payload.cliente?.cliente || endCustomer?.name || "",
-      scale_serial: scaleSerial || balance.serie || "",
+      scale_serial: serial,
       commercial_proposal_ref: commercialProposalRef || "",
       calibration_date: calDate,
       validity_date: defaultValidityDate(calDate),
-      calibration_location: balance.local || endCustomer?.full_address || endCustomer?.address || "",
+      calibration_location: balance.local || endCustomer?.full_address || "",
       is_preview_only: isPreviewOnly,
       balance_snapshot: balance,
       collection_snapshot: collectionSnapshot,
@@ -183,6 +194,7 @@ export function buildImportFromColeta({
   weightCerts = [],
   envCerts = [],
   employees = [],
+  scaleRegistrations = [],
   certificateType = "rastreavel",
   certificateYear,
   certificateNumber,
@@ -198,6 +210,7 @@ export function buildImportFromColeta({
     weightCerts,
     envCerts,
     employees,
+    scaleRegistrations,
     certificateType,
     certificateYear,
     certificateNumber,

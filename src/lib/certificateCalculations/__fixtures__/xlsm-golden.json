@@ -1,0 +1,123 @@
+{
+  "cases": [
+    {
+      "id": "ppm-fallback-single-range",
+      "description": "Ponto único com fallback ppm, resolução faixa 1",
+      "balance": {
+        "unidade": "g",
+        "capacidade": "2000",
+        "resolucao": "0.01",
+        "decimal_places": { "p1": 4 }
+      },
+      "weightItems": [],
+      "weightCerts": [],
+      "points": [
+        {
+          "point_number": 1,
+          "nominal_value": "1000",
+          "reading_before_adjustment": "1000.05",
+          "reading1": "1000.01",
+          "reading2": "1000.02",
+          "reading3": "1000.03"
+        }
+      ],
+      "expected": {
+        "nominal_value": 1000,
+        "indication_error": 0.02,
+        "error_before_adjustment": 0.05,
+        "expanded_uncertainty": 0.03317,
+        "coverage_factor": 2
+      },
+      "tolerance": 0.001
+    },
+    {
+      "id": "multi-range-resolution",
+      "description": "Resolução por faixa — P1 usa d1, P2 usa d2",
+      "balance": {
+        "unidade": "g",
+        "capacidade": "500",
+        "capacidade_2": "2000",
+        "resolucao": "0.1",
+        "resolucao_2": "0.01",
+        "decimal_places": { "p1": 4, "p2": 4 }
+      },
+      "weightItems": [],
+      "weightCerts": [],
+      "points": [
+        {
+          "point_number": 1,
+          "nominal_value": "300",
+          "reading_before_adjustment": "300.10",
+          "reading1": "300.01",
+          "reading2": "300.02",
+          "reading3": "300.00"
+        },
+        {
+          "point_number": 2,
+          "nominal_value": "1500",
+          "reading1": "1500.01",
+          "reading2": "1500.02",
+          "reading3": "1500.03"
+        }
+      ],
+      "expected": [
+        {
+          "nominal_value": 300,
+          "indication_error": 0.01,
+          "expanded_uncertainty": 0.12961
+        },
+        {
+          "nominal_value": 1500,
+          "indication_error": 0.02,
+          "expanded_uncertainty": 0.02
+        }
+      ],
+      "tolerance": 0.001
+    },
+    {
+      "id": "weights-vvc-ue",
+      "description": "V.R. por VVC e u_pad por RSS(Ue/k)",
+      "balance": {
+        "unidade": "g",
+        "capacidade": "2000",
+        "resolucao": "0.01",
+        "decimal_places": { "p1": 4 }
+      },
+      "weightItems": [
+        {
+          "id": "w1",
+          "nominal_value": "500",
+          "conventional_value": "500.0002",
+          "expanded_uncertainty": "0.0004",
+          "unit": "g"
+        },
+        {
+          "id": "w2",
+          "nominal_value": "500",
+          "conventional_value": "500.0001",
+          "expanded_uncertainty": "0.0004",
+          "unit": "g"
+        }
+      ],
+      "weightCerts": [],
+      "points": [
+        {
+          "point_number": 1,
+          "standard_weight_ids": ["w1", "w2"],
+          "reading_before_adjustment": "1000.08",
+          "reading1": "1000.01",
+          "reading2": "1000.00",
+          "reading3": "1000.02"
+        }
+      ],
+      "expected": {
+        "nominal_value": 1000.0003,
+        "indication_error": 0.0097,
+        "error_before_adjustment": 0.0797,
+        "expanded_uncertainty": 0.04883,
+        "coverage_factor": 2
+      },
+      "tolerance": 0.001
+    }
+  ]
+}

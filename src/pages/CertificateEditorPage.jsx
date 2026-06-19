@@ -550,26 +550,75 @@ export default function CertificateEditorPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="pontos" className="mt-4">
+        <TabsContent value="pontos" className="mt-4 space-y-4">
           <Card>
             <CardContent className="p-0 overflow-x-auto">
+              <p className="px-4 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Antes do ajuste
+              </p>
+              <table className="w-full text-sm min-w-[480px]">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="p-2 text-left">Ponto</th>
+                    <th className="p-2 text-left">Nominal (V.R.)</th>
+                    <th className="p-2 text-left">Leitura antes</th>
+                    <th className="p-2 text-left">Erro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(cert.points || []).map((p) => {
+                    const hasData = p.nominal_value || p.reading_before_adjustment || p.reading1;
+                    if (!hasData && !(isStandalone && editable)) return null;
+                    return (
+                      <tr key={`before-${p.id}`} className="border-t align-top">
+                        <td className="p-2">P{p.point_number}</td>
+                        <td className="p-2">
+                          {isStandalone && editable ? (
+                            <Input
+                              className="h-8 w-24"
+                              value={p.nominal_value ?? ""}
+                              onChange={(e) => patchPoint(p.id, { nominal_value: e.target.value })}
+                            />
+                          ) : formatCalcDisplay(p.nominal_value, p.display_decimals ?? 4)}
+                        </td>
+                        <td className="p-2">
+                          {isStandalone && editable ? (
+                            <Input
+                              className="h-8 w-20"
+                              value={p.reading_before_adjustment ?? ""}
+                              onChange={(e) => patchPoint(p.id, { reading_before_adjustment: e.target.value })}
+                            />
+                          ) : formatCalcDisplay(p.reading_before_adjustment, p.display_decimals ?? 4)}
+                        </td>
+                        <td className="p-2">{formatCalcDisplay(p.error_before_adjustment, p.display_decimals ?? 4)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <p className="px-4 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Após ajuste
+              </p>
               <table className="w-full text-sm min-w-[720px]">
                 <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                   <tr>
                     <th className="p-2">Ponto</th>
-                    <th className="p-2">Nominal</th>
                     {isStandalone && editable && (
                       <>
-                        <th className="p-2">Antes</th>
                         <th className="p-2">L1</th>
                         <th className="p-2">L2</th>
                         <th className="p-2">L3</th>
                       </>
                     )}
                     <th className="p-2">Média</th>
-                    <th className="p-2">Erro</th>
+                    <th className="p-2">E</th>
+                    <th className="p-2">U</th>
                     <th className="p-2">Repet.</th>
-                    <th className="p-2">U expandida</th>
                     <th className="p-2">k</th>
                     <th className="p-2">Status</th>
                     <th className="p-2">Memória</th>
@@ -580,22 +629,10 @@ export default function CertificateEditorPage() {
                     const hasData = p.nominal_value || p.reading1;
                     if (!hasData && !(isStandalone && editable)) return null;
                     return (
-                      <tr key={p.id} className="border-t align-top">
+                      <tr key={`after-${p.id}`} className="border-t align-top">
                         <td className="p-2">P{p.point_number}</td>
-                        <td className="p-2">
-                          {isStandalone && editable ? (
-                            <Input
-                              className="h-8 w-24"
-                              value={p.nominal_value ?? ""}
-                              onChange={(e) => patchPoint(p.id, { nominal_value: e.target.value })}
-                            />
-                          ) : formatCalcDisplay(p.nominal_value, 4)}
-                        </td>
                         {isStandalone && editable && (
                           <>
-                            <td className="p-2">
-                              <Input className="h-8 w-20" value={p.reading_before_adjustment ?? ""} onChange={(e) => patchPoint(p.id, { reading_before_adjustment: e.target.value })} />
-                            </td>
                             <td className="p-2">
                               <Input className="h-8 w-20" value={p.reading1 ?? ""} onChange={(e) => patchPoint(p.id, { reading1: e.target.value })} />
                             </td>
@@ -607,10 +644,10 @@ export default function CertificateEditorPage() {
                             </td>
                           </>
                         )}
-                        <td className="p-2">{formatCalcDisplay(p.average_reading, 4)}</td>
-                        <td className="p-2">{formatCalcDisplay(p.indication_error, 4)}</td>
+                        <td className="p-2">{formatCalcDisplay(p.average_reading, p.display_decimals ?? 4)}</td>
+                        <td className="p-2">{formatCalcDisplay(p.indication_error, p.display_decimals ?? 4)}</td>
+                        <td className="p-2">{formatCalcDisplay(p.expanded_uncertainty, p.display_decimals ?? 4)}</td>
                         <td className="p-2">{formatCalcDisplay(p.repeatability, 6)}</td>
-                        <td className="p-2">{formatCalcDisplay(p.expanded_uncertainty, 4)}</td>
                         <td className="p-2">{formatCalcDisplay(p.coverage_factor, 2)}</td>
                         <td className="p-2">
                           <Badge variant="outline" className="text-[10px]">{p.calc_status}</Badge>

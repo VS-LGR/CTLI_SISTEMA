@@ -37,13 +37,13 @@ export const perPointFormulas = [
   {
     id: "ures",
     result: "Contribuição da resolução (u_res)",
-    formula: "u_res = d / √3, onde d = resolução da balança",
-    source: "balance_snapshot.resolucao",
+    formula: "u_res = d / √3, onde d = resolução da faixa (resolucao/resolucao_2/resolucao_3 conforme V.R.)",
+    source: "balance_snapshot — faixa selecionada por capacidade vs valor nominal",
   },
   {
     id: "upad",
     result: "Contribuição do padrão (u_pad)",
-    formula: "u_pad = Ue_combinada / k_padrão (RSS das Ue dos pesos) ou fallback ppm",
+    formula: "u_pad = √(Σ(Ueᵢ/kᵢ)²) / √3 por peso (k padrão = 2) ou fallback ppm",
     source: "Planilha P1 coluna AD — Ue em gramas do cadastro de pesos",
   },
   {
@@ -61,13 +61,13 @@ export const perPointFormulas = [
   {
     id: "nueff",
     result: "Graus de liberdade efetivos (ν_eff)",
-    formula: "Derivado de u_rep e do número de leituras n",
-    source: "—",
+    formula: "Welch-Satterthwaite: ν_eff = u_c⁴ / Σ(uᵢ⁴/νᵢ) com ν_rep = n−1 e ν_res, ν_pad, ν_ind = 100",
+    source: "GUM — combinação de incertezas tipo A e B",
   },
   {
     id: "k",
     result: "Fator de abrangência (k)",
-    formula: "Aproximação da distribuição t (~95,45% de confiança)",
+    formula: "T.INV(0,97725; ν_eff) — confiança bilateral 95,45%",
     source: "Limitado entre 2 e 3",
   },
   {

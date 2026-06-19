@@ -16,6 +16,12 @@ import {
   weightItemCertStatus,
 } from "@/lib/cadastroListUtils";
 
+const WEIGHT_STATUS_OPTIONS = [
+  { value: "", label: "—" },
+  { value: "1", label: "1º" },
+  { value: "2", label: "2º" },
+];
+
 export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRefresh }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -24,6 +30,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const [nominalValue, setNominalValue] = useState("");
   const [unit, setUnit] = useState("g");
   const [conventionalValue, setConventionalValue] = useState("");
+  const [previousConventionalValue, setPreviousConventionalValue] = useState("");
+  const [standardDrift, setStandardDrift] = useState("");
+  const [weightStatus, setWeightStatus] = useState("");
   const [expandedUncertainty, setExpandedUncertainty] = useState("");
   const [certificateNumber, setCertificateNumber] = useState("");
   const [weightCertificateId, setWeightCertificateId] = useState("");
@@ -43,6 +52,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setIdentification("");
     setNominalValue("");
     setConventionalValue("");
+    setPreviousConventionalValue("");
+    setStandardDrift("");
+    setWeightStatus("");
     setExpandedUncertainty("");
     setUnit("g");
     setCertificateNumber("");
@@ -57,6 +69,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
       identification: identification.trim(),
       nominal_value: nominalValue.trim(),
       conventional_value: conventionalValue.trim(),
+      previous_conventional_value: previousConventionalValue.trim(),
+      standard_drift: standardDrift.trim(),
+      weight_status: weightStatus.trim(),
       expanded_uncertainty: expandedUncertainty.trim(),
       unit: unit || "g",
       active: true,
@@ -96,6 +111,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setIdentification(r.identification);
     setNominalValue(r.nominal_value);
     setConventionalValue(r.conventional_value || "");
+    setPreviousConventionalValue(r.previous_conventional_value || "");
+    setStandardDrift(r.standard_drift || "");
+    setWeightStatus(r.weight_status || "");
     setExpandedUncertainty(r.expanded_uncertainty || "");
     setUnit(r.unit || "g");
     setCertificateNumber(r.certificate_number || "");
@@ -107,7 +125,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-between gap-2">
-          <p className="text-sm text-slate-600">Pesos padrão individuais usados na coleta RE-7.2A.</p>
+          <p className="text-sm text-slate-600">Pesos padrão individuais (aba CAD PESOS-PADRÃO).</p>
           <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}>
             <Plus size={16} className="mr-1" /> Novo peso
           </Button>
@@ -127,17 +145,20 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-600">
               <tr>
-                <th className="p-2">Identificação</th>
+                <th className="p-2">ID</th>
+                <th className="p-2">V.N</th>
                 <th className="p-2">V.V.C</th>
                 <th className="p-2">Ue</th>
                 <th className="p-2">Nº certificado</th>
+                <th className="p-2">Situação</th>
+                <th className="p-2">Deriva</th>
                 <th className="p-2">Status</th>
                 <th className="p-2 w-24" />
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-center text-slate-500">Nenhum peso encontrado.</td></tr>
+                <tr><td colSpan={9} className="p-4 text-center text-slate-500">Nenhum peso encontrado.</td></tr>
               )}
               {filtered.map((r) => {
                 const st = weightItemCertStatus(r, weightCerts);
@@ -163,6 +184,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                         </Badge>
                       )}
                     </td>
+                    <td className="p-2">{r.standard_drift || "—"}</td>
+                    <td className="p-2">{r.weight_status || "—"}</td>
                     <td className="p-2">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><PencilSimple size={16} /></Button>
                       <Button variant="ghost" size="sm" className="text-red-600" onClick={() => remove(r)}><Trash size={16} /></Button>
@@ -174,12 +197,12 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
           </table>
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Editar peso" : "Novo peso padrão"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div>
                 <Label>Identificação *</Label>
-                <Input value={identification} onChange={(e) => setIdentification(e.target.value)} placeholder="Ex.: PP-001" />
+                <Input value={identification} onChange={(e) => setIdentification(e.target.value)} placeholder="Ex.: P-22" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -188,13 +211,23 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                 </div>
                 <div>
                   <Label>V.V.C (valor convencional)</Label>
-                  <Input value={conventionalValue} onChange={(e) => setConventionalValue(e.target.value)} placeholder="Em gramas" />
+                  <Input value={conventionalValue} onChange={(e) => setConventionalValue(e.target.value)} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <Label>V.V.C anterior</Label>
+                  <Input value={previousConventionalValue} onChange={(e) => setPreviousConventionalValue(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Deriva do padrão</Label>
+                  <Input value={standardDrift} onChange={(e) => setStandardDrift(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
                   <Label>Ue (incerteza expandida)</Label>
-                  <Input value={expandedUncertainty} onChange={(e) => setExpandedUncertainty(e.target.value)} placeholder="Em gramas" />
+                  <Input value={expandedUncertainty} onChange={(e) => setExpandedUncertainty(e.target.value)} />
                 </div>
                 <div>
                   <Label>Unidade</Label>
@@ -205,6 +238,18 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   >
                     {WEIGHT_ITEM_UNITS.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <select
+                    value={weightStatus}
+                    onChange={(e) => setWeightStatus(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                  >
+                    {WEIGHT_STATUS_OPTIONS.map((o) => (
+                      <option key={o.value || "empty"} value={o.value}>{o.label}</option>
                     ))}
                   </select>
                 </div>

@@ -216,36 +216,42 @@ export default function CertificateListPage() {
 
       <Card className="border-slate-200 overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
+          <table className="w-full text-sm min-w-[900px]">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="p-3">Nº Certificado</th>
+                <th className="p-3">Emissão</th>
+                <th className="p-3">Vencimento</th>
                 <th className="p-3">Cliente</th>
+                <th className="p-3">Responsável</th>
                 <th className="p-3">Série</th>
-                <th className="p-3">Data</th>
-                <th className="p-3">Executor</th>
                 <th className="p-3">Tipo</th>
                 <th className="p-3">Status</th>
+                <th className="p-3">Obs.</th>
                 <th className="p-3">Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={10} className="p-8 text-center text-slate-500">A carregar…</td></tr>
               ) : !filtered.length ? (
-                <tr><td colSpan={8} className="p-8 text-center text-slate-500">Nenhum certificado encontrado.</td></tr>
+                <tr><td colSpan={10} className="p-8 text-center text-slate-500">Nenhum certificado encontrado.</td></tr>
               ) : filtered.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50/50">
                   <td className="p-3 font-medium">{formatCertificateNumber(r.certificate_number, r.certificate_year)}</td>
+                  <td className="p-3">{fmtDmy(r.issue_date || r.approval_date)}</td>
+                  <td className="p-3">{fmtDmy(r.validity_date)}</td>
                   <td className="p-3">{r.client_name || "—"}</td>
-                  <td className="p-3">{r.scale_serial || "—"}</td>
-                  <td className="p-3">{fmtDmy(r.calibration_date)}</td>
                   <td className="p-3">{r.executor_name || "—"}</td>
+                  <td className="p-3">{r.scale_serial || "—"}</td>
                   <td className="p-3">{certificateTypeLabel(r.certificate_type)}</td>
                   <td className="p-3">
                     <Badge className={statusTone[r.status] || "bg-slate-100"}>
                       {certificateStatusLabel(r.status)}
                     </Badge>
+                  </td>
+                  <td className="p-3 max-w-[140px] truncate text-slate-600" title={r.approval_notes || ""}>
+                    {r.approval_notes || "—"}
                   </td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1">

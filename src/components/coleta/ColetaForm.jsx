@@ -74,6 +74,7 @@ export default function ColetaForm({
   weightItems = [],
   envCerts = [],
   endCustomers = [],
+  employees = [],
   isNew = false,
 }) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -364,8 +365,30 @@ export default function ColetaForm({
             <Field label="Número do Certificado Emitido">
               <Input value={payload.controle.numero_certificado} onChange={(e) => setControle("numero_certificado", e.target.value)} />
             </Field>
-            <Field label="Nome do Executor">
-              <Input value={payload.controle.nome_executor} onChange={(e) => setControle("nome_executor", e.target.value)} />
+            <Field label="Técnico executor">
+              <select
+                value={payload.controle.executor_id || ""}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const emp = employees.find((x) => x.id === id);
+                  onChange({
+                    ...payload,
+                    controle: {
+                      ...payload.controle,
+                      executor_id: id,
+                      nome_executor: emp?.full_name || "",
+                    },
+                  });
+                }}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              >
+                <option value="">Selecionar colaborador…</option>
+                {employees
+                  .filter((e) => ["tecnico_em_balancas", "gerente_tecnico", "signatario"].includes(e.job_role))
+                  .map((e) => (
+                    <option key={e.id} value={e.id}>{e.full_name}</option>
+                  ))}
+              </select>
             </Field>
             <Field label="Data da Calibração">
               <Input type="date" value={payload.controle.data_calibracao} onChange={(e) => setControle("data_calibracao", e.target.value)} />

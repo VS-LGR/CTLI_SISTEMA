@@ -100,12 +100,13 @@ export async function getCertificate(id) {
 }
 
 async function loadCadastrosForImport(tenantId) {
-  const [customers, weights, weightCerts, envCerts, employees] = await Promise.all([
+  const [customers, weights, weightCerts, envCerts, employees, scales] = await Promise.all([
     supabase.from("end_customer_registrations").select("*").eq("tenant_id", tenantId),
     supabase.from("standard_weight_items").select("*").eq("tenant_id", tenantId).eq("active", true),
     supabase.from("weight_standard_certificates").select("*").eq("tenant_id", tenantId),
     supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", tenantId),
     supabase.from("employee_registrations").select("*").eq("tenant_id", tenantId),
+    supabase.from("scale_registrations").select("*").eq("tenant_id", tenantId).eq("active", true),
   ]);
   return {
     endCustomers: customers.data || [],
@@ -113,6 +114,7 @@ async function loadCadastrosForImport(tenantId) {
     weightCerts: weightCerts.data || [],
     envCerts: envCerts.data || [],
     employees: employees.data || [],
+    scaleRegistrations: scales.data || [],
   };
 }
 
@@ -308,8 +310,20 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
 
   const calculated = calculateCertificatePoints(full.points, full.balance_snapshot, items, certs);
 
+  const confResult = calculateConformityForCertificate({
+    balance: full.balance_snapshot,
+    points: calculated,
+    conformity: full.conformity,
+    decisionRule: full.conformity?.decision_rule,
+  });
+
+  const confByPoint = Object.fromEntries(
+    (confResult.pointResults || []).map((pr) => [pr.pointNumber, pr]),
+  );
+
   for (const pt of calculated) {
     if (!pt.id) continue;
+    const conf = confByPoint[pt.point_number];
     await updateCertificatePoint(pt.id, {
       nominal_value: pt.nominal_value,
       average_reading: pt.average_reading,
@@ -324,15 +338,11 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
       calculation_memory: pt.calculation_memory || {},
       calc_status: pt.calc_status,
       calc_error: pt.calc_error || "",
+      conformity_result: conf?.result || "nao_avaliado",
+      tolerance_positive: conf?.tolerance?.positive ?? null,
+      tolerance_negative: conf?.tolerance?.negative ?? null,
     });
   }
-
-  const confResult = calculateConformityForCertificate({
-    balance: full.balance_snapshot,
-    points: calculated,
-    conformity: full.conformity,
-    decisionRule: full.conformity?.decision_rule,
-  });
 
   if (full.conformity?.id) {
     await supabase.from("calibration_certificate_conformity").update({

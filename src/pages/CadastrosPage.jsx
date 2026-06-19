@@ -214,6 +214,7 @@ const CadastrosPage = () => {
         {activeSection === "balancas" && (
           <ScaleRegistrationSection
             rows={scaleRegistrations}
+            endCustomers={endCustomers}
             tenantId={currentTenantId}
             onRefresh={loadAll}
           />
@@ -372,6 +373,9 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
   const [editing, setEditing] = useState(null);
   const [name, setName] = useState("");
   const [fullAddress, setFullAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [unit, setUnit] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [rep, setRep] = useState("");
   const [phone, setPhone] = useState("");
@@ -380,7 +384,8 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
 
   const reset = () => {
     setEditing(null);
-    setName(""); setFullAddress(""); setCnpj(""); setRep(""); setPhone(""); setEmail(""); setRegDate(todayIso());
+    setName(""); setFullAddress(""); setCity(""); setState(""); setUnit("");
+    setCnpj(""); setRep(""); setPhone(""); setEmail(""); setRegDate(todayIso());
   };
 
   const save = async () => {
@@ -389,6 +394,9 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
       tenant_id: tenantId,
       name: name.trim(),
       full_address: fullAddress.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      unit: unit.trim(),
       cnpj: cnpj.trim(),
       representative_name: rep.trim(),
       phone: phone.trim(),
@@ -432,6 +440,7 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
               <tr>
                 <th className="p-2">Nome</th>
                 <th className="p-2">CNPJ</th>
+                <th className="p-2">Cidade / UF</th>
                 <th className="p-2">Representante</th>
                 <th className="p-2">Contato</th>
                 <th className="p-2">Data cad.</th>
@@ -440,19 +449,21 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-slate-500 text-center">Nenhum cliente cadastrado.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-slate-500 text-center">Nenhum cliente cadastrado.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
                   <td className="p-2 font-medium">{r.name}</td>
                   <td className="p-2">{r.cnpj}</td>
+                  <td className="p-2">{[r.city, r.state].filter(Boolean).join(" / ") || "—"}</td>
                   <td className="p-2">{r.representative_name}</td>
                   <td className="p-2">{r.phone} {r.email ? <span className="text-slate-500">· {r.email}</span> : null}</td>
                   <td className="p-2">{fmtIsoDate(r.registration_date)}</td>
                   <td className="p-2">
                     <Button variant="ghost" size="sm" onClick={() => {
                       setEditing(r);
-                      setName(r.name); setFullAddress(r.full_address); setCnpj(r.cnpj); setRep(r.representative_name);
+                      setName(r.name); setFullAddress(r.full_address); setCity(r.city || ""); setState(r.state || ""); setUnit(r.unit || "");
+                      setCnpj(r.cnpj); setRep(r.representative_name);
                       setPhone(r.phone); setEmail(r.email); setRegDate(fmtIsoDate(r.registration_date));
                       setOpen(true);
                     }}><PencilSimple size={16} /></Button>
@@ -468,7 +479,12 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
             <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nome *</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-              <div><Label>Endereço completo</Label><Input value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>
+              <div><Label>Endereço</Label><Input value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>
+              <div className="grid grid-cols-3 gap-3">
+                <div><Label>Cidade</Label><Input value={city} onChange={(e) => setCity(e.target.value)} /></div>
+                <div><Label>Estado</Label><Input value={state} onChange={(e) => setState(e.target.value)} /></div>
+                <div><Label>Unidade</Label><Input value={unit} onChange={(e) => setUnit(e.target.value)} /></div>
+              </div>
               <div><Label>CNPJ</Label><Input value={cnpj} onChange={(e) => setCnpj(e.target.value)} /></div>
               <div><Label>Nome do representante</Label><Input value={rep} onChange={(e) => setRep(e.target.value)} /></div>
               <div><Label>Telefone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>

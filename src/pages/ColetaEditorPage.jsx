@@ -46,7 +46,18 @@ const ColetaEditorPage = () => {
   const [weightItems, setWeightItems] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [endCustomers, setEndCustomers] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [logoDataUrl, setLogoDataUrl] = useState(null);
+
+  const loadEmployees = useCallback(async () => {
+    if (!currentTenantId) return;
+    const { data, error } = await supabase
+      .from("employee_registrations")
+      .select("id, full_name, job_role")
+      .eq("tenant_id", currentTenantId)
+      .order("full_name");
+    if (!error) setEmployees(data || []);
+  }, [currentTenantId]);
 
   const loadEndCustomers = useCallback(async () => {
     if (!currentTenantId) return;
@@ -121,6 +132,7 @@ const ColetaEditorPage = () => {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadCerts(); }, [loadCerts]);
   useEffect(() => { loadEndCustomers(); }, [loadEndCustomers]);
+  useEffect(() => { loadEmployees(); }, [loadEmployees]);
   useEffect(() => { loadLogo(); }, [loadLogo]);
 
   if (!canAccessColeta(user?.role)) {
@@ -340,6 +352,7 @@ const ColetaEditorPage = () => {
           weightItems={weightItems}
           envCerts={envCerts}
           endCustomers={endCustomers}
+          employees={employees}
           isNew={isNew}
         />
       </Suspense>

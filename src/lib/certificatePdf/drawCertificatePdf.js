@@ -156,37 +156,64 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
 
 function drawWeighingTestsSection(doc, model, y, ctx) {
   if (!model.points?.length) return y;
-  ({ y } = ensureSpace(doc, y, 40, ctx));
+  const cols = model.points.slice(0, 10);
+
+  ({ y } = ensureSpace(doc, y, 28, ctx));
   y = drawSectionBar(doc, ML, y, CW, "ENSAIOS DE PESAGEM");
 
-  const cols = model.points.slice(0, 7);
-  const head = [[
+  const beforeHead = [[
     { content: "", rowSpan: 1 },
     ...cols.map((p) => ({ content: `${p.label}º ponto`, styles: { halign: "center" } })),
   ]];
-
-  const rowDefs = [
+  const beforeRows = [
     { label: "V.R.", key: (p) => p.referenceValue },
-    { label: "Leitura sem ajuste", key: (p) => p.beforeAdjustment.l1 },
-    { label: "Erro (sem ajuste)", key: (p) => p.beforeAdjustment.error },
+    { label: "Leitura 01", key: (p) => p.beforeAdjustment.l1 },
+    { label: "Erro", key: (p) => p.beforeAdjustment.error },
+  ].map((row) => [row.label, ...cols.map((p) => s(row.key(p)))]);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.text("Resultados Obtidos Antes do Ajuste", ML, y);
+  y += 3;
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: ML, right: PAGE_W - MR },
+    head: beforeHead,
+    body: beforeRows,
+    styles: { fontSize: 5.5, cellPadding: 0.8, halign: "center", valign: "middle" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
+    columnStyles: { 0: { halign: "left", cellWidth: 22 } },
+    theme: "grid",
+  });
+  y = doc.lastAutoTable.finalY + 4;
+
+  ({ y } = ensureSpace(doc, y, 32, ctx));
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.text("Resultados Obtidos", ML, y);
+  y += 3;
+
+  const resultsHead = [[
+    { content: "", rowSpan: 1 },
+    ...cols.map((p) => ({ content: `${p.label}º ponto`, styles: { halign: "center" } })),
+  ]];
+  const resultsRows = [
     { label: "Leitura 1ª", key: (p) => p.readings.r1 },
     { label: "Leitura 2ª", key: (p) => p.readings.r2 },
     { label: "Leitura 3ª", key: (p) => p.readings.r3 },
     { label: "Média", key: (p) => p.results.average },
     { label: "Erro", key: (p) => p.results.indicationError },
     { label: "Incerteza Expandida", key: (p) => p.results.expandedUncertainty },
-  ];
-
-  const body = rowDefs.map((row) => [
-    row.label,
-    ...cols.map((p) => s(row.key(p))),
-  ]);
+    { label: "Veff", key: (p) => p.results.veff },
+    { label: "k", key: (p) => p.results.k },
+  ].map((row) => [row.label, ...cols.map((p) => s(row.key(p)))]);
 
   autoTable(doc, {
     startY: y,
     margin: { left: ML, right: PAGE_W - MR },
-    head,
-    body,
+    head: resultsHead,
+    body: resultsRows,
     styles: { fontSize: 5.5, cellPadding: 0.8, halign: "center", valign: "middle" },
     headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
     columnStyles: { 0: { halign: "left", cellWidth: 28 } },
