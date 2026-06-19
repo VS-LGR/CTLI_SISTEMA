@@ -13,7 +13,7 @@ export const perPointFormulas = [
   {
     id: "media",
     result: "Média das leituras (L)",
-    formula: "L = média(rep1, rep2, rep3)",
+    formula: "L = média(leituras depois do ajuste); mínimo 3 leituras",
     source: "Leituras após ajuste da balança",
   },
   {
@@ -43,7 +43,7 @@ export const perPointFormulas = [
   {
     id: "upad",
     result: "Contribuição do padrão (u_pad)",
-    formula: "u_pad = √(Σ(Ueᵢ/kᵢ)²) / √3 por peso (k padrão = 2) ou fallback ppm",
+    formula: "u_pad = √(Σ(√((Ue/k)² + (|deriva|/√3)²))²) / √3 por peso; deriva: 1º=Ue, 2º+=VVC−VVC anterior",
     source: "Planilha P1 coluna AD — Ue em gramas do cadastro de pesos",
   },
   {

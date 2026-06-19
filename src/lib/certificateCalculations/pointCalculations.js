@@ -1,4 +1,5 @@
 import { parseCalibrationNumber } from "./parseNumber";
+import { driftFromWeightItem } from "@/lib/standardWeightCalculations";
 
 const SQRT3 = Math.sqrt(3);
 const DEFAULT_STANDARD_K = 2;
@@ -119,10 +120,33 @@ function halfResolution(resolution, unit) {
   return { value: unit === "g" ? half : half, valid: true, reason: "" };
 }
 
-/** RSS of (Ue/k) per weight in target unit — input to u_pad before /√3. */
+/** Leituras depois do ajuste (array jsonb ou colunas legadas). */
+export function resolveReadingsAfter(point) {
+  if (Array.isArray(point?.readings_after) && point.readings_after.length) {
+    return point.readings_after;
+  }
+  return [point?.reading1, point?.reading2, point?.reading3].filter(
+    (r) => r != null && String(r).trim() !== "",
+  );
+}
+
+/** Leituras antes do ajuste. */
+export function resolveReadingsBefore(point) {
+  if (Array.isArray(point?.readings_before) && point.readings_before.length) {
+    return point.readings_before;
+  }
+  if (point?.reading_before_adjustment != null && String(point.reading_before_adjustment).trim() !== "") {
+    return [point.reading_before_adjustment];
+  }
+  return [];
+}
+
+/** RSS of combined (Ue/k) and (|drift|/√3) per weight — input to u_pad before /√3. */
 export function standardUncertaintyAbsFromWeightIds(weightIds, weightItems = [], targetUnit = "g", kDefault = DEFAULT_STANDARD_K) {
   let sumSq = 0;
   let valid = false;
+  const driftErrors = [];
+
   for (const id of weightIds || []) {
     const item = weightItems.find((w) => w.id === id);
     if (!item) continue;
@@ -132,9 +156,24 @@ export function standardUncertaintyAbsFromWeightIds(weightIds, weightItems = [],
     const k = kParsed.valid && kParsed.value > 0 ? kParsed.value : kDefault;
     const ueG = toGrams(ue.value, item.unit || "g");
     if (ueG == null) continue;
-    const uStd = ueG / k;
-    sumSq += uStd * uStd;
+    const uUe = ueG / k;
+
+    const drift = driftFromWeightItem(item);
+    let uDrift = 0;
+    if (drift.valid) {
+      const driftG = toGrams(Math.abs(drift.value), item.unit || "g");
+      if (driftG != null) uDrift = driftG / SQRT3;
+    } else if (item.weight_status === "2") {
+      driftErrors.push(`${item.identification}: ${drift.reason || "deriva inválida"}`);
+    }
+
+    const uWeight = Math.sqrt(uUe * uUe + uDrift * uDrift);
+    sumSq += uWeight * uWeight;
     valid = true;
+  }
+
+  if (driftErrors.length) {
+    return { value: null, valid: false, reason: driftErrors.join("; "), driftErrors };
   }
   if (!valid) return { value: null, valid: false, reason: "" };
   const combinedG = Math.sqrt(sumSq);
@@ -237,9 +276,13 @@ export function calculateCalibrationPoint(point, {
   standardUncertaintyAbs = null,
   errorBeforeAdjustment = null,
 } = {}) {
-  const readings = [point.reading1, point.reading2, point.reading3].filter((r) => r != null && String(r).trim() !== "");
+  const readings = resolveReadingsAfter(point);
   if (!readings.length && !point.nominal_value) {
     return { calcStatus: "pendente", calcError: "", results: {} };
+  }
+
+  if (readings.length > 0 && readings.length < 3) {
+    return { calcStatus: "erro", calcError: "Mínimo de 3 leituras depois do ajuste", results: {} };
   }
 
   const avgRes = calculatePointAverage(readings);
@@ -262,9 +305,18 @@ export function calculateCalibrationPoint(point, {
   if (errorBeforeAdjustment != null) {
     const eb = parseCalibrationNumber(errorBeforeAdjustment);
     if (eb.valid) errorBefore = eb.value;
-  } else if (point.reading_before_adjustment != null && String(point.reading_before_adjustment).trim() !== "") {
-    const before = parseCalibrationNumber(point.reading_before_adjustment);
-    if (before.valid) errorBefore = before.value - nom.value;
+  } else {
+    const beforeReadings = resolveReadingsBefore(point);
+    if (beforeReadings.length >= 2) {
+      const beforeAvg = calculatePointAverage(beforeReadings);
+      if (beforeAvg.valid) errorBefore = beforeAvg.value - nom.value;
+    } else if (beforeReadings.length === 1) {
+      const before = parseCalibrationNumber(beforeReadings[0]);
+      if (before.valid) errorBefore = before.value - nom.value;
+    } else if (point.reading_before_adjustment != null && String(point.reading_before_adjustment).trim() !== "") {
+      const before = parseCalibrationNumber(point.reading_before_adjustment);
+      if (before.valid) errorBefore = before.value - nom.value;
+    }
   }
 
   const indicationContrib = errorBefore != null

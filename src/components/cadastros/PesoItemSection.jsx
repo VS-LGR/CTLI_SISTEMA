@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, ArrowCounterClockwise } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { WEIGHT_ITEM_UNITS } from "@/lib/cadastroConstants";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
@@ -15,12 +15,23 @@ import {
   weightItemCertNumber,
   weightItemCertStatus,
 } from "@/lib/cadastroListUtils";
+import {
+  calculateStandardDrift,
+  formatWeightStatus,
+  driftFromWeightItem,
+} from "@/lib/standardWeightCalculations";
 
 const WEIGHT_STATUS_OPTIONS = [
   { value: "", label: "—" },
   { value: "1", label: "1º" },
   { value: "2", label: "2º" },
 ];
+
+function driftDisplayValue(item) {
+  const d = driftFromWeightItem(item);
+  if (!d.valid) return item.standard_drift || "—";
+  return String(d.value).replace(".", ",");
+}
 
 export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRefresh }) {
   const [open, setOpen] = useState(false);
@@ -31,11 +42,20 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const [unit, setUnit] = useState("g");
   const [conventionalValue, setConventionalValue] = useState("");
   const [previousConventionalValue, setPreviousConventionalValue] = useState("");
-  const [standardDrift, setStandardDrift] = useState("");
   const [weightStatus, setWeightStatus] = useState("");
   const [expandedUncertainty, setExpandedUncertainty] = useState("");
   const [certificateNumber, setCertificateNumber] = useState("");
   const [weightCertificateId, setWeightCertificateId] = useState("");
+
+  const computedDrift = useMemo(
+    () => calculateStandardDrift({
+      weightStatus,
+      expandedUncertainty,
+      conventionalValue,
+      previousConventionalValue,
+    }),
+    [weightStatus, expandedUncertainty, conventionalValue, previousConventionalValue],
+  );
 
   const filtered = useMemo(
     () => filterCadastroByQuery(rows, query, (r) => [
@@ -53,7 +73,6 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setNominalValue("");
     setConventionalValue("");
     setPreviousConventionalValue("");
-    setStandardDrift("");
     setWeightStatus("");
     setExpandedUncertainty("");
     setUnit("g");
@@ -61,16 +80,42 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setWeightCertificateId("");
   };
 
+  const handleNovaCalibracao = () => {
+    if (!conventionalValue.trim()) {
+      toast.error("Informe o V.V.C atual antes de registrar nova calibração");
+      return;
+    }
+    setPreviousConventionalValue(conventionalValue);
+    setConventionalValue("");
+    setExpandedUncertainty("");
+    setWeightStatus("2");
+    toast.info("V.V.C copiado para anterior. Preencha os novos valores da calibração.");
+  };
+
   const save = async () => {
     if (!tenantId) return toast.error("Selecione um ambiente válido no topo da página");
     if (!identification.trim()) return toast.error("Informe a identificação do peso");
+
+    const drift = calculateStandardDrift({
+      weightStatus,
+      expandedUncertainty,
+      conventionalValue,
+      previousConventionalValue,
+    });
+
+    if (weightStatus && !drift.valid) {
+      return toast.error(drift.reason || "Não foi possível calcular a deriva do padrão");
+    }
+
+    const driftStr = drift.valid ? String(drift.value) : "";
+
     const base = {
       tenant_id: tenantId,
       identification: identification.trim(),
       nominal_value: nominalValue.trim(),
       conventional_value: conventionalValue.trim(),
       previous_conventional_value: previousConventionalValue.trim(),
-      standard_drift: standardDrift.trim(),
+      standard_drift: driftStr,
       weight_status: weightStatus.trim(),
       expanded_uncertainty: expandedUncertainty.trim(),
       unit: unit || "g",
@@ -112,7 +157,6 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setNominalValue(r.nominal_value);
     setConventionalValue(r.conventional_value || "");
     setPreviousConventionalValue(r.previous_conventional_value || "");
-    setStandardDrift(r.standard_drift || "");
     setWeightStatus(r.weight_status || "");
     setExpandedUncertainty(r.expanded_uncertainty || "");
     setUnit(r.unit || "g");
@@ -121,12 +165,18 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setOpen(true);
   };
 
+  const openNew = () => {
+    reset();
+    setWeightStatus("1");
+    setOpen(true);
+  };
+
   return (
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-between gap-2">
           <p className="text-sm text-slate-600">Pesos padrão individuais (aba CAD PESOS-PADRÃO).</p>
-          <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}>
+          <Button size="sm" className="bg-blue-600 text-white" onClick={openNew}>
             <Plus size={16} className="mr-1" /> Novo peso
           </Button>
         </div>
@@ -151,6 +201,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                 <th className="p-2">Ue</th>
                 <th className="p-2">Nº certificado</th>
                 <th className="p-2">Situação</th>
+                <th className="p-2">V.V.C ant.</th>
                 <th className="p-2">Deriva</th>
                 <th className="p-2">Status</th>
                 <th className="p-2 w-24" />
@@ -158,7 +209,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={9} className="p-4 text-center text-slate-500">Nenhum peso encontrado.</td></tr>
+                <tr><td colSpan={10} className="p-4 text-center text-slate-500">Nenhum peso encontrado.</td></tr>
               )}
               {filtered.map((r) => {
                 const st = weightItemCertStatus(r, weightCerts);
@@ -184,8 +235,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                         </Badge>
                       )}
                     </td>
-                    <td className="p-2">{r.standard_drift || "—"}</td>
-                    <td className="p-2">{r.weight_status || "—"}</td>
+                    <td className="p-2">{r.previous_conventional_value || "—"}</td>
+                    <td className="p-2">{driftDisplayValue(r)}</td>
+                    <td className="p-2">{formatWeightStatus(r.weight_status)}</td>
                     <td className="p-2">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><PencilSimple size={16} /></Button>
                       <Button variant="ghost" size="sm" className="text-red-600" onClick={() => remove(r)}><Trash size={16} /></Button>
@@ -220,10 +272,23 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   <Input value={previousConventionalValue} onChange={(e) => setPreviousConventionalValue(e.target.value)} />
                 </div>
                 <div>
-                  <Label>Deriva do padrão</Label>
-                  <Input value={standardDrift} onChange={(e) => setStandardDrift(e.target.value)} />
+                  <Label>Deriva do padrão (calculada)</Label>
+                  <Input
+                    readOnly
+                    className="bg-slate-50"
+                    value={computedDrift.valid ? String(computedDrift.value).replace(".", ",") : "—"}
+                  />
+                  {!computedDrift.valid && computedDrift.reason && weightStatus && (
+                    <p className="text-xs text-amber-700 mt-1">{computedDrift.reason}</p>
+                  )}
                 </div>
               </div>
+              {editing && (
+                <Button type="button" variant="outline" size="sm" onClick={handleNovaCalibracao} className="w-full sm:w-auto">
+                  <ArrowCounterClockwise size={16} className="mr-1" />
+                  Nova calibração do peso
+                </Button>
+              )}
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Ue (incerteza expandida)</Label>
@@ -242,7 +307,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   </select>
                 </div>
                 <div>
-                  <Label>Status</Label>
+                  <Label>Status calibração</Label>
                   <select
                     value={weightStatus}
                     onChange={(e) => setWeightStatus(e.target.value)}
@@ -254,6 +319,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   </select>
                 </div>
               </div>
+              <p className="text-xs text-slate-500">
+                Deriva: 1ª calibração = Ue; 2ª+ = V.V.C − V.V.C anterior.
+              </p>
               <div>
                 <Label>Certificado de conjunto (opcional)</Label>
                 <select

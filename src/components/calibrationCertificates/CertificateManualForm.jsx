@@ -1,13 +1,17 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { emptyColetaPayload, nominalFromWeightIds } from "@/lib/coletaSchema";
+import { emptyColetaPayload } from "@/lib/coletaSchema";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { calculateAirDensityFromEnvironmental, formatAirDensityDisplay } from "@/lib/certificateCalculations/environmentalCalculations";
-import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
+import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
+import {
+  coletaPointToPanelPoint,
+  panelPointToColetaPoint,
+} from "@/lib/calibrationCertificates/certificatePointUtils";
 
 const POINT_COUNT = 10;
 
@@ -19,6 +23,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
   const [endCustomers, setEndCustomers] = useState([]);
   const [scales, setScales] = useState([]);
   const [weightItems, setWeightItems] = useState([]);
+  const [weightCerts, setWeightCerts] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [employees, setEmployees] = useState([]);
 
@@ -26,6 +31,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
   const [scaleId, setScaleId] = useState("");
   const [calibrationDate, setCalibrationDate] = useState(todayIso());
   const [executorId, setExecutorId] = useState("");
+  const [legalMetrology, setLegalMetrology] = useState(false);
   const [payload, setPayload] = useState(() => {
     const p = emptyColetaPayload();
     p.calibracao.pontos = p.calibracao.pontos.slice(0, POINT_COUNT);
@@ -34,16 +40,18 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
 
   const load = useCallback(async () => {
     if (!tenantId) return;
-    const [c, s, w, e, em] = await Promise.all([
+    const [c, s, w, wc, e, em] = await Promise.all([
       supabase.from("end_customer_registrations").select("*").eq("tenant_id", tenantId).order("name"),
       supabase.from("scale_registrations").select("*").eq("tenant_id", tenantId).eq("active", true).order("serial_number"),
       supabase.from("standard_weight_items").select("*").eq("tenant_id", tenantId).eq("active", true).order("identification"),
+      supabase.from("weight_standard_certificates").select("*").eq("tenant_id", tenantId),
       supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", tenantId).order("equipment_name"),
       supabase.from("employee_registrations").select("*").eq("tenant_id", tenantId).order("full_name"),
     ]);
     if (!c.error) setEndCustomers(c.data || []);
     if (!s.error) setScales(s.data || []);
     if (!w.error) setWeightItems(w.data || []);
+    if (!wc.error) setWeightCerts(wc.data || []);
     if (!e.error) setEnvCerts(e.data || []);
     if (!em.error) setEmployees(em.data || []);
   }, [tenantId]);
@@ -70,6 +78,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
       ...p,
       balanca: { ...p.balanca, ...snap, local: p.balanca.local || "" },
     }));
+    setLegalMetrology(Boolean(s.portaria_inmetro || s.etiqueta_ipem));
   }, [scaleId, scales]);
 
   const setAmbiente = (k, v) => setPayload((p) => ({ ...p, ambiente: { ...p.ambiente, [k]: v } }));
@@ -82,25 +91,18 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
     initial_pressure: payload.ambiente.pressao_inicial,
     final_pressure: payload.ambiente.pressao_final,
   });
-  const setControle = (k, v) => setPayload((p) => ({ ...p, controle: { ...p.controle, [k]: v } }));
 
-  const setPoint = (idx, k, v) => {
+  const panelPoints = useMemo(
+    () => payload.calibracao.pontos.map((pt, i) => coletaPointToPanelPoint(pt, i + 1, payload.balanca)),
+    [payload.calibracao.pontos, payload.balanca],
+  );
+
+  const onPointChange = (pointNumber, fields) => {
     setPayload((p) => {
       const pontos = [...p.calibracao.pontos];
-      pontos[idx] = { ...pontos[idx], [k]: v };
-      return { ...p, calibracao: { ...p.calibracao, pontos } };
-    });
-  };
-
-  const setPointPesos = (idx, ids) => {
-    const nominal = nominalFromWeightIds(ids, weightItems, true);
-    setPayload((p) => {
-      const pontos = [...p.calibracao.pontos];
-      pontos[idx] = {
-        ...pontos[idx],
-        pesos_padrao_ids: ids,
-        peso_nominal: nominal || pontos[idx].peso_nominal,
-      };
+      const idx = pointNumber - 1;
+      const current = coletaPointToPanelPoint(pontos[idx] || {}, pointNumber, p.balanca);
+      pontos[idx] = panelPointToColetaPoint({ ...current, ...fields });
       return { ...p, calibracao: { ...p.calibracao, pontos } };
     });
   };
@@ -108,11 +110,21 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
   const handleSubmit = () => {
     const customer = endCustomers.find((c) => c.id === endCustomerId);
     const executor = employees.find((e) => e.id === executorId);
-    setControle("data_calibracao", calibrationDate);
-    setControle("nome_executor", executor?.full_name || "");
+    const balanca = {
+      ...payload.balanca,
+      portaria_inmetro: legalMetrology ? (payload.balanca.portaria_inmetro || "aplicável") : payload.balanca.portaria_inmetro,
+    };
     onSubmit({
       certificateType: certType,
-      payload: { ...payload, controle: { ...payload.controle, data_calibracao: calibrationDate, nome_executor: executor?.full_name || "" } },
+      payload: {
+        ...payload,
+        balanca,
+        controle: {
+          ...payload.controle,
+          data_calibracao: calibrationDate,
+          nome_executor: executor?.full_name || "",
+        },
+      },
       endCustomerId: endCustomerId || null,
       clientName: customer?.name || payload.cliente.cliente,
       scaleSerial: payload.balanca.serie,
@@ -121,6 +133,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
       executorId: executorId || null,
       executorName: executor?.full_name || "",
       calibrationLocation: payload.balanca.local || customer?.full_address || "",
+      legalMetrologyApplicable: legalMetrology,
     });
   };
 
@@ -188,24 +201,17 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
       </Card>
 
       <Card>
-        <CardContent className="p-4 space-y-3">
-          <h3 className="text-sm font-semibold">Pontos de calibração (até {POINT_COUNT})</h3>
-          {payload.calibracao.pontos.map((pt, i) => (
-            <div key={i} className="border rounded-lg p-3 space-y-2">
-              <p className="text-xs font-semibold text-slate-600">Ponto {i + 1}</p>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                <div><Label className="text-xs">V.R.</Label><Input value={pt.peso_nominal} onChange={(e) => setPoint(i, "peso_nominal", e.target.value)} className="h-9" /></div>
-                <div><Label className="text-xs">Antes ajuste</Label><Input value={pt.leitura_antes} onChange={(e) => setPoint(i, "leitura_antes", e.target.value)} className="h-9" /></div>
-                <div><Label className="text-xs">Leitura 1</Label><Input value={pt.rep1} onChange={(e) => setPoint(i, "rep1", e.target.value)} className="h-9" /></div>
-                <div><Label className="text-xs">Leitura 2</Label><Input value={pt.rep2} onChange={(e) => setPoint(i, "rep2", e.target.value)} className="h-9" /></div>
-                <div><Label className="text-xs">Leitura 3</Label><Input value={pt.rep3} onChange={(e) => setPoint(i, "rep3", e.target.value)} className="h-9" /></div>
-                <div className="sm:col-span-2">
-                  <Label className="text-xs">Pesos padrão</Label>
-                  <PesoPadraoMultiSelect weightItems={weightItems} value={pt.pesos_padrao_ids || []} onChange={(ids) => setPointPesos(i, ids)} />
-                </div>
-              </div>
-            </div>
-          ))}
+        <CardContent className="p-4">
+          <PointRegistrationPanel
+            points={panelPoints}
+            balance={payload.balanca}
+            weightItems={weightItems}
+            weightCerts={weightCerts}
+            legalMetrologyApplicable={legalMetrology}
+            onLegalMetrologyChange={setLegalMetrology}
+            onPointChange={onPointChange}
+            unit={payload.balanca.unidade || "g"}
+          />
         </CardContent>
       </Card>
 

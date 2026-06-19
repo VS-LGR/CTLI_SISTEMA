@@ -44,13 +44,21 @@ import {
   canDeleteCertificate,
 } from "@/lib/calibrationCertificates/certificateSchema";
 import { validateExpiredStandards, validateBeforeEmit } from "@/lib/calibrationCertificates/certificateValidation";
-import { sanitizePointRowForDb, enrichEnvironmentalAirDensity } from "@/lib/calibrationCertificates/certificateImportSanitize";
+import { enrichEnvironmentalAirDensity } from "@/lib/calibrationCertificates/certificateImportSanitize";
+import {
+  ensureTenCertificatePoints,
+  certificatePointToPanelPoint,
+  mergePanelIntoCertificatePoint,
+  pointToDbPatch,
+  emptyCertificatePoint,
+} from "@/lib/calibrationCertificates/certificatePointUtils";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatCalcDisplay, formatAirDensityDisplay } from "@/lib/certificateCalculations";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CriticalAnalysisDialog from "@/components/calibrationCertificates/CriticalAnalysisDialog";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
 import PointCalculationMemory from "@/components/calibrationCertificates/PointCalculationMemory";
+import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
 import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
 import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
 import { supabase } from "@/lib/supabaseClient";
@@ -75,6 +83,8 @@ export default function CertificateEditorPage() {
   const [obsoleteOpen, setObsoleteOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [weightItems, setWeightItems] = useState([]);
+  const [weightCerts, setWeightCerts] = useState([]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -105,6 +115,13 @@ export default function CertificateEditorPage() {
     if (!currentTenantId) return;
     supabase.from("employee_registrations").select("*").eq("tenant_id", currentTenantId).order("full_name")
       .then(({ data }) => setEmployees(data || []));
+    Promise.all([
+      supabase.from("standard_weight_items").select("*").eq("tenant_id", currentTenantId).eq("active", true).order("identification"),
+      supabase.from("weight_standard_certificates").select("*").eq("tenant_id", currentTenantId),
+    ]).then(([w, c]) => {
+      if (!w.error) setWeightItems(w.data || []);
+      if (!c.error) setWeightCerts(c.data || []);
+    });
   }, [currentTenantId]);
 
   useEffect(() => {
@@ -140,6 +157,23 @@ export default function CertificateEditorPage() {
       points: (c.points || []).map((p) => (p.id === pointId ? { ...p, ...fields } : p)),
     }));
   };
+
+  const patchPointByNumber = (pointNumber, fields) => {
+    setCert((c) => {
+      const points = [...(c.points || [])];
+      const idx = points.findIndex((p) => p.point_number === pointNumber);
+      if (idx >= 0) {
+        points[idx] = mergePanelIntoCertificatePoint(points[idx], fields);
+      } else {
+        points.push(mergePanelIntoCertificatePoint(emptyCertificatePoint(pointNumber), fields));
+      }
+      return { ...c, points };
+    });
+  };
+
+  const panelPoints = ensureTenCertificatePoints(cert.points).map(
+    (p) => certificatePointToPanelPoint(p, cert.balance_snapshot),
+  );
 
   const saveHeader = async () => {
     setSaving(true);
@@ -179,16 +213,15 @@ export default function CertificateEditorPage() {
       if (isStandalone) {
         await Promise.all(
           (cert.points || []).map((p) => {
-            const sanitized = sanitizePointRowForDb(p);
-            return updateCertificatePoint(p.id, {
-              nominal_value: sanitized.nominal_value,
-              reading_before_adjustment: sanitized.reading_before_adjustment,
-              reading1: sanitized.reading1,
-              reading2: sanitized.reading2,
-              reading3: sanitized.reading3,
-            });
+            if (!p.id) return Promise.resolve();
+            return updateCertificatePoint(p.id, pointToDbPatch(p));
           }),
         );
+        if (cert.conformity?.id != null) {
+          await supabase.from("calibration_certificate_conformity").update({
+            legal_metrology_applicable: cert.conformity.legal_metrology_applicable,
+          }).eq("certificate_id", cert.id);
+        }
       }
 
       toast.success("Dados guardados");
@@ -552,6 +585,27 @@ export default function CertificateEditorPage() {
         </TabsContent>
 
         <TabsContent value="pontos" className="mt-4 space-y-4">
+          {isStandalone && editable && (
+            <Card>
+              <CardContent className="p-4">
+                <PointRegistrationPanel
+                  points={panelPoints}
+                  balance={cert.balance_snapshot || {}}
+                  weightItems={weightItems}
+                  weightCerts={weightCerts}
+                  disabled={!editable}
+                  legalMetrologyApplicable={Boolean(cert.conformity?.legal_metrology_applicable)}
+                  onLegalMetrologyChange={(v) => setCert((c) => ({
+                    ...c,
+                    conformity: { ...(c.conformity || {}), legal_metrology_applicable: v },
+                  }))}
+                  onPointChange={patchPointByNumber}
+                  unit={cert.balance_snapshot?.unidade || "g"}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <p className="px-4 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">

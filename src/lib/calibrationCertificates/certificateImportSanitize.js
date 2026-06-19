@@ -1,5 +1,6 @@
 import { parseImportNumeric, toDbNumeric } from "@/lib/certificateCalculations/parseNumber";
 import { calculateAirDensityFromEnvironmental } from "@/lib/certificateCalculations/environmentalCalculations";
+import { syncLegacyReadingColumns, readingsAfterFromPoint, readingsBeforeFromPoint } from "./certificatePointUtils";
 
 const POINT_NUMERIC_FIELDS = [
   "nominal_value",
@@ -26,10 +27,23 @@ const COLETA_POINT_SOURCE = {
 };
 
 export function mapColetaPointForDb(pt, pointNumber, warnings = []) {
+  const afterRaw = [pt?.rep1, pt?.rep2, pt?.rep3, pt?.rep4, pt?.rep5, pt?.rep6]
+    .filter((r) => r != null && String(r).trim() !== "");
+  const beforeRaw = pt?.leitura_antes
+    ? [pt.leitura_antes]
+    : (Array.isArray(pt?.readings_antes) ? pt.readings_antes : []);
+
   const result = {
     point_number: pointNumber,
     standard_weight_ids: Array.isArray(pt?.pesos_padrao_ids) ? pt.pesos_padrao_ids : [],
     notes: "",
+    point_enabled: Boolean(
+      pt?.point_enabled || pt?.peso_nominal || afterRaw.length || beforeRaw.length || pt?.pesos_padrao_ids?.length,
+    ),
+    verification_division: pt?.divisao_verificacao || "",
+    buoyancy_ppm: pt?.ppm_empuxo || "",
+    readings_before: [],
+    readings_after: [],
   };
 
   for (const field of POINT_NUMERIC_FIELDS) {
@@ -43,11 +57,30 @@ export function mapColetaPointForDb(pt, pointNumber, warnings = []) {
     result[field] = parsed.valid ? parsed.value : null;
   }
 
+  const afterParsed = afterRaw.map((r) => parseImportNumeric(r)).filter((p) => p.valid).map((p) => p.value);
+  const beforeParsed = beforeRaw.map((r) => parseImportNumeric(r)).filter((p) => p.valid).map((p) => p.value);
+  result.readings_after = afterParsed;
+  result.readings_before = beforeParsed;
+  if (afterParsed.length) {
+    result.reading1 = afterParsed[0] ?? null;
+    result.reading2 = afterParsed[1] ?? null;
+    result.reading3 = afterParsed[2] ?? null;
+  }
+  if (beforeParsed.length) {
+    result.reading_before_adjustment = beforeParsed[0] ?? null;
+  }
+
+  if (pt?.resolucao) {
+    const res = parseImportNumeric(pt.resolucao);
+    result.resolution = res.valid ? res.value : null;
+  }
+
   return result;
 }
 
 export function sanitizePointRowForDb(point) {
-  const next = { ...point };
+  const synced = syncLegacyReadingColumns(point);
+  const next = { ...synced };
   for (const field of POINT_NUMERIC_FIELDS) {
     if (next[field] == null || next[field] === "") {
       next[field] = null;
@@ -56,6 +89,17 @@ export function sanitizePointRowForDb(point) {
     if (typeof next[field] === "number" && Number.isFinite(next[field])) continue;
     next[field] = toDbNumeric(next[field]);
   }
+  if (next.resolution != null && next.resolution !== "" && typeof next.resolution !== "number") {
+    next.resolution = toDbNumeric(next.resolution);
+  }
+  next.readings_before = readingsBeforeFromPoint(next)
+    .map((r) => parseImportNumeric(r))
+    .filter((p) => p.valid)
+    .map((p) => p.value);
+  next.readings_after = readingsAfterFromPoint(next)
+    .map((r) => parseImportNumeric(r))
+    .filter((p) => p.valid)
+    .map((p) => p.value);
   return next;
 }
 
