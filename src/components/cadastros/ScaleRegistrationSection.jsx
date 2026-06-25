@@ -49,6 +49,27 @@ const emptyForm = () => ({
   decimal_places_p10: 2,
 });
 
+function SectionHeading({ title, description }) {
+  return (
+    <div className="sm:col-span-2 pt-2 border-t border-slate-100 first:border-0 first:pt-0">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">{title}</p>
+      {description && <p className="text-[11px] text-slate-500 mt-0.5">{description}</p>}
+    </div>
+  );
+}
+
+function FieldLabel({ title, hint, required }) {
+  return (
+    <div className="mb-1">
+      <Label>
+        {title}
+        {required && <span className="text-red-600"> *</span>}
+      </Label>
+      {hint && <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{hint}</p>}
+    </div>
+  );
+}
+
 export default function ScaleRegistrationSection({ rows = [], endCustomers = [], tenantId, onRefresh }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -192,12 +213,16 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Editar balança" : "Nova balança"}</DialogTitle></DialogHeader>
             <div className="grid sm:grid-cols-2 gap-3">
+              <SectionHeading
+                title="Vínculo e identificação"
+                description="Dados do instrumento conforme aba BALANÇAS da planilha RE-7.2B."
+              />
               <div className="sm:col-span-2">
-                <Label>Cliente do ambiente</Label>
+                <FieldLabel title="Cliente do ambiente" hint="Cliente final onde a balança está instalada." />
                 <select
                   value={form.end_customer_id}
                   onChange={(e) => setF("end_customer_id", e.target.value)}
-                  className="w-full border rounded-md h-9 px-2 text-sm mt-1"
+                  className="w-full border rounded-md h-9 px-2 text-sm"
                 >
                   <option value="">— Selecionar cliente —</option>
                   {endCustomers.map((c) => (
@@ -205,59 +230,119 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
                   ))}
                 </select>
               </div>
-              <div><Label>Nº de série *</Label><Input value={form.serial_number} onChange={(e) => setF("serial_number", e.target.value)} /></div>
-              <div><Label>Identificação / TAG</Label><Input value={form.identification_code} onChange={(e) => setF("identification_code", e.target.value)} /></div>
-              <div><Label>TAG</Label><Input value={form.tag} onChange={(e) => setF("tag", e.target.value)} /></div>
               <div>
-                <Label>Tipo de balança</Label>
+                <FieldLabel title="Nº de série" hint="Número de série informado pelo fabricante (coluna Série)." required />
+                <Input value={form.serial_number} onChange={(e) => setF("serial_number", e.target.value)} />
+              </div>
+              <div>
+                <FieldLabel title="Identificação / patrimônio" hint="Código interno ou patrimônio do equipamento." />
+                <Input value={form.identification_code} onChange={(e) => setF("identification_code", e.target.value)} />
+              </div>
+              <div>
+                <FieldLabel title="TAG" hint="Etiqueta ou identificação operacional no local (ex.: AP-2000)." />
+                <Input value={form.tag} onChange={(e) => setF("tag", e.target.value)} />
+              </div>
+              <div>
+                <FieldLabel title="Tipo de balança" hint="Classificação operacional (industrial, analítica, etc.)." />
                 <select value={form.tipo_balanca} onChange={(e) => setF("tipo_balanca", e.target.value)} className="w-full border rounded-md h-9 px-2 text-sm">
                   <option value="">—</option>
                   {TIPO_BALANCA_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
-              <div><Label>Fabricante</Label><Input value={form.manufacturer} onChange={(e) => setF("manufacturer", e.target.value)} /></div>
-              <div><Label>Modelo</Label><Input value={form.model} onChange={(e) => setF("model", e.target.value)} /></div>
-              <div className="sm:col-span-2"><Label>Descrição</Label><Input value={form.description} onChange={(e) => setF("description", e.target.value)} /></div>
-              <div><Label>Local de instalação</Label><Input value={form.local_instalacao} onChange={(e) => setF("local_instalacao", e.target.value)} /></div>
-              <div><Label>Etiqueta IPEM</Label><Input value={form.etiqueta_ipem} onChange={(e) => setF("etiqueta_ipem", e.target.value)} /></div>
-              <div className="sm:col-span-2"><Label>Portaria INMETRO</Label><Input value={form.portaria_inmetro} onChange={(e) => setF("portaria_inmetro", e.target.value)} /></div>
-              <div><Label>C1 (carga máx.)</Label><Input value={form.capacity_1} onChange={(e) => setF("capacity_1", e.target.value)} /></div>
-              <div><Label>d1 (resolução)</Label><Input value={form.resolution_1} onChange={(e) => setF("resolution_1", e.target.value)} /></div>
-              <div><Label>e1 (div. verificação)</Label><Input value={form.verification_division_1} onChange={(e) => setF("verification_division_1", e.target.value)} /></div>
-              <div><Label>C2</Label><Input value={form.capacity_2} onChange={(e) => setF("capacity_2", e.target.value)} /></div>
-              <div><Label>d2</Label><Input value={form.resolution_2} onChange={(e) => setF("resolution_2", e.target.value)} /></div>
-              <div><Label>e2</Label><Input value={form.verification_division_2} onChange={(e) => setF("verification_division_2", e.target.value)} /></div>
-              <div><Label>C3</Label><Input value={form.capacity_3} onChange={(e) => setF("capacity_3", e.target.value)} /></div>
-              <div><Label>d3</Label><Input value={form.resolution_3} onChange={(e) => setF("resolution_3", e.target.value)} /></div>
-              <div><Label>e3</Label><Input value={form.verification_division_3} onChange={(e) => setF("verification_division_3", e.target.value)} /></div>
-              <div><Label>Classe</Label><Input value={form.instrument_class} onChange={(e) => setF("instrument_class", e.target.value)} placeholder="I, II, III…" /></div>
-              <div><Label>Ponto de trabalho</Label><Input value={form.working_point} onChange={(e) => setF("working_point", e.target.value)} /></div>
               <div>
-                <Label>Unidade</Label>
+                <FieldLabel title="Fabricante" hint="Marca do instrumento." />
+                <Input value={form.manufacturer} onChange={(e) => setF("manufacturer", e.target.value)} />
+              </div>
+              <div>
+                <FieldLabel title="Modelo" hint="Modelo comercial da balança." />
+                <Input value={form.model} onChange={(e) => setF("model", e.target.value)} />
+              </div>
+              <div className="sm:col-span-2">
+                <FieldLabel title="Descrição" hint="Texto livre para complementar a identificação no certificado." />
+                <Input value={form.description} onChange={(e) => setF("description", e.target.value)} />
+              </div>
+              <div>
+                <FieldLabel title="Local de instalação" hint="Setor ou endereço onde a calibração foi realizada." />
+                <Input value={form.local_instalacao} onChange={(e) => setF("local_instalacao", e.target.value)} />
+              </div>
+              <div>
+                <FieldLabel title="Unidade de massa" hint="Unidade principal das faixas C, d e e (g ou kg)." />
                 <select value={form.unit} onChange={(e) => setF("unit", e.target.value)} className="w-full border rounded-md h-9 px-2 text-sm">
-                  <option value="g">g</option>
-                  <option value="kg">kg</option>
+                  <option value="g">g (gramas)</option>
+                  <option value="kg">kg (quilogramas)</option>
                 </select>
               </div>
               <div>
-                <Label>Tipo de plataforma</Label>
+                <FieldLabel title="Tipo de plataforma" hint="Formato da bandeja ou plataforma de pesagem." />
                 <select value={form.platform_type} onChange={(e) => setF("platform_type", e.target.value)} className="w-full border rounded-md h-9 px-2 text-sm">
                   {PLATFORM_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
+
+              <SectionHeading
+                title="Metrologia legal"
+                description="Campos usados na conformidade OIML / Portaria INMETRO (quando aplicável)."
+              />
+              <div>
+                <FieldLabel title="Etiqueta IPEM" hint="Número da etiqueta de verificação ou selo legal." />
+                <Input value={form.etiqueta_ipem} onChange={(e) => setF("etiqueta_ipem", e.target.value)} />
+              </div>
+              <div>
+                <FieldLabel title="Portaria INMETRO" hint="Referência normativa ou indicação de escopo legal." />
+                <Input value={form.portaria_inmetro} onChange={(e) => setF("portaria_inmetro", e.target.value)} />
+              </div>
+              <div>
+                <FieldLabel title="Classe do instrumento" hint="Classe metrológica: I, II ou III (OIML R 76)." />
+                <Input value={form.instrument_class} onChange={(e) => setF("instrument_class", e.target.value)} placeholder="I, II, III…" />
+              </div>
+              <div>
+                <FieldLabel title="Ponto de trabalho" hint="Carga nominal habitual de utilização do instrumento." />
+                <Input value={form.working_point} onChange={(e) => setF("working_point", e.target.value)} />
+              </div>
+
+              <SectionHeading
+                title="Faixa de indicação — faixa 1"
+                description="Símbolos oficiais PR-7.2 / RE-7.2B: C = capacidade máxima, d = resolução, e = divisão de verificação."
+              />
+              <div>
+                <FieldLabel
+                  title="Indicação máxima (C)"
+                  hint="Capacidade máxima da faixa — valor máximo que o visor pode indicar nesta faixa."
+                />
+                <Input value={form.capacity_1} onChange={(e) => setF("capacity_1", e.target.value)} placeholder="Ex.: 220" />
+              </div>
+              <div>
+                <FieldLabel
+                  title="Resolução (d)"
+                  hint="Menor incremento exibido no visor; usada nos cálculos de incerteza (ur) e arredondamento do certificado."
+                />
+                <Input value={form.resolution_1} onChange={(e) => setF("resolution_1", e.target.value)} placeholder="Ex.: 0,0001" />
+              </div>
+              <div>
+                <FieldLabel
+                  title="Divisão de verificação (e)"
+                  hint="Intervalo de escala para verificação legal. Na maioria dos instrumentos e = d."
+                />
+                <Input value={form.verification_division_1} onChange={(e) => setF("verification_division_1", e.target.value)} placeholder="Ex.: 0,0001" />
+              </div>
+
+              <SectionHeading
+                title="Certificado — casas decimais"
+                description="Quantidade de casas decimais por ponto de calibração (P1 a P10) na emissão RE-7.2B."
+              />
               <div className="sm:col-span-2">
-                <Label className="text-xs text-slate-600">Casas decimais por ponto (P1–P10)</Label>
-                <div className="grid grid-cols-5 gap-2 mt-1">
+                <div className="grid grid-cols-5 gap-2">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <div key={n}>
-                      <Label className="text-[10px]">P{n}</Label>
+                      <Label className="text-[10px] text-slate-600">Ponto P{n}</Label>
                       <Input
                         type="number"
                         min={0}
                         max={6}
                         value={form[`decimal_places_p${n}`]}
                         onChange={(e) => setF(`decimal_places_p${n}`, e.target.value)}
-                        className="h-8 text-sm"
+                        className="h-8 text-sm mt-0.5"
+                        title={`Casas decimais no certificado para o ponto P${n}`}
                       />
                     </div>
                   ))}
