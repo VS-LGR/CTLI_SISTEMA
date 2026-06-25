@@ -8,6 +8,9 @@ import {
   resolveReadingsAfter,
   welchSatterthwaiteNuEff,
   coverageFactorFromNu,
+  truncateVeff,
+  veffForDbStorage,
+  VEFF_INFINITE_SENTINEL,
 } from "./pointCalculations";
 import {
   calculateToleranceOiml,
@@ -125,14 +128,23 @@ describe("certificateCalculations", () => {
     expect(nu).toBeCloseTo(2.16, 1);
   });
 
-  test("ua=0 → Veff infinito → k=2", () => {
-    const nu = welchSatterthwaiteNuEff([{ type: "up", u: 0.0002, nu: Infinity }]);
-    expect(nu).toBe(Infinity);
+  test("ua=0 → Veff sentinela 100 (Excel) → k=2 → exibição ∞", () => {
+    const nuRaw = welchSatterthwaiteNuEff([{ type: "up", u: 0.0002, nu: Infinity }]);
+    expect(nuRaw).toBe(Infinity);
+    const nu = truncateVeff(nuRaw);
+    expect(nu).toBe(100);
     expect(coverageFactorFromNu(nu)).toBe(2);
   });
 
   test("coverageFactorFromNu nu=6 ≈ 2,52 (002/2025)", () => {
     expect(coverageFactorFromNu(6)).toBeCloseTo(2.52, 2);
+  });
+
+  test("veffForDbStorage persiste 100 para ∞ (PostgreSQL numeric)", () => {
+    expect(VEFF_INFINITE_SENTINEL).toBe(100);
+    expect(veffForDbStorage(Infinity)).toBe(100);
+    expect(veffForDbStorage(150)).toBe(100);
+    expect(veffForDbStorage(6.36)).toBe(6);
   });
 
   test("resolveReadingsAfter fallback legado", () => {

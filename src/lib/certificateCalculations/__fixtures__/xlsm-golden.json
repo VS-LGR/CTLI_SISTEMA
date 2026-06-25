@@ -38,6 +38,7 @@
         "indication_error": 0.0001,
         "expanded_uncertainty": 0.00062,
         "coverage_factor": 2,
+        "degrees_of_freedom": 100,
         "memory": { "up": 0.0002, "ud": 0.0002309, "ur": 0.000029, "ue": 0.000051763 },
         "display": {
           "reference": 210,

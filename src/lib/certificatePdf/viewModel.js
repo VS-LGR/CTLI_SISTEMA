@@ -83,9 +83,7 @@ function mapRepeatabilityRow(p, balance, unit, decimals) {
     average: m(display.average ?? p.average_reading),
     indicationError: m(display.indicationError),
     expandedUncertainty: m(display.expandedUncertainty),
-    veff: p.degrees_of_freedom != null && p.degrees_of_freedom !== ""
-      ? formatVeffForDisplay(p.degrees_of_freedom)
-      : "--",
+    veff: resolvePointVeff(p),
     k: p.coverage_factor != null && p.coverage_factor !== ""
       ? formatCalcDisplay(p.coverage_factor, 2).replace(".", ",")
       : "--",
@@ -155,8 +153,19 @@ function parseCityFromAddress(address) {
   return "";
 }
 
-function formatVeff(veff) {
-  const formatted = formatVeffForDisplay(veff);
+function resolvePointVeff(point) {
+  if (point?.degrees_of_freedom != null && point.degrees_of_freedom !== "") {
+    return formatVeffForDisplay(point.degrees_of_freedom);
+  }
+  const fromMemory = point?.calculation_memory?.veffDisplay;
+  if (fromMemory != null && String(fromMemory).trim() !== "" && fromMemory !== "--") {
+    return String(fromMemory);
+  }
+  return "--";
+}
+
+function formatPointVeff(point) {
+  const formatted = resolvePointVeff(point);
   return formatted === "--" ? "—" : formatted;
 }
 
@@ -395,7 +404,7 @@ export function buildCertificatePdfViewModel(cert, {
         average: withUnit(display.average ?? p.average_reading, unit, decimals),
         indicationError: withUnit(display.indicationError, unit, decimals),
         expandedUncertainty: withUnit(display.expandedUncertainty, unit, decimals),
-        veff: formatVeff(p.degrees_of_freedom),
+        veff: formatPointVeff(p),
         k: formatCalcDisplay(p.coverage_factor, 2),
       },
       conformity: p.conformity_result || "",

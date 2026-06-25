@@ -101,9 +101,22 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
     expect(model.repeatabilityRows).toHaveLength(10);
     expect(model.repeatabilityRows[0].reference.value).toBeTruthy();
     expect(model.repeatabilityRows[0].reference.unit).toBe("kg");
+    expect(model.repeatabilityRows[0].veff).toBe("∞");
     expect(model.repeatabilityRows[1].empty).toBe(true);
     expect(model.repeatabilityRows[1].reference.value).toBe("--");
     expect(model.calibratedPointsCount).toBe(1);
     expect(model.readingsPerPoint).toBe("3");
+  });
+
+  test("Veff usa calculation_memory quando degrees_of_freedom ausente no banco", () => {
+    const model = buildCertificatePdfViewModel({
+      ...EMISSAO_TESTE_CERT,
+      points: [{
+        ...EMISSAO_TESTE_CERT.points[0],
+        degrees_of_freedom: null,
+        calculation_memory: { veffDisplay: "∞" },
+      }],
+    });
+    expect(model.repeatabilityRows[0].veff).toBe("∞");
   });
 });

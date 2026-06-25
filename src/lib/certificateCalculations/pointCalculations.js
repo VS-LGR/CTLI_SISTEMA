@@ -123,9 +123,21 @@ export function welchSatterthwaiteNuEff(components) {
   return Number.isFinite(nuEff) && nuEff > 0 ? nuEff : Infinity;
 }
 
+/** Excel Matriz (2): ua=0 ou Veff>99 → 100 internamente; exibição Certificado-RBC → ∞. */
+export const VEFF_INFINITE_SENTINEL = 100;
+
+/** Normaliza Veff para armazenamento (DB/PDF) — alinhado à col AA da planilha. */
+export function veffForDbStorage(nu) {
+  if (nu == null || nu === "") return null;
+  if (nu === Infinity || nu === "Infinity") return VEFF_INFINITE_SENTINEL;
+  const n = Number(nu);
+  if (!Number.isFinite(n)) return VEFF_INFINITE_SENTINEL;
+  const floored = Math.floor(n);
+  return floored > 99 ? VEFF_INFINITE_SENTINEL : floored;
+}
+
 export function truncateVeff(nu) {
-  if (!Number.isFinite(nu) || nu === Infinity) return Infinity;
-  return Math.floor(nu);
+  return veffForDbStorage(nu);
 }
 
 export function resolveReadingsAfter(point) {

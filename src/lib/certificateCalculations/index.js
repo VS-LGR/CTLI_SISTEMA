@@ -19,6 +19,8 @@ export {
   coverageFactorFromNu,
   welchSatterthwaiteNuEff,
   truncateVeff,
+  veffForDbStorage,
+  VEFF_INFINITE_SENTINEL,
 } from "./pointCalculations";
 export {
   sumConventionalFromWeightIds,

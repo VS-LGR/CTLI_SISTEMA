@@ -1,4 +1,5 @@
 import { parseImportNumeric, toDbNumeric } from "@/lib/certificateCalculations/parseNumber";
+import { veffForDbStorage } from "@/lib/certificateCalculations/pointCalculations";
 import { calculateAirDensityFromEnvironmental } from "@/lib/certificateCalculations/environmentalCalculations";
 import { applyLoadBatchFromColeta } from "@/lib/certificateCalculations/loadBatchCalculations";
 import { syncLegacyReadingColumns, readingsAfterFromPoint, readingsBeforeFromPoint } from "./certificatePointUtils";
@@ -163,6 +164,10 @@ export function sanitizeCalculatedPointPatchForDb(patch) {
     if (!(field in next)) continue;
     if (next[field] == null || next[field] === "") {
       next[field] = null;
+      continue;
+    }
+    if (field === "degrees_of_freedom") {
+      next[field] = veffForDbStorage(next[field]);
       continue;
     }
     if (typeof next[field] === "number" && Number.isFinite(next[field])) continue;
