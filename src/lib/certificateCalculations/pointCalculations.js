@@ -3,7 +3,7 @@ import { driftFromWeightItem } from "@/lib/standardWeightCalculations";
 
 const SQRT3 = Math.sqrt(3);
 const DEFAULT_STANDARD_K = 2;
-const T_INV_PROB = 0.97725; // two-sided 95.45 %
+const T_INV_PROB = 0.97725;
 
 function stdevSample(values) {
   const n = values.length;
@@ -20,15 +20,7 @@ function toGrams(value, unit) {
   return value;
 }
 
-function toKg(value, unit) {
-  if (unit === "kg") return value;
-  if (unit === "g") return value / 1000;
-  if (unit === "mg") return value / 1e6;
-  return value;
-}
-
-/** Inverse standard normal CDF (Beasley–Springer–Moro). */
-function normalInv(p) {
+function inverseNormalCdf(p) {
   if (p <= 0) return -Infinity;
   if (p >= 1) return Infinity;
   if (p === 0.5) return 0;
@@ -51,30 +43,28 @@ function normalInv(p) {
   ];
 
   const split = 0.425;
-  let q = p - 0.5;
-  let r;
+  const q = p - 0.5;
 
   if (Math.abs(q) <= split) {
-    r = 0.180625 - q * q;
+    const r = 0.180625 - q * q;
     return q * (((((a[5] * r + a[4]) * r + a[3]) * r + a[2]) * r + a[1]) * r + a[0])
       / (((((b[4] * r + b[3]) * r + b[2]) * r + b[1]) * r + b[0]) * r + 1);
   }
 
-  r = q > 0 ? 1 - p : p;
-  r = Math.sqrt(-Math.log(r));
-  const poly = r <= 5
-    ? (((((c[5] * r + c[4]) * r + c[3]) * r + c[2]) * r + c[1]) * r + c[0])
-      / ((((d[3] * r + d[2]) * r + d[1]) * r + d[0]) * r + 1)
-    : (((((c[5] * r + c[4]) * r + c[3]) * r + c[2]) * r + c[1]) * r + c[0])
-      / ((((d[3] * r + d[2]) * r + d[1]) * r + d[0]) * r + 1);
+  const r = q > 0 ? 1 - p : p;
+  const rt = Math.sqrt(-Math.log(r));
+  const poly = rt <= 5
+    ? (((((c[5] * rt + c[4]) * rt + c[3]) * rt + c[2]) * rt + c[1]) * rt + c[0])
+      / ((((d[3] * rt + d[2]) * rt + d[1]) * rt + d[0]) * rt + 1)
+    : (((((c[5] * rt + c[4]) * rt + c[3]) * rt + c[2]) * rt + c[1]) * rt + c[0])
+      / ((((d[3] * rt + d[2]) * rt + d[1]) * rt + d[0]) * rt + 1);
 
   return q > 0 ? poly : -poly;
 }
 
-/** Student t quantile — approximates Excel T.INV(probability, nu). */
 function studentTInv(probability, nu) {
   if (!Number.isFinite(nu) || nu <= 0) return 2;
-  const z = normalInv(probability);
+  const z = inverseNormalCdf(probability);
   const z2 = z * z;
   const z3 = z2 * z;
   const z5 = z3 * z2;
@@ -89,38 +79,55 @@ function studentTInv(probability, nu) {
   return z + g1 + g2 + g3 + g4;
 }
 
+/** t_{0,97725; ν} — 95,45% (PR-7.6 / planilha RE-7.2B). Fonte: distribuição t de Student. */
+const T_INVERSE_9545 = [
+  0, 12.706, 4.303, 3.182, 2.776, 2.571, 2.517, 2.447, 2.397, 2.357, 2.325,
+  2.298, 2.276, 2.256, 2.24, 2.224, 2.212, 2.2, 2.189, 2.179, 2.17,
+  2.162, 2.154, 2.147, 2.14, 2.134, 2.128, 2.123, 2.118, 2.113, 2.108,
+  2.104, 2.1, 2.096, 2.092, 2.088, 2.085, 2.082, 2.079, 2.076, 2.073,
+  2.07, 2.068, 2.066, 2.064, 2.062, 2.06, 2.058, 2.056, 2.054, 2.052,
+  2.05, 2.048, 2.047, 2.045, 2.044, 2.042, 2.041, 2.04, 2.038, 2.037,
+  2.036, 2.035, 2.034, 2.033, 2.032, 2.031, 2.03, 2.029, 2.028, 2.027,
+  2.026, 2.025, 2.024, 2.023, 2.022, 2.022, 2.021, 2.02, 2.019, 2.019,
+  2.018, 2.017, 2.017, 2.016, 2.015, 2.015, 2.014, 2.014, 2.013, 2.013,
+  2.012, 2.012, 2.011, 2.011, 2.01, 2.01, 2.009, 2.009, 2.008, 2.008,
+];
+
 export function coverageFactorFromNu(nu) {
-  if (!Number.isFinite(nu) || nu <= 0) return 2;
+  if (!Number.isFinite(nu) || nu <= 0 || nu === Infinity) return 2;
   if (nu >= 100) return 2;
+  const df = Math.floor(nu);
+  if (df >= 1 && df < T_INVERSE_9545.length) {
+    return Math.min(T_INVERSE_9545[df], 3);
+  }
   const t = studentTInv(T_INV_PROB, nu);
   return Math.max(2, Math.min(t, 3));
 }
 
+/** PR-7.6 §5.3.6 — apenas ua (Tipo A) entra no Welch-Satterthwaite. */
 export function welchSatterthwaiteNuEff(components) {
-  const valid = (components || []).filter(
-    (c) => c && Number.isFinite(c.u) && c.u > 0 && Number.isFinite(c.nu) && c.nu > 0,
+  const uaEntry = (components || []).find(
+    (c) => c && c.type === "ua" && Number.isFinite(c.u) && c.u > 0 && Number.isFinite(c.nu) && c.nu > 0,
   );
-  if (!valid.length) return 100;
+  if (!uaEntry) return Infinity;
 
-  const ucSq = valid.reduce((s, c) => s + c.u * c.u, 0);
+  const all = (components || []).filter((c) => c && Number.isFinite(c.u));
+  const ucSq = all.reduce((s, c) => s + c.u * c.u, 0);
   const uc = Math.sqrt(ucSq);
-  if (uc === 0) return 100;
+  if (uc === 0) return Infinity;
 
-  const denom = valid.reduce((s, c) => s + (c.u ** 4) / c.nu, 0);
-  if (denom <= 0) return 100;
+  const denom = (uaEntry.u ** 4) / uaEntry.nu;
+  if (denom <= 0) return Infinity;
 
   const nuEff = (uc ** 4) / denom;
-  return Number.isFinite(nuEff) && nuEff > 0 ? nuEff : 100;
+  return Number.isFinite(nuEff) && nuEff > 0 ? nuEff : Infinity;
 }
 
-function halfResolution(resolution, unit) {
-  const r = parseCalibrationNumber(resolution);
-  if (!r.valid) return { value: null, valid: false, reason: "Resolução inválida" };
-  const half = r.value / 2;
-  return { value: unit === "g" ? half : half, valid: true, reason: "" };
+export function truncateVeff(nu) {
+  if (!Number.isFinite(nu) || nu === Infinity) return Infinity;
+  return Math.floor(nu);
 }
 
-/** Leituras depois do ajuste (array jsonb ou colunas legadas). */
 export function resolveReadingsAfter(point) {
   if (Array.isArray(point?.readings_after) && point.readings_after.length) {
     return point.readings_after;
@@ -130,7 +137,6 @@ export function resolveReadingsAfter(point) {
   );
 }
 
-/** Leituras antes do ajuste. */
 export function resolveReadingsBefore(point) {
   if (Array.isArray(point?.readings_before) && point.readings_before.length) {
     return point.readings_before;
@@ -141,11 +147,10 @@ export function resolveReadingsBefore(point) {
   return [];
 }
 
-/** RSS of combined (Ue/k) and (|drift|/√3) per weight — input to u_pad before /√3. */
-export function standardUncertaintyAbsFromWeightIds(weightIds, weightItems = [], targetUnit = "g", kDefault = DEFAULT_STANDARD_K) {
+/** up = √Σ(Ueᵢ/kᵢ)² — sem /√3 adicional (PR-7.6). */
+export function standardUncertaintyUpFromWeightIds(weightIds, weightItems = [], targetUnit = "g", kDefault = DEFAULT_STANDARD_K) {
   let sumSq = 0;
   let valid = false;
-  const driftErrors = [];
 
   for (const id of weightIds || []) {
     const item = weightItems.find((w) => w.id === id);
@@ -157,28 +162,53 @@ export function standardUncertaintyAbsFromWeightIds(weightIds, weightItems = [],
     const ueG = toGrams(ue.value, item.unit || "g");
     if (ueG == null) continue;
     const uUe = ueG / k;
+    sumSq += uUe * uUe;
+    valid = true;
+  }
+
+  if (!valid) return { value: null, valid: false, reason: "" };
+  const combinedG = Math.sqrt(sumSq);
+  if (targetUnit === "kg") return { value: combinedG / 1000, valid: true, reason: "" };
+  return { value: combinedG, valid: true, reason: "" };
+}
+
+/** ud = √Σ(|derivaᵢ|/√3)² (PR-7.6). */
+export function driftUncertaintyUdFromWeightIds(weightIds, weightItems = [], targetUnit = "g") {
+  let sumSq = 0;
+  let valid = false;
+  const driftErrors = [];
+
+  for (const id of weightIds || []) {
+    const item = weightItems.find((w) => w.id === id);
+    if (!item) continue;
 
     const drift = driftFromWeightItem(item);
-    let uDrift = 0;
-    if (drift.valid) {
-      const driftG = toGrams(Math.abs(drift.value), item.unit || "g");
-      if (driftG != null) uDrift = driftG / SQRT3;
-    } else if (item.weight_status === "2") {
-      driftErrors.push(`${item.identification}: ${drift.reason || "deriva inválida"}`);
+    if (!drift.valid) {
+      if (item.weight_status === "2") {
+        driftErrors.push(`${item.identification}: ${drift.reason || "deriva inválida"}`);
+      }
+      continue;
     }
 
-    const uWeight = Math.sqrt(uUe * uUe + uDrift * uDrift);
-    sumSq += uWeight * uWeight;
+    const driftG = toGrams(Math.abs(drift.value), item.unit || "g");
+    if (driftG == null) continue;
+    const uDrift = driftG / SQRT3;
+    sumSq += uDrift * uDrift;
     valid = true;
   }
 
   if (driftErrors.length) {
     return { value: null, valid: false, reason: driftErrors.join("; "), driftErrors };
   }
-  if (!valid) return { value: null, valid: false, reason: "" };
+  if (!valid) return { value: 0, valid: true, reason: "" };
   const combinedG = Math.sqrt(sumSq);
   if (targetUnit === "kg") return { value: combinedG / 1000, valid: true, reason: "" };
   return { value: combinedG, valid: true, reason: "" };
+}
+
+/** @deprecated Use standardUncertaintyUpFromWeightIds + driftUncertaintyUdFromWeightIds */
+export function standardUncertaintyAbsFromWeightIds(weightIds, weightItems = [], targetUnit = "g", kDefault = DEFAULT_STANDARD_K) {
+  return standardUncertaintyUpFromWeightIds(weightIds, weightItems, targetUnit, kDefault);
 }
 
 export function resolveResolutionForNominal(nominalValue, balance = {}, unit = "g") {
@@ -217,13 +247,14 @@ export function calculatePointAverage(readings) {
   return { value: avg, valid: true, reason: "", count: nums.length };
 }
 
-export function calculateIndicationError(averageReading, nominalValue) {
+export function calculateIndicationError(averageReading, referenceValue) {
   const avg = parseCalibrationNumber(averageReading);
-  const nom = parseCalibrationNumber(nominalValue);
-  if (!avg.valid || !nom.valid) return { value: null, valid: false, reason: "Média ou nominal ausente" };
-  return { value: avg.value - nom.value, valid: true, reason: "" };
+  const ref = parseCalibrationNumber(referenceValue);
+  if (!avg.valid || !ref.valid) return { value: null, valid: false, reason: "Média ou referência ausente" };
+  return { value: avg.value - ref.value, valid: true, reason: "" };
 }
 
+/** ua — repetitividade (Tipo A): STDEV / √n */
 export function calculateRepeatability(readings) {
   const nums = readings
     .map((r) => parseCalibrationNumber(r))
@@ -235,24 +266,12 @@ export function calculateRepeatability(readings) {
   return { value: u, valid: true, reason: "", n: nums.length };
 }
 
-export function calculateResolutionContribution(resolution, unit = "g") {
-  const half = halfResolution(resolution, unit);
-  if (!half.valid) return { value: null, valid: false, reason: half.reason };
-  const contrib = (half.value * 2) / SQRT3;
-  return { value: contrib, valid: true, reason: "", halfResolution: half.value };
-}
-
-export function calculateStandardUncertaintyContribution(nominalKg, standardUncertaintyPpm, standardUncertaintyAbs = null) {
-  if (standardUncertaintyAbs != null && Number.isFinite(standardUncertaintyAbs)) {
-    const contrib = standardUncertaintyAbs / SQRT3;
-    return { value: contrib, valid: true, reason: "", absolute: standardUncertaintyAbs };
-  }
-  const nom = parseCalibrationNumber(nominalKg);
-  const unc = parseCalibrationNumber(standardUncertaintyPpm);
-  if (!nom.valid) return { value: null, valid: false, reason: "Valor nominal ausente" };
-  const ppm = unc.valid ? unc.value : 0;
-  const contrib = ((nom.value / 1e6) * ppm) / SQRT3;
-  return { value: contrib, valid: true, reason: "", ppm };
+/** ur = d / (2×√3) — distribuição retangular (PR-7.6). */
+export function calculateResolutionContribution(resolution) {
+  const r = parseCalibrationNumber(resolution);
+  if (!r.valid) return { value: null, valid: false, reason: "Resolução inválida" };
+  const contrib = r.value / (2 * SQRT3);
+  return { value: contrib, valid: true, reason: "", halfResolution: r.value / 2 };
 }
 
 export function calculateExpandedUncertainty(components) {
@@ -272,12 +291,14 @@ export function calculateEccentricityError(reading, reference) {
 export function calculateCalibrationPoint(point, {
   resolution,
   unit = "g",
-  standardUncertaintyPpm = 0,
-  standardUncertaintyAbs = null,
+  referenceValue = null,
+  up = 0,
+  ud = 0,
+  ue = 0,
   errorBeforeAdjustment = null,
 } = {}) {
   const readings = resolveReadingsAfter(point);
-  if (!readings.length && !point.nominal_value) {
+  if (!readings.length && !point.nominal_value && referenceValue == null) {
     return { calcStatus: "pendente", calcError: "", results: {} };
   }
 
@@ -290,16 +311,15 @@ export function calculateCalibrationPoint(point, {
     return { calcStatus: "erro", calcError: avgRes.reason, results: {} };
   }
 
-  const nom = parseCalibrationNumber(point.nominal_value);
-  if (!nom.valid) {
-    return { calcStatus: "erro", calcError: "Valor nominal obrigatório", results: {} };
+  const refVal = referenceValue != null ? referenceValue : point.nominal_value;
+  const ref = parseCalibrationNumber(refVal);
+  if (!ref.valid) {
+    return { calcStatus: "erro", calcError: "Valor de referência (V.R.) obrigatório", results: {} };
   }
 
-  const indication = calculateIndicationError(avgRes.value, nom.value);
+  const indication = calculateIndicationError(avgRes.value, ref.value);
   const repeatability = calculateRepeatability(readings);
-  const resolutionContrib = calculateResolutionContribution(resolution, unit);
-  const nomKg = toKg(nom.value, unit);
-  const standardContrib = calculateStandardUncertaintyContribution(nomKg, standardUncertaintyPpm, standardUncertaintyAbs);
+  const resolutionContrib = calculateResolutionContribution(resolution);
 
   let errorBefore = null;
   if (errorBeforeAdjustment != null) {
@@ -309,48 +329,54 @@ export function calculateCalibrationPoint(point, {
     const beforeReadings = resolveReadingsBefore(point);
     if (beforeReadings.length >= 2) {
       const beforeAvg = calculatePointAverage(beforeReadings);
-      if (beforeAvg.valid) errorBefore = beforeAvg.value - nom.value;
+      if (beforeAvg.valid) errorBefore = beforeAvg.value - ref.value;
     } else if (beforeReadings.length === 1) {
       const before = parseCalibrationNumber(beforeReadings[0]);
-      if (before.valid) errorBefore = before.value - nom.value;
+      if (before.valid) errorBefore = before.value - ref.value;
     } else if (point.reading_before_adjustment != null && String(point.reading_before_adjustment).trim() !== "") {
       const before = parseCalibrationNumber(point.reading_before_adjustment);
-      if (before.valid) errorBefore = before.value - nom.value;
+      if (before.valid) errorBefore = before.value - ref.value;
     }
   }
 
-  const indicationContrib = errorBefore != null
-    ? { value: (Math.abs(errorBefore) / 2) / SQRT3, valid: true }
-    : { value: indication.valid ? (Math.abs(indication.value) / 2) / SQRT3 : 0, valid: true };
+  const ua = repeatability.valid ? repeatability.value : 0;
+  const ur = resolutionContrib.valid ? resolutionContrib.value : 0;
+  const upVal = Number.isFinite(up) ? up : 0;
+  const udVal = Number.isFinite(ud) ? ud : 0;
+  const ueVal = Number.isFinite(ue) ? ue : 0;
 
-  const uRep = repeatability.valid ? repeatability.value : 0;
-  const uRes = resolutionContrib.valid ? resolutionContrib.value : 0;
-  const uPad = standardContrib.valid ? standardContrib.value : 0;
-  const uInd = indicationContrib.valid ? indicationContrib.value : 0;
-
-  const components = [uRep, uRes, uPad, uInd].filter((c) => Number.isFinite(c));
+  const components = [ua, upVal, udVal, ueVal, ur].filter((c) => Number.isFinite(c));
   const combinedRes = calculateExpandedUncertainty(components);
 
   const nReadings = repeatability.n || readings.length;
-  const nuRep = nReadings >= 2 ? nReadings - 1 : 100;
-  const nu = welchSatterthwaiteNuEff([
-    { u: uRep, nu: nuRep },
-    { u: uRes, nu: 100 },
-    { u: uPad, nu: 100 },
-    { u: uInd, nu: 100 },
+  const nuRep = nReadings >= 2 ? nReadings - 1 : 0;
+  const nuRaw = welchSatterthwaiteNuEff([
+    { type: "ua", u: ua, nu: nuRep },
+    { type: "up", u: upVal, nu: Infinity },
+    { type: "ud", u: udVal, nu: Infinity },
+    { type: "ue", u: ueVal, nu: Infinity },
+    { type: "ur", u: ur, nu: Infinity },
   ]);
+  const nu = truncateVeff(nuRaw);
 
   const k = coverageFactorFromNu(nu);
   const expanded = combinedRes.valid ? k * combinedRes.combined : null;
 
   const memory = {
     average: avgRes.value,
+    referenceValue: ref.value,
     indicationError: indication.value,
     errorBeforeAdjustment: errorBefore,
-    repeatability: uRep,
-    resolutionContribution: uRes,
-    standardContribution: uPad,
-    indicationContribution: uInd,
+    ua,
+    up: upVal,
+    ud: udVal,
+    ue: ueVal,
+    ur,
+    repeatability: ua,
+    resolutionContribution: ur,
+    standardContribution: upVal,
+    driftContribution: udVal,
+    buoyancyContribution: ueVal,
     combinedUncertainty: combinedRes.combined,
     coverageFactor: k,
     degreesOfFreedom: nu,
@@ -365,7 +391,7 @@ export function calculateCalibrationPoint(point, {
       average_reading: avgRes.value,
       indication_error: indication.value,
       error_before_adjustment: errorBefore,
-      repeatability: uRep,
+      repeatability: ua,
       resolution: resolutionContrib.halfResolution,
       standard_uncertainty: combinedRes.combined,
       expanded_uncertainty: expanded,
@@ -402,4 +428,17 @@ export function maxStandardUncertaintyPpm(weightIds, weightItems = [], weightCer
     if (p.valid && p.value > maxPpm) maxPpm = p.value;
   }
   return maxPpm || 2;
+}
+
+/** @deprecated */
+export function calculateStandardUncertaintyContribution(nominalKg, standardUncertaintyPpm, standardUncertaintyAbs = null) {
+  if (standardUncertaintyAbs != null && Number.isFinite(standardUncertaintyAbs)) {
+    return { value: standardUncertaintyAbs, valid: true, reason: "", absolute: standardUncertaintyAbs };
+  }
+  const nom = parseCalibrationNumber(nominalKg);
+  const unc = parseCalibrationNumber(standardUncertaintyPpm);
+  if (!nom.valid) return { value: null, valid: false, reason: "Valor nominal ausente" };
+  const ppm = unc.valid ? unc.value : 0;
+  const contrib = (nom.value / 1e6) * ppm;
+  return { value: contrib, valid: true, reason: "", ppm };
 }

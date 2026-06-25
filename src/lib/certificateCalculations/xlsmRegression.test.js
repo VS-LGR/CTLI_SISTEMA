@@ -15,6 +15,7 @@ describe("xlsm golden regression", () => {
         testCase.balance,
         testCase.weightItems || [],
         testCase.weightCerts || [],
+        testCase.environmental || {},
       );
       const tol = testCase.tolerance ?? 0.002;
 
@@ -44,6 +45,24 @@ describe("xlsm golden regression", () => {
       }
       if (testCase.expected.coverage_factor != null) {
         expect(num(pt.coverage_factor)).toBeCloseTo(testCase.expected.coverage_factor, 2);
+      }
+      if (testCase.expected.degrees_of_freedom != null) {
+        expect(num(pt.degrees_of_freedom)).toBeCloseTo(testCase.expected.degrees_of_freedom, 0);
+      }
+      if (testCase.expected.memory) {
+        const mem = pt.calculation_memory || {};
+        if (testCase.expected.memory.up != null) {
+          expect(mem.up).toBeCloseTo(testCase.expected.memory.up, 4);
+        }
+        if (testCase.expected.memory.ud != null) {
+          expect(mem.ud).toBeCloseTo(testCase.expected.memory.ud, 4);
+        }
+        if (testCase.expected.memory.ue != null) {
+          expect(mem.ue).toBeCloseTo(testCase.expected.memory.ue, 5);
+        }
+        if (testCase.expected.memory.ur != null) {
+          expect(mem.ur).toBeCloseTo(testCase.expected.memory.ur, 5);
+        }
       }
     });
   });

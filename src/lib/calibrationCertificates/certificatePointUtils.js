@@ -52,6 +52,8 @@ export function emptyCertificatePoint(pointNumber) {
     resolution: "",
     verification_division: "",
     buoyancy_ppm: "",
+    material_density: "",
+    material_preset: "",
     notes: "",
   };
 }
@@ -87,6 +89,8 @@ export function coletaPointToPanelPoint(pt, pointNumber, balance = {}) {
     resolution: pt?.resolucao || balance.resolucao || "",
     verification_division: pt?.divisao_verificacao || balance.divisao_verificacao || "",
     buoyancy_ppm: pt?.ppm_empuxo || "",
+    material_density: pt?.densidade_material || "",
+    material_preset: pt?.material_preset || "",
   };
 }
 
@@ -109,6 +113,8 @@ export function panelPointToColetaPoint(panelPt) {
     resolucao: panelPt.resolution || "",
     divisao_verificacao: panelPt.verification_division || "",
     ppm_empuxo: panelPt.buoyancy_ppm || "",
+    densidade_material: panelPt.material_density || "",
+    material_preset: panelPt.material_preset || "",
     point_enabled: panelPt.point_enabled,
   };
 }
@@ -131,6 +137,8 @@ export function certificatePointToPanelPoint(pt, balance = {}) {
     resolution: synced.resolution != null && synced.resolution !== "" ? String(synced.resolution) : "",
     verification_division: synced.verification_division || resolveDefaultVerificationDivision(synced.nominal_value, balance),
     buoyancy_ppm: synced.buoyancy_ppm || "",
+    material_density: synced.material_density || "",
+    material_preset: synced.material_preset || "",
     notes: synced.notes || "",
   };
 }
@@ -171,6 +179,8 @@ export function pointToDbPatch(point) {
       : null,
     verification_division: synced.verification_division || "",
     buoyancy_ppm: synced.buoyancy_ppm || "",
+    material_density: synced.material_density || "",
+    material_preset: synced.material_preset || "",
     notes: synced.notes || "",
   };
 

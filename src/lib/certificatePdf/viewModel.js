@@ -1,6 +1,11 @@
 import { formatCertificateNumber, certificateTypeLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter } from "@/lib/certificateCalculations";
+import {
+  roundExpandedUncertainty,
+  roundIndicationError,
+  formatVeffForDisplay,
+} from "@/lib/certificateCalculations/certificateDisplayRounding";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import {
   environmentalAverage,
@@ -71,7 +76,12 @@ function emptyRepeatabilityRow(unit) {
   };
 }
 
-function mapRepeatabilityRow(p, unit, decimals) {
+function mapRepeatabilityRow(p, balance, unit, decimals) {
+  const resolutionStr = p.resolution != null && String(p.resolution).trim() !== ""
+    ? String(p.resolution)
+    : resolveResolutionForNominal(p.nominal_value, balance, unit);
+  const errDisplay = roundIndicationError(p.indication_error, resolutionStr, decimals);
+  const ueDisplay = roundExpandedUncertainty(p.expanded_uncertainty, resolutionStr, decimals);
   const m = (v) => pdfMeasure(v, unit, decimals);
   return {
     empty: false,
@@ -79,10 +89,10 @@ function mapRepeatabilityRow(p, unit, decimals) {
     beforeReading: m(p.reading_before_adjustment),
     beforeError: m(p.error_before_adjustment),
     average: m(p.average_reading),
-    indicationError: m(p.indication_error),
-    expandedUncertainty: m(p.expanded_uncertainty),
+    indicationError: m(errDisplay),
+    expandedUncertainty: m(ueDisplay),
     veff: p.degrees_of_freedom != null && p.degrees_of_freedom !== ""
-      ? formatVeff(p.degrees_of_freedom)
+      ? formatVeffForDisplay(p.degrees_of_freedom)
       : "--",
     k: p.coverage_factor != null && p.coverage_factor !== ""
       ? formatCalcDisplay(p.coverage_factor, 2).replace(".", ",")
@@ -99,7 +109,7 @@ function buildRepeatabilityRows(certPoints, balance, unit) {
     const p = activeByNum[n];
     if (!p) return emptyRepeatabilityRow(unit);
     const decimals = resolveDisplayDecimals(p, balance, unit);
-    return mapRepeatabilityRow(p, unit, decimals);
+    return mapRepeatabilityRow(p, balance, unit, decimals);
   });
 }
 

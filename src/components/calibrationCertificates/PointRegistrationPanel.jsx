@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Minus } from "@phosphor-icons/react";
 import PesoPadraoPointTable from "@/components/calibrationCertificates/PesoPadraoPointTable";
 import { sumConventionalFromWeightIds } from "@/lib/certificateCalculations/environmentalCalculations";
+import { MATERIAL_PRESETS, densityFromPresetId, ppmFromPresetId } from "@/lib/certificateCalculations/materialConstants";
 import {
   resolveDefaultResolutionForPoint,
   resolveDefaultVerificationDivision,
@@ -148,7 +149,7 @@ function PointTabContent({
         onChange={(readings) => setField({ readings_after: readings })}
       />
 
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
           <Label className="text-xs">Resolução (d)</Label>
           <Input
@@ -168,13 +169,46 @@ function PointTabContent({
           />
         </div>
         <div>
+          <Label className="text-xs">Material do peso padrão</Label>
+          <select
+            className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            disabled={fieldsDisabled}
+            value={point.material_preset ?? ""}
+            onChange={(e) => {
+              const id = e.target.value;
+              const density = densityFromPresetId(id);
+              const ppm = ppmFromPresetId(id);
+              setField({
+                material_preset: id,
+                material_density: density != null ? String(density) : point.material_density,
+                buoyancy_ppm: ppm != null ? String(ppm) : point.buoyancy_ppm,
+              });
+            }}
+          >
+            <option value="">— Selecionar —</option>
+            {MATERIAL_PRESETS.map((m) => (
+              <option key={m.id} value={m.id}>{m.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label className="text-xs">Densidade material (kg/m³)</Label>
+          <Input
+            value={point.material_density ?? ""}
+            disabled={fieldsDisabled}
+            onChange={(e) => setField({ material_density: e.target.value })}
+            className="h-9 mt-1"
+            placeholder="Ex.: 7900"
+          />
+        </div>
+        <div>
           <Label className="text-xs">PPM do Empuxo</Label>
           <Input
             value={point.buoyancy_ppm ?? ""}
             disabled={fieldsDisabled}
             onChange={(e) => setField({ buoyancy_ppm: e.target.value })}
             className="h-9 mt-1"
-            placeholder="Ex.: 2"
+            placeholder="Ex.: 1"
           />
         </div>
       </div>

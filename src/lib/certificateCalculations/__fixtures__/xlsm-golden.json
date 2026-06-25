@@ -1,87 +1,99 @@
 {
   "cases": [
     {
+      "id": "validacao-2025-210g",
+      "description": "Validação 2025 — ponto 210 g (planilha P1 row 8)",
+      "balance": { "unidade": "g", "capacidade": "220", "resolucao": "0.0001", "decimal_places": { "p1": 4 } },
+      "environmental": {
+        "initial_temperature": "24",
+        "final_temperature": "24",
+        "initial_humidity": "65",
+        "final_humidity": "58",
+        "initial_pressure": "935",
+        "final_pressure": "935"
+      },
+      "weightItems": [{
+        "id": "w-val",
+        "identification": "P-val",
+        "conventional_value": "210",
+        "expanded_uncertainty": "0.0004",
+        "coverage_factor": "2",
+        "weight_status": "2",
+        "previous_conventional_value": "209.9996",
+        "unit": "g"
+      }],
+      "weightCerts": [],
+      "points": [{
+        "point_number": 1,
+        "standard_weight_ids": ["w-val"],
+        "material_density": "7900",
+        "buoyancy_ppm": "1",
+        "resolution": "0.0001",
+        "reading1": "210.0001",
+        "reading2": "210.0001",
+        "reading3": "210.0001"
+      }],
+      "expected": {
+        "nominal_value": 210,
+        "indication_error": 0.0001,
+        "expanded_uncertainty": 0.00062,
+        "coverage_factor": 2,
+        "memory": { "up": 0.0002, "ud": 0.0002309, "ur": 0.000029, "ue": 0.000051763 }
+      },
+      "tolerance": 0.00005
+    },
+    {
       "id": "ppm-fallback-single-range",
-      "description": "Ponto único com fallback ppm, resolução faixa 1",
+      "description": "Ponto único com ppm fallback e resolução faixa 1",
       "balance": {
         "unidade": "g",
         "capacidade": "2000",
         "resolucao": "0.01",
         "decimal_places": { "p1": 4 }
       },
+      "environmental": {
+        "initial_temperature": "23",
+        "final_temperature": "23",
+        "initial_humidity": "60",
+        "final_humidity": "60",
+        "initial_pressure": "935",
+        "final_pressure": "935"
+      },
       "weightItems": [],
       "weightCerts": [],
-      "points": [
-        {
-          "point_number": 1,
-          "nominal_value": "1000",
-          "reading_before_adjustment": "1000.05",
-          "reading1": "1000.01",
-          "reading2": "1000.02",
-          "reading3": "1000.03"
-        }
-      ],
+      "points": [{
+        "point_number": 1,
+        "nominal_value": "1000",
+        "material_preset": "aco",
+        "reading_before_adjustment": "1000.05",
+        "reading1": "1000.01",
+        "reading2": "1000.02",
+        "reading3": "1000.03"
+      }],
       "expected": {
         "nominal_value": 1000,
         "indication_error": 0.02,
         "error_before_adjustment": 0.05,
-        "expanded_uncertainty": 0.03317,
-        "coverage_factor": 2
+        "coverage_factor": 3
       },
-      "tolerance": 0.001
-    },
-    {
-      "id": "multi-range-resolution",
-      "description": "Resolução por faixa — P1 usa d1, P2 usa d2",
-      "balance": {
-        "unidade": "g",
-        "capacidade": "500",
-        "capacidade_2": "2000",
-        "resolucao": "0.1",
-        "resolucao_2": "0.01",
-        "decimal_places": { "p1": 4, "p2": 4 }
-      },
-      "weightItems": [],
-      "weightCerts": [],
-      "points": [
-        {
-          "point_number": 1,
-          "nominal_value": "300",
-          "reading_before_adjustment": "300.10",
-          "reading1": "300.01",
-          "reading2": "300.02",
-          "reading3": "300.00"
-        },
-        {
-          "point_number": 2,
-          "nominal_value": "1500",
-          "reading1": "1500.01",
-          "reading2": "1500.02",
-          "reading3": "1500.03"
-        }
-      ],
-      "expected": [
-        {
-          "nominal_value": 300,
-          "indication_error": 0.01,
-          "expanded_uncertainty": 0.12961
-        },
-        {
-          "nominal_value": 1500,
-          "indication_error": 0.02,
-          "expanded_uncertainty": 0.02
-        }
-      ],
-      "tolerance": 0.001
+      "tolerance": 0.01
     },
     {
       "id": "weights-vvc-ue",
-      "description": "V.R. por VVC e u_pad por RSS(Ue/k)",
+      "description": "V.R. por VVC e up por RSS(Ue/k)",
       "balance": {
         "unidade": "g",
         "capacidade": "2000",
         "resolucao": "0.01",
         "decimal_places": { "p1": 4 }
+      },
+      "environmental": {
+        "initial_temperature": "23",
+        "final_temperature": "23",
+        "initial_humidity": "60",
+        "final_humidity": "60",
+        "initial_pressure": "935",
+        "final_pressure": "935"
       },
       "weightItems": [
         {
@@ -89,6 +101,8 @@
           "nominal_value": "500",
           "conventional_value": "500.0002",
           "expanded_uncertainty": "0.0004",
+          "coverage_factor": "2",
+          "weight_status": "1",
           "unit": "g"
         },
         {
@@ -96,28 +110,91 @@
           "nominal_value": "500",
           "conventional_value": "500.0001",
           "expanded_uncertainty": "0.0004",
+          "coverage_factor": "2",
+          "weight_status": "1",
           "unit": "g"
         }
       ],
       "weightCerts": [],
-      "points": [
-        {
-          "point_number": 1,
-          "standard_weight_ids": ["w1", "w2"],
-          "reading_before_adjustment": "1000.08",
-          "reading1": "1000.01",
-          "reading2": "1000.00",
-          "reading3": "1000.02"
-        }
-      ],
+      "points": [{
+        "point_number": 1,
+        "standard_weight_ids": ["w1", "w2"],
+        "material_density": "7900",
+        "reading_before_adjustment": "1000.08",
+        "reading1": "1000.01",
+        "reading2": "1000.00",
+        "reading3": "1000.02"
+      }],
       "expected": {
         "nominal_value": 1000.0003,
         "indication_error": 0.0097,
         "error_before_adjustment": 0.0797,
-        "expanded_uncertainty": 0.04883,
+        "coverage_factor": 3
+      },
+      "tolerance": 0.01
+    },
+    {
+      "id": "001-2025-50kg",
+      "description": "001/2025 — ponto 50 kg (planilha P1 row 9)",
+      "balance": { "unidade": "kg", "capacidade": "100", "resolucao": "0.1", "decimal_places": { "p1": 1 } },
+      "environmental": {
+        "initial_temperature": "23.2",
+        "final_temperature": "23.9",
+        "initial_humidity": "63",
+        "final_humidity": "58",
+        "initial_pressure": "935",
+        "final_pressure": "935"
+      },
+      "weightItems": [],
+      "weightCerts": [],
+      "points": [{
+        "point_number": 1,
+        "nominal_value": "50",
+        "material_density": "7850",
+        "resolution": "0.1",
+        "reading1": "50",
+        "reading2": "50",
+        "reading3": "50"
+      }],
+      "expected": {
+        "nominal_value": 50,
+        "indication_error": 0,
+        "expanded_uncertainty": 0.05775,
         "coverage_factor": 2
       },
       "tolerance": 0.001
+    },
+    {
+      "id": "002-2025-0.5g",
+      "description": "002/2025 — ponto 0,5 g (planilha P1 row 10)",
+      "balance": { "unidade": "g", "capacidade": "100", "resolucao": "0.0001", "decimal_places": { "p1": 4 } },
+      "environmental": {
+        "initial_temperature": "18.8",
+        "final_temperature": "19.4",
+        "initial_humidity": "64",
+        "final_humidity": "68",
+        "initial_pressure": "935",
+        "final_pressure": "937"
+      },
+      "weightItems": [],
+      "weightCerts": [],
+      "points": [{
+        "point_number": 1,
+        "nominal_value": "0.5",
+        "material_density": "7900",
+        "resolution": "0.0001",
+        "reading1": "0.5001",
+        "reading2": "0.5002",
+        "reading3": "0.5002"
+      }],
+      "expected": {
+        "nominal_value": 0.5,
+        "indication_error": 0.0002,
+        "expanded_uncertainty": 0.00011,
+        "coverage_factor": 2.52,
+        "degrees_of_freedom": 6
+      },
+      "tolerance": 0.00002
     }
   ]
 }

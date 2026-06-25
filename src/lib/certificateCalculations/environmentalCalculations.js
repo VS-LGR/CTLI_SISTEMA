@@ -1,4 +1,8 @@
 import { parseCalibrationNumber } from "./parseNumber";
+import {
+  correctConventionalMassForBuoyancy,
+  shouldApplyVccCorrection,
+} from "./conventionalMassCorrection";
 
 function toGrams(value, unit) {
   if (!Number.isFinite(value)) return null;
@@ -7,22 +11,36 @@ function toGrams(value, unit) {
   return value;
 }
 
-/** Soma VVC (valor convencional) dos pesos em gramas, retorna na unidade da balança. */
-export function sumConventionalFromWeightIds(weightIds, weightItems = [], targetUnit = "g") {
+/** Soma VVC (valor convencional) dos pesos; opcional correção VCC (PR-7.2 §6.6). */
+export function sumConventionalFromWeightIds(weightIds, weightItems = [], targetUnit = "g", options = {}) {
+  const { airDensity = null, materialDensity = null, vccCorrection = true } = options;
   let sumG = 0;
   let valid = false;
+  let vccCorrectionApplied = false;
+
+  const applyVcc = vccCorrection && shouldApplyVccCorrection(airDensity) && materialDensity != null;
+  const matD = parseCalibrationNumber(materialDensity);
+  const du = matD.valid ? matD.value : null;
+
   for (const id of weightIds || []) {
     const item = weightItems.find((w) => w.id === id);
     if (!item) continue;
     const raw = item.conventional_value || item.nominal_value;
     const p = parseCalibrationNumber(raw);
     if (!p.valid) continue;
-    sumG += toGrams(p.value, item.unit || "g");
+    let vcG = toGrams(p.value, item.unit || "g");
+    if (applyVcc && du) {
+      vcG = correctConventionalMassForBuoyancy(vcG, airDensity, du);
+      vccCorrectionApplied = true;
+    }
+    sumG += vcG;
     valid = true;
   }
-  if (!valid) return { value: null, valid: false, reason: "Pesos não encontrados" };
-  if (targetUnit === "kg") return { value: sumG / 1000, valid: true, reason: "" };
-  return { value: sumG, valid: true, reason: "" };
+  if (!valid) return { value: null, valid: false, reason: "Pesos não encontrados", vcc_correction_applied: false };
+  if (targetUnit === "kg") {
+    return { value: sumG / 1000, valid: true, reason: "", vcc_correction_applied: vccCorrectionApplied };
+  }
+  return { value: sumG, valid: true, reason: "", vcc_correction_applied: vccCorrectionApplied };
 }
 
 /** Incerteza expandida combinada dos pesos (RSS) em gramas → unidade alvo. */

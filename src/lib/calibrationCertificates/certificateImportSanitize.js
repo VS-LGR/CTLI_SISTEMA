@@ -42,6 +42,8 @@ export function mapColetaPointForDb(pt, pointNumber, warnings = []) {
     ),
     verification_division: pt?.divisao_verificacao || "",
     buoyancy_ppm: pt?.ppm_empuxo || "",
+    material_density: pt?.densidade_material || "",
+    material_preset: pt?.material_preset || "",
     readings_before: [],
     readings_after: [],
   };

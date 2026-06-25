@@ -2,14 +2,21 @@ import {
   calculatePointAverage,
   calculateRepeatability,
   calculateCalibrationPoint,
-  standardUncertaintyAbsFromWeightIds,
+  calculateResolutionContribution,
+  standardUncertaintyUpFromWeightIds,
+  driftUncertaintyUdFromWeightIds,
   resolveReadingsAfter,
+  welchSatterthwaiteNuEff,
+  coverageFactorFromNu,
 } from "./pointCalculations";
 import {
   calculateToleranceOiml,
   evaluatePointConformity,
   determineInstrumentClass,
 } from "./conformityCalculations";
+import { correctConventionalMassForBuoyancy, shouldApplyVccCorrection } from "./conventionalMassCorrection";
+import { calculateBuoyancyUncertainty } from "./buoyancyCalculations";
+import { roundExpandedUncertainty, roundIndicationError } from "./certificateDisplayRounding";
 
 describe("certificateCalculations", () => {
   test("calculatePointAverage with three readings", () => {
@@ -25,7 +32,13 @@ describe("certificateCalculations", () => {
     expect(res.value).toBeGreaterThan(0);
   });
 
-  test("calculateCalibrationPoint produces expanded uncertainty", () => {
+  test("ur = d/(2*sqrt(3))", () => {
+    const res = calculateResolutionContribution("0.0001");
+    expect(res.valid).toBe(true);
+    expect(res.value).toBeCloseTo(0.0001 / (2 * Math.sqrt(3)), 8);
+  });
+
+  test("calculateCalibrationPoint produces expanded uncertainty (5 componentes)", () => {
     const calc = calculateCalibrationPoint(
       {
         nominal_value: "5",
@@ -34,11 +47,19 @@ describe("certificateCalculations", () => {
         reading3: "5.03",
         reading_before_adjustment: "5.05",
       },
-      { resolution: "0.01", unit: "g", standardUncertaintyPpm: 2 },
+      {
+        resolution: "0.01",
+        unit: "g",
+        up: 0.0002,
+        ud: 0.0001,
+        ue: 0.00005,
+      },
     );
     expect(calc.calcStatus).toBe("calculado");
     expect(calc.results.expanded_uncertainty).toBeGreaterThan(0);
     expect(calc.results.average_reading).toBeCloseTo(5.02, 4);
+    expect(calc.results.calculation_memory.ua).toBeDefined();
+    expect(calc.results.calculation_memory.up).toBe(0.0002);
   });
 
   test("incomplete point stays pending", () => {
@@ -52,7 +73,7 @@ describe("certificateCalculations", () => {
         nominal_value: "5000",
         readings_after: ["5000", "5000.1", "5000.2", "5000.1", "5000", "5000.1"],
       },
-      { resolution: "0.1", unit: "g", standardUncertaintyAbs: 0.05 },
+      { resolution: "0.1", unit: "g", up: 0.05, ud: 0, ue: 0 },
     );
     expect(calc.calcStatus).toBe("calculado");
     expect(calc.results.average_reading).toBeCloseTo(5000.0833, 2);
@@ -66,21 +87,21 @@ describe("certificateCalculations", () => {
     expect(calc.calcStatus).toBe("erro");
   });
 
-  test("standardUncertaintyAbs inclui deriva na 1ª calibração", () => {
+  test("standardUncertaintyUp = RSS(Ue/k) sem /sqrt(3)", () => {
     const items = [{
       id: "w1",
       identification: "P-22",
-      expanded_uncertainty: "0,1",
+      expanded_uncertainty: "0,4",
+      coverage_factor: "2",
       weight_status: "1",
       unit: "g",
     }];
-    const r = standardUncertaintyAbsFromWeightIds(["w1"], items, "g");
+    const r = standardUncertaintyUpFromWeightIds(["w1"], items, "g");
     expect(r.valid).toBe(true);
-    // u_ue = 0.1/2 = 0.05; u_drift = 0.1/√3; RSS ≈ 0.076
-    expect(r.value).toBeCloseTo(0.0764, 3);
+    expect(r.value).toBeCloseTo(0.2, 4);
   });
 
-  test("standardUncertaintyAbs 2ª calibração com deriva", () => {
+  test("driftUncertaintyUd = |deriva|/sqrt(3)", () => {
     const items = [{
       id: "w1",
       identification: "P-23",
@@ -90,13 +111,38 @@ describe("certificateCalculations", () => {
       weight_status: "2",
       unit: "g",
     }];
-    const r = standardUncertaintyAbsFromWeightIds(["w1"], items, "g");
+    const r = driftUncertaintyUdFromWeightIds(["w1"], items, "g");
     expect(r.valid).toBe(true);
-    expect(r.value).toBeGreaterThan(0.05);
+    expect(r.value).toBeCloseTo(1 / Math.sqrt(3), 4);
+  });
+
+  test("Welch-Satterthwaite só considera ua", () => {
+    const nu = welchSatterthwaiteNuEff([
+      { type: "ua", u: 0.001, nu: 2 },
+      { type: "up", u: 0.0002, nu: Infinity },
+    ]);
+    // uc inclui up; denominador só ua⁴/(n−1) — PR-7.6 §5.3.6
+    expect(nu).toBeCloseTo(2.16, 1);
+  });
+
+  test("ua=0 → Veff infinito → k=2", () => {
+    const nu = welchSatterthwaiteNuEff([{ type: "up", u: 0.0002, nu: Infinity }]);
+    expect(nu).toBe(Infinity);
+    expect(coverageFactorFromNu(nu)).toBe(2);
+  });
+
+  test("coverageFactorFromNu nu=6 ≈ 2,52 (002/2025)", () => {
+    expect(coverageFactorFromNu(6)).toBeCloseTo(2.52, 2);
   });
 
   test("resolveReadingsAfter fallback legado", () => {
     expect(resolveReadingsAfter({ reading1: "1", reading2: "2", reading3: "3" })).toEqual(["1", "2", "3"]);
+  });
+
+  test("VCC correction when air density out of range", () => {
+    expect(shouldApplyVccCorrection(1.05)).toBe(true);
+    const vcc = correctConventionalMassForBuoyancy(210, 1.05, 7900);
+    expect(vcc).not.toBe(210);
   });
 
   test("determineInstrumentClass for commercial scale", () => {
@@ -109,5 +155,33 @@ describe("certificateCalculations", () => {
     const tol = calculateToleranceOiml("III", "1000", "g");
     const ev = evaluatePointConformity(0.5, 0.1, tol.positive, tol.negative);
     expect(ev.result).toBe("conforme");
+  });
+
+  test("PR-7.8 roundExpandedUncertainty minimum resolution", () => {
+    expect(roundExpandedUncertainty(0.00005, "0.0001", 4)).toBe(0.0001);
+  });
+
+  test("PR-7.8 roundIndicationError within half resolution", () => {
+    expect(roundIndicationError(0.00004, "0.0001", 4)).toBe(0);
+  });
+});
+
+describe("buoyancyCalculations", () => {
+  test("calculateBuoyancyUncertainty produces ue for valid environmental", () => {
+    const res = calculateBuoyancyUncertainty({
+      conventionalMass: 210,
+      materialDensity: 7900,
+      environmental: {
+        initial_temperature: "24",
+        final_temperature: "24",
+        initial_humidity: "65",
+        final_humidity: "58",
+        initial_pressure: "935",
+        final_pressure: "935",
+      },
+    });
+    expect(res.valid).toBe(true);
+    expect(res.ue).toBeGreaterThan(0);
+    expect(res.ue).toBeLessThan(0.001);
   });
 });
