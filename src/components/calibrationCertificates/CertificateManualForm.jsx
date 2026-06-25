@@ -92,6 +92,12 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
     final_pressure: payload.ambiente.pressao_final,
   });
 
+  const scalesForCustomer = useMemo(() => {
+    if (!endCustomerId) return scales;
+    const linked = scales.filter((s) => s.end_customer_id === endCustomerId);
+    return linked.length ? linked : scales;
+  }, [scales, endCustomerId]);
+
   const panelPoints = useMemo(
     () => payload.calibracao.pontos.map((pt, i) => coletaPointToPanelPoint(pt, i + 1, payload.balanca)),
     [payload.calibracao.pontos, payload.balanca],
@@ -153,9 +159,16 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
             <div>
               <Label>Balança (cadastro)</Label>
               <select value={scaleId} onChange={(e) => setScaleId(e.target.value)} className="w-full border rounded-md h-10 px-2 text-sm mt-1">
-                <option value="">— Manual —</option>
-                {scales.map((s) => <option key={s.id} value={s.id}>{s.serial_number} — {s.manufacturer} {s.model}</option>)}
+                <option value="">— Preencher manualmente —</option>
+                {scalesForCustomer.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.serial_number || s.tag || s.identification_code || "Sem série"} — {s.manufacturer} {s.model}
+                  </option>
+                ))}
               </select>
+              {!scales.length && (
+                <p className="text-xs text-amber-700 mt-1">Nenhuma balança cadastrada. Cadastre em Cadastros → Balanças ou preencha os campos abaixo.</p>
+              )}
             </div>
             <div><Label>Nº série</Label><Input value={payload.balanca.serie} onChange={(e) => setPayload((p) => ({ ...p, balanca: { ...p.balanca, serie: e.target.value } }))} className="mt-1" /></div>
             <div><Label>Data calibração</Label><Input type="date" value={calibrationDate} onChange={(e) => setCalibrationDate(e.target.value)} className="mt-1" /></div>

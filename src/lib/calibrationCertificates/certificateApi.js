@@ -124,6 +124,7 @@ async function insertCertificateBundle(tenantId, imported, { userId, certificate
     .insert({
       tenant_id: tenantId,
       ...imported.certificate,
+      collection_snapshot: imported.certificate?.collection_snapshot ?? {},
       certificate_number: certificateNumber,
       created_by: userId || null,
       updated_by: userId || null,
@@ -234,7 +235,10 @@ export async function createCertificateManual(tenantId, input, { userId } = {}) 
     scaleSerial: input.scaleSerial,
     calibrationDate: calDate,
     collectionId: null,
-    collectionSnapshot: null,
+    collectionSnapshot: {
+      source: "manual",
+      payload: input.payload,
+    },
     isPreviewOnly: false,
     scaleRegistrationId: input.scaleRegistrationId || null,
     repeatabilitySnapshot: input.repeatabilitySnapshot || null,

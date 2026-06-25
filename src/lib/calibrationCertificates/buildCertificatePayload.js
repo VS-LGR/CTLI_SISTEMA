@@ -174,7 +174,7 @@ export function buildCertificateFromPayload({
       calibration_location: balance.local || endCustomer?.full_address || "",
       is_preview_only: isPreviewOnly,
       balance_snapshot: balance,
-      collection_snapshot: collectionSnapshot,
+      collection_snapshot: collectionSnapshot ?? { source: "manual" },
       eccentricity_snapshot: payload.excentricidade || {},
       repeatability_snapshot: repSnap,
       control_snapshot: payload.controle || {},

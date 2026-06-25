@@ -64,6 +64,7 @@ import CertificatePermanentDeleteDialog from "@/components/calibrationCertificat
 import { supabase } from "@/lib/supabaseClient";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { jobLabel } from "@/lib/cadastroConstants";
+import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 
 export default function CertificateEditorPage() {
   const { id } = useParams();
@@ -85,6 +86,7 @@ export default function CertificateEditorPage() {
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
   const [weightItems, setWeightItems] = useState([]);
   const [weightCerts, setWeightCerts] = useState([]);
+  const [scales, setScales] = useState([]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -118,9 +120,11 @@ export default function CertificateEditorPage() {
     Promise.all([
       supabase.from("standard_weight_items").select("*").eq("tenant_id", currentTenantId).eq("active", true).order("identification"),
       supabase.from("weight_standard_certificates").select("*").eq("tenant_id", currentTenantId),
-    ]).then(([w, c]) => {
+      supabase.from("scale_registrations").select("*").eq("tenant_id", currentTenantId).eq("active", true).order("serial_number"),
+    ]).then(([w, c, s]) => {
       if (!w.error) setWeightItems(w.data || []);
       if (!c.error) setWeightCerts(c.data || []);
+      if (!s.error) setScales(s.data || []);
     });
   }, [currentTenantId]);
 
@@ -191,6 +195,7 @@ export default function CertificateEditorPage() {
         ...(isStandalone ? {
           client_name: cert.client_name,
           scale_serial: cert.scale_serial,
+          scale_registration_id: cert.scale_registration_id || null,
           balance_snapshot: cert.balance_snapshot,
         } : {}),
       }, user.id);
@@ -515,6 +520,46 @@ export default function CertificateEditorPage() {
                   onChange={(e) => patch({ scale_serial: e.target.value })}
                 />
               </div>
+              {isStandalone && editable && (
+                <div className="sm:col-span-2">
+                  <Label>Balança (cadastro)</Label>
+                  <Select
+                    value={cert.scale_registration_id || "__manual__"}
+                    onValueChange={(scaleRegId) => {
+                      if (scaleRegId === "__manual__") {
+                        patch({ scale_registration_id: null });
+                        return;
+                      }
+                      const scale = scales.find((s) => s.id === scaleRegId);
+                      if (!scale) return;
+                      const snap = balanceSnapshotFromScaleRegistration(scale);
+                      patch({
+                        scale_registration_id: scaleRegId,
+                        scale_serial: scale.serial_number || cert.scale_serial,
+                        balance_snapshot: { ...(cert.balance_snapshot || {}), ...snap },
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="h-10 mt-1">
+                      <SelectValue placeholder="Selecionar balança cadastrada" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__manual__">— Preencher manualmente —</SelectItem>
+                      {(cert.end_customer_id
+                        ? scales.filter((s) => s.end_customer_id === cert.end_customer_id || !s.end_customer_id)
+                        : scales
+                      ).map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.serial_number || s.tag || "Sem série"} — {s.manufacturer} {s.model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!scales.length && (
+                    <p className="text-xs text-amber-700 mt-1">Cadastre balanças em Cadastros → Balanças para selecionar aqui.</p>
+                  )}
+                </div>
+              )}
               <div>
                 <Label>Data calibração</Label>
                 <Input

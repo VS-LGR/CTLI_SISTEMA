@@ -75,6 +75,7 @@ describe("buildCertificateFromPayload", () => {
     });
 
     expect(result.certificate.collection_id).toBeNull();
+    expect(result.certificate.collection_snapshot).toEqual({ source: "manual" });
     expect(result.certificate.is_preview_only).toBe(false);
     expect(result.certificate.client_name).toBe("Manual Cliente");
     expect(result.points[0].nominal_value).toBe(100);
