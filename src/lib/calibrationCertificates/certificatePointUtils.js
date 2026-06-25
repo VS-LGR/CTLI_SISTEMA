@@ -55,6 +55,11 @@ export function emptyCertificatePoint(pointNumber) {
     material_density: "",
     material_preset: "",
     notes: "",
+    use_load_batch: false,
+    load_batch_formation: "",
+    load_batch_nominal: null,
+    load_batch_material_preset: "",
+    error_multiplier: null,
   };
 }
 
@@ -140,6 +145,15 @@ export function certificatePointToPanelPoint(pt, balance = {}) {
     material_density: synced.material_density || "",
     material_preset: synced.material_preset || "",
     notes: synced.notes || "",
+    use_load_batch: Boolean(synced.use_load_batch),
+    load_batch_formation: synced.load_batch_formation || "",
+    load_batch_nominal: synced.load_batch_nominal != null && synced.load_batch_nominal !== ""
+      ? String(synced.load_batch_nominal)
+      : "",
+    load_batch_material_preset: synced.load_batch_material_preset || "",
+    error_multiplier: synced.error_multiplier != null && synced.error_multiplier !== ""
+      ? String(synced.error_multiplier)
+      : "",
   };
 }
 
@@ -182,6 +196,15 @@ export function pointToDbPatch(point) {
     material_density: synced.material_density || "",
     material_preset: synced.material_preset || "",
     notes: synced.notes || "",
+    use_load_batch: Boolean(synced.use_load_batch),
+    load_batch_formation: synced.load_batch_formation || "",
+    load_batch_nominal: synced.load_batch_nominal != null && synced.load_batch_nominal !== ""
+      ? toDbNumeric(synced.load_batch_nominal)
+      : null,
+    load_batch_material_preset: synced.load_batch_material_preset || "",
+    error_multiplier: synced.error_multiplier != null && String(synced.error_multiplier).trim()
+      ? toDbNumeric(synced.error_multiplier)
+      : null,
   };
 
   return patch;

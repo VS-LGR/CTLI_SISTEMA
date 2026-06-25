@@ -1,11 +1,7 @@
 import { formatCertificateNumber, certificateTypeLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
-import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter } from "@/lib/certificateCalculations";
-import {
-  roundExpandedUncertainty,
-  roundIndicationError,
-  formatVeffForDisplay,
-} from "@/lib/certificateCalculations/certificateDisplayRounding";
+import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter, buildCertificatePointDisplay } from "@/lib/certificateCalculations";
+import { formatVeffForDisplay } from "@/lib/certificateCalculations/certificateDisplayRounding";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import {
   environmentalAverage,
@@ -77,20 +73,16 @@ function emptyRepeatabilityRow(unit) {
 }
 
 function mapRepeatabilityRow(p, balance, unit, decimals) {
-  const resolutionStr = p.resolution != null && String(p.resolution).trim() !== ""
-    ? String(p.resolution)
-    : resolveResolutionForNominal(p.nominal_value, balance, unit);
-  const errDisplay = roundIndicationError(p.indication_error, resolutionStr, decimals);
-  const ueDisplay = roundExpandedUncertainty(p.expanded_uncertainty, resolutionStr, decimals);
+  const display = buildCertificatePointDisplay({ ...p, display_decimals: decimals }, balance, unit);
   const m = (v) => pdfMeasure(v, unit, decimals);
   return {
     empty: false,
-    reference: m(p.nominal_value),
+    reference: m(display.reference ?? p.nominal_value),
     beforeReading: m(p.reading_before_adjustment),
     beforeError: m(p.error_before_adjustment),
-    average: m(p.average_reading),
-    indicationError: m(errDisplay),
-    expandedUncertainty: m(ueDisplay),
+    average: m(display.average ?? p.average_reading),
+    indicationError: m(display.indicationError),
+    expandedUncertainty: m(display.expandedUncertainty),
     veff: p.degrees_of_freedom != null && p.degrees_of_freedom !== ""
       ? formatVeffForDisplay(p.degrees_of_freedom)
       : "--",
@@ -164,11 +156,8 @@ function parseCityFromAddress(address) {
 }
 
 function formatVeff(veff) {
-  if (veff == null || veff === "") return "—";
-  const n = Number(veff);
-  if (!Number.isFinite(n)) return String(veff);
-  if (n >= 1e6 || !Number.isFinite(1 / n)) return "∞";
-  return formatCalcDisplay(n, 0);
+  const formatted = formatVeffForDisplay(veff);
+  return formatted === "--" ? "—" : formatted;
 }
 
 function resolveEnvironmental(cert) {
@@ -229,15 +218,21 @@ function resolveEccentricity(cert) {
   };
 }
 
+import { SUBSTITUICAO_LINHA_DEFS } from "@/lib/coletaSchema";
+
 function resolveRepeatability(cert) {
   const rep = cert.repeatability_snapshot || cert.collection_snapshot?.payload?.verso?.repetitividade || {};
   if (rep.aplicavel === false) return { applicable: false, rows: [], observations: "" };
+
+  const labelByKey = Object.fromEntries(
+    SUBSTITUICAO_LINHA_DEFS.map((d) => [d.key, d.label]),
+  );
 
   const linhas = rep.linhas || [];
   const rows = linhas
     .filter((l) => l.leitura1 || l.leitura2 || l.leitura3 || l.valor_nominal)
     .map((l) => ({
-      label: l.label || l.key || "",
+      label: l.label || labelByKey[l.key] || l.key || "",
       nominal: l.valor_nominal || "",
       reading1: l.leitura1 || "",
       reading2: l.leitura2 || "",
@@ -382,9 +377,10 @@ export function buildCertificatePdfViewModel(cert, {
     standards: weightStandards,
     points: points.map((p) => {
       const decimals = resolveDisplayDecimals(p, balance, unit);
+      const display = buildCertificatePointDisplay({ ...p, display_decimals: decimals }, balance, unit);
       return {
       label: String(p.point_number),
-      referenceValue: withUnit(p.nominal_value, unit, decimals),
+      referenceValue: withUnit(display.reference ?? p.nominal_value, unit, decimals),
       referenceRaw: p.nominal_value,
       beforeAdjustment: {
         l1: withUnit(p.reading_before_adjustment, unit, decimals),
@@ -396,9 +392,9 @@ export function buildCertificatePdfViewModel(cert, {
         r3: withUnit(p.reading3, unit, decimals),
       },
       results: {
-        average: withUnit(p.average_reading, unit, decimals),
-        indicationError: withUnit(p.indication_error, unit, decimals),
-        expandedUncertainty: withUnit(p.expanded_uncertainty, unit, decimals),
+        average: withUnit(display.average ?? p.average_reading, unit, decimals),
+        indicationError: withUnit(display.indicationError, unit, decimals),
+        expandedUncertainty: withUnit(display.expandedUncertainty, unit, decimals),
         veff: formatVeff(p.degrees_of_freedom),
         k: formatCalcDisplay(p.coverage_factor, 2),
       },

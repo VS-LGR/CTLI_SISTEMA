@@ -247,11 +247,13 @@ export function calculatePointAverage(readings) {
   return { value: avg, valid: true, reason: "", count: nums.length };
 }
 
-export function calculateIndicationError(averageReading, referenceValue) {
+export function calculateIndicationError(averageReading, referenceValue, errorMultiplier = 1) {
   const avg = parseCalibrationNumber(averageReading);
   const ref = parseCalibrationNumber(referenceValue);
   if (!avg.valid || !ref.valid) return { value: null, valid: false, reason: "Média ou referência ausente" };
-  return { value: avg.value - ref.value, valid: true, reason: "" };
+  const m = parseCalibrationNumber(errorMultiplier);
+  const mult = m.valid && m.value > 0 ? m.value : 1;
+  return { value: avg.value - ref.value * mult, valid: true, reason: "" };
 }
 
 /** ua — repetitividade (Tipo A): STDEV / √n */
@@ -295,6 +297,8 @@ export function calculateCalibrationPoint(point, {
   up = 0,
   ud = 0,
   ue = 0,
+  upLC = 0,
+  errorMultiplier = 1,
   errorBeforeAdjustment = null,
 } = {}) {
   const readings = resolveReadingsAfter(point);
@@ -317,7 +321,7 @@ export function calculateCalibrationPoint(point, {
     return { calcStatus: "erro", calcError: "Valor de referência (V.R.) obrigatório", results: {} };
   }
 
-  const indication = calculateIndicationError(avgRes.value, ref.value);
+  const indication = calculateIndicationError(avgRes.value, ref.value, errorMultiplier);
   const repeatability = calculateRepeatability(readings);
   const resolutionContrib = calculateResolutionContribution(resolution);
 
@@ -344,8 +348,9 @@ export function calculateCalibrationPoint(point, {
   const upVal = Number.isFinite(up) ? up : 0;
   const udVal = Number.isFinite(ud) ? ud : 0;
   const ueVal = Number.isFinite(ue) ? ue : 0;
+  const upLcVal = Number.isFinite(upLC) ? upLC : 0;
 
-  const components = [ua, upVal, udVal, ueVal, ur].filter((c) => Number.isFinite(c));
+  const components = [ua, upVal, udVal, ueVal, ur, upLcVal].filter((c) => Number.isFinite(c));
   const combinedRes = calculateExpandedUncertainty(components);
 
   const nReadings = repeatability.n || readings.length;
@@ -356,6 +361,7 @@ export function calculateCalibrationPoint(point, {
     { type: "ud", u: udVal, nu: Infinity },
     { type: "ue", u: ueVal, nu: Infinity },
     { type: "ur", u: ur, nu: Infinity },
+    { type: "upLC", u: upLcVal, nu: Infinity },
   ]);
   const nu = truncateVeff(nuRaw);
 
@@ -377,6 +383,10 @@ export function calculateCalibrationPoint(point, {
     standardContribution: upVal,
     driftContribution: udVal,
     buoyancyContribution: ueVal,
+    upLC: upLcVal,
+    errorMultiplier: parseCalibrationNumber(errorMultiplier).valid
+      ? parseCalibrationNumber(errorMultiplier).value
+      : 1,
     combinedUncertainty: combinedRes.combined,
     coverageFactor: k,
     degreesOfFreedom: nu,

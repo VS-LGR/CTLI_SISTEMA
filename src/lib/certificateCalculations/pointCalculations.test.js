@@ -157,8 +157,8 @@ describe("certificateCalculations", () => {
     expect(ev.result).toBe("conforme");
   });
 
-  test("PR-7.8 roundExpandedUncertainty minimum resolution", () => {
-    expect(roundExpandedUncertainty(0.00005, "0.0001", 4)).toBe(0.0001);
+  test("RE-7.2B roundExpandedUncertainty — Validação 210 g", () => {
+    expect(roundExpandedUncertainty(0.00062, "0.0001", 4)).toBe(0.0007);
   });
 
   test("PR-7.8 roundIndicationError within half resolution", () => {

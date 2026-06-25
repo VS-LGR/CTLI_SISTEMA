@@ -37,13 +37,13 @@ const VALIDACAO_2025 = {
 };
 
 describe("PDF e conformidade — golden planilha", () => {
-  test("viewModel arredonda Ue e E conforme PR-7.8", () => {
+  test("viewModel arredonda Ue e E conforme RE-7.2B Certificado-RBC", () => {
     const model = buildCertificatePdfViewModel(VALIDACAO_2025);
     const row = model.repeatabilityRows[0];
-    expect(row.expandedUncertainty.value).toBe("0,0006");
+    expect(row.expandedUncertainty.value).toBe("0,0007");
     expect(row.indicationError.value).toBe("0,0001");
     expect(row.k).toBe("2,00");
-    expect(row.veff).toBe("100");
+    expect(row.veff).toBe("∞");
   });
 
   test("conformidade metrologia legal avalia pontos calculados", () => {

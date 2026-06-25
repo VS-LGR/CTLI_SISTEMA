@@ -117,8 +117,10 @@ export function buildCertificateFromPayload({
   const balance = mergeBalanceSnapshotFromScale(payload.balanca || {}, scaleReg);
   const importWarnings = [];
 
+  const repSnap = repeatabilitySnapshot || payload.verso?.repetitividade || {};
+
   const points = (payload.calibracao?.pontos || []).slice(0, 10).map((pt, i) =>
-    mapColetaPointForDb(pt, i + 1, importWarnings),
+    mapColetaPointForDb(pt, i + 1, importWarnings, repSnap),
   );
 
   points.forEach((pt) => validateWeightIdsForCalibration(
@@ -151,8 +153,6 @@ export function buildCertificateFromPayload({
     air_density: "",
     snapshot: payload.ambiente,
   };
-
-  const repSnap = repeatabilitySnapshot || payload.verso?.repetitividade || {};
 
   return {
     certificate: {

@@ -20,6 +20,7 @@ import {
   conformityFormulas,
   dataRequirements,
   notYetImplemented,
+  conformityChecklist,
   calculationNotes,
 } from "@/lib/certificateCalculations/calculationDocs";
 import { cn } from "@/lib/utils";
@@ -89,6 +90,18 @@ function DialogBody({ initialSection = "pontos" }) {
         <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-slate-600">
           {calculationNotes.map((item) => (
             <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="calc-section-checklist">
+        <h3 className="text-sm font-semibold text-slate-900 mb-2">Checklist Matriz (2)</h3>
+        <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-slate-600">
+          {conformityChecklist.map((row) => (
+            <li key={row.id}>
+              <span className="font-medium">{row.item}</span>
+              <span className="text-slate-400"> — {row.status}</span>
+            </li>
           ))}
         </ul>
       </section>

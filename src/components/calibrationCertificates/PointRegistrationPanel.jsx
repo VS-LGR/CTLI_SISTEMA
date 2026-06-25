@@ -9,6 +9,7 @@ import { Plus, Minus } from "@phosphor-icons/react";
 import PesoPadraoPointTable from "@/components/calibrationCertificates/PesoPadraoPointTable";
 import { sumConventionalFromWeightIds } from "@/lib/certificateCalculations/environmentalCalculations";
 import { MATERIAL_PRESETS, densityFromPresetId, ppmFromPresetId } from "@/lib/certificateCalculations/materialConstants";
+import { formationKeyForPoint, errorMultiplierForFormation } from "@/lib/certificateCalculations/loadBatchCalculations";
 import {
   resolveDefaultResolutionForPoint,
   resolveDefaultVerificationDivision,
@@ -222,6 +223,62 @@ function PointTabContent({
           className="h-9 max-w-xs"
         />
       </div>
+
+      {point.point_number >= 2 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer w-fit">
+            <Checkbox
+              checked={Boolean(point.use_load_batch)}
+              disabled={fieldsDisabled}
+              onCheckedChange={(checked) => {
+                const on = Boolean(checked);
+                const formation = formationKeyForPoint(point.point_number, on);
+                setField({
+                  use_load_batch: on,
+                  load_batch_formation: on ? formation : "",
+                  error_multiplier: on ? errorMultiplierForFormation(formation) : null,
+                });
+              }}
+            />
+            <span className="text-sm font-medium text-amber-900">Com lote de carga</span>
+          </label>
+          {point.use_load_batch && (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Formação (Tabela 01)</Label>
+                <Input
+                  value={point.load_batch_formation || formationKeyForPoint(point.point_number, true) || ""}
+                  disabled
+                  className="h-9 mt-1 bg-white"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Nominal do lote (Vc)</Label>
+                <Input
+                  value={point.load_batch_nominal ?? ""}
+                  disabled={fieldsDisabled}
+                  onChange={(e) => setField({ load_batch_nominal: e.target.value })}
+                  className="h-9 mt-1"
+                  placeholder="Ex.: 190"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Material do lote (PPM empuxo)</Label>
+                <select
+                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  disabled={fieldsDisabled}
+                  value={point.load_batch_material_preset ?? "aco"}
+                  onChange={(e) => setField({ load_batch_material_preset: e.target.value })}
+                >
+                  {MATERIAL_PRESETS.map((m) => (
+                    <option key={m.id} value={m.id}>{m.label} (PPM {m.ppm})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <Label className="text-xs mb-2 block">Peso Padrão</Label>

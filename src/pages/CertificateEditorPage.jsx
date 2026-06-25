@@ -53,7 +53,8 @@ import {
   emptyCertificatePoint,
 } from "@/lib/calibrationCertificates/certificatePointUtils";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
-import { formatCalcDisplay, formatAirDensityDisplay } from "@/lib/certificateCalculations";
+import { formatCalcDisplay, formatAirDensityDisplay, buildCertificatePointDisplay, calculateCertificatePoints } from "@/lib/certificateCalculations";
+import { Checkbox } from "@/components/ui/checkbox";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CriticalAnalysisDialog from "@/components/calibrationCertificates/CriticalAnalysisDialog";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
@@ -65,6 +66,16 @@ import { supabase } from "@/lib/supabaseClient";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { jobLabel } from "@/lib/cadastroConstants";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+
+function certificatePointDisplay(cert, point) {
+  const balance = cert?.balance_snapshot || {};
+  return buildCertificatePointDisplay(point, balance, balance.unidade || "g");
+}
+
+function formatPointDisplayValue(value, decimals = 4) {
+  if (value == null || value === "") return "—";
+  return formatCalcDisplay(value, decimals);
+}
 
 export default function CertificateEditorPage() {
   const { id } = useParams();
@@ -87,6 +98,14 @@ export default function CertificateEditorPage() {
   const [weightItems, setWeightItems] = useState([]);
   const [weightCerts, setWeightCerts] = useState([]);
   const [scales, setScales] = useState([]);
+  const [showCalcTrace, setShowCalcTrace] = useState(() => {
+    try {
+      return localStorage.getItem("certEditorShowCalcTrace") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [previewCalcPoints, setPreviewCalcPoints] = useState(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -242,10 +261,44 @@ export default function CertificateEditorPage() {
     try {
       const updated = await recalculateCertificate(cert.id);
       setCert(updated);
+      setPreviewCalcPoints(null);
       toast.success("Cálculos atualizados");
     } catch (e) {
       toast.error(e.message);
     }
+  };
+
+  const handlePreviewCalc = () => {
+    try {
+      const calculated = calculateCertificatePoints(
+        cert.points,
+        cert.balance_snapshot,
+        weightItems,
+        weightCerts,
+        cert.environmental || {},
+        { repeatabilitySnapshot: cert.repeatability_snapshot || {} },
+      );
+      setPreviewCalcPoints(calculated);
+      toast.success("Pré-visualização de cálculo (não gravada)");
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const toggleCalcTrace = (checked) => {
+    const on = Boolean(checked);
+    setShowCalcTrace(on);
+    try {
+      localStorage.setItem("certEditorShowCalcTrace", on ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const pointForMemory = (p) => {
+    if (!previewCalcPoints) return p;
+    const preview = previewCalcPoints.find((x) => x.point_number === p.point_number);
+    return preview || p;
   };
 
   const handlePreview = async () => {
@@ -669,6 +722,8 @@ export default function CertificateEditorPage() {
                   {(cert.points || []).map((p) => {
                     const hasData = p.nominal_value || p.reading_before_adjustment || p.reading1;
                     if (!hasData && !(isStandalone && editable)) return null;
+                    const display = p.calc_status === "calculado" ? certificatePointDisplay(cert, p) : null;
+                    const decimals = p.display_decimals ?? display?.decimals ?? 4;
                     return (
                       <tr key={`before-${p.id}`} className="border-t align-top">
                         <td className="p-2">P{p.point_number}</td>
@@ -679,7 +734,7 @@ export default function CertificateEditorPage() {
                               value={p.nominal_value ?? ""}
                               onChange={(e) => patchPoint(p.id, { nominal_value: e.target.value })}
                             />
-                          ) : formatCalcDisplay(p.nominal_value, p.display_decimals ?? 4)}
+                          ) : formatPointDisplayValue(display?.reference ?? p.nominal_value, decimals)}
                         </td>
                         <td className="p-2">
                           {isStandalone && editable ? (
@@ -701,9 +756,28 @@ export default function CertificateEditorPage() {
 
           <Card>
             <CardContent className="p-0 overflow-x-auto">
-              <p className="px-4 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Após ajuste
-              </p>
+              <div className="px-4 pt-4 pb-2 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Após ajuste
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
+                    <Checkbox
+                      checked={showCalcTrace}
+                      onCheckedChange={toggleCalcTrace}
+                    />
+                    Mostrar rastreio de cálculo
+                  </label>
+                  {editable && (
+                    <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handlePreviewCalc}>
+                      Pré-visualizar cálculo
+                    </Button>
+                  )}
+                  {previewCalcPoints && (
+                    <Badge variant="secondary" className="text-[10px]">Prévia local — recalcule para gravar</Badge>
+                  )}
+                </div>
+              </div>
               <table className="w-full text-sm min-w-[720px]">
                 <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                   <tr>
@@ -728,6 +802,8 @@ export default function CertificateEditorPage() {
                   {(cert.points || []).map((p) => {
                     const hasData = p.nominal_value || p.reading1;
                     if (!hasData && !(isStandalone && editable)) return null;
+                    const display = p.calc_status === "calculado" ? certificatePointDisplay(cert, p) : null;
+                    const decimals = p.display_decimals ?? display?.decimals ?? 4;
                     return (
                       <tr key={`after-${p.id}`} className="border-t align-top">
                         <td className="p-2">P{p.point_number}</td>
@@ -744,9 +820,9 @@ export default function CertificateEditorPage() {
                             </td>
                           </>
                         )}
-                        <td className="p-2">{formatCalcDisplay(p.average_reading, p.display_decimals ?? 4)}</td>
-                        <td className="p-2">{formatCalcDisplay(p.indication_error, p.display_decimals ?? 4)}</td>
-                        <td className="p-2">{formatCalcDisplay(p.expanded_uncertainty, p.display_decimals ?? 4)}</td>
+                        <td className="p-2">{formatPointDisplayValue(display?.average ?? p.average_reading, decimals)}</td>
+                        <td className="p-2">{formatPointDisplayValue(display?.indicationError ?? p.indication_error, decimals)}</td>
+                        <td className="p-2">{formatPointDisplayValue(display?.expandedUncertainty ?? p.expanded_uncertainty, decimals)}</td>
                         <td className="p-2">{formatCalcDisplay(p.repeatability, 6)}</td>
                         <td className="p-2">{formatCalcDisplay(p.coverage_factor, 2)}</td>
                         <td className="p-2">
@@ -754,7 +830,7 @@ export default function CertificateEditorPage() {
                           {p.calc_error && <span className="text-xs text-red-600 block">{p.calc_error}</span>}
                         </td>
                         <td className="p-2 min-w-[88px]">
-                          <PointCalculationMemory point={p} />
+                          <PointCalculationMemory point={pointForMemory(p)} showTrace={showCalcTrace} />
                         </td>
                       </tr>
                     );
@@ -892,6 +968,8 @@ export default function CertificateEditorPage() {
                         <tbody>
                           {(cert.conformity.point_results || []).map((pr) => {
                             const pt = (cert.points || []).find((p) => p.point_number === pr.pointNumber);
+                            const display = pt?.calc_status === "calculado" ? certificatePointDisplay(cert, pt) : null;
+                            const decimals = pt?.display_decimals ?? display?.decimals ?? 4;
                             return (
                               <tr key={pr.pointNumber} className="border-t border-slate-100">
                                 <td className="p-2">P{pr.pointNumber}</td>
@@ -901,10 +979,10 @@ export default function CertificateEditorPage() {
                                     : "—"}
                                 </td>
                                 <td className="p-2 font-mono text-xs">
-                                  {formatCalcDisplay(pt?.indication_error, 4)}
+                                  {formatPointDisplayValue(display?.indicationError ?? pt?.indication_error, decimals)}
                                 </td>
                                 <td className="p-2 font-mono text-xs">
-                                  {formatCalcDisplay(pt?.expanded_uncertainty, 4)}
+                                  {formatPointDisplayValue(display?.expandedUncertainty ?? pt?.expanded_uncertainty, decimals)}
                                 </td>
                                 <td className="p-2">
                                   <Badge variant="outline" className="text-[10px]">

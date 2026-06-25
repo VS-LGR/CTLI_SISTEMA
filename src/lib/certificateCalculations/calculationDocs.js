@@ -17,9 +17,15 @@ export const perPointFormulas = [
   },
   {
     id: "erro",
-    result: "Erro de indicação (E)",
+    result: "Erro de indicação (E) — cálculo",
     formula: "E = Ib − V.R.",
     source: "PR-7.6 §5.4",
+  },
+  {
+    id: "erro_display",
+    result: "Erro de indicação (E) — exibido",
+    formula: "MROUND(Ib, d) − MROUND(V.R., d)",
+    source: "RE-7.2B Certificado-RBC V49",
   },
   {
     id: "ua",
@@ -54,14 +60,20 @@ export const perPointFormulas = [
   {
     id: "uc",
     result: "Incerteza combinada (uc)",
-    formula: "uc = √(ua² + up² + ud² + ue² + ur²)",
+    formula: "uc = √(ua² + up² + ud² + ue² + ur² + upLC²); upLC=0 sem lote",
     source: "PR-7.6 §5.3",
+  },
+  {
+    id: "upLC",
+    result: "Lote de carga (upLC)",
+    formula: "upLC = uc do passo anterior (Tabela 01: L1+P1→uc(P1), L2+P1→uc(L1+P1), …)",
+    source: "PR-7.6 §5.3.2.1",
   },
   {
     id: "nueff",
     result: "Graus de liberdade efetivos (Veff)",
-    formula: "Welch-Satterthwaite apenas com ua (ν = n−1); ua=0 → Veff=∞, k=2",
-    source: "PR-7.6 §5.3.6",
+    formula: "Welch-Satterthwaite apenas com ua (ν = n−1); ua=0 → Veff=100; exibição >99 → ∞",
+    source: "PR-7.6 §5.3.6 / RE-7.2B Certificado-RBC AA49",
   },
   {
     id: "k",
@@ -71,9 +83,21 @@ export const perPointFormulas = [
   },
   {
     id: "U",
-    result: "Incerteza expandida (U)",
-    formula: "U = k × uc; exibição: mínimo d; arredondamento PR-7.8",
-    source: "PR-7.8",
+    result: "Incerteza expandida (U) — cálculo",
+    formula: "U = k × uc",
+    source: "PR-7.6",
+  },
+  {
+    id: "U_display",
+    result: "Incerteza expandida (U) — exibida",
+    formula: "MROUND(max(U, d) + (d/10)×4,4, d); mínimo d (PR-7.8)",
+    source: "RE-7.2B Certificado-RBC Y49 / PR-7.8",
+  },
+  {
+    id: "vr_display",
+    result: "V.R. e média — exibidos",
+    formula: "MROUND(V.R., d); MROUND(Ib, d)",
+    source: "RE-7.2B Certificado-RBC O49/R49",
   },
 ];
 
@@ -116,13 +140,25 @@ export const dataRequirements = [
 ];
 
 export const notYetImplemented = [
-  "Lote de carga (PR-7.6 §5.3.2.1 upLC)",
   "Erro de excentricidade no resultado do certificado",
   "Todas as regras detalhadas da aba Metrologia Legal",
 ];
 
+/** Checklist de conformidade RE-7.2B Matriz (2) — verificado em testes automatizados. */
+export const conformityChecklist = [
+  { id: "vcc", item: "V.R. = Σ V.V.C; correção VCC se ρ_ar ∉ [1,08; 1,32]", status: "ok", test: "weights-vvc-ue / environmentalCalculations" },
+  { id: "emp", item: "Empuxo ue via aba EMP.Pn (Urel) ou fallback PPM", status: "ok", test: "buoyancyCalculations / validacao-2025" },
+  { id: "welch", item: "Welch-Satterthwaite apenas com ua (ν = n−1)", status: "ok", test: "pointCalculations welchSatterthwaiteNuEff" },
+  { id: "tinv", item: "k = T.INV(0,97725; Veff truncado)", status: "ok", test: "coverageFactorFromNu / 002-2025" },
+  { id: "veff_trunc", item: "Veff truncado (INT); >99 → ∞ na exibição", status: "ok", test: "truncateVeff / xlsmDisplayAudit" },
+  { id: "ue_min", item: "Ue exibida: MROUND(max(U,d) + (d/10)×4,4, d)", status: "ok", test: "certificateDisplayRounding / validacao-2025" },
+  { id: "mround_erro", item: "E exibido = MROUND(Ib,d) − MROUND(V.R.,d)", status: "ok", test: "xlsmMatriz2DisplayAudit" },
+  { id: "upLC", item: "upLC Tabela 01 quando AN=sim (P2+)", status: "ok", test: "load-batch-synthetic-p2" },
+  { id: "upLC_sheet", item: "Fórmula planilha P2 col AI — referência debug only", status: "debug", test: "calculationTrace upLcSpreadsheet" },
+];
+
 export const calculationNotes = [
   "Pontos sem leituras ou valor nominal são ignorados (status: pendente).",
-  "Cálculos internos em precisão total; arredondamento PR-7.8 só na exibição/PDF.",
+  "Cálculos internos em precisão total; exibição Certificado-RBC (MROUND + fator 4,4 na Ue) só na camada PR-7.8.",
   "Certificado padrão sem declaração de conformidade (PR-7.8).",
 ];

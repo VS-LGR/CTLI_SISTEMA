@@ -38,7 +38,15 @@
         "indication_error": 0.0001,
         "expanded_uncertainty": 0.00062,
         "coverage_factor": 2,
-        "memory": { "up": 0.0002, "ud": 0.0002309, "ur": 0.000029, "ue": 0.000051763 }
+        "memory": { "up": 0.0002, "ud": 0.0002309, "ur": 0.000029, "ue": 0.000051763 },
+        "display": {
+          "reference": 210,
+          "average": 210.0001,
+          "indication_error": 0.0001,
+          "expanded_uncertainty": 0.0007,
+          "veff": "∞",
+          "k": 2
+        }
       },
       "tolerance": 0.00005
     },
@@ -160,7 +168,12 @@
         "nominal_value": 50,
         "indication_error": 0,
         "expanded_uncertainty": 0.05775,
-        "coverage_factor": 2
+        "coverage_factor": 2,
+        "display": {
+          "expanded_uncertainty": 0.1,
+          "veff": "∞",
+          "k": 2
+        }
       },
       "tolerance": 0.001
     },
@@ -192,9 +205,62 @@
         "indication_error": 0.0002,
         "expanded_uncertainty": 0.00011,
         "coverage_factor": 2.52,
-        "degrees_of_freedom": 6
+        "degrees_of_freedom": 6,
+        "display": {
+          "expanded_uncertainty": 0.0001,
+          "veff": "6",
+          "k": 2.52
+        }
       },
       "tolerance": 0.00002
+    },
+    {
+      "id": "load-batch-synthetic-p2",
+      "description": "Sintético AN=sim — P2 upLC = uc(P1)",
+      "balance": { "unidade": "g", "capacidade": "220", "resolucao": "0.0001", "decimal_places": { "p1": 4 } },
+      "environmental": {
+        "initial_temperature": "24",
+        "final_temperature": "24",
+        "initial_humidity": "65",
+        "final_humidity": "58",
+        "initial_pressure": "935",
+        "final_pressure": "935"
+      },
+      "weightItems": [],
+      "weightCerts": [],
+      "points": [
+        {
+          "point_number": 1,
+          "nominal_value": "20",
+          "material_preset": "aco",
+          "resolution": "0.0001",
+          "reading1": "20.0001",
+          "reading2": "20.0001",
+          "reading3": "20.0001"
+        },
+        {
+          "point_number": 2,
+          "nominal_value": "210",
+          "use_load_batch": true,
+          "load_batch_formation": "l1_p1",
+          "load_batch_nominal": 190,
+          "load_batch_material_preset": "aco",
+          "material_preset": "aco",
+          "resolution": "0.0001",
+          "reading1": "210.0001",
+          "reading2": "210.0001",
+          "reading3": "210.0001"
+        }
+      ],
+      "expected": [
+        { "point_number": 1, "calc_status": "calculado" },
+        {
+          "point_number": 2,
+          "calc_status": "calculado",
+          "memory": { "upLC_gt": 0 },
+          "uc_gt_p1": true
+        }
+      ]
     }
   ]
 }

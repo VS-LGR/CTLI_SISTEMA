@@ -1,5 +1,6 @@
 import { parseImportNumeric, toDbNumeric } from "@/lib/certificateCalculations/parseNumber";
 import { calculateAirDensityFromEnvironmental } from "@/lib/certificateCalculations/environmentalCalculations";
+import { applyLoadBatchFromColeta } from "@/lib/certificateCalculations/loadBatchCalculations";
 import { syncLegacyReadingColumns, readingsAfterFromPoint, readingsBeforeFromPoint } from "./certificatePointUtils";
 
 const POINT_NUMERIC_FIELDS = [
@@ -26,7 +27,7 @@ const COLETA_POINT_SOURCE = {
   reading3: "rep3",
 };
 
-export function mapColetaPointForDb(pt, pointNumber, warnings = []) {
+export function mapColetaPointForDb(pt, pointNumber, warnings = [], repeatabilitySnapshot = {}) {
   const afterRaw = [pt?.rep1, pt?.rep2, pt?.rep3, pt?.rep4, pt?.rep5, pt?.rep6]
     .filter((r) => r != null && String(r).trim() !== "");
   const beforeRaw = pt?.leitura_antes
@@ -76,6 +77,15 @@ export function mapColetaPointForDb(pt, pointNumber, warnings = []) {
     const res = parseImportNumeric(pt.resolucao);
     result.resolution = res.valid ? res.value : null;
   }
+
+  const loadBatch = applyLoadBatchFromColeta(pointNumber, repeatabilitySnapshot);
+  result.use_load_batch = loadBatch.use_load_batch;
+  result.load_batch_formation = loadBatch.load_batch_formation;
+  result.load_batch_nominal = loadBatch.load_batch_nominal != null
+    ? toDbNumeric(loadBatch.load_batch_nominal)
+    : null;
+  result.load_batch_material_preset = loadBatch.load_batch_material_preset || "";
+  result.error_multiplier = loadBatch.error_multiplier ?? null;
 
   return result;
 }

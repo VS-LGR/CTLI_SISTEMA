@@ -314,7 +314,14 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
     certs = cad.weightCerts;
   }
 
-  const calculated = calculateCertificatePoints(full.points, full.balance_snapshot, items, certs, full.environmental || {});
+  const calculated = calculateCertificatePoints(
+    full.points,
+    full.balance_snapshot,
+    items,
+    certs,
+    full.environmental || {},
+    { repeatabilitySnapshot: full.repeatability_snapshot || {} },
+  );
 
   const confResult = calculateConformityForCertificate({
     balance: full.balance_snapshot,

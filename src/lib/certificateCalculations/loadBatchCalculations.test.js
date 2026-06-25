@@ -1,0 +1,141 @@
+import {
+  formationKeyForPoint,
+  upLcFromTable01,
+  errorMultiplierForFormation,
+  referenceWithLoadBatch,
+  buoyancyPpmCombined,
+  buildFormationChain,
+  applyLoadBatchFromColeta,
+  upLcFromSpreadsheetFormula,
+} from "./loadBatchCalculations";
+import { calculateCertificatePoints } from "./index";
+
+describe("loadBatchCalculations", () => {
+  test("formationKeyForPoint", () => {
+    expect(formationKeyForPoint(1, true)).toBeNull();
+    expect(formationKeyForPoint(2, true)).toBe("l1_p1");
+    expect(formationKeyForPoint(3, false)).toBeNull();
+    expect(formationKeyForPoint(4, true)).toBe("l3_p1");
+  });
+
+  test("upLcFromTable01 — P2 usa uc(P1)", () => {
+    const chain = { p1: { combinedUncertainty: 0.00031 } };
+    const res = upLcFromTable01("l1_p1", chain, []);
+    expect(res.value).toBeCloseTo(0.00031, 6);
+    expect(res.source).toBe("p1");
+  });
+
+  test("upLcFromTable01 — fallback ponto anterior", () => {
+    const calculated = [{
+      point_number: 1,
+      calculation_memory: { combinedUncertainty: 0.0005 },
+    }];
+    const res = upLcFromTable01("l1_p1", {}, calculated);
+    expect(res.value).toBeCloseTo(0.0005, 6);
+    expect(res.source).toBe("point_1");
+  });
+
+  test("referenceWithLoadBatch soma pesos + lote", () => {
+    const res = referenceWithLoadBatch(20, 190, "g");
+    expect(res.valid).toBe(true);
+    expect(res.value).toBe(210);
+  });
+
+  test("buoyancyPpmCombined soma ppm lote", () => {
+    expect(buoyancyPpmCombined(1, "ferro", 1)).toBe(3);
+    expect(buoyancyPpmCombined(1, "", 1)).toBe(1);
+  });
+
+  test("errorMultiplierForFormation", () => {
+    expect(errorMultiplierForFormation("l1_p1")).toBe(1);
+    expect(errorMultiplierForFormation(null)).toBe(1);
+  });
+
+  test("applyLoadBatchFromColeta — P2+ só com linha da formação", () => {
+    const snap = {
+      linhas: [
+        { key: "p1", leitura1: "210", valor_nominal: "" },
+        { key: "l1_p1", valor_nominal: "190", leitura1: "210" },
+      ],
+    };
+    const p2 = applyLoadBatchFromColeta(2, snap);
+    expect(p2.use_load_batch).toBe(true);
+    expect(p2.load_batch_formation).toBe("l1_p1");
+    expect(p2.load_batch_nominal).toBe("190");
+    const p1 = applyLoadBatchFromColeta(1, snap);
+    expect(p1.use_load_batch).toBe(false);
+    const p3 = applyLoadBatchFromColeta(3, snap);
+    expect(p3.use_load_batch).toBe(false);
+  });
+
+  test("applyLoadBatchFromColeta — verso só P1 não ativa P2", () => {
+    const snap = { linhas: [{ key: "p1", leitura1: "20" }] };
+    expect(applyLoadBatchFromColeta(2, snap).use_load_batch).toBe(false);
+  });
+
+  test("buildFormationChain acumula pontos", () => {
+    const pts = [
+      { point_number: 1, use_load_batch: false, calculation_memory: { combinedUncertainty: 0.001 } },
+      { point_number: 2, use_load_batch: true, load_batch_formation: "l1_p1", calculation_memory: { combinedUncertainty: 0.002 } },
+    ];
+    const chain = buildFormationChain(pts, {});
+    expect(chain.p1.combinedUncertainty).toBe(0.001);
+    expect(chain.l1_p1.combinedUncertainty).toBe(0.002);
+  });
+
+  test("upLcFromSpreadsheetFormula", () => {
+    const v = upLcFromSpreadsheetFormula({ ua: 0.0001, ur: 0.00003, up: 0.0002, upP1: 0.0002, nReadings: 3 });
+    expect(v).toBeGreaterThan(0);
+  });
+});
+
+describe("load batch integration — uc inclui upLC", () => {
+  test("P2 com lote tem uc maior que sem lote", () => {
+    const basePoint = {
+      point_number: 1,
+      nominal_value: "20",
+      material_preset: "aco",
+      reading1: "20.0001",
+      reading2: "20.0001",
+      reading3: "20.0001",
+      resolution: "0.0001",
+    };
+    const p2NoBatch = {
+      point_number: 2,
+      nominal_value: "210",
+      use_load_batch: false,
+      material_preset: "aco",
+      reading1: "210.0001",
+      reading2: "210.0001",
+      reading3: "210.0001",
+      resolution: "0.0001",
+    };
+    const p2WithBatch = {
+      ...p2NoBatch,
+      use_load_batch: true,
+      load_batch_formation: "l1_p1",
+      load_batch_nominal: 190,
+      load_batch_material_preset: "aco",
+    };
+
+    const balance = { unidade: "g", capacidade: "220", resolucao: "0.0001" };
+    const env = {
+      initial_temperature: "24",
+      final_temperature: "24",
+      initial_humidity: "65",
+      final_humidity: "58",
+      initial_pressure: "935",
+      final_pressure: "935",
+    };
+
+    const without = calculateCertificatePoints([basePoint, p2NoBatch], balance, [], [], env);
+    const withBatch = calculateCertificatePoints([basePoint, p2WithBatch], balance, [], [], env);
+
+    expect(without[1].calc_status).toBe("calculado");
+    expect(withBatch[1].calc_status).toBe("calculado");
+    expect(withBatch[1].calculation_memory.upLC).toBeGreaterThan(0);
+    expect(withBatch[1].calculation_memory.combinedUncertainty)
+      .toBeGreaterThan(without[1].calculation_memory.combinedUncertainty);
+    expect(Number(withBatch[1].nominal_value)).toBe(210);
+  });
+});
