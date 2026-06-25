@@ -1,7 +1,6 @@
 import { formatCertificateNumber, certificateTypeLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
-import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter, buildCertificatePointDisplay } from "@/lib/certificateCalculations";
-import { formatVeffForDisplay } from "@/lib/certificateCalculations/certificateDisplayRounding";
+import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter, buildCertificatePointDisplay, enrichCertificatePointsForDisplay, resolvePointVeff } from "@/lib/certificateCalculations";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import {
   environmentalAverage,
@@ -153,21 +152,12 @@ function parseCityFromAddress(address) {
   return "";
 }
 
-function resolvePointVeff(point) {
-  if (point?.degrees_of_freedom != null && point.degrees_of_freedom !== "") {
-    return formatVeffForDisplay(point.degrees_of_freedom);
-  }
-  const fromMemory = point?.calculation_memory?.veffDisplay;
-  if (fromMemory != null && String(fromMemory).trim() !== "" && fromMemory !== "--") {
-    return String(fromMemory);
-  }
-  return "--";
-}
-
 function formatPointVeff(point) {
   const formatted = resolvePointVeff(point);
   return formatted === "--" ? "—" : formatted;
 }
+
+export { enrichCertificatePointsForDisplay };
 
 function resolveEnvironmental(cert) {
   const env = cert.environmental || cert.technical_snapshot?.environmentalConditionsSnapshot || {};
@@ -281,18 +271,19 @@ export function buildCertificatePdfViewModel(cert, {
   preview = false,
   cancelled = false,
 } = {}) {
-  const balance = cert.balance_snapshot || cert.technical_snapshot?.balanceSnapshot || {};
-  const meta = documentMeta || cert.document_snapshot || {};
+  const enriched = enrichCertificatePointsForDisplay(cert);
+  const balance = enriched.balance_snapshot || enriched.technical_snapshot?.balanceSnapshot || {};
+  const meta = documentMeta || enriched.document_snapshot || {};
   const unit = unidadeLabel(balance.unidade);
-  const points = activePoints(cert);
-  const env = resolveEnvironmental(cert);
+  const points = activePoints(enriched);
+  const env = resolveEnvironmental(enriched);
   env.popReference = tenant?.pop_calibration_code || "POP-CAL-02";
 
-  const eccentricity = resolveEccentricity(cert);
-  const repeatability = resolveRepeatability(cert);
-  const validityDate = cert.validity_date || defaultValidityDate(cert.calibration_date);
+  const eccentricity = resolveEccentricity(enriched);
+  const repeatability = resolveRepeatability(enriched);
+  const validityDate = enriched.validity_date || defaultValidityDate(enriched.calibration_date);
 
-  const weightStandards = (cert.standards || [])
+  const weightStandards = (enriched.standards || [])
     .filter((s) => s.standard_type === "peso_padrao" || s.standard_type === "outro")
     .map((s) => ({
       code: s.identification_code,
@@ -303,7 +294,7 @@ export function buildCertificatePdfViewModel(cert, {
       traceability: s.traceability || s.laboratory || "",
     }));
 
-  const instrumentStandards = (cert.standards || [])
+  const instrumentStandards = (enriched.standards || [])
     .filter((s) => s.standard_type === "termo_baro_higrometro")
     .map((s) => ({
       code: s.identification_code,
@@ -336,24 +327,24 @@ export function buildCertificatePdfViewModel(cert, {
     },
     preview,
     cancelled,
-    certificateType: cert.certificate_type,
-    certificateTypeLabel: certificateTypeLabel(cert.certificate_type),
-    certificateNumber: formatCertificateNumber(cert.certificate_number, cert.certificate_year),
-    revision: cert.certificate_revision || meta.revision || meta.documentRevision || "00",
+    certificateType: enriched.certificate_type,
+    certificateTypeLabel: certificateTypeLabel(enriched.certificate_type),
+    certificateNumber: formatCertificateNumber(enriched.certificate_number, enriched.certificate_year),
+    revision: enriched.certificate_revision || meta.revision || meta.documentRevision || "00",
     documentMeta: {
       code: meta.code || meta.documentCode || "RE-7.2B",
       reference: meta.reference || meta.documentReference || "PR-7.2",
-      revision: meta.revision || meta.documentRevision || cert.certificate_revision || "00",
+      revision: meta.revision || meta.documentRevision || enriched.certificate_revision || "00",
       modelIssueDate: meta.modelIssueDate || meta.documentIssueDate || "",
       title: meta.title || meta.documentTitle || "CERTIFICADO DE CALIBRAÇÃO",
     },
-    client: resolveClient(cert),
+    client: resolveClient(enriched),
     balance: {
       identificacao: balance.tag || balance.codigo || "",
       fabricante: balance.fabricante || "",
       modelo: balance.modelo || "",
       descricao: balance.descricao || "",
-      serie: balance.serie || cert.scale_serial || "",
+      serie: balance.serie || enriched.scale_serial || "",
       tag: balance.tag || "",
       capacidade: balance.capacidade || "",
       capacidade2: balance.capacidade_2 || "",
@@ -373,13 +364,13 @@ export function buildCertificatePdfViewModel(cert, {
       tipoPlataformaLabel: labelFromOptions(TIPO_PLATAFORMA_OPTIONS, balance.tipo_plataforma),
       portaria: balance.portaria_inmetro || "",
       etiqueta: balance.etiqueta_ipem || "",
-      local: balance.local || cert.calibration_location || "",
+      local: balance.local || enriched.calibration_location || "",
       faixa: balance.capacidade ? `${balance.capacidade} ${unit}`.trim() : "",
     },
-    calibrationDate: fmtDmy(cert.calibration_date),
+    calibrationDate: fmtDmy(enriched.calibration_date),
     validityDate: fmtDmy(validityDate),
-    issueDate: fmtDmy(cert.issue_date),
-    proposalRef: cert.commercial_proposal_ref || "",
+    issueDate: fmtDmy(enriched.issue_date),
+    proposalRef: enriched.commercial_proposal_ref || "",
     environmental: env,
     weightStandards,
     instrumentStandards,
@@ -416,14 +407,14 @@ export function buildCertificatePdfViewModel(cert, {
     adjustmentPerformed,
     adjustmentNote: adjustmentPerformed === false ? "Não foi realizado o ajuste do equipamento" : "",
     calibratedPointsCount: points.length,
-    readingsPerPoint: resolveReadingsPerPoint(cert),
+    readingsPerPoint: resolveReadingsPerPoint(enriched),
     repeatabilityRows: buildRepeatabilityRows(points, balance, unit),
-    conformity: cert.conformity || {},
-    conformityDeclaration: conformityDeclaration(cert),
-    executorName: cert.executor_name || cert.technical_snapshot?.executorSnapshot?.full_name || "",
-    signatoryName: cert.signatory_name || cert.technical_snapshot?.signatorySnapshot?.full_name || "",
-    approvalDate: fmtDmy(cert.approval_date),
-    observations: getCertificateObservations(cert.certificate_type),
+    conformity: enriched.conformity || {},
+    conformityDeclaration: conformityDeclaration(enriched),
+    executorName: enriched.executor_name || enriched.technical_snapshot?.executorSnapshot?.full_name || "",
+    signatoryName: enriched.signatory_name || enriched.technical_snapshot?.signatorySnapshot?.full_name || "",
+    approvalDate: fmtDmy(enriched.approval_date),
+    observations: getCertificateObservations(enriched.certificate_type),
     unit,
   };
 }

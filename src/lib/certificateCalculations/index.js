@@ -59,6 +59,10 @@ export {
   roundExpandedUncertainty,
   roundIndicationError,
   formatVeffForDisplay,
+  resolvePointVeff,
+  resolvePointVeffRaw,
+  enrichPointVeffForStorage,
+  enrichCertificatePointsForDisplay,
   buildCertificatePointDisplay,
 } from "./certificateDisplayRounding";
 export {

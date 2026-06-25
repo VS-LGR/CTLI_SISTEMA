@@ -1,5 +1,10 @@
 import { parseCalibrationNumber, decimalPlacesFromResolution } from "./parseNumber";
-import { resolveResolutionForNominal } from "./pointCalculations";
+import {
+  resolveResolutionForNominal,
+  welchSatterthwaiteNuEff,
+  truncateVeff,
+  veffForDbStorage,
+} from "./pointCalculations";
 
 /**
  * PR-7.8 / RE-7.2B Certificado-RBC — arredondamento para exibição no certificado.
@@ -128,6 +133,71 @@ export function formatVeffForDisplay(veff) {
 }
 
 /**
+ * Veff numérico (100 = ∞ na planilha) — Welch-Satterthwaite + trunc, mesma cadeia do motor.
+ * Usa degrees_of_freedom gravado, memória de cálculo ou recomposição a partir de ua..upLC.
+ */
+export function resolvePointVeffRaw(point) {
+  if (point?.degrees_of_freedom != null && point.degrees_of_freedom !== "") {
+    return veffForDbStorage(point.degrees_of_freedom);
+  }
+
+  const mem = point?.calculation_memory || {};
+  if (mem.degreesOfFreedom != null && mem.degreesOfFreedom !== "") {
+    return veffForDbStorage(mem.degreesOfFreedom);
+  }
+
+  if (point?.calc_status !== "calculado") return null;
+
+  const ua = mem.ua != null ? Number(mem.ua) : Number(point.repeatability);
+  if (!Number.isFinite(ua)) return null;
+
+  const nReadings = mem.readingCount || 3;
+  const nuRep = nReadings >= 2 ? nReadings - 1 : 0;
+  const upVal = Number(mem.up) || 0;
+  const udVal = Number(mem.ud) || 0;
+  const ueVal = Number(mem.ue) || 0;
+  const ur = Number(mem.ur) || 0;
+  const upLc = Number(mem.upLC) || 0;
+
+  const nuRaw = welchSatterthwaiteNuEff([
+    { type: "ua", u: ua, nu: nuRep },
+    { type: "up", u: upVal, nu: Infinity },
+    { type: "ud", u: udVal, nu: Infinity },
+    { type: "ue", u: ueVal, nu: Infinity },
+    { type: "ur", u: ur, nu: Infinity },
+    { type: "upLC", u: upLc, nu: Infinity },
+  ]);
+  return truncateVeff(nuRaw);
+}
+
+/** Veff para PDF/editor — exibição Certificado-RBC (AA49). */
+export function resolvePointVeff(point) {
+  const raw = resolvePointVeffRaw(point);
+  if (raw != null) return formatVeffForDisplay(raw);
+  const mem = point?.calculation_memory || {};
+  if (mem.veffDisplay != null && String(mem.veffDisplay).trim() !== "" && mem.veffDisplay !== "--") {
+    return String(mem.veffDisplay);
+  }
+  return "--";
+}
+
+/** Preenche degrees_of_freedom ausente a partir da fórmula (certificados recalculados antes da correção). */
+export function enrichPointVeffForStorage(point) {
+  if (point?.degrees_of_freedom != null && point.degrees_of_freedom !== "") return point;
+  const raw = resolvePointVeffRaw(point);
+  if (raw == null) return point;
+  return { ...point, degrees_of_freedom: raw };
+}
+
+export function enrichCertificatePointsForDisplay(cert) {
+  if (!cert?.points?.length) return cert;
+  return {
+    ...cert,
+    points: cert.points.map(enrichPointVeffForStorage),
+  };
+}
+
+/**
  * Valores de exibição unificados (PDF + editor) por ponto.
  */
 export function buildCertificatePointDisplay(point, balance, unit = "g") {
@@ -158,6 +228,6 @@ export function buildCertificatePointDisplay(point, balance, unit = "g") {
       resolutionStr,
       decimals,
     ),
-    veff: formatVeffForDisplay(point?.degrees_of_freedom),
+    veff: resolvePointVeff(point),
   };
 }

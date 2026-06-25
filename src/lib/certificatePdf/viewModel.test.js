@@ -114,7 +114,17 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
       points: [{
         ...EMISSAO_TESTE_CERT.points[0],
         degrees_of_freedom: null,
-        calculation_memory: { veffDisplay: "∞" },
+        calc_status: "calculado",
+        repeatability: 0,
+        calculation_memory: {
+          ua: 0,
+          up: 0.0002,
+          ud: 0.0001,
+          ue: 0.00005,
+          ur: 0.00003,
+          upLC: 0,
+          readingCount: 3,
+        },
       }],
     });
     expect(model.repeatabilityRows[0].veff).toBe("∞");
