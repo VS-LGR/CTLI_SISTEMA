@@ -222,8 +222,8 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
     steps.push({
       id: "empuxo",
       label: "Empuxo (ue)",
-      formula: "ue = V.R. × Urel (EMP.P1)",
-      expression: `${fmt(mem.referenceValue ?? mem.vc_uncorrected)} × ${fmt(mem.empUrel ?? mem.urel, 8)} = ${fmt(mem.ue)}`,
+      formula: "ue = V.C × Urel (EMP.P1)",
+      expression: `${fmt(mem.empConventionalMass ?? mem.vc_uncorrected ?? mem.referenceValue)} × ${fmt(mem.empUrel ?? mem.urel, 8)} = ${fmt(mem.ue)}`,
       result: mem.ue,
       unit,
     });

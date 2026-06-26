@@ -142,9 +142,17 @@ function resolveBuoyancyPpm(point) {
   return weightPpm;
 }
 
-function resolveUeForPoint(point, referenceGrams, environmental, unit) {
+function parseBalanceAdjustmentPerformed(value) {
+  const v = String(value ?? "").trim().toLowerCase();
+  if (!v) return null;
+  if (v === "sim" || v === "s" || v === "yes") return true;
+  if (v === "nao" || v === "não" || v === "n" || v === "nao." || v === "não.") return false;
+  return null;
+}
+
+function resolveUeForPoint(point, conventionalMassGrams, environmental, unit) {
   const matDensity = resolveMaterialDensity(point);
-  const vcGrams = unit === "kg" ? referenceGrams * 1000 : referenceGrams;
+  const vcGrams = unit === "kg" ? conventionalMassGrams * 1000 : conventionalMassGrams;
 
   const emp = calculateBuoyancyUncertainty({
     conventionalMass: vcGrams,
@@ -291,10 +299,12 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       continue;
     }
 
-    const refNum = parseCalibrationNumber(reference);
-    const ueRes = refNum.valid
-      ? resolveUeForPoint(pt, refNum.value, environmental, unit)
+    const vcNum = parseCalibrationNumber(vcUncorrected);
+    const ueRes = vcNum.valid
+      ? resolveUeForPoint(pt, vcNum.value, environmental, unit)
       : { ue: 0, method: "none", warning: "" };
+
+    const adjustmentPerformed = parseBalanceAdjustmentPerformed(environmental?.balance_adjusted);
 
     const upLcRes = useLoadBatch
       ? upLcFromTable01(formationKey, formationChain, calculated)
@@ -313,6 +323,7 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
         ue: ueRes.ue,
         upLC: upLcRes.value,
         errorMultiplier: errorMult,
+        adjustmentPerformed,
       },
     );
 
@@ -372,6 +383,9 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       empY: ueRes.empMemory?.empY ?? null,
       empUrel: ueRes.empMemory?.urel ?? ueRes.urel ?? null,
       empMaterialDensityUsed: ueRes.empMemory?.rhoMat ?? null,
+      empConventionalMass: vcUncorrected ?? null,
+      balance_adjusted: environmental?.balance_adjusted ?? null,
+      adjustment_performed: adjustmentPerformed,
       upLcSource: upLcRes.source,
       upLcSpreadsheet,
       errorMultiplier: errorMult,

@@ -19,6 +19,7 @@ import {
 } from "./conformityCalculations";
 import { correctConventionalMassForBuoyancy, shouldApplyVccCorrection } from "./conventionalMassCorrection";
 import { calculateBuoyancyUncertainty } from "./buoyancyCalculations";
+import { calculateCertificatePoints } from "./index";
 import { roundExpandedUncertainty, roundIndicationError } from "./certificateDisplayRounding";
 
 describe("certificateCalculations", () => {
@@ -63,6 +64,46 @@ describe("certificateCalculations", () => {
     expect(calc.results.average_reading).toBeCloseTo(5.02, 4);
     expect(calc.results.calculation_memory.ua).toBeDefined();
     expect(calc.results.calculation_memory.up).toBe(0.0002);
+  });
+
+  test("sem ajuste — não calcula erro antes do ajuste (planilha P1 bloco vazio)", () => {
+    const calc = calculateCalibrationPoint(
+      {
+        nominal_value: "200",
+        reading1: "200",
+        reading2: "200",
+        reading3: "200",
+        reading_before_adjustment: "200.05",
+      },
+      {
+        resolution: "0.0001",
+        unit: "g",
+        referenceValue: 200,
+        adjustmentPerformed: false,
+      },
+    );
+    expect(calc.calcStatus).toBe("calculado");
+    expect(calc.results.error_before_adjustment).toBeNull();
+    expect(calc.results.calculation_memory.errorBeforeAdjustment).toBeNull();
+  });
+
+  test("com ajuste — calcula erro antes do ajuste", () => {
+    const calc = calculateCalibrationPoint(
+      {
+        nominal_value: "200",
+        reading1: "200",
+        reading2: "200",
+        reading3: "200",
+        reading_before_adjustment: "200.05",
+      },
+      {
+        resolution: "0.0001",
+        unit: "g",
+        referenceValue: 200,
+        adjustmentPerformed: true,
+      },
+    );
+    expect(calc.results.error_before_adjustment).toBeCloseTo(0.05, 4);
   });
 
   test("incomplete point stays pending", () => {
@@ -195,5 +236,44 @@ describe("buoyancyCalculations", () => {
     expect(res.valid).toBe(true);
     expect(res.ue).toBeGreaterThan(0);
     expect(res.ue).toBeLessThan(0.001);
+  });
+
+  test("ue = V.C × Urel — usa V.C agregado, não V.R. após VCC (EMP.P1)", () => {
+    const environmental = {
+      initial_temperature: "24",
+      final_temperature: "23",
+      initial_humidity: "65",
+      final_humidity: "55",
+      initial_pressure: "935",
+      final_pressure: "935",
+      balance_adjusted: "nao",
+    };
+    const [pt] = calculateCertificatePoints(
+      [{
+        point_number: 1,
+        nominal_value: "200",
+        material_density: "7900",
+        resolution: "0.0001",
+        reading1: "200",
+        reading2: "200",
+        reading3: "200",
+      }],
+      { unidade: "g", resolucao: "0.0001", decimal_places: { p1: 4 } },
+      [],
+      [],
+      environmental,
+    );
+    const emp = calculateBuoyancyUncertainty({
+      conventionalMass: 200,
+      materialDensity: 7900,
+      environmental,
+    });
+    expect(pt.calculation_memory.vc_uncorrected).toBe(200);
+    expect(pt.calculation_memory.empConventionalMass).toBe(200);
+    expect(pt.buoyancy_uncertainty ?? pt.calculation_memory?.ue).toBeDefined();
+    const ue = pt.buoyancy_uncertainty ?? pt.calculation_memory.ue;
+    expect(ue).toBeCloseTo(emp.ue, 8);
+    expect(ue / 200).toBeCloseTo(emp.urel, 10);
+    expect(ue).toBeCloseTo(200 * emp.urel, 8);
   });
 });

@@ -312,6 +312,7 @@ export function calculateCalibrationPoint(point, {
   upLC = 0,
   errorMultiplier = 1,
   errorBeforeAdjustment = null,
+  adjustmentPerformed = null,
 } = {}) {
   const readings = resolveReadingsAfter(point);
   if (!readings.length && !point.nominal_value && referenceValue == null) {
@@ -338,20 +339,22 @@ export function calculateCalibrationPoint(point, {
   const resolutionContrib = calculateResolutionContribution(resolution);
 
   let errorBefore = null;
-  if (errorBeforeAdjustment != null) {
-    const eb = parseCalibrationNumber(errorBeforeAdjustment);
-    if (eb.valid) errorBefore = eb.value;
-  } else {
-    const beforeReadings = resolveReadingsBefore(point);
-    if (beforeReadings.length >= 2) {
-      const beforeAvg = calculatePointAverage(beforeReadings);
-      if (beforeAvg.valid) errorBefore = beforeAvg.value - ref.value;
-    } else if (beforeReadings.length === 1) {
-      const before = parseCalibrationNumber(beforeReadings[0]);
-      if (before.valid) errorBefore = before.value - ref.value;
-    } else if (point.reading_before_adjustment != null && String(point.reading_before_adjustment).trim() !== "") {
-      const before = parseCalibrationNumber(point.reading_before_adjustment);
-      if (before.valid) errorBefore = before.value - ref.value;
+  if (adjustmentPerformed !== false) {
+    if (errorBeforeAdjustment != null) {
+      const eb = parseCalibrationNumber(errorBeforeAdjustment);
+      if (eb.valid) errorBefore = eb.value;
+    } else {
+      const beforeReadings = resolveReadingsBefore(point);
+      if (beforeReadings.length >= 2) {
+        const beforeAvg = calculatePointAverage(beforeReadings);
+        if (beforeAvg.valid) errorBefore = beforeAvg.value - ref.value;
+      } else if (beforeReadings.length === 1) {
+        const before = parseCalibrationNumber(beforeReadings[0]);
+        if (before.valid) errorBefore = before.value - ref.value;
+      } else if (point.reading_before_adjustment != null && String(point.reading_before_adjustment).trim() !== "") {
+        const before = parseCalibrationNumber(point.reading_before_adjustment);
+        if (before.valid) errorBefore = before.value - ref.value;
+      }
     }
   }
 
