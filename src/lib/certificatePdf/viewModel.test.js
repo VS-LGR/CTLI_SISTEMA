@@ -145,3 +145,76 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
     expect(model.repeatabilityRows[0].average.value).toBeTruthy();
   });
 });
+
+const ECCENTRICITY_CERT_BASE = {
+  ...EMISSAO_TESTE_CERT,
+  balance_snapshot: {
+    ...EMISSAO_TESTE_CERT.balance_snapshot,
+    resolucao: "0,0001",
+    unidade: "g",
+    tipo_plataforma: "quadrada",
+  },
+  eccentricity_snapshot: {
+    valor_aplicado: "200",
+    pontos: [
+      { antes: 201.0001, depois: 201.0001 },
+      { antes: 150, depois: 201 },
+      { antes: 201.00015, depois: 201 },
+      { antes: 201, depois: 201.0001 },
+      { antes: 201, depois: 201 },
+    ],
+  },
+};
+
+describe("buildCertificatePdfViewModel — excentricidade", () => {
+  test("snapshot vazio — seção visível, subtítulo e células ---", () => {
+    const model = buildCertificatePdfViewModel(EMISSAO_TESTE_CERT);
+    expect(model.eccentricity.showSection).toBe(true);
+    expect(model.eccentricity.eccentricitySubtitle).toContain("Não foi realizado o ensaio de excentricidade");
+    expect(model.eccentricity.points).toHaveLength(5);
+    model.eccentricity.points.forEach((pt) => {
+      expect(pt.beforeDisplay).toBe("---");
+      expect(pt.afterDisplay).toBe("---");
+    });
+  });
+
+  test("sem ajuste com dados — células --- e sem subtítulo de excentricidade", () => {
+    const model = buildCertificatePdfViewModel({
+      ...ECCENTRICITY_CERT_BASE,
+      environmental: {
+        ...EMISSAO_TESTE_CERT.environmental,
+        balance_adjusted: "nao",
+      },
+    });
+    expect(model.eccentricity.hasEccentricityData).toBe(true);
+    expect(model.eccentricity.eccentricitySubtitle).toBe("");
+    expect(model.eccentricity.points[0].beforeDisplay).toBe("---");
+    expect(model.eccentricity.points[0].afterDisplay).toBe("---");
+  });
+
+  test("com ajuste — leituras formatadas com C.D. da resolução", () => {
+    const model = buildCertificatePdfViewModel({
+      ...ECCENTRICITY_CERT_BASE,
+      environmental: {
+        ...EMISSAO_TESTE_CERT.environmental,
+        balance_adjusted: "sim",
+      },
+    });
+    expect(model.eccentricity.points[0].beforeDisplay).toBe("201,0001 g");
+    expect(model.eccentricity.points[0].afterDisplay).toBe("201,0001 g");
+    expect(model.eccentricity.points[1].beforeDisplay).toBe("150,0000 g");
+    expect(model.eccentricity.points[1].afterDisplay).toBe("201,0000 g");
+    expect(model.eccentricity.points[2].beforeDisplay).toBe("201,0001 g");
+  });
+
+  test("tipo_plataforma excentricidade_na — oculta seção", () => {
+    const model = buildCertificatePdfViewModel({
+      ...EMISSAO_TESTE_CERT,
+      balance_snapshot: {
+        ...EMISSAO_TESTE_CERT.balance_snapshot,
+        tipo_plataforma: "excentricidade_na",
+      },
+    });
+    expect(model.eccentricity.showSection).toBe(false);
+  });
+});

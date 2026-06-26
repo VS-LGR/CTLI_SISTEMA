@@ -271,7 +271,7 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
 }
 
 function drawEccentricitySection(doc, model, y, ctx) {
-  if (!model.eccentricity?.applicable) return y;
+  if (model.eccentricity?.showSection === false) return y;
   ({ y } = ensureSpace(doc, y, 52, ctx));
   y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE");
 
@@ -279,29 +279,34 @@ function drawEccentricitySection(doc, model, y, ctx) {
   const gap = 3;
   const diagramX = ML + tableW + gap;
   const diagramW = CW - tableW - gap;
-  const contentY = y + 1;
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.text("Erros", ML, contentY);
-  doc.text("Tipos de Plataforma", diagramX, contentY);
-  const tableStartY = contentY + 3;
+  y = drawDualSubsectionTitles(
+    doc,
+    ML,
+    y,
+    "Resultados Obtidos",
+    "Tipos de Plataforma",
+    tableW,
+    diagramW,
+    gap,
+    model.eccentricity?.eccentricitySubtitle || "",
+  );
 
   autoTable(doc, {
-    startY: tableStartY,
+    startY: y,
     margin: { left: ML, right: PAGE_W - ML - tableW },
-    head: [["", "Antes do Ajuste", "Resultados"]],
+    head: [["", "Antes do Ajuste", "Após Ajuste"]],
     body: model.eccentricity.points.map((pt) => [
       String(pt.number),
-      s(pt.before),
-      s(pt.after),
+      s(pt.beforeDisplay),
+      s(pt.afterDisplay),
     ]),
     styles: { fontSize: 6, cellPadding: 1, halign: "center" },
     headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
     theme: "grid",
   });
   const tableEndY = doc.lastAutoTable.finalY;
-  const diagramEndY = drawPlatformDiagramAt(doc, model, tableStartY, diagramX, diagramW, ctx);
+  const diagramEndY = drawPlatformDiagramAt(doc, model, y, diagramX, diagramW, ctx);
 
   return Math.max(tableEndY, diagramEndY) + 3;
 }

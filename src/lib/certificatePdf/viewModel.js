@@ -56,6 +56,8 @@ function pdfMeasure(value, unit, decimals) {
 }
 
 const ADJUSTMENT_NOT_PERFORMED_NOTE = "Não foi realizado o ajuste do equipamento";
+const ECCENTRICITY_NOT_PERFORMED_NOTE = "Não foi realizado o ensaio de excentricidade";
+const ECCENTRICITY_EMPTY_CELL = "---";
 
 /** @returns {boolean|null} true = sim, false = não, null = não informado */
 export function parseBalanceAdjustmentPerformed(balanceAdjusted) {
@@ -216,20 +218,55 @@ function resolveEnvironmental(cert) {
   };
 }
 
-function resolveEccentricity(cert) {
+function hasFilledEccentricityValue(value) {
+  return value != null && String(value).trim() !== "";
+}
+
+function formatEccentricityCell(value, unit, decimals) {
+  if (!hasFilledEccentricityValue(value)) return ECCENTRICITY_EMPTY_CELL;
+  const formatted = formatCalcDisplay(value, decimals).replace(".", ",");
+  return unit ? `${formatted} ${unit}` : formatted;
+}
+
+export function resolveEccentricity(cert, balance = {}, adjustmentPerformed = null, unit = "") {
   const ecc = cert.eccentricity_snapshot
     || cert.technical_snapshot?.eccentricitySnapshot
     || {};
-  const pontos = (ecc.pontos || []).slice(0, 5).map((pt, i) => ({
-    number: i + 1,
-    before: pt.antes ?? pt.leitura_antes ?? "",
-    after: pt.depois ?? pt.leitura_depois ?? "",
-  }));
-  const hasData = ecc.valor_aplicado || pontos.some((p) => p.before || p.after);
+  const tipoPlataforma = balance.tipo_plataforma || "";
+  const showSection = tipoPlataforma !== "excentricidade_na";
+
+  const rawPoints = ecc.pontos || [];
+  const points = Array.from({ length: 5 }, (_, i) => {
+    const pt = rawPoints[i] || {};
+    return {
+      number: i + 1,
+      before: pt.antes ?? pt.leitura_antes ?? "",
+      after: pt.depois ?? pt.leitura_depois ?? "",
+    };
+  });
+
+  const hasEccentricityData = hasFilledEccentricityValue(ecc.valor_aplicado)
+    || points.some((p) => hasFilledEccentricityValue(p.before) || hasFilledEccentricityValue(p.after));
+
+  const decimalPlaces = decimalPlacesFromResolution(balance.resolucao) ?? decimalPlacesForPoint(balance, 1);
+  const showReadings = hasEccentricityData && adjustmentPerformed === true;
+
   return {
-    applicable: hasData,
+    showSection,
+    hasEccentricityData,
+    eccentricitySubtitle: !hasEccentricityData ? ECCENTRICITY_NOT_PERFORMED_NOTE : "",
     appliedValue: ecc.valor_aplicado || "",
-    points: pontos.length ? pontos : Array.from({ length: 5 }, (_, i) => ({ number: i + 1, before: "", after: "" })),
+    decimalPlaces,
+    adjustmentPerformed,
+    points: points.map((p) => ({
+      ...p,
+      beforeDisplay: showReadings
+        ? formatEccentricityCell(p.before, unit, decimalPlaces)
+        : ECCENTRICITY_EMPTY_CELL,
+      afterDisplay: showReadings
+        ? formatEccentricityCell(p.after, unit, decimalPlaces)
+        : ECCENTRICITY_EMPTY_CELL,
+    })),
   };
 }
 
@@ -295,7 +332,8 @@ export function buildCertificatePdfViewModel(cert, {
   const env = resolveEnvironmental(enriched);
   env.popReference = tenant?.pop_calibration_code || "POP-CAL-02";
 
-  const eccentricity = resolveEccentricity(enriched);
+  const adjustmentPerformed = parseBalanceAdjustmentPerformed(env.balanceAdjusted);
+  const eccentricity = resolveEccentricity(enriched, balance, adjustmentPerformed, unit);
   const repeatability = resolveRepeatability(enriched);
   const validityDate = enriched.validity_date || defaultValidityDate(enriched.calibration_date);
 
@@ -320,8 +358,6 @@ export function buildCertificatePdfViewModel(cert, {
       validUntil: fmtDmy(s.valid_until),
       traceability: s.traceability || s.laboratory || "",
     }));
-
-  const adjustmentPerformed = parseBalanceAdjustmentPerformed(env.balanceAdjusted);
 
   return {
     tenantName: tenantName || tenant?.name || "",
