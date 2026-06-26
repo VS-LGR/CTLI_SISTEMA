@@ -7,6 +7,8 @@ import {
   formatVeffForDisplay,
   resolveCertificateResolution,
 } from "./certificateDisplayRounding";
+import { REF_AIR_DENSITY, REF_SOLID_DENSITY } from "./conventionalMassCorrection";
+import { RHO_SOLID_REF } from "./buoyancyCalculations";
 
 const UE_DISPLAY_FACTOR = 4.4;
 
@@ -27,36 +29,60 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
   const dNum = parseCalibrationNumber(d);
   const resStr = dNum.valid ? fmt(dNum.value, 6) : String(d ?? "—");
 
-  if (mem.weightReference != null || mem.referenceValue != null) {
-    const wRef = mem.weightReference ?? mem.referenceValue;
-    const lot = mem.loadBatchNominal;
-    if (mem.use_load_batch && lot != null && String(lot) !== "") {
+  if (mem.weightReference != null || mem.referenceValue != null || mem.vc_uncorrected != null) {
+    const lot = mem.loadBatchNominal ?? mem.load_batch_nominal;
+    const vcAk = mem.vc_uncorrected ?? mem.referenceValue;
+
+    if (mem.vc_uncorrected != null) {
       steps.push({
-        id: "vr",
-        label: "Valor de referência (V.R.)",
-        formula: "V.R. = VVC_pesos + nominal_lote",
-        expression: `${fmt(wRef)} + ${fmt(lot)} = ${fmt(mem.referenceValue)}`,
-        result: mem.referenceValue,
-        unit,
-      });
-    } else {
-      steps.push({
-        id: "vr",
-        label: "Valor de referência (V.R.)",
-        formula: "V.R. = Σ V.V.C dos pesos-padrão",
-        expression: fmt(mem.referenceValue),
-        result: mem.referenceValue,
+        id: "vc_uncorrected",
+        label: "V.C Não Corrigido (AK49)",
+        formula: "Σ V.V.C dos pesos-padrão (+ lote se aplicável)",
+        expression: fmt(mem.vc_uncorrected),
+        result: mem.vc_uncorrected,
         unit,
       });
     }
-    if (mem.vcc_correction_applied) {
+
+    if (mem.vcc_correction_applied && mem.vc_uncorrected != null) {
+      const rho = mem.air_density;
+      const du = mem.material_density;
       steps.push({
         id: "vcc",
-        label: "Correção VCC",
-        formula: "ρ_ar ∉ [1,08; 1,32] kg/m³",
-        expression: `ρ_ar = ${fmt(mem.air_density, 4)} kg/m³`,
-        result: "aplicada",
+        label: "Correção VCC (Certificado-RBC AI49)",
+        formula: "V.R. = V.C × (1 + (ρ_ar−1,2)/ρ_mat − (ρ_ar−1,2)/8000)",
+        expression: `${fmt(mem.vc_uncorrected)} × (1 + (${fmt(rho, 4)}−${REF_AIR_DENSITY})/${fmt(du, 0)} − (${fmt(rho, 4)}−${REF_AIR_DENSITY})/${REF_SOLID_DENSITY}) = ${fmt(mem.referenceValue)}`,
+        result: mem.referenceValue,
+        unit,
       });
+    } else if (mem.air_density != null && Number.isFinite(Number(mem.air_density))) {
+      steps.push({
+        id: "vcc_skip",
+        label: "Correção VCC",
+        formula: "ρ_ar ∈ [1,08; 1,32] kg/m³ — não aplicada",
+        expression: `ρ_ar = ${fmt(mem.air_density, 4)} kg/m³`,
+        result: "não aplicada",
+      });
+    } else if (mem.vc_uncorrected == null) {
+      if (mem.use_load_batch && lot != null && String(lot) !== "" && mem.weightReference != null) {
+        steps.push({
+          id: "vr",
+          label: "Valor de referência (V.R.)",
+          formula: "V.R. = VVC_pesos + nominal_lote",
+          expression: `${fmt(mem.weightReference)} + ${fmt(lot)} = ${fmt(vcAk)}`,
+          result: mem.referenceValue,
+          unit,
+        });
+      } else if (mem.referenceValue != null) {
+        steps.push({
+          id: "vr",
+          label: "Valor de referência (V.R.)",
+          formula: "V.R. = Σ V.V.C dos pesos-padrão",
+          expression: fmt(mem.referenceValue),
+          result: mem.referenceValue,
+          unit,
+        });
+      }
     }
   }
 
@@ -137,17 +163,99 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
     });
   }
 
-  if (mem.buoyancy_method) {
+  if (mem.buoyancy_method === "emp") {
+    if (mem.empDeltaT != null || mem.empDeltaRh != null) {
+      steps.push({
+        id: "emp_deltas",
+        label: "EMP — variação ambiental",
+        formula: "ΔT = T_final − T_inicial; ΔRH = UR_final − UR_inicial",
+        expression: `ΔT = ${fmt(mem.empDeltaT, 2)} °C; ΔRH = ${fmt(mem.empDeltaRh, 2)} %`,
+        result: null,
+      });
+    }
+    if (mem.empUT != null || mem.empURh != null) {
+      steps.push({
+        id: "emp_uT_uRH",
+        label: "EMP — u(T) e u(RH)",
+        formula: "u(T) = |ΔT|/√12; u(RH) = |ΔRH|/√12",
+        expression: `u(T) = ${fmt(mem.empUT, 6)}; u(RH) = ${fmt(mem.empURh, 6)}`,
+        result: null,
+      });
+    }
+    if (mem.empUPaRel != null) {
+      steps.push({
+        id: "emp_uPaRel",
+        label: "EMP — u(pa)/pa",
+        formula: "√((up×uP)² + (ut×uT)² + (urh×uRH)² + uform²)",
+        expression: fmt(mem.empUPaRel, 8),
+        result: mem.empUPaRel,
+      });
+    }
+    if (mem.empMaterialDensityUsed != null) {
+      const xWarn = mem.empX === 0 ? " — X=0 (ρ_mat=8000?)" : "";
+      steps.push({
+        id: "emp_X",
+        label: "EMP — termo X",
+        formula: "X = u(pa)/pa × (1/ρ_mat − 1/8000)²",
+        expression: `${fmt(mem.empUPaRel, 8)} × (1/${fmt(mem.empMaterialDensityUsed, 0)} − 1/${RHO_SOLID_REF})² = ${fmt(mem.empX, 12)}${xWarn}`,
+        result: mem.empX,
+      });
+    }
+    if (mem.empY != null) {
+      steps.push({
+        id: "emp_Y",
+        label: "EMP — termo Y",
+        formula: "Y = (ρ_ar − 1,2)² × 70²/8000⁴",
+        expression: `(${fmt(mem.air_density, 4)} − ${REF_AIR_DENSITY})² × 70²/${RHO_SOLID_REF}⁴ = ${fmt(mem.empY, 12)}`,
+        result: mem.empY,
+      });
+    }
+    if (mem.empUrel != null) {
+      steps.push({
+        id: "emp_Urel",
+        label: "EMP — Urel",
+        formula: "Urel = √(X + Y)",
+        expression: `√(${fmt(mem.empX, 12)} + ${fmt(mem.empY, 12)}) = ${fmt(mem.empUrel, 8)}`,
+        result: mem.empUrel,
+      });
+    }
     steps.push({
       id: "empuxo",
       label: "Empuxo (ue)",
-      formula: mem.buoyancy_method === "emp" ? "ue = V.R. × Urel (EMP.Pn)" : "ue = (V.R.×PPM/10⁶)/√3",
+      formula: "ue = V.R. × Urel (EMP.P1)",
+      expression: `${fmt(mem.referenceValue ?? mem.vc_uncorrected)} × ${fmt(mem.empUrel ?? mem.urel, 8)} = ${fmt(mem.ue)}`,
+      result: mem.ue,
+      unit,
+    });
+    if (mem.buoyancy_warning) {
+      steps.push({
+        id: "emp_warning",
+        label: "Empuxo — aviso",
+        formula: mem.buoyancy_warning,
+        expression: mem.buoyancy_warning,
+        result: null,
+      });
+    }
+  } else if (mem.buoyancy_method === "ppm") {
+    steps.push({
+      id: "empuxo",
+      label: "Empuxo (ue) — fallback PPM",
+      formula: "ue = (V.R.×PPM/10⁶)/√3",
       expression: [
         mem.ppmEffective != null ? `PPM = ${fmt(mem.ppmEffective, 2)}` : "",
-        mem.urel != null ? `Urel = ${fmt(mem.urel, 8)}` : "",
-        mem.air_density != null ? `ρ_ar = ${fmt(mem.air_density, 4)}` : "",
+        fmt(mem.ue),
       ].filter(Boolean).join("; ") || fmt(mem.ue),
       result: mem.ue,
+      unit,
+    });
+  } else if (mem.buoyancy_method) {
+    steps.push({
+      id: "empuxo",
+      label: "Empuxo (ue)",
+      formula: "ue não calculado",
+      expression: fmt(mem.ue),
+      result: mem.ue,
+      unit,
     });
   }
 

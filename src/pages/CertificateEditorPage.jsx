@@ -54,6 +54,7 @@ import {
 } from "@/lib/calibrationCertificates/certificatePointUtils";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatCalcDisplay, formatAirDensityDisplay, buildCertificatePointDisplay, calculateCertificatePoints } from "@/lib/certificateCalculations";
+import { parseBalanceAdjustmentPerformed } from "@/lib/certificatePdf/viewModel";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CriticalAnalysisDialog from "@/components/calibrationCertificates/CriticalAnalysisDialog";
@@ -706,9 +707,16 @@ export default function CertificateEditorPage() {
 
           <Card>
             <CardContent className="p-0 overflow-x-auto">
-              <p className="px-4 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Antes do ajuste
-              </p>
+              <div className="px-4 pt-4 pb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Antes do ajuste
+                </p>
+                {parseBalanceAdjustmentPerformed(cert.environmental?.balance_adjusted) === false && (
+                  <p className="mt-1 text-xs italic text-slate-500">
+                    Não foi realizado o ajuste do equipamento
+                  </p>
+                )}
+              </div>
               <table className="w-full text-sm min-w-[480px]">
                 <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                   <tr>
@@ -724,28 +732,35 @@ export default function CertificateEditorPage() {
                     if (!hasData && !(isStandalone && editable)) return null;
                     const display = p.calc_status === "calculado" ? certificatePointDisplay(cert, p) : null;
                     const decimals = p.display_decimals ?? display?.decimals ?? 4;
+                    const noAdjustment = parseBalanceAdjustmentPerformed(cert.environmental?.balance_adjusted) === false;
                     return (
                       <tr key={`before-${p.id}`} className="border-t align-top">
                         <td className="p-2">P{p.point_number}</td>
                         <td className="p-2">
-                          {isStandalone && editable ? (
-                            <Input
-                              className="h-8 w-24"
-                              value={p.nominal_value ?? ""}
-                              onChange={(e) => patchPoint(p.id, { nominal_value: e.target.value })}
-                            />
-                          ) : formatPointDisplayValue(display?.reference ?? p.nominal_value, decimals)}
+                          {noAdjustment ? "—" : (
+                            isStandalone && editable ? (
+                              <Input
+                                className="h-8 w-24"
+                                value={p.nominal_value ?? ""}
+                                onChange={(e) => patchPoint(p.id, { nominal_value: e.target.value })}
+                              />
+                            ) : formatPointDisplayValue(display?.reference ?? p.nominal_value, decimals)
+                          )}
                         </td>
                         <td className="p-2">
-                          {isStandalone && editable ? (
-                            <Input
-                              className="h-8 w-20"
-                              value={p.reading_before_adjustment ?? ""}
-                              onChange={(e) => patchPoint(p.id, { reading_before_adjustment: e.target.value })}
-                            />
-                          ) : formatCalcDisplay(p.reading_before_adjustment, p.display_decimals ?? 4)}
+                          {noAdjustment ? "—" : (
+                            isStandalone && editable ? (
+                              <Input
+                                className="h-8 w-20"
+                                value={p.reading_before_adjustment ?? ""}
+                                onChange={(e) => patchPoint(p.id, { reading_before_adjustment: e.target.value })}
+                              />
+                            ) : formatCalcDisplay(p.reading_before_adjustment, p.display_decimals ?? 4)
+                          )}
                         </td>
-                        <td className="p-2">{formatCalcDisplay(p.error_before_adjustment, p.display_decimals ?? 4)}</td>
+                        <td className="p-2">
+                          {noAdjustment ? "—" : formatCalcDisplay(p.error_before_adjustment, p.display_decimals ?? 4)}
+                        </td>
                       </tr>
                     );
                   })}

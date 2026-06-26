@@ -27,3 +27,44 @@ export function correctConventionalMassForBuoyancy(
   const factor = 1 + delta / materialDensity - delta / refSolid;
   return vc * factor;
 }
+
+/** Fator multiplicativo VCC (Certificado-RBC AI49). */
+export function vccBuoyancyFactor(airDensity, materialDensity, refAir = REF_AIR_DENSITY, refSolid = REF_SOLID_DENSITY) {
+  if (!Number.isFinite(airDensity) || !Number.isFinite(materialDensity) || materialDensity === 0) {
+    return 1;
+  }
+  const delta = airDensity - refAir;
+  return 1 + delta / materialDensity - delta / refSolid;
+}
+
+/**
+ * V.R. a partir do V.C agregado (AK49) — Certificado-RBC AI49.
+ * @returns {{ reference: number|null, vccApplied: boolean, factor: number, vcUncorrected: number|null }}
+ */
+export function resolveReferenceFromConventionalMass({
+  vcUncorrected,
+  airDensity,
+  materialDensity,
+}) {
+  const vc = vcUncorrected == null || vcUncorrected === "" ? NaN : Number(vcUncorrected);
+  if (!Number.isFinite(vc)) {
+    return { reference: null, vccApplied: false, factor: 1, vcUncorrected: null };
+  }
+
+  if (!shouldApplyVccCorrection(airDensity)) {
+    return { reference: vc, vccApplied: false, factor: 1, vcUncorrected: vc };
+  }
+
+  const mat = Number(materialDensity);
+  if (!Number.isFinite(mat) || mat <= 0) {
+    return { reference: vc, vccApplied: false, factor: 1, vcUncorrected: vc };
+  }
+
+  const factor = vccBuoyancyFactor(airDensity, mat);
+  return {
+    reference: correctConventionalMassForBuoyancy(vc, airDensity, mat),
+    vccApplied: true,
+    factor,
+    vcUncorrected: vc,
+  };
+}

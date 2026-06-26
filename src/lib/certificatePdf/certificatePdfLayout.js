@@ -134,13 +134,20 @@ export function drawCompactMeasureRow(doc, x, y, totalW, cells) {
 }
 
 /** Duas faixas de título sobre tabelas lado a lado. */
-export function drawDualSubsectionTitles(doc, x, y, leftText, rightText, leftW, rightW, gap = 2) {
+export function drawDualSubsectionTitles(doc, x, y, leftText, rightText, leftW, rightW, gap = 2, leftSubtitle = "") {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(6.5);
   doc.setTextColor(...FORM_COLORS.text);
   doc.text(leftText, x, y);
   doc.text(rightText, x + leftW + gap, y);
-  return y + 3;
+  let nextY = y + 3;
+  if (leftSubtitle) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(6);
+    doc.text(leftSubtitle, x, nextY + 1.5, { maxWidth: leftW });
+    nextY += 5;
+  }
+  return nextY;
 }
 
 /** Rodapé documental em todas as páginas (Código, Ref, Emissão, Página). */

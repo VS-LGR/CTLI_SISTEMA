@@ -20,6 +20,23 @@ describe("environmentalCalculations", () => {
     expect(sum.value).toBeCloseTo(150.0003, 4);
   });
 
+  test("sumConventionalFromWeightIds com vccCorrection=false não aplica VCC por peso", () => {
+    const sum = sumConventionalFromWeightIds(
+      ["w1"],
+      [{ id: "w1", conventional_value: "210", unit: "g" }],
+      "g",
+      { airDensity: 1.05, materialDensity: 7900, vccCorrection: true },
+    );
+    const raw = sumConventionalFromWeightIds(
+      ["w1"],
+      [{ id: "w1", conventional_value: "210", unit: "g" }],
+      "g",
+      { vccCorrection: false },
+    );
+    expect(raw.value).toBe(210);
+    expect(sum.value).not.toBe(210);
+  });
+
   test("combinedExpandedUncertaintyFromWeightIds combina Ue (RSS)", () => {
     const ue = combinedExpandedUncertaintyFromWeightIds(["w1", "w2"], weights, "g");
     expect(ue.valid).toBe(true);

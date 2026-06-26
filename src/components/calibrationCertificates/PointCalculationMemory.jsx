@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 const MEMORY_FIELDS = [
   { key: "average", label: "Média (L) — calc.", decimals: 6 },
   { key: "referenceValue", label: "V.R. — calc.", decimals: 6 },
+  { key: "vc_uncorrected", label: "V.C Não Corrigido (AK49)", decimals: 6 },
   { key: "weightReference", label: "VVC pesos (sem lote)", decimals: 6 },
   { key: "indicationError", label: "Erro (E) — calc.", decimals: 6 },
   { key: "errorBeforeAdjustment", label: "Erro antes do ajuste", decimals: 6 },

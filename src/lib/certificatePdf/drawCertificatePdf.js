@@ -373,6 +373,7 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     leftW,
     rightW,
     gap,
+    model.adjustmentSubtitle || "",
   );
 
   const tableHead = [
@@ -457,13 +458,6 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     theme: "grid",
   });
   y = Math.max(leftEndY, doc.lastAutoTable.finalY) + 2;
-
-  if (model.adjustmentNote) {
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(6.5);
-    doc.text(model.adjustmentNote, ML, y);
-    y += 4;
-  }
 
   y = drawRepeatabilityMetaFooter(
     doc,

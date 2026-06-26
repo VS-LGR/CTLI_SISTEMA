@@ -55,6 +55,21 @@ function pdfMeasure(value, unit, decimals) {
   };
 }
 
+const ADJUSTMENT_NOT_PERFORMED_NOTE = "Não foi realizado o ajuste do equipamento";
+
+/** @returns {boolean|null} true = sim, false = não, null = não informado */
+export function parseBalanceAdjustmentPerformed(balanceAdjusted) {
+  const v = String(balanceAdjusted ?? "").trim().toLowerCase();
+  if (!v) return null;
+  if (v === "sim" || v === "s" || v === "yes") return true;
+  if (v === "nao" || v === "não" || v === "n" || v === "nao." || v === "não.") return false;
+  return null;
+}
+
+function dashMeasure(unit) {
+  return { value: "--", unit: unit || "" };
+}
+
 function emptyRepeatabilityRow(unit) {
   const u = unit || "kg";
   const dash = { value: "--", unit: u };
@@ -71,14 +86,15 @@ function emptyRepeatabilityRow(unit) {
   };
 }
 
-function mapRepeatabilityRow(p, balance, unit, decimals) {
+function mapRepeatabilityRow(p, balance, unit, decimals, adjustmentPerformed) {
   const display = buildCertificatePointDisplay({ ...p, display_decimals: decimals }, balance, unit);
   const m = (v) => pdfMeasure(v, unit, decimals);
+  const beforeEmpty = adjustmentPerformed === false;
   return {
     empty: false,
-    reference: m(display.reference ?? p.nominal_value),
-    beforeReading: m(p.reading_before_adjustment),
-    beforeError: m(p.error_before_adjustment),
+    reference: beforeEmpty ? dashMeasure(unit) : m(display.reference ?? p.nominal_value),
+    beforeReading: beforeEmpty ? dashMeasure(unit) : m(p.reading_before_adjustment),
+    beforeError: beforeEmpty ? dashMeasure(unit) : m(p.error_before_adjustment),
     average: m(display.average ?? p.average_reading),
     indicationError: m(display.indicationError),
     expandedUncertainty: m(display.expandedUncertainty),
@@ -89,7 +105,7 @@ function mapRepeatabilityRow(p, balance, unit, decimals) {
   };
 }
 
-function buildRepeatabilityRows(certPoints, balance, unit) {
+function buildRepeatabilityRows(certPoints, balance, unit, adjustmentPerformed) {
   const activeByNum = Object.fromEntries(
     (certPoints || []).map((p) => [p.point_number, p]),
   );
@@ -98,7 +114,7 @@ function buildRepeatabilityRows(certPoints, balance, unit) {
     const p = activeByNum[n];
     if (!p) return emptyRepeatabilityRow(unit);
     const decimals = resolveDisplayDecimals(p, balance, unit);
-    return mapRepeatabilityRow(p, balance, unit, decimals);
+    return mapRepeatabilityRow(p, balance, unit, decimals, adjustmentPerformed);
   });
 }
 
@@ -305,13 +321,7 @@ export function buildCertificatePdfViewModel(cert, {
       traceability: s.traceability || s.laboratory || "",
     }));
 
-  const adjustmentPerformed = (() => {
-    const v = String(env.balanceAdjusted || "").trim().toLowerCase();
-    if (!v) return null;
-    if (v === "sim" || v === "s" || v === "yes") return true;
-    if (v === "nao" || v === "não" || v === "n" || v === "nao." || v === "não.") return false;
-    return null;
-  })();
+  const adjustmentPerformed = parseBalanceAdjustmentPerformed(env.balanceAdjusted);
 
   return {
     tenantName: tenantName || tenant?.name || "",
@@ -405,10 +415,11 @@ export function buildCertificatePdfViewModel(cert, {
     substitutionRepeatability: repeatability,
     repeatability,
     adjustmentPerformed,
-    adjustmentNote: adjustmentPerformed === false ? "Não foi realizado o ajuste do equipamento" : "",
+    adjustmentNote: adjustmentPerformed === false ? ADJUSTMENT_NOT_PERFORMED_NOTE : "",
     calibratedPointsCount: points.length,
     readingsPerPoint: resolveReadingsPerPoint(enriched),
-    repeatabilityRows: buildRepeatabilityRows(points, balance, unit),
+    repeatabilityRows: buildRepeatabilityRows(points, balance, unit, adjustmentPerformed),
+    adjustmentSubtitle: adjustmentPerformed === false ? ADJUSTMENT_NOT_PERFORMED_NOTE : "",
     conformity: enriched.conformity || {},
     conformityDeclaration: conformityDeclaration(enriched),
     executorName: enriched.executor_name || enriched.technical_snapshot?.executorSnapshot?.full_name || "",

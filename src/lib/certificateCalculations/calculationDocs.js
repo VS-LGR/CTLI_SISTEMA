@@ -6,7 +6,7 @@ export const perPointFormulas = [
   {
     id: "vn",
     result: "Valor de referência (V.R.)",
-    formula: "Soma dos V.V.C dos pesos-padrão; correção VCC se ρ_ar ∉ [1,08; 1,32] kg/m³",
+    formula: "V.C agregado (AK49); se ρ_ar ∉ [1,08; 1,32]: V.R. = V.C × (1 + (ρ_ar−1,2)/ρ_mat − (ρ_ar−1,2)/8000)",
     source: "PR-7.2 §6.6 / Cad PESOS-PADRÃO",
   },
   {
@@ -146,7 +146,7 @@ export const notYetImplemented = [
 
 /** Checklist de conformidade RE-7.2B Matriz (2) — verificado em testes automatizados. */
 export const conformityChecklist = [
-  { id: "vcc", item: "V.R. = Σ V.V.C; correção VCC se ρ_ar ∉ [1,08; 1,32]", status: "ok", test: "weights-vvc-ue / environmentalCalculations" },
+  { id: "vcc", item: "V.R.: VCC agregado (AI49) se ρ_ar ∉ [1,08; 1,32]; d = densidade material", status: "ok", test: "conventionalMassCorrection / environmentalCalculations" },
   { id: "emp", item: "Empuxo ue via aba EMP.Pn (Urel) ou fallback PPM", status: "ok", test: "buoyancyCalculations / validacao-2025" },
   { id: "welch", item: "Welch-Satterthwaite apenas com ua (ν = n−1)", status: "ok", test: "pointCalculations welchSatterthwaiteNuEff" },
   { id: "tinv", item: "k = T.INV(0,97725; Veff truncado)", status: "ok", test: "coverageFactorFromNu / 002-2025" },

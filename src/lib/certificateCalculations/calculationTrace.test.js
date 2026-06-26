@@ -21,6 +21,8 @@ describe("buildPointCalculationTrace", () => {
         degreesOfFreedom: 100,
         veffDisplay: "∞",
         resolution: "0.0001",
+        air_density: 1.12,
+        vc_uncorrected: 210,
         buoyancy_method: "ppm",
         ppmEffective: 1,
         readingCount: 3,
@@ -37,5 +39,23 @@ describe("buildPointCalculationTrace", () => {
     expect(uDisplay.result).toBe(0.0007);
     const ucStep = steps.find((s) => s.id === "uc");
     expect(ucStep.expression).toMatch(/√\(/);
+    expect(steps.some((s) => s.id === "vc_uncorrected")).toBe(true);
+    expect(steps.some((s) => s.id === "vcc_skip")).toBe(true);
+  });
+
+  test("passo VCC explícito quando ρ_ar fora da faixa", () => {
+    const { steps } = buildPointCalculationTrace({
+      calculation_memory: {
+        vc_uncorrected: 210,
+        referenceValue: 209.998,
+        air_density: 1.05,
+        material_density: 7900,
+        vcc_correction_applied: true,
+        vcc_factor: 0.999,
+      },
+    }, {}, "g");
+    expect(steps.some((s) => s.id === "vcc")).toBe(true);
+    const vcc = steps.find((s) => s.id === "vcc");
+    expect(vcc.formula).toMatch(/V\.C ×/);
   });
 });

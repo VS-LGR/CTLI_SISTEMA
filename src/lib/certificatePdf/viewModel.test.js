@@ -129,4 +129,19 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
     });
     expect(model.repeatabilityRows[0].veff).toBe("∞");
   });
+
+  test("sem ajuste — colunas antes-do-ajuste com traço e subtítulo", () => {
+    const model = buildCertificatePdfViewModel({
+      ...EMISSAO_TESTE_CERT,
+      environmental: {
+        ...EMISSAO_TESTE_CERT.environmental,
+        balance_adjusted: "nao",
+      },
+    });
+    expect(model.adjustmentSubtitle).toContain("Não foi realizado o ajuste");
+    expect(model.repeatabilityRows[0].beforeReading.value).toBe("--");
+    expect(model.repeatabilityRows[0].beforeError.value).toBe("--");
+    expect(model.repeatabilityRows[0].reference.value).toBe("--");
+    expect(model.repeatabilityRows[0].average.value).toBeTruthy();
+  });
 });

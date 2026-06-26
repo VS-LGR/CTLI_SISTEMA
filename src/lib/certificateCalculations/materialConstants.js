@@ -1,7 +1,7 @@
 /** Tabela PR-7.2 (densidade) + PR-7.8 (PPM empuxo). */
 
 export const MATERIAL_PRESETS = [
-  { id: "aco", label: "Aço", density: 7900, ppm: 1 },
+  { id: "aco", label: "Aço Inox", density: 7900, ppm: 1 },
   { id: "ferro", label: "Ferro fundido ou similar", density: 7850, ppm: 2 },
   { id: "latao", label: "Latão / Bronze", density: 8400, ppm: 3 },
   { id: "niquel", label: "Níquel", density: 8600, ppm: 4 },

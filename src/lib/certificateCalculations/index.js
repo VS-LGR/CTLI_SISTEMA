@@ -35,6 +35,8 @@ export {
 export {
   correctConventionalMassForBuoyancy,
   shouldApplyVccCorrection,
+  resolveReferenceFromConventionalMass,
+  vccBuoyancyFactor,
   AIR_DENSITY_TOLERANCE_MIN,
   AIR_DENSITY_TOLERANCE_MAX,
   REF_AIR_DENSITY,
@@ -116,6 +118,7 @@ import {
 } from "./loadBatchCalculations";
 import { buildPointCalculationTrace } from "./calculationTrace";
 import { driftFromWeightItem } from "@/lib/standardWeightCalculations";
+import { resolveReferenceFromConventionalMass } from "./conventionalMassCorrection";
 
 function resolveMaterialDensity(point) {
   const d = parseCalibrationNumber(point.material_density);
@@ -155,8 +158,9 @@ function resolveUeForPoint(point, referenceGrams, environmental, unit) {
       ue: unit === "kg" ? emp.ue / 1000 : emp.ue,
       method: emp.method,
       urel: emp.urel,
+      empMemory: emp.memory || {},
       ppmEffective: resolveBuoyancyPpm(point),
-      warning: "",
+      warning: emp.warning || "",
     };
   }
 
@@ -167,12 +171,13 @@ function resolveUeForPoint(point, referenceGrams, environmental, unit) {
       ue: unit === "kg" ? ppmRes.ue / 1000 : ppmRes.ue,
       method: "ppm",
       urel: ppmRes.urel,
+      empMemory: null,
       ppmEffective: ppm,
       warning: emp.reason || "Empuxo calculado via PPM (ambientais incompletos)",
     };
   }
 
-  return { ue: 0, method: "none", urel: null, warning: ppmRes.reason || "Empuxo não calculado" };
+  return { ue: 0, method: "none", urel: null, empMemory: null, warning: ppmRes.reason || "Empuxo não calculado" };
 }
 
 function buildWeightContributions(weightIds, weightItems, unit) {
@@ -218,35 +223,45 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
     }
 
     const matDensity = resolveMaterialDensity(pt);
-    const vvcOptions = { airDensity, materialDensity: matDensity, vccCorrection: true };
-
-    let weightReference = pt.nominal_value;
-    let vccApplied = false;
-    if (pt.standard_weight_ids?.length) {
-      const vvc = sumConventionalFromWeightIds(pt.standard_weight_ids, weightItems, unit, vvcOptions);
-      if (vvc.valid) {
-        weightReference = vvc.value;
-        vccApplied = Boolean(vvc.vcc_correction_applied);
-      }
-    } else if (!weightReference && pt.standard_weight_ids?.length) {
-      const sum = sumNominalFromWeightIds(pt.standard_weight_ids, weightItems);
-      if (sum.valid) weightReference = sum.value;
-    }
-
     const useLoadBatch = Boolean(pt.use_load_batch);
     const formationKey = pt.load_batch_formation || formationKeyForPoint(pt.point_number, useLoadBatch);
+
+    let vcWeightsSum = null;
+    if (pt.standard_weight_ids?.length) {
+      const vvc = sumConventionalFromWeightIds(pt.standard_weight_ids, weightItems, unit, { vccCorrection: false });
+      if (vvc.valid) vcWeightsSum = vvc.value;
+    }
+
+    let vcUncorrected = vcWeightsSum;
+    if (vcUncorrected == null) {
+      const nom = parseCalibrationNumber(pt.nominal_value);
+      if (nom.valid) vcUncorrected = nom.value;
+    }
+
     if (useLoadBatch && pt.load_batch_nominal != null && !pt.standard_weight_ids?.length) {
       const lot = parseCalibrationNumber(pt.load_batch_nominal);
-      const nom = parseCalibrationNumber(weightReference);
+      const nom = parseCalibrationNumber(vcUncorrected ?? pt.nominal_value);
       if (lot.valid && nom.valid && nom.value >= lot.value) {
-        weightReference = nom.value - lot.value;
+        vcUncorrected = nom.value - lot.value;
+        vcWeightsSum = vcUncorrected;
       }
     }
-    let reference = weightReference;
+
+    const weightReference = vcWeightsSum ?? vcUncorrected;
+
     if (useLoadBatch && pt.load_batch_nominal != null) {
-      const refWithLot = referenceWithLoadBatch(weightReference, pt.load_batch_nominal, unit);
-      if (refWithLot.valid) reference = refWithLot.value;
+      const baseForLot = vcWeightsSum ?? vcUncorrected ?? 0;
+      const refWithLot = referenceWithLoadBatch(baseForLot, pt.load_batch_nominal, unit);
+      if (refWithLot.valid) vcUncorrected = refWithLot.value;
     }
+
+    const vccRes = resolveReferenceFromConventionalMass({
+      vcUncorrected,
+      airDensity,
+      materialDensity: matDensity,
+    });
+    const reference = vccRes.reference;
+    const vccApplied = vccRes.vccApplied;
 
     const resolutionStr = resolveCertificateResolution(
       { ...pt, nominal_value: reference ?? pt.nominal_value },
@@ -331,6 +346,8 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
     const memory = {
       ...(calc.results.calculation_memory || {}),
       vcc_correction_applied: vccApplied,
+      vcc_factor: vccApplied ? vccRes.factor : 1,
+      vc_uncorrected: vcUncorrected,
       material_density: matDensity,
       buoyancy_method: ueRes.method,
       air_density: airDensity,
@@ -346,6 +363,15 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       resolution: resolutionStr,
       ppmEffective,
       urel: ueRes.urel ?? null,
+      empDeltaT: ueRes.empMemory?.deltaT ?? null,
+      empDeltaRh: ueRes.empMemory?.deltaRh ?? null,
+      empUT: ueRes.empMemory?.uT ?? null,
+      empURh: ueRes.empMemory?.uRh ?? null,
+      empUPaRel: ueRes.empMemory?.uPaRel ?? null,
+      empX: ueRes.empMemory?.empX ?? null,
+      empY: ueRes.empMemory?.empY ?? null,
+      empUrel: ueRes.empMemory?.urel ?? ueRes.urel ?? null,
+      empMaterialDensityUsed: ueRes.empMemory?.rhoMat ?? null,
       upLcSource: upLcRes.source,
       upLcSpreadsheet,
       errorMultiplier: errorMult,

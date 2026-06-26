@@ -8,13 +8,72 @@ import {
   buildCertificatePointDisplay,
   enrichCertificatePointsForDisplay,
   resolvePointVeff,
+  buildPointCalculationTrace,
 } from "./index";
+import { calculateBuoyancyUncertainty } from "./buoyancyCalculations";
 import { buildCertificatePdfViewModel } from "@/lib/certificatePdf/viewModel";
 
 const MATRIZ_CERT = audit.certificates.find((c) => c.name === "Validação 2026");
 const GOLDEN = golden.cases.find((c) => c.id === "validacao-2025-210g");
 
+const ENV_VALIDACAO_2026 = {
+  initial_temperature: "24",
+  final_temperature: "23",
+  initial_humidity: "65",
+  final_humidity: "55",
+  initial_pressure: "935",
+  final_pressure: "935",
+};
+
 describe("Certificado 5/2026 × Matriz (2) Validação 2026", () => {
+  test("EMP.P1 — ue ≈ 0,000059497 (Empuxo.CSV linha 6)", () => {
+    const emp = calculateBuoyancyUncertainty({
+      conventionalMass: 210,
+      materialDensity: 7900,
+      environmental: ENV_VALIDACAO_2026,
+    });
+    const sheet = MATRIZ_CERT.points[0].calc;
+    expect(emp.ue).toBeCloseTo(sheet.ue, 6);
+    expect(emp.ue).toBeCloseTo(0.000059497, 5);
+    expect(emp.memory.empX).toBeGreaterThan(0);
+    expect(emp.urel).toBeCloseTo(2.8332e-7, 6);
+  });
+
+  test("motor cert 5/2026 — memória EMP e rastreio espelham Empuxo.CSV", () => {
+    const points = [{
+      ...GOLDEN.points[0],
+      material_density: "7900",
+    }];
+    const results = calculateCertificatePoints(
+      points,
+      GOLDEN.balance,
+      GOLDEN.weightItems,
+      GOLDEN.weightCerts,
+      ENV_VALIDACAO_2026,
+    );
+    const pt = results[0];
+    const mem = pt.calculation_memory;
+    const sheet = MATRIZ_CERT.points[0].calc;
+
+    expect(mem.buoyancy_method).toBe("emp");
+    expect(mem.ue).toBeCloseTo(sheet.ue, 6);
+    expect(mem.empDeltaT).toBeCloseTo(-1, 4);
+    expect(mem.empDeltaRh).toBeCloseTo(-10, 4);
+    expect(mem.empUrel).toBeCloseTo(2.8332e-7, 6);
+    expect(mem.empX).toBeGreaterThan(0);
+
+    const trace = buildPointCalculationTrace(pt, GOLDEN.balance, "g");
+    const ids = trace.steps.map((s) => s.id);
+    expect(ids).toContain("emp_deltas");
+    expect(ids).toContain("emp_Urel");
+    expect(ids).toContain("empuxo");
+    expect(ids.some((id) => id.includes("ppm"))).toBe(false);
+
+    const empStep = trace.steps.find((s) => s.id === "empuxo");
+    expect(empStep.formula).toMatch(/EMP\.P1/);
+    expect(empStep.expression).not.toMatch(/PPM/);
+  });
+
   test("planilha P1 — Veff_raw=100, display ∞, Ue=0,0007", () => {
     const p1 = MATRIZ_CERT.points.find((p) => p.calc.point_number === 1);
     expect(p1.calc.veff_raw).toBe(100);
@@ -30,7 +89,7 @@ describe("Certificado 5/2026 × Matriz (2) Validação 2026", () => {
       GOLDEN.balance,
       GOLDEN.weightItems,
       GOLDEN.weightCerts,
-      GOLDEN.environmental,
+      ENV_VALIDACAO_2026,
     );
     const pt = results[0];
     const sheet = MATRIZ_CERT.points[0].calc;
@@ -48,7 +107,7 @@ describe("Certificado 5/2026 × Matriz (2) Validação 2026", () => {
       GOLDEN.balance,
       GOLDEN.weightItems,
       GOLDEN.weightCerts,
-      GOLDEN.environmental,
+      ENV_VALIDACAO_2026,
     );
     const display = buildCertificatePointDisplay(results[0], GOLDEN.balance, "g");
     const sheet = MATRIZ_CERT.points[0].display;
@@ -64,7 +123,7 @@ describe("Certificado 5/2026 × Matriz (2) Validação 2026", () => {
       GOLDEN.balance,
       GOLDEN.weightItems,
       GOLDEN.weightCerts,
-      GOLDEN.environmental,
+      ENV_VALIDACAO_2026,
     );
     const pt = results[0];
     const certDbLike = enrichCertificatePointsForDisplay({
