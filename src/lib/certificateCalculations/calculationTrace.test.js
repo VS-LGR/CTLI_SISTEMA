@@ -31,6 +31,10 @@ describe("buildPointCalculationTrace", () => {
     expect(steps.length).toBeGreaterThan(5);
     expect(steps.some((s) => s.id === "uc")).toBe(true);
     expect(steps.some((s) => s.id === "U_display")).toBe(true);
+    const uDisplay = steps.find((s) => s.id === "U_display");
+    expect(uDisplay.formula).toBe("MROUND(Ue + (d/10)×4,4, d)");
+    expect(uDisplay.expression).toMatch(/0\.000044/);
+    expect(uDisplay.result).toBe(0.0007);
     const ucStep = steps.find((s) => s.id === "uc");
     expect(ucStep.expression).toMatch(/√\(/);
   });

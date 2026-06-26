@@ -5,6 +5,7 @@ import {
   roundIndicationErrorFromRoundedInputs,
   roundExpandedUncertainty,
   formatVeffForDisplay,
+  resolveCertificateResolution,
 } from "./certificateDisplayRounding";
 
 const UE_DISPLAY_FACTOR = 4.4;
@@ -22,7 +23,7 @@ function fmt(v, decimals = 6) {
 export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
   const mem = point?.calculation_memory || {};
   const steps = [];
-  const d = mem.resolution ?? point?.resolution ?? balance?.resolucao;
+  const d = resolveCertificateResolution(point, balance, unit, { preferMemory: true });
   const dNum = parseCalibrationNumber(d);
   const resStr = dNum.valid ? fmt(dNum.value, 6) : String(d ?? "—");
 
@@ -196,15 +197,14 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
   }
 
   if (mem.expandedUncertainty != null && dNum.valid) {
-    const ue = parseCalibrationNumber(mem.expandedUncertainty);
-    const base = ue.valid && ue.value >= dNum.value ? ue.value : dNum.value;
-    const adjusted = base + (dNum.value / 10) * UE_DISPLAY_FACTOR;
+    const factor = (dNum.value / 10) * UE_DISPLAY_FACTOR;
+    const ueDisp = mem.expandedUncertaintyDisplay ?? roundExpandedUncertainty(mem.expandedUncertainty, d);
     steps.push({
       id: "U_display",
       label: "U exibida (Certificado-RBC)",
-      formula: "MROUND(max(U,d) + (d/10)×4,4, d)",
-      expression: `MROUND(max(${fmt(mem.expandedUncertainty)}, ${resStr}) + ${fmt(dNum.value / 10 * UE_DISPLAY_FACTOR, 6)}, ${resStr}) = ${fmt(mem.expandedUncertaintyDisplay ?? roundExpandedUncertainty(mem.expandedUncertainty, d))}`,
-      result: mem.expandedUncertaintyDisplay ?? roundExpandedUncertainty(mem.expandedUncertainty, d),
+      formula: "MROUND(Ue + (d/10)×4,4, d)",
+      expression: `MROUND(${fmt(mem.expandedUncertainty)} + (${resStr}/10)×4,4 = ${fmt(factor, 6)}, ${resStr}) = ${fmt(ueDisp)}`,
+      result: ueDisp,
       unit,
     });
   }

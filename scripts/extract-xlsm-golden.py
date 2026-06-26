@@ -65,8 +65,7 @@ def display_expanded_uncertainty(ue_calc, resolution):
     d = num(resolution)
     if ue is None or d is None or d <= 0:
         return ue
-    base = max(ue, d)
-    adjusted = base + (d / 10) * UE_DISPLAY_FACTOR
+    adjusted = ue + (d / 10) * UE_DISPLAY_FACTOR
     return mround(adjusted, d)
 
 

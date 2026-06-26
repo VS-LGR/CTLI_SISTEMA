@@ -36,6 +36,46 @@ function resolveResolution(resolution) {
   return res.valid && res.value > 0 ? res.value : null;
 }
 
+/**
+ * Detecta resolução gravada por engano com valor da divisão de verificação (e = d/4).
+ */
+function isVerificationDivisionMisstoredAsResolution(resStr, point, balanceResStr) {
+  const res = parseCalibrationNumber(resStr);
+  if (!res.valid) return false;
+  const verif = parseCalibrationNumber(point?.verification_division);
+  if (verif.valid && Math.abs(res.value - verif.value) < 1e-15) return true;
+  const bal = parseCalibrationNumber(balanceResStr);
+  if (bal.valid && bal.value > res.value && Math.abs(bal.value / res.value - 4) < 0.02) return true;
+  return false;
+}
+
+/**
+ * Resolução d (AI109) — cadastro balança por faixa, ponto ou memória do Recalcular.
+ * Nunca usa divisão de verificação como d.
+ */
+export function resolveCertificateResolution(point, balance = {}, unit = "g", { preferMemory = true } = {}) {
+  const mem = point?.calculation_memory || {};
+  if (preferMemory && mem.resolution != null && String(mem.resolution).trim() !== "") {
+    return String(mem.resolution);
+  }
+
+  const nominal = point?.nominal_value ?? mem.referenceValue ?? mem.referenceDisplay;
+  const fromBalance = resolveResolutionForNominal(nominal, balance, unit);
+  const fromPoint = point?.resolution != null && String(point.resolution).trim() !== ""
+    ? String(point.resolution)
+    : null;
+
+  if (fromPoint && !isVerificationDivisionMisstoredAsResolution(fromPoint, point, fromBalance)) {
+    return fromPoint;
+  }
+  return fromBalance || fromPoint || "";
+}
+
+/** @deprecated alias — use resolveCertificateResolution */
+export function resolveDisplayResolution(point, balance, unit) {
+  return resolveCertificateResolution(point, balance, unit, { preferMemory: true });
+}
+
 /** V.R. exibido (Certificado-RBC O49): MROUND(V.R., d). */
 export function roundReferenceForDisplay(reference, resolution, decimals = null) {
   const ref = parseCalibrationNumber(reference);
@@ -78,7 +118,7 @@ export function roundIndicationErrorFromRoundedInputs(average, reference, resolu
 
 /**
  * Ue exibida (Certificado-RBC Y49):
- * MROUND(max(Ue, d) + (d/10)×4,4, d)
+ * MROUND(Ue + (d/10)×4,4, d)
  */
 export function roundExpandedUncertainty(ueCalc, resolution, decimals = null) {
   const ue = parseCalibrationNumber(ueCalc);
@@ -88,10 +128,7 @@ export function roundExpandedUncertainty(ueCalc, resolution, decimals = null) {
     return decimals != null ? roundToDecimals(ue.value, decimals) : ue.value;
   }
 
-  let base = ue.value;
-  if (base < d) base = d;
-
-  const adjusted = base + (d / 10) * UE_DISPLAY_FACTOR;
+  const adjusted = ue.value + (d / 10) * UE_DISPLAY_FACTOR;
   const rounded = mround(adjusted, d);
   return decimals != null ? roundToDecimals(rounded, decimals) : rounded;
 }
@@ -201,9 +238,7 @@ export function enrichCertificatePointsForDisplay(cert) {
  * Valores de exibição unificados (PDF + editor) por ponto.
  */
 export function buildCertificatePointDisplay(point, balance, unit = "g") {
-  const resolutionStr = point?.resolution != null && String(point.resolution).trim() !== ""
-    ? String(point.resolution)
-    : resolveResolutionForNominal(point?.nominal_value, balance, unit);
+  const resolutionStr = resolveCertificateResolution(point, balance, unit, { preferMemory: true });
 
   let decimals = null;
   if (point?.display_decimals != null && Number.isFinite(Number(point.display_decimals))) {

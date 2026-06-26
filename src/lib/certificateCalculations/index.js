@@ -63,6 +63,8 @@ export {
   resolvePointVeffRaw,
   enrichPointVeffForStorage,
   enrichCertificatePointsForDisplay,
+  resolveCertificateResolution,
+  resolveDisplayResolution,
   buildCertificatePointDisplay,
 } from "./certificateDisplayRounding";
 export {
@@ -102,7 +104,7 @@ import {
 import { DEFAULT_MATERIAL_DENSITY, ppmFromPresetId, densityFromPresetId } from "./materialConstants";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { decimalPlacesFromResolution, parseCalibrationNumber } from "./parseNumber";
-import { buildCertificatePointDisplay } from "./certificateDisplayRounding";
+import { buildCertificatePointDisplay, resolveCertificateResolution } from "./certificateDisplayRounding";
 import {
   formationKeyForPoint,
   upLcFromTable01,
@@ -246,10 +248,12 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       if (refWithLot.valid) reference = refWithLot.value;
     }
 
-    const resolutionFromPoint = pt.resolution != null && String(pt.resolution).trim() !== ""
-      ? String(pt.resolution)
-      : null;
-    const resolutionStr = resolutionFromPoint || resolveResolutionForNominal(reference ?? pt.nominal_value, balance, unit);
+    const resolutionStr = resolveCertificateResolution(
+      { ...pt, nominal_value: reference ?? pt.nominal_value },
+      balance,
+      unit,
+      { preferMemory: false },
+    );
 
     const upRes = standardUncertaintyUpFromWeightIds(pt.standard_weight_ids, weightItems, unit);
     const udRes = driftUncertaintyUdFromWeightIds(pt.standard_weight_ids, weightItems, unit);

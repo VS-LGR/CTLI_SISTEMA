@@ -208,7 +208,7 @@
         "coverage_factor": 2.52,
         "degrees_of_freedom": 6,
         "display": {
-          "expanded_uncertainty": 0.0001,
+          "expanded_uncertainty": 0.0002,
           "veff": "6",
           "k": 2.52
         }

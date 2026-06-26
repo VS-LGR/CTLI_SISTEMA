@@ -90,7 +90,7 @@ export const perPointFormulas = [
   {
     id: "U_display",
     result: "Incerteza expandida (U) — exibida",
-    formula: "MROUND(max(U, d) + (d/10)×4,4, d); mínimo d (PR-7.8)",
+    formula: "MROUND(Ue + (d/10)×4,4, d); d = resolução (AI109), não divisão de verificação",
     source: "RE-7.2B Certificado-RBC Y49 / PR-7.8",
   },
   {
@@ -151,7 +151,7 @@ export const conformityChecklist = [
   { id: "welch", item: "Welch-Satterthwaite apenas com ua (ν = n−1)", status: "ok", test: "pointCalculations welchSatterthwaiteNuEff" },
   { id: "tinv", item: "k = T.INV(0,97725; Veff truncado)", status: "ok", test: "coverageFactorFromNu / 002-2025" },
   { id: "veff_trunc", item: "Veff truncado (INT); >99 → ∞ na exibição", status: "ok", test: "truncateVeff / xlsmDisplayAudit" },
-  { id: "ue_min", item: "Ue exibida: MROUND(max(U,d) + (d/10)×4,4, d)", status: "ok", test: "certificateDisplayRounding / validacao-2025" },
+  { id: "ue_min", item: "Ue exibida: MROUND(Ue + (d/10)×4,4, d); d = resolução balança/ponto", status: "ok", test: "certificateDisplayRounding / validacao-2025" },
   { id: "mround_erro", item: "E exibido = MROUND(Ib,d) − MROUND(V.R.,d)", status: "ok", test: "xlsmMatriz2DisplayAudit" },
   { id: "upLC", item: "upLC Tabela 01 quando AN=sim (P2+)", status: "ok", test: "load-batch-synthetic-p2" },
   { id: "upLC_sheet", item: "Fórmula planilha P2 col AI — referência debug only", status: "debug", test: "calculationTrace upLcSpreadsheet" },

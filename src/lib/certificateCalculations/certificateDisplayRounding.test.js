@@ -10,6 +10,7 @@ import {
   resolvePointVeffRaw,
   enrichCertificatePointsForDisplay,
   buildCertificatePointDisplay,
+  resolveCertificateResolution,
 } from "./certificateDisplayRounding";
 
 describe("certificateDisplayRounding — RE-7.2B Certificado-RBC", () => {
@@ -20,11 +21,50 @@ describe("certificateDisplayRounding — RE-7.2B Certificado-RBC", () => {
 
   test("Ue exibida — Validação 2025/2026 (0,000622 → 0,0007)", () => {
     expect(roundExpandedUncertainty(0.000622, "0.0001", 4)).toBe(0.0007);
+    expect(roundExpandedUncertainty(0.000623, "0.0001", 4)).toBe(0.0007);
     expect(roundExpandedUncertainty(0.000625161, "0.0001", 4)).toBe(0.0007);
   });
 
-  test("Ue mínima = resolução d antes do ajuste MROUND", () => {
+  test("Ue exibida — fator (d/10)×4,4 com d = resolução 0,0001", () => {
+    const ue = 0.000623;
+    const d = 0.0001;
+    const factor = (d / 10) * 4.4;
+    expect(factor).toBeCloseTo(0.000044, 10);
+    expect(roundExpandedUncertainty(ue, String(d), 4)).toBe(0.0007);
+  });
+
+  test("Ue exibida — Ue baixa arredonda ao múltiplo d (sem max(Ue,d))", () => {
     expect(roundExpandedUncertainty(0.00003, "0.0001", 4)).toBe(0.0001);
+  });
+
+  test("resolveCertificateResolution — ignora divisão de verificação gravada como resolução", () => {
+    const balance = { unidade: "g", resolucao: "0.0001" };
+    const point = {
+      nominal_value: 210,
+      resolution: "0.000025",
+      verification_division: "0.000025",
+      calculation_memory: { resolution: "0.0001" },
+    };
+    expect(resolveCertificateResolution(point, balance, "g", { preferMemory: true })).toBe("0.0001");
+    expect(resolveCertificateResolution(point, balance, "g", { preferMemory: false })).toBe("0.0001");
+  });
+
+  test("buildCertificatePointDisplay — usa resolução da balança quando ponto tem divisão de verificação", () => {
+    const display = buildCertificatePointDisplay(
+      {
+        nominal_value: 210.0001,
+        average_reading: 210.0001,
+        expanded_uncertainty: 0.000623,
+        resolution: "0.000025",
+        verification_division: "0.000025",
+        calculation_memory: { resolution: "0.0001" },
+        display_decimals: 4,
+      },
+      { unidade: "g", resolucao: "0.0001" },
+      "g",
+    );
+    expect(display.resolution).toBe("0.0001");
+    expect(display.expandedUncertainty).toBe(0.0007);
   });
 
   test("E exibido = MROUND(média,d) − MROUND(V.R.,d)", () => {
