@@ -75,6 +75,43 @@ export function formatCalcDisplay(n, decimals = 4) {
   return n.toFixed(decimals).replace(/\.?0+$/, (m) => (m === "." ? "" : m));
 }
 
+const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+const SUPERSCRIPT_MINUS = "⁻";
+
+function formatSuperscriptExponent(exp) {
+  const sign = exp < 0 ? SUPERSCRIPT_MINUS : "";
+  const digits = String(Math.abs(exp))
+    .split("")
+    .map((d) => SUPERSCRIPT_DIGITS[Number(d)] ?? d)
+    .join("");
+  return `${sign}${digits}`;
+}
+
+/** Notação científica BR para termos EMP microscópicos (ex.: 1,72×10⁻¹⁴). */
+export function fmtEmpScientific(n) {
+  if (n == null || !Number.isFinite(n)) return "—";
+  if (n === 0) return "0";
+  const exp = Math.floor(Math.log10(Math.abs(n)));
+  const mantissa = n / 10 ** exp;
+  const mStr = mantissa.toFixed(2).replace(".", ",");
+  return `${mStr}×10${formatSuperscriptExponent(exp)}`;
+}
+
+/**
+ * Formata grandezas EMP (X, Y, Urel, uPaRel) — evita mascarar ~10⁻¹⁴ como zero.
+ * |n| < 10⁻⁹ → científica; |n| < 10⁻⁵ → até 12 casas; senão formatCalcDisplay.
+ */
+export function fmtEmpMicro(n, decimals = 8) {
+  if (n == null || !Number.isFinite(n)) return "—";
+  if (n === 0) return "0";
+  const abs = Math.abs(n);
+  if (abs < 1e-9) return fmtEmpScientific(n);
+  if (abs < 1e-5) {
+    return n.toFixed(Math.max(decimals, 12)).replace(/\.?0+$/, (m) => (m === "." ? "" : m));
+  }
+  return formatCalcDisplay(n, decimals);
+}
+
 /** Casas decimais de exibição a partir da resolução cadastrada (ex.: "0,0004" → 4). */
 export function decimalPlacesFromResolution(resolution) {
   if (resolution == null || String(resolution).trim() === "") return null;

@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { CaretDown, CaretRight } from "@phosphor-icons/react";
-import { formatCalcDisplay } from "@/lib/certificateCalculations";
+import { formatCalcDisplay, fmtEmpMicro } from "@/lib/certificateCalculations";
 import { cn } from "@/lib/utils";
 
 const MEMORY_FIELDS = [
   { key: "average", label: "Média (L) — calc.", decimals: 6 },
   { key: "referenceValue", label: "V.R. — calc.", decimals: 6 },
   { key: "vc_uncorrected", label: "V.C Não Corrigido (AK49)", decimals: 6 },
+  { key: "empConventionalMass", label: "V.C empuxo (EMP.P1)", decimals: 6 },
   { key: "weightReference", label: "VVC pesos (sem lote)", decimals: 6 },
   { key: "indicationError", label: "Erro (E) — calc.", decimals: 6 },
   { key: "errorBeforeAdjustment", label: "Erro antes do ajuste", decimals: 6 },
@@ -15,6 +16,13 @@ const MEMORY_FIELDS = [
   { key: "ud", label: "Deriva (ud)", decimals: 6 },
   { key: "ue", label: "Empuxo (ue)", decimals: 6 },
   { key: "ur", label: "Resolução (ur)", decimals: 6 },
+  { key: "empDeltaT", label: "EMP ΔT (°C)", decimals: 2 },
+  { key: "empDeltaRh", label: "EMP ΔRH (%)", decimals: 2 },
+  { key: "empUPaRel", label: "EMP u(pa)/pa", format: "emp" },
+  { key: "empX", label: "EMP termo X", format: "emp" },
+  { key: "empY", label: "EMP termo Y", format: "emp" },
+  { key: "empUrel", label: "EMP Urel", format: "emp" },
+  { key: "buoyancy_warning", label: "Empuxo — aviso" },
   { key: "upLC", label: "Lote de carga (upLC)", decimals: 6 },
   { key: "upLcSource", label: "Fonte upLC" },
   { key: "load_batch_formation", label: "Formação lote" },
@@ -29,10 +37,18 @@ const MEMORY_FIELDS = [
   { key: "veffDisplay", label: "Veff — exibido" },
 ];
 
-function formatMemoryValue(value, decimals = 4) {
+function formatMemoryValue(value, decimals = 4, format) {
   if (value == null || value === "") return "—";
   if (typeof value === "string" && !/^-?\d/.test(value.trim())) return value;
+  if (format === "emp") return fmtEmpMicro(value, decimals);
   return formatCalcDisplay(value, decimals);
+}
+
+function formatTraceResult(step) {
+  const value = step.result;
+  if (value == null || value === "") return null;
+  if (step.resultFormat === "emp") return fmtEmpMicro(value, step.resultDecimals ?? 12);
+  return formatMemoryValue(value, step.resultDecimals ?? 6);
 }
 
 function TraceSteps({ steps = [] }) {
@@ -51,7 +67,7 @@ function TraceSteps({ steps = [] }) {
           )}
           {step.result != null && step.result !== "" && (
             <p className="text-[10px] text-slate-800">
-              → <span className="font-mono font-semibold">{formatMemoryValue(step.result, 6)}</span>
+              → <span className="font-mono font-semibold">{formatTraceResult(step)}</span>
               {step.unit ? ` ${step.unit}` : ""}
             </p>
           )}
@@ -118,7 +134,7 @@ export default function PointCalculationMemory({ point, showTrace = false }) {
               <div key={field.key} className="flex justify-between gap-2 min-w-0">
                 <span className="text-slate-500 truncate">{field.label}</span>
                 <span className="font-mono text-slate-800 shrink-0">
-                  {formatMemoryValue(memory[field.key], field.decimals)}
+                  {formatMemoryValue(memory[field.key], field.decimals, field.format)}
                 </span>
               </div>
             )

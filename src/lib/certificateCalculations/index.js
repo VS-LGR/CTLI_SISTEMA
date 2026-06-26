@@ -1,4 +1,4 @@
-export { parseCalibrationNumber, parseImportNumeric, toDbNumeric, formatCalcDisplay, decimalPlacesFromResolution, normalizeDecimalString } from "./parseNumber";
+export { parseCalibrationNumber, parseImportNumeric, toDbNumeric, formatCalcDisplay, fmtEmpMicro, fmtEmpScientific, decimalPlacesFromResolution, normalizeDecimalString } from "./parseNumber";
 export {
   calculatePointAverage,
   calculateIndicationError,

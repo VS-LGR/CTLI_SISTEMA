@@ -137,6 +137,14 @@ export function calculateBuoyancyUncertainty({
   if (x === 0 && termInvDiffSq === 0) {
     warning = warning || "Termo X do EMP.P1 = 0 — verifique densidade do material (deve ser ≠ 8000 kg/m³)";
   }
+  if (Math.abs(deltaT) < 1e-9 && Math.abs(deltaRh) < 1e-9) {
+    const deltaWarn = "ΔT e ΔRH zerados — u(T) e u(RH) não entram em u(pa)/pa; confira T/UR inicial e final da coleta";
+    warning = warning ? `${warning}; ${deltaWarn}` : deltaWarn;
+  }
+  if (x === 0 && y > 0) {
+    const yOnlyWarn = "Urel = √Y apenas (termo X = 0) — empuxo depende só de ρ_ar; confira densidade do material e ambientais";
+    warning = warning ? `${warning}; ${yOnlyWarn}` : yOnlyWarn;
+  }
 
   return {
     ue,

@@ -1,4 +1,4 @@
-import { formatCalcDisplay, parseCalibrationNumber } from "./parseNumber";
+import { formatCalcDisplay, fmtEmpMicro, parseCalibrationNumber } from "./parseNumber";
 import {
   roundAverageForDisplay,
   roundReferenceForDisplay,
@@ -17,6 +17,12 @@ function fmt(v, decimals = 6) {
   if (typeof v === "string" && !/^-?\d/.test(v.trim())) return v;
   return formatCalcDisplay(v, decimals);
 }
+
+function fmtEmp(v, decimals = 8) {
+  return fmtEmpMicro(v, decimals);
+}
+
+const EMP_STEP_META = { resultFormat: "emp", resultDecimals: 12 };
 
 /**
  * Rastreio passo a passo — espelha RE-7.2B / PR-7.6 (somente editor, não PDF).
@@ -187,18 +193,20 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
         id: "emp_uPaRel",
         label: "EMP — u(pa)/pa",
         formula: "√((up×uP)² + (ut×uT)² + (urh×uRH)² + uform²)",
-        expression: fmt(mem.empUPaRel, 8),
+        expression: fmtEmp(mem.empUPaRel),
         result: mem.empUPaRel,
+        ...EMP_STEP_META,
       });
     }
     if (mem.empMaterialDensityUsed != null) {
-      const xWarn = mem.empX === 0 ? " — X=0 (ρ_mat=8000?)" : "";
+      const xWarn = mem.empX === 0 ? " — X=0 (ρ_mat=8000 ou ΔT/ΔRH=0?)" : "";
       steps.push({
         id: "emp_X",
         label: "EMP — termo X",
         formula: "X = u(pa)/pa × (1/ρ_mat − 1/8000)²",
-        expression: `${fmt(mem.empUPaRel, 8)} × (1/${fmt(mem.empMaterialDensityUsed, 0)} − 1/${RHO_SOLID_REF})² = ${fmt(mem.empX, 12)}${xWarn}`,
+        expression: `${fmtEmp(mem.empUPaRel)} × (1/${fmt(mem.empMaterialDensityUsed, 0)} − 1/${RHO_SOLID_REF})² = ${fmtEmp(mem.empX)}${xWarn}`,
         result: mem.empX,
+        ...EMP_STEP_META,
       });
     }
     if (mem.empY != null) {
@@ -206,24 +214,29 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
         id: "emp_Y",
         label: "EMP — termo Y",
         formula: "Y = (ρ_ar − 1,2)² × 70²/8000⁴",
-        expression: `(${fmt(mem.air_density, 4)} − ${REF_AIR_DENSITY})² × 70²/${RHO_SOLID_REF}⁴ = ${fmt(mem.empY, 12)}`,
+        expression: `(${fmt(mem.air_density, 4)} − ${REF_AIR_DENSITY})² × 70²/${RHO_SOLID_REF}⁴ = ${fmtEmp(mem.empY)}`,
         result: mem.empY,
+        ...EMP_STEP_META,
       });
     }
     if (mem.empUrel != null) {
+      const empX = mem.empX ?? 0;
+      const empY = mem.empY ?? 0;
+      const empSum = empX + empY;
       steps.push({
         id: "emp_Urel",
         label: "EMP — Urel",
         formula: "Urel = √(X + Y)",
-        expression: `√(${fmt(mem.empX, 12)} + ${fmt(mem.empY, 12)}) = ${fmt(mem.empUrel, 8)}`,
+        expression: `X + Y = ${fmtEmp(empX)} + ${fmtEmp(empY)} = ${fmtEmp(empSum)} → Urel = √(${fmtEmp(empSum)}) = ${fmtEmp(mem.empUrel)}`,
         result: mem.empUrel,
+        ...EMP_STEP_META,
       });
     }
     steps.push({
       id: "empuxo",
       label: "Empuxo (ue)",
       formula: "ue = V.C × Urel (EMP.P1)",
-      expression: `${fmt(mem.empConventionalMass ?? mem.vc_uncorrected ?? mem.referenceValue)} × ${fmt(mem.empUrel ?? mem.urel, 8)} = ${fmt(mem.ue)}`,
+      expression: `${fmt(mem.empConventionalMass ?? mem.vc_uncorrected ?? mem.referenceValue)} × ${fmtEmp(mem.empUrel ?? mem.urel)} = ${fmt(mem.ue)}`,
       result: mem.ue,
       unit,
     });

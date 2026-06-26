@@ -1,4 +1,4 @@
-import { parseImportNumeric, toDbNumeric, decimalPlacesFromResolution } from "./parseNumber";
+import { parseImportNumeric, toDbNumeric, decimalPlacesFromResolution, fmtEmpMicro, fmtEmpScientific } from "./parseNumber";
 
 describe("parseImportNumeric", () => {
   it("aceita números com unidade e vírgula decimal", () => {
@@ -29,5 +29,21 @@ describe("decimalPlacesFromResolution", () => {
     expect(decimalPlacesFromResolution("0.01")).toBe(2);
     expect(decimalPlacesFromResolution("300")).toBe(0);
     expect(decimalPlacesFromResolution("")).toBeNull();
+  });
+});
+
+describe("fmtEmpMicro", () => {
+  it("não mascara 1,72×10⁻¹⁴ como zero", () => {
+    expect(fmtEmpMicro(1.72e-14)).toMatch(/×10/);
+    expect(fmtEmpMicro(1.72e-14)).not.toBe("0.000000000000");
+    expect(fmtEmpScientific(1.72e-14)).toBe("1,72×10⁻¹⁴");
+  });
+
+  it("formata Urel Validação 2026 com precisão adequada", () => {
+    expect(fmtEmpMicro(2.8332e-7)).toMatch(/0\.000000283/);
+  });
+
+  it("zero explícito", () => {
+    expect(fmtEmpMicro(0)).toBe("0");
   });
 });

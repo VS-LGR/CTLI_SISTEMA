@@ -118,4 +118,25 @@ describe("buoyancyCalculations", () => {
     expect(res.valid).toBe(false);
     expect(res.needsFallback).toBe(true);
   });
+
+  test("ΔT/ΔRH zerados — aviso sobre u(pa)/pa e resultado coerente com fórmula", () => {
+    const res = calculateBuoyancyUncertainty({
+      conventionalMass: 210,
+      materialDensity: 7900,
+      environmental: {
+        initial_temperature: "24",
+        final_temperature: "24",
+        initial_humidity: "65",
+        final_humidity: "65",
+        initial_pressure: "935",
+        final_pressure: "935",
+      },
+    });
+    expect(res.valid).toBe(true);
+    expect(res.memory.deltaT).toBe(0);
+    expect(res.memory.deltaRh).toBe(0);
+    expect(res.warning).toMatch(/ΔT e ΔRH zerados/);
+    expect(res.urel).toBeCloseTo(Math.sqrt(res.memory.empX + res.memory.empY), 15);
+    expect(res.ue).toBeCloseTo(210 * res.urel, 12);
+  });
 });

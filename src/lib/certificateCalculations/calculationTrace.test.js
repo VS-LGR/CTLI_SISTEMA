@@ -58,4 +58,37 @@ describe("buildPointCalculationTrace", () => {
     const vcc = steps.find((s) => s.id === "vcc");
     expect(vcc.formula).toMatch(/V\.C ×/);
   });
+
+  test("EMP Validação 2026 — rastreio mostra X+Y e Urel sem mascarar zeros", () => {
+    const empX = 6.5048e-14;
+    const empY = 1.522e-14;
+    const empUrel = 2.8332e-7;
+    const { steps } = buildPointCalculationTrace({
+      calculation_memory: {
+        buoyancy_method: "emp",
+        air_density: 1.09,
+        empDeltaT: -1,
+        empDeltaRh: -10,
+        empUPaRel: 0.025981871,
+        empMaterialDensityUsed: 7900,
+        empX,
+        empY,
+        empUrel,
+        empConventionalMass: 210,
+        vc_uncorrected: 210,
+        ue: 0.000059497,
+      },
+    }, {}, "g");
+
+    const urelStep = steps.find((s) => s.id === "emp_Urel");
+    expect(urelStep).toBeDefined();
+    expect(urelStep.expression).toMatch(/X \+ Y =/);
+    expect(urelStep.expression).not.toMatch(/0\.000000000000 \+ 0\.000000000000/);
+    expect(urelStep.expression).toMatch(/×10/);
+    expect(urelStep.resultFormat).toBe("emp");
+    expect(urelStep.result).toBeCloseTo(empUrel, 12);
+
+    const empuxo = steps.find((s) => s.id === "empuxo");
+    expect(empuxo.formula).toMatch(/V\.C × Urel/);
+  });
 });
