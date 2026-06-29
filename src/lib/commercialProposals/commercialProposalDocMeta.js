@@ -36,13 +36,3 @@ export function getProposalBoilerplate(tenant) {
   const stored = tenant?.commercial_proposal_boilerplate || {};
   return { ...DEFAULT_PROPOSAL_BOILERPLATE, ...stored };
 }
-
-export function getProposalDocMeta(tenant) {
-  return {
-    code: tenant?.commercial_proposal_form_code || DEFAULT_PROPOSAL_FORM_CODE,
-    title: tenant?.commercial_proposal_form_title || DEFAULT_PROPOSAL_FORM_TITLE,
-    reference: DEFAULT_PROPOSAL_FORM_REF,
-    revision: tenant?.commercial_proposal_form_revision || DEFAULT_PROPOSAL_FORM_REVISION,
-    modelIssueDate: DEFAULT_PROPOSAL_MODEL_ISSUE_DATE,
-  };
-}

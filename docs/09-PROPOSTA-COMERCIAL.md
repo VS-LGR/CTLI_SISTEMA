@@ -19,7 +19,7 @@ Módulo **RE-7.1A Proposta Comercial**: cadastro multi-balança vinculado ao cli
 | Módulo | URL principal | Também em |
 |--------|---------------|-----------|
 | Propostas | `/propostas-comerciais` | `/requirement/7/pr-7-1?tab=propostas_comerciais` |
-| Config. RE-7.1A | `/cadastros/config-proposta` | Cadastros (admin/client) |
+| Config. RE-7.1A | `/cadastros/config-proposta` | Textos institucionais do PDF (metadados via Lista Mestra) |
 
 ### Fluxo completo
 
@@ -80,3 +80,5 @@ flowchart LR
 ### Template Lista Mestra
 
 `template_key`: `re-71a-proposta-comercial-pdf`
+
+Código **RE-7.1A**, título, revisão e referência **PR-7.1** são definidos na Lista Mestra (PR-8.3). Na criação da proposta, o sistema grava um snapshot desses metadados no registo; a exportação PDF usa sempre a revisão vigente da Lista Mestra.

@@ -1,5 +1,6 @@
 import { formatProposalNumber } from "./commercialProposalSchema";
 import { COMMERCIAL_PROPOSAL_TEMPLATE_KEY } from "./commercialProposalRoutes";
+import { DEFAULT_PROPOSAL_FORM_TITLE } from "./commercialProposalDocMeta";
 
 export async function exportCommercialProposalPdf(proposal, { logoDataUrl, tenant, tenantId, userId } = {}) {
   const { prepareMasterDocumentExport, recordMasterDocumentExport } = await import(
@@ -11,7 +12,7 @@ export async function exportCommercialProposalPdf(proposal, { logoDataUrl, tenan
     templateKey: COMMERCIAL_PROPOSAL_TEMPLATE_KEY,
     code: proposal.document_code || "RE-7.1A",
     record: proposal,
-    defaultTitle: "PROPOSTA COMERCIAL",
+    defaultTitle: DEFAULT_PROPOSAL_FORM_TITLE,
     fileNameContext: {
       numero: formatProposalNumber(proposal.proposal_number, proposal.proposal_year),
       cliente: clientName,

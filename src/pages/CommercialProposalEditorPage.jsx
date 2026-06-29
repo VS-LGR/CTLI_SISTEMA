@@ -19,7 +19,18 @@ import {
   formatProposalNumber,
   validateProposalForm,
 } from "@/lib/commercialProposals/commercialProposalSchema";
-import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
+import { PROPOSAL_LIST_PATH, COMMERCIAL_PROPOSAL_TEMPLATE_KEY } from "@/lib/commercialProposals/commercialProposalRoutes";
+import {
+  DEFAULT_PROPOSAL_FORM_CODE,
+  DEFAULT_PROPOSAL_FORM_REF,
+  DEFAULT_PROPOSAL_FORM_TITLE,
+} from "@/lib/commercialProposals/commercialProposalDocMeta";
+import {
+  resolveRecordDocumentFields,
+  isRecordDocumentStale,
+} from "@/lib/masterDocuments/resolveRecordDocumentFields";
+import { getActiveDocumentByTemplateKey } from "@/lib/masterDocuments/masterDocumentResolver";
+import DocumentRecordMetaLine from "@/components/masterDocuments/DocumentRecordMetaLine";
 import ProposalClientSection from "@/components/commercialProposals/ProposalClientSection";
 import ProposalScalesTable from "@/components/commercialProposals/ProposalScalesTable";
 import ProposalCommercialSection from "@/components/commercialProposals/ProposalCommercialSection";
@@ -59,6 +70,7 @@ export default function CommercialProposalEditorPage() {
   const [endCustomers, setEndCustomers] = useState([]);
   const [exportOpen, setExportOpen] = useState(false);
   const [fullProposal, setFullProposal] = useState(null);
+  const [masterMeta, setMasterMeta] = useState(null);
 
   const loadCustomers = useCallback(async () => {
     if (!currentTenantId) return;
@@ -76,7 +88,23 @@ export default function CommercialProposalEditorPage() {
     try {
       num = await suggestNextProposalNumber(currentTenantId, year);
     } catch { /* ignore */ }
-    setForm({ ...emptyProposalForm(), proposal_number: num, proposal_year: year });
+    let docFields = {};
+    try {
+      docFields = await resolveRecordDocumentFields({
+        tenantId: currentTenantId,
+        templateKey: COMMERCIAL_PROPOSAL_TEMPLATE_KEY,
+        code: DEFAULT_PROPOSAL_FORM_CODE,
+        defaultTitle: DEFAULT_PROPOSAL_FORM_TITLE,
+        defaultReference: DEFAULT_PROPOSAL_FORM_REF,
+      });
+    } catch { /* fallback defaults in emptyProposalForm */ }
+    const { masterDocumentId, isObsolete, document_title, ...formDocFields } = docFields;
+    setForm({
+      ...emptyProposalForm(),
+      ...formDocFields,
+      proposal_number: num,
+      proposal_year: year,
+    });
     setProposalId(null);
     setFullProposal(null);
     setLoading(false);
@@ -102,9 +130,29 @@ export default function CommercialProposalEditorPage() {
     else loadExisting();
   }, [isNew, loadNew, loadExisting]);
 
+  useEffect(() => {
+    if (!currentTenantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const master = await getActiveDocumentByTemplateKey(
+          currentTenantId,
+          COMMERCIAL_PROPOSAL_TEMPLATE_KEY,
+        );
+        if (!cancelled) setMasterMeta(master);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [currentTenantId]);
+
   const computedTotal = useMemo(
     () => computeTotalFromScales(form?.scales || []),
     [form?.scales],
+  );
+
+  const docStale = useMemo(
+    () => isRecordDocumentStale(form, masterMeta),
+    [form, masterMeta],
   );
 
   if (!canAccessCommercialProposals(user?.role) || !isSupabaseAuthMode) {
@@ -164,13 +212,25 @@ export default function CommercialProposalEditorPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 min-w-0">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button asChild variant="ghost" size="sm">
-          <Link to={PROPOSAL_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
-        </Button>
-        <h1 className="font-display text-xl font-semibold text-slate-900">
-          {isNew ? "Nova Proposta Comercial" : `Proposta ${formatProposalNumber(form.proposal_number, form.proposal_year)}`}
-        </h1>
+      <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button asChild variant="ghost" size="sm">
+            <Link to={PROPOSAL_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
+          </Button>
+          <h1 className="font-display text-xl font-semibold text-slate-900">
+            {isNew ? "Nova Proposta Comercial" : `Proposta ${formatProposalNumber(form.proposal_number, form.proposal_year)}`}
+          </h1>
+        </div>
+        <DocumentRecordMetaLine
+          code={form.document_code}
+          reference={form.document_reference}
+          revision={form.document_revision}
+          modelIssueDate={form.document_model_issue_date}
+          title={masterMeta?.title || DEFAULT_PROPOSAL_FORM_TITLE}
+          masterDocumentId={masterMeta?.id}
+          isObsolete={masterMeta?.isObsolete}
+          isStale={docStale && !isNew}
+        />
       </div>
 
       <div className="flex flex-wrap gap-2">

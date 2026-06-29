@@ -6,7 +6,14 @@ import {
   proposalRowToForm,
 } from "./commercialProposalSchema";
 import { buildClientSnapshot } from "./commercialProposalSnapshots";
-import { DEFAULT_PROPOSAL_MODEL_ISSUE_DATE } from "./commercialProposalDocMeta";
+import {
+  DEFAULT_PROPOSAL_FORM_CODE,
+  DEFAULT_PROPOSAL_FORM_REF,
+  DEFAULT_PROPOSAL_FORM_TITLE,
+  DEFAULT_PROPOSAL_MODEL_ISSUE_DATE,
+} from "./commercialProposalDocMeta";
+import { resolveRecordDocumentFields } from "@/lib/masterDocuments/resolveRecordDocumentFields";
+import { COMMERCIAL_PROPOSAL_TEMPLATE_KEY } from "./commercialProposalRoutes";
 
 export function assertSupabaseCommercialProposals() {
   if (!isSupabaseAuthMode) {
@@ -108,7 +115,24 @@ function buildProposalPayload(form, tenantId, userId, isUpdate = false) {
     updated_by: userId || null,
   };
   if (!isUpdate) payload.created_by = userId || null;
+  if (isUpdate) {
+    delete payload.document_code;
+    delete payload.document_reference;
+    delete payload.document_revision;
+    delete payload.document_model_issue_date;
+  }
   return payload;
+}
+
+async function resolveProposalDocumentFields(tenantId, form = null) {
+  return resolveRecordDocumentFields({
+    tenantId,
+    templateKey: COMMERCIAL_PROPOSAL_TEMPLATE_KEY,
+    code: DEFAULT_PROPOSAL_FORM_CODE,
+    defaultTitle: DEFAULT_PROPOSAL_FORM_TITLE,
+    defaultReference: DEFAULT_PROPOSAL_FORM_REF,
+    record: form,
+  });
 }
 
 async function replaceScaleCalibrationPoints(scaleId, points = []) {
@@ -193,7 +217,8 @@ async function saveScales(proposalId, scales = []) {
 
 export async function createCommercialProposal(tenantId, form, { userId } = {}) {
   assertSupabaseCommercialProposals();
-  const payload = buildProposalPayload(form, tenantId, userId, false);
+  const docFields = await resolveProposalDocumentFields(tenantId);
+  const payload = buildProposalPayload({ ...form, ...docFields }, tenantId, userId, false);
   const { data: proposal, error } = await supabase
     .from("commercial_proposals")
     .insert(payload)
