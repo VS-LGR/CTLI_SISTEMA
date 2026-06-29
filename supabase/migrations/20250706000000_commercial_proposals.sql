@@ -72,10 +72,15 @@ CREATE INDEX IF NOT EXISTS idx_commercial_proposal_cal_points_scale
 
 ALTER TABLE public.scale_calibration_collections
   ADD COLUMN IF NOT EXISTS commercial_proposal_id uuid REFERENCES public.commercial_proposals (id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS commercial_proposal_scale_id uuid REFERENCES public.commercial_proposal_scales (id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS commercial_proposal_scale_id uuid REFERENCES public.commercial_proposal_scales (id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS scale_registration_id uuid REFERENCES public.scale_registrations (id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_scale_cal_coll_proposal
   ON public.scale_calibration_collections (commercial_proposal_id);
+
+CREATE INDEX IF NOT EXISTS idx_scale_cal_coll_scale_registration
+  ON public.scale_calibration_collections (scale_registration_id)
+  WHERE scale_registration_id IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION public.commercial_proposal_tenant_from_child(p_proposal_id uuid)
 RETURNS uuid

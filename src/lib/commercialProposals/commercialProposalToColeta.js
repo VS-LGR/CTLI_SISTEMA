@@ -76,23 +76,27 @@ export async function createColetaFromProposalScale(proposal, scale, { userId } 
   const denorm = denormalizeFromPayload(payload);
   const commercialProposalRef = formatProposalRef(proposal.proposal_number, proposal.proposal_year);
 
+  const insertRow = {
+    tenant_id: proposal.tenant_id,
+    commercial_proposal_ref: commercialProposalRef,
+    commercial_proposal_id: proposal.id,
+    commercial_proposal_scale_id: scale.id,
+    payload,
+    client_name: denorm.client_name,
+    responsible_name: denorm.responsible_name,
+    scale_serial: denorm.scale_serial,
+    calibration_date: denorm.calibration_date,
+    workflow_status: "rascunho",
+    created_by: userId || null,
+    updated_by: userId || null,
+  };
+  if (scale.scale_registration_id) {
+    insertRow.scale_registration_id = scale.scale_registration_id;
+  }
+
   const { data: collection, error } = await supabase
     .from("scale_calibration_collections")
-    .insert({
-      tenant_id: proposal.tenant_id,
-      commercial_proposal_ref: commercialProposalRef,
-      commercial_proposal_id: proposal.id,
-      commercial_proposal_scale_id: scale.id,
-      payload,
-      client_name: denorm.client_name,
-      responsible_name: denorm.responsible_name,
-      scale_serial: denorm.scale_serial,
-      calibration_date: denorm.calibration_date,
-      workflow_status: "rascunho",
-      scale_registration_id: scale.scale_registration_id || null,
-      created_by: userId || null,
-      updated_by: userId || null,
-    })
+    .insert(insertRow)
     .select()
     .single();
   if (error) throw error;
