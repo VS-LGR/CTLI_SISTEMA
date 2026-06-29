@@ -14,6 +14,7 @@ import {
   resolveDefaultResolutionForPoint,
   resolveDefaultVerificationDivision,
 } from "@/lib/calibrationCertificates/certificatePointUtils";
+import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 
 const MIN_READINGS_AFTER = 3;
 
@@ -205,9 +206,10 @@ function PointTabContent({
       <div>
         <Label className="text-xs mb-2 block">Valor de referência (V.R.) — soma V.V.C dos pesos</Label>
         <Input
+          inputMode="decimal"
           value={point.nominal_value ?? ""}
           disabled={fieldsDisabled}
-          onChange={(e) => setField({ nominal_value: e.target.value })}
+          onChange={(e) => setField({ nominal_value: sanitizeMassNumericInput(e.target.value) })}
           className="h-9 max-w-xs"
         />
       </div>

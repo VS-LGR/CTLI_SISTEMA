@@ -32,7 +32,7 @@ import { formatRequestNumber } from "@/lib/quotationRequestDisplay";
 import QuotationRequestStatusPanel from "@/components/quotationRequests/QuotationRequestStatusPanel";
 import QuotationRequestSectionEditor from "@/components/quotationRequests/QuotationRequestSectionEditor";
 import QuotationRequestTypeSelector from "@/components/quotationRequests/QuotationRequestTypeSelector";
-import QuotationConvertDialog from "@/components/quotationRequests/QuotationConvertDialog";
+import DocumentEditorActionBar from "@/components/documents/DocumentEditorActionBar";
 import QuotationGeneratedOrdersCard from "@/components/quotationRequests/QuotationGeneratedOrdersCard";
 import { getQuotationConversionState } from "@/lib/quotationToPurchaseOrder";
 import { selectClass } from "@/components/quotationRequests/QuotationRequestItemsTable";
@@ -546,6 +546,36 @@ export default function QuotationRequestEditorPage() {
             await reloadQuotation();
           }
         }}
+      />
+
+      <DocumentEditorActionBar
+        primary={{
+          label: "Salvar",
+          icon: FloppyDisk,
+          onClick: save,
+          loading: saving,
+          loadingLabel: "Salvando…",
+        }}
+        actions={[
+          { label: "PDF", icon: FilePdf, onClick: exportPdf },
+          ...(!isNew && conversionState?.canConvert ? [{
+            label: "Converter em PO",
+            icon: ShoppingCart,
+            onClick: () => setConvertOpen(true),
+          }] : []),
+          ...(!isNew ? [{
+            label: "Duplicar",
+            icon: Copy,
+            onClick: async () => {
+              try {
+                const copy = await duplicateQuotationRequest(id);
+                nav(quotationEditorPath(copy.id));
+              } catch (e) {
+                toast.error(e.message);
+              }
+            },
+          }] : []),
+        ]}
       />
     </div>
   );

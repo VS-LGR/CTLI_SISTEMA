@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, PencilSimple, Trash, ArrowCounterClockwise } from "@phosphor-icons/react";
-import { toast } from "sonner";
+import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 import { WEIGHT_ITEM_UNITS } from "@/lib/cadastroConstants";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import {
@@ -259,11 +259,11 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>V.N (valor nominal)</Label>
-                  <Input value={nominalValue} onChange={(e) => setNominalValue(e.target.value)} />
+                  <Input inputMode="decimal" value={nominalValue} onChange={(e) => setNominalValue(sanitizeMassNumericInput(e.target.value))} />
                 </div>
                 <div>
                   <Label>V.V.C (valor convencional)</Label>
-                  <Input value={conventionalValue} onChange={(e) => setConventionalValue(e.target.value)} />
+                  <Input inputMode="decimal" value={conventionalValue} onChange={(e) => setConventionalValue(sanitizeMassNumericInput(e.target.value))} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -292,7 +292,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Ue (incerteza expandida)</Label>
-                  <Input value={expandedUncertainty} onChange={(e) => setExpandedUncertainty(e.target.value)} />
+                  <Input inputMode="decimal" value={expandedUncertainty} onChange={(e) => setExpandedUncertainty(sanitizeMassNumericInput(e.target.value))} />
                 </div>
                 <div>
                   <Label>Unidade</Label>

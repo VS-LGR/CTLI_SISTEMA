@@ -146,6 +146,7 @@ async function replaceScaleCalibrationPoints(scaleId, points = []) {
       scale_id: scaleId,
       point_number: p.point_number,
       nominal_value: p.nominal_value,
+      nominal_unit: p.nominal_unit || "g",
     })),
   );
   if (error) throw error;
@@ -184,6 +185,8 @@ async function saveScales(proposalId, scales = []) {
       serial_number: norm.serial_number,
       capacity: norm.capacity,
       resolution: norm.resolution,
+      unit: norm.unit,
+      client_requested_points: norm.client_requested_points,
       unit_value: norm.unit_value,
       scale_registration_id: scales[i].scale_registration_id || null,
       collection_id: scales[i].collection_id || null,

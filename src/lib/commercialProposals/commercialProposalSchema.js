@@ -1,4 +1,14 @@
 import { DEFAULT_PROPOSAL_MODEL_ISSUE_DATE } from "./commercialProposalDocMeta";
+import {
+  formatMassDisplay,
+  parseLegacyMassString,
+  sanitizeMassNumericInput,
+} from "@/lib/massValueUtils";
+
+export const CLIENT_REQUESTED_POINTS_OPTIONS = [
+  { value: "sim", label: "SIM" },
+  { value: "nao", label: "NÃO" },
+];
 
 export const ADJUST_OPTIONS = [
   { value: "", label: "—" },
@@ -6,8 +16,8 @@ export const ADJUST_OPTIONS = [
   { value: "nao", label: "Não" },
 ];
 
-export function emptyCalPoint(pointNumber = 1) {
-  return { point_number: pointNumber, nominal_value: "" };
+export function emptyCalPoint(pointNumber = 1, defaultUnit = "g") {
+  return { point_number: pointNumber, nominal_value: "", nominal_unit: defaultUnit };
 }
 
 export function emptyScale(itemNumber = 1) {
@@ -19,8 +29,10 @@ export function emptyScale(itemNumber = 1) {
     serial_number: "",
     capacity: "",
     resolution: "",
+    unit: "g",
     unit_value: "",
-    calibration_points: Array.from({ length: 10 }, (_, i) => emptyCalPoint(i + 1)),
+    client_requested_points: "",
+    calibration_points: Array.from({ length: 10 }, (_, i) => emptyCalPoint(i + 1, "g")),
   };
 }
 
@@ -67,10 +79,15 @@ export function formatProposalNumber(number, year) {
   return year ? `${String(number).padStart(3, "0")}/${year}` : String(number);
 }
 
-export function calibrationPointsDisplay(points = []) {
+export function calibrationPointsDisplay(points = [], defaultUnit = "g") {
   return (points || [])
     .filter((p) => String(p.nominal_value || "").trim())
-    .map((p) => p.nominal_value)
+    .map((p) => formatMassDisplay(
+      p.nominal_value,
+      p.nominal_unit || defaultUnit,
+      { fallback: "" },
+    ))
+    .filter(Boolean)
     .join(", ");
 }
 
@@ -97,10 +114,12 @@ export function validateProposalForm(form) {
 }
 
 export function normalizeScaleForSave(scale, itemNumber) {
+  const scaleUnit = scale.unit || "g";
   const points = (scale.calibration_points || [])
     .map((p, idx) => ({
       point_number: p.point_number ?? idx + 1,
-      nominal_value: String(p.nominal_value || "").trim(),
+      nominal_value: sanitizeMassNumericInput(String(p.nominal_value || "").trim()),
+      nominal_unit: p.nominal_unit || scaleUnit,
     }))
     .filter((p) => p.point_number >= 1 && p.point_number <= 10);
 
@@ -116,8 +135,10 @@ export function normalizeScaleForSave(scale, itemNumber) {
     model: String(scale.model || "").trim(),
     tag: String(scale.tag || "").trim(),
     serial_number: String(scale.serial_number || "").trim(),
-    capacity: String(scale.capacity || "").trim(),
-    resolution: String(scale.resolution || "").trim(),
+    capacity: sanitizeMassNumericInput(String(scale.capacity || "").trim()),
+    resolution: sanitizeMassNumericInput(String(scale.resolution || "").trim()),
+    unit: scaleUnit,
+    client_requested_points: scale.client_requested_points || "",
     unit_value: parseFloat(String(scale.unit_value || "0").replace(",", ".")) || 0,
     calibration_points: filledPoints,
   };
@@ -149,21 +170,34 @@ export function proposalRowToForm(row, scales = []) {
           serial_number: s.serial_number || "",
           capacity: s.capacity || "",
           resolution: s.resolution || "",
+          unit: s.unit || "g",
+          client_requested_points: s.client_requested_points || "",
           unit_value: s.unit_value ?? "",
           scale_registration_id: s.scale_registration_id || "",
           collection_id: s.collection_id || "",
-          calibration_points: mergeCalibrationPoints(s.calibration_points),
+          calibration_points: mergeCalibrationPoints(s.calibration_points, s.unit || "g"),
         }))
       : [emptyScale(1)],
   };
 }
 
-function mergeCalibrationPoints(points = []) {
-  const byNum = Object.fromEntries(
-    (points || []).map((p) => [p.point_number, p.nominal_value || ""])
-  );
+function mergeCalibrationPoints(points = [], defaultUnit = "g") {
+  const byNum = {};
+  (points || []).forEach((p) => {
+    let nominal = String(p.nominal_value ?? "").trim();
+    let nominalUnit = p.nominal_unit || defaultUnit;
+    if (nominal && /[a-zA-Z]/.test(nominal)) {
+      const parsed = parseLegacyMassString(nominal, defaultUnit);
+      nominal = parsed.valor;
+      nominalUnit = parsed.unidade;
+    } else {
+      nominal = sanitizeMassNumericInput(nominal);
+    }
+    byNum[p.point_number] = { nominal, nominalUnit };
+  });
   return Array.from({ length: 10 }, (_, i) => ({
     point_number: i + 1,
-    nominal_value: byNum[i + 1] || "",
+    nominal_value: byNum[i + 1]?.nominal || "",
+    nominal_unit: byNum[i + 1]?.nominalUnit || defaultUnit,
   }));
 }

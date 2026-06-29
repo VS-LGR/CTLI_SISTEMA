@@ -20,6 +20,13 @@ const COLETA_POINT_FIELD_LABELS = {
   reading3: "3ª repetição",
 };
 
+function coletaNominalForImport(pt) {
+  if (pt?.peso_nominal_valor != null && String(pt.peso_nominal_valor).trim()) {
+    return pt.peso_nominal_valor;
+  }
+  return pt?.peso_nominal;
+}
+
 const COLETA_POINT_SOURCE = {
   nominal_value: "peso_nominal",
   reading_before_adjustment: "leitura_antes",
@@ -51,7 +58,9 @@ export function mapColetaPointForDb(pt, pointNumber, warnings = [], repeatabilit
   };
 
   for (const field of POINT_NUMERIC_FIELDS) {
-    const raw = pt?.[COLETA_POINT_SOURCE[field]];
+    const raw = field === "nominal_value"
+      ? coletaNominalForImport(pt)
+      : pt?.[COLETA_POINT_SOURCE[field]];
     const parsed = parseImportNumeric(raw);
     if (raw != null && String(raw).trim() && !parsed.valid) {
       warnings.push(

@@ -28,7 +28,7 @@ import {
   formatOrderNumber,
   statusLabel,
 } from "@/lib/purchaseOrderTypes";
-import PurchaseOrderStatusPanel from "@/components/purchaseOrders/PurchaseOrderStatusPanel";
+import DocumentEditorActionBar from "@/components/documents/DocumentEditorActionBar";
 import { buildSupplierSnapshot } from "@/lib/purchaseOrderSnapshots";
 import { formatDisplayValue } from "@/lib/purchaseOrderCalculations";
 import { Button } from "@/components/ui/button";
@@ -557,6 +557,20 @@ export default function PedidoCompraEditorPage() {
           </TabsContent>
         </Tabs>
       )}
+
+      <DocumentEditorActionBar
+        primary={!readOnly ? {
+          label: "Salvar",
+          icon: FloppyDisk,
+          onClick: save,
+          loading: saving,
+          loadingLabel: "Salvando…",
+        } : null}
+        actions={!isNew ? [
+          { label: "Duplicar", icon: Copy, onClick: dupOrder, hidden: readOnly },
+          { label: "PDF", icon: FilePdf, onClick: exportPdf },
+        ] : []}
+      />
     </div>
   );
 }

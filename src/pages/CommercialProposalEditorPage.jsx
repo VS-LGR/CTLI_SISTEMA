@@ -36,6 +36,7 @@ import ProposalScalesTable from "@/components/commercialProposals/ProposalScales
 import ProposalCommercialSection from "@/components/commercialProposals/ProposalCommercialSection";
 import ProposalColetasCard from "@/components/commercialProposals/ProposalColetasCard";
 import ProposalExportCadastroDialog from "@/components/commercialProposals/ProposalExportCadastroDialog";
+import DocumentEditorActionBar from "@/components/documents/DocumentEditorActionBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -234,7 +235,7 @@ export default function CommercialProposalEditorPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
           <FloppyDisk size={18} className="mr-1" /> {saving ? "Guardando…" : "Guardar"}
         </Button>
         {proposalId && (
@@ -306,6 +307,20 @@ export default function CommercialProposalEditorPage() {
         onOpenChange={setExportOpen}
         proposal={fullProposal}
         onExported={refreshProposal}
+      />
+
+      <DocumentEditorActionBar
+        primary={{
+          label: "Guardar",
+          icon: FloppyDisk,
+          onClick: handleSave,
+          loading: saving,
+          loadingLabel: "Guardando…",
+        }}
+        actions={proposalId ? [
+          { label: "Exportar PDF", icon: FilePdf, onClick: handleExportPdf },
+          { label: "Exportar cadastro", icon: Database, onClick: () => setExportOpen(true) },
+        ] : []}
       />
     </div>
   );

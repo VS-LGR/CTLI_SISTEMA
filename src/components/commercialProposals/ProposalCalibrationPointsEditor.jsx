@@ -1,10 +1,12 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import MassValueField from "@/components/forms/MassValueField";
+import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
+import { formatMassDisplay } from "@/lib/massValueUtils";
 
-export default function ProposalCalibrationPointsEditor({ points = [], onChange }) {
-  const updatePoint = (index, value) => {
-    const next = points.map((p, i) => (i === index ? { ...p, nominal_value: value } : p));
+export default function ProposalCalibrationPointsEditor({ points = [], onChange, defaultUnit = "g" }) {
+  const updatePoint = (index, patch) => {
+    const next = points.map((p, i) => (i === index ? { ...p, ...patch } : p));
     onChange(next);
   };
 
@@ -14,22 +16,25 @@ export default function ProposalCalibrationPointsEditor({ points = [], onChange 
   return (
     <div>
       <Label className="text-xs">Pontos de calibração (até 10)</Label>
-      <div className="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {points.map((p, i) => (
           <div key={p.point_number ?? i + 1}>
             <Label className="text-[10px] text-slate-500">P{p.point_number ?? i + 1}</Label>
-            <Input
-              className="mt-0.5 h-8 text-xs"
-              placeholder="ex: 100 g"
+            <MassValueField
+              compact
+              className="mt-0.5"
               value={p.nominal_value || ""}
-              onChange={(e) => updatePoint(i, e.target.value)}
+              unit={p.nominal_unit || defaultUnit}
+              defaultUnit={defaultUnit}
+              onValueChange={(v) => updatePoint(i, { nominal_value: sanitizeMassNumericInput(v) })}
+              onUnitChange={(u) => updatePoint(i, { nominal_unit: u })}
             />
           </div>
         ))}
       </div>
       {filled.length > 0 && (
         <p className="text-xs text-slate-500 mt-2">
-          Resumo: {filled.map((p) => p.nominal_value).join(", ")}
+          Resumo: {filled.map((p) => formatMassDisplay(p.nominal_value, p.nominal_unit || defaultUnit, { fallback: "" })).filter(Boolean).join(", ")}
         </p>
       )}
     </div>

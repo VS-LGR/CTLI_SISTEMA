@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, FloppyDisk, FilePdf, Calculator, CheckCircle, XCircle, ArrowsClockwise, Archive, Trash,
 } from "@phosphor-icons/react";
-import { toast } from "sonner";
+import DocumentEditorActionBar from "@/components/documents/DocumentEditorActionBar";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
 import {
   getCertificate,
@@ -1202,6 +1202,23 @@ export default function CertificateEditorPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <DocumentEditorActionBar
+        primary={editable ? {
+          label: "Guardar",
+          icon: FloppyDisk,
+          onClick: saveHeader,
+          loading: saving,
+        } : null}
+        actions={[
+          ...(editable ? [
+            { label: "Calcular", icon: Calculator, onClick: handleRecalc },
+            { label: "Prévia PDF", icon: FilePdf, onClick: handlePreview },
+          ] : [
+            { label: "Prévia PDF", icon: FilePdf, onClick: handlePreview },
+          ]),
+        ]}
+      />
 
       <CertificateObsoleteDialog
         open={obsoleteOpen}

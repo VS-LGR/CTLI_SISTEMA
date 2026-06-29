@@ -1,14 +1,19 @@
 /** RE-7.2A — estrutura do payload de coleta de calibração */
 
+import {
+  MASS_UNIT_OPTIONS,
+  formatMassDisplay,
+  massDisplayFromRecord,
+  parseLegacyMassString,
+  resolveMassFields,
+  sanitizeMassNumericInput,
+} from "./massValueUtils";
+
 export const COLETA_DOC_CODE = "RE-7.2A";
 export const COLETA_DOC_REF = "PR-7.2";
 export const COLETA_DOC_REV = "Rev.03 de 14/05/2026";
 
-export const UNIDADE_OPTIONS = [
-  { value: "mg", label: "mg" },
-  { value: "g", label: "g" },
-  { value: "kg", label: "kg" },
-];
+export const UNIDADE_OPTIONS = MASS_UNIT_OPTIONS;
 
 export const TIPO_BALANCA_OPTIONS = [
   { value: "analitica", label: "Analítica" },
@@ -71,6 +76,8 @@ function emptyEccPoint() {
 function emptyCalPoint() {
   return {
     peso_nominal: "",
+    peso_nominal_valor: "",
+    peso_nominal_unidade: "",
     leitura_antes: "",
     rep1: "",
     rep2: "",
@@ -84,6 +91,8 @@ function emptySubstituicaoLinha(def) {
     key: def.key,
     label: def.label,
     valor_nominal: "",
+    valor_nominal_valor: "",
+    valor_nominal_unidade: "",
     leitura1: "",
     leitura2: "",
     leitura3: "",
@@ -196,6 +205,8 @@ export function emptyColetaPayload() {
     },
     excentricidade: {
       valor_aplicado: "",
+      valor_aplicado_valor: "",
+      valor_aplicado_unidade: "",
       pontos: Array.from({ length: 6 }, () => emptyEccPoint()),
     },
     controle: {
@@ -240,30 +251,80 @@ export function mergeColetaPayload(raw) {
     return merged;
   };
 
-  const migrateCalPoint = (pt) => {
+  const migrateCalPoint = (pt, defaultUnit) => {
     const p = { ...emptyCalPoint(), ...(pt || {}) };
     delete p.identificacao_pesos;
     if (!Array.isArray(p.pesos_padrao_ids)) p.pesos_padrao_ids = [];
+
+    const mass = resolveMassFields(p, {
+      valorKey: "peso_nominal_valor",
+      unidadeKey: "peso_nominal_unidade",
+      legacyKey: "peso_nominal",
+      defaultUnit,
+    });
+    p.peso_nominal_valor = sanitizeMassNumericInput(mass.valor);
+    p.peso_nominal_unidade = mass.unidade;
+    p.peso_nominal = formatMassDisplay(p.peso_nominal_valor, p.peso_nominal_unidade, { fallback: "" });
+
+    p.leitura_antes = sanitizeMassNumericInput(p.leitura_antes);
+    p.rep1 = sanitizeMassNumericInput(p.rep1);
+    p.rep2 = sanitizeMassNumericInput(p.rep2);
+    p.rep3 = sanitizeMassNumericInput(p.rep3);
     return p;
   };
 
+  const migrateLinhaMass = (row, defaultUnit) => {
+    const mass = resolveMassFields(row, {
+      valorKey: "valor_nominal_valor",
+      unidadeKey: "valor_nominal_unidade",
+      legacyKey: "valor_nominal",
+      defaultUnit,
+    });
+    return {
+      ...row,
+      valor_nominal_valor: sanitizeMassNumericInput(mass.valor),
+      valor_nominal_unidade: mass.unidade,
+      valor_nominal: formatMassDisplay(mass.valor, mass.unidade, { fallback: "" }),
+    };
+  };
+
+  const balanca = { ...base.balanca, ...(raw.balanca || {}) };
+  balanca.capacidade = sanitizeMassNumericInput(balanca.capacidade);
+  balanca.resolucao = sanitizeMassNumericInput(balanca.resolucao);
+  const defaultUnit = balanca.unidade || "g";
+
+  const migrateEcc = () => {
+    const ecc = raw.excentricidade || {};
+    const mass = resolveMassFields(ecc, {
+      valorKey: "valor_aplicado_valor",
+      unidadeKey: "valor_aplicado_unidade",
+      legacyKey: "valor_aplicado",
+      defaultUnit,
+    });
+    return {
+      valor_aplicado_valor: sanitizeMassNumericInput(mass.valor),
+      valor_aplicado_unidade: mass.unidade,
+      valor_aplicado: formatMassDisplay(mass.valor, mass.unidade, { fallback: "" }),
+      pontos: Array.from({ length: 6 }, (_, i) => ({
+        ...emptyEccPoint(),
+        ...(ecc.pontos?.[i] || {}),
+        antes: sanitizeMassNumericInput(ecc.pontos?.[i]?.antes),
+        depois: sanitizeMassNumericInput(ecc.pontos?.[i]?.depois),
+      })),
+    };
+  };
+
   const rawRep = raw.verso?.repetitividade || {};
-  const linhas = migrateLotesToLinhas(rawRep);
+  const linhas = migrateLotesToLinhas(rawRep).map((row) => migrateLinhaMass(row, defaultUnit));
 
   return {
     cliente: { ...base.cliente, ...(raw.cliente || {}) },
-    balanca: { ...base.balanca, ...(raw.balanca || {}) },
+    balanca,
     ambiente: migrateAmbiente(raw.ambiente),
-    excentricidade: {
-      valor_aplicado: raw.excentricidade?.valor_aplicado ?? "",
-      pontos: Array.from({ length: 6 }, (_, i) => ({
-        ...emptyEccPoint(),
-        ...(raw.excentricidade?.pontos?.[i] || {}),
-      })),
-    },
+    excentricidade: migrateEcc(),
     controle: { ...base.controle, ...(raw.controle || {}) },
     calibracao: {
-      pontos: Array.from({ length: 10 }, (_, i) => migrateCalPoint(raw.calibracao?.pontos?.[i])),
+      pontos: Array.from({ length: 10 }, (_, i) => migrateCalPoint(raw.calibracao?.pontos?.[i], defaultUnit)),
     },
     verso: {
       descricao_carga: raw.verso?.descricao_carga ?? "",
@@ -353,6 +414,50 @@ export function tipoPlataformaLabel(v) {
 export function unidadeLabel(v) {
   return UNIDADE_OPTIONS.find((x) => x.value === v)?.label || v || "—";
 }
+
+export function calPointNominalDisplay(pt, defaultUnit = "g") {
+  return massDisplayFromRecord(pt, {
+    valorKey: "peso_nominal_valor",
+    unidadeKey: "peso_nominal_unidade",
+    legacyKey: "peso_nominal",
+    defaultUnit,
+  });
+}
+
+export function syncCalPointNominal(pt, defaultUnit = "g") {
+  const valor = sanitizeMassNumericInput(pt.peso_nominal_valor);
+  const unidade = pt.peso_nominal_unidade || defaultUnit || "g";
+  return {
+    ...pt,
+    peso_nominal_valor: valor,
+    peso_nominal_unidade: unidade,
+    peso_nominal: formatMassDisplay(valor, unidade, { fallback: "" }),
+  };
+}
+
+export function syncEccValorAplicado(ecc, defaultUnit = "g") {
+  const valor = sanitizeMassNumericInput(ecc.valor_aplicado_valor);
+  const unidade = ecc.valor_aplicado_unidade || defaultUnit || "g";
+  return {
+    ...ecc,
+    valor_aplicado_valor: valor,
+    valor_aplicado_unidade: unidade,
+    valor_aplicado: formatMassDisplay(valor, unidade, { fallback: "" }),
+  };
+}
+
+export function syncLinhaValorNominal(row, defaultUnit = "g") {
+  const valor = sanitizeMassNumericInput(row.valor_nominal_valor);
+  const unidade = row.valor_nominal_unidade || defaultUnit || "g";
+  return {
+    ...row,
+    valor_nominal_valor: valor,
+    valor_nominal_unidade: unidade,
+    valor_nominal: formatMassDisplay(valor, unidade, { fallback: "" }),
+  };
+}
+
+export { formatMassDisplay, parseLegacyMassString, sanitizeMassNumericInput };
 
 export function formatPesosIds(ids, weightItems) {
   if (!ids?.length || !weightItems?.length) return "";

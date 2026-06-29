@@ -14,8 +14,11 @@ import {
   envCertIdentification,
   applyEndCustomerToCliente,
   resolveEndCustomerId,
-  nominalFromWeightIds,
+  syncCalPointNominal,
+  syncEccValorAplicado,
+  sanitizeMassNumericInput,
 } from "@/lib/coletaSchema";
+import MassValueField from "@/components/forms/MassValueField";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import { proposalEditorPath } from "@/lib/commercialProposals/commercialProposalRoutes";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
@@ -82,6 +85,7 @@ export default function ColetaForm({
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const selectedEndCustomerId = resolveEndCustomerId(payload, endCustomers);
   const autoFilledSingleClient = useRef(false);
+  const defaultUnit = payload.balanca?.unidade || "g";
 
   useEffect(() => {
     if (!isNew || endCustomers.length !== 1 || autoFilledSingleClient.current) return;
@@ -110,7 +114,7 @@ export default function ColetaForm({
 
   const setEccPonto = (idx, k, v) => {
     const pontos = [...payload.excentricidade.pontos];
-    pontos[idx] = { ...pontos[idx], [k]: v };
+    pontos[idx] = { ...pontos[idx], [k]: sanitizeMassNumericInput(v) };
     onChange({ ...payload, excentricidade: { ...payload.excentricidade, pontos } });
   };
 
@@ -120,14 +124,22 @@ export default function ColetaForm({
     onChange({ ...payload, calibracao: { ...payload.calibracao, pontos } });
   };
 
+  const setCalPontoReading = (idx, k, v) => {
+    setCalPonto(idx, k, sanitizeMassNumericInput(v));
+  };
+
+  const setCalPontoNominal = (idx, valor, unidade) => {
+    const pontos = [...payload.calibracao.pontos];
+    pontos[idx] = syncCalPointNominal(
+      { ...pontos[idx], peso_nominal_valor: valor, peso_nominal_unidade: unidade || defaultUnit },
+      defaultUnit,
+    );
+    onChange({ ...payload, calibracao: { ...payload.calibracao, pontos } });
+  };
+
   const setCalPontoPesos = (idx, ids) => {
     const pontos = [...payload.calibracao.pontos];
-    const nominal = nominalFromWeightIds(ids, weightItems);
-    pontos[idx] = {
-      ...pontos[idx],
-      pesos_padrao_ids: ids,
-      peso_nominal: nominal || pontos[idx].peso_nominal,
-    };
+    pontos[idx] = { ...pontos[idx], pesos_padrao_ids: ids };
     onChange({ ...payload, calibracao: { ...payload.calibracao, pontos } });
   };
 
@@ -204,10 +216,18 @@ export default function ColetaForm({
         </div>
         <div className="grid grid-cols-12 gap-3 items-end">
           <Field label="Capacidade" className="col-span-12 sm:col-span-5">
-            <Input value={payload.balanca.capacidade} onChange={(e) => setBalanca("capacidade", e.target.value)} />
+            <Input
+              inputMode="decimal"
+              value={payload.balanca.capacidade}
+              onChange={(e) => setBalanca("capacidade", sanitizeMassNumericInput(e.target.value))}
+            />
           </Field>
           <Field label="Resolução" className="col-span-12 sm:col-span-5">
-            <Input value={payload.balanca.resolucao} onChange={(e) => setBalanca("resolucao", e.target.value)} />
+            <Input
+              inputMode="decimal"
+              value={payload.balanca.resolucao}
+              onChange={(e) => setBalanca("resolucao", sanitizeMassNumericInput(e.target.value))}
+            />
           </Field>
           <Field label="Unidade" className="col-span-12 sm:col-span-2">
             <select
@@ -222,6 +242,7 @@ export default function ColetaForm({
             </select>
           </Field>
         </div>
+        <p className="text-xs text-slate-500 mt-1">Unidade padrão dos pontos de calibração (secção 6).</p>
         <RadioRow
           label="Tipo de balança"
           options={TIPO_BALANCA_OPTIONS}
@@ -317,11 +338,24 @@ export default function ColetaForm({
           headerAction={<CalibracaoOrdemTooltip tipoPlataforma={payload.balanca.tipo_plataforma} />}
         >
           <Field label="Valor Aplicado">
-            <Input
-              value={payload.excentricidade.valor_aplicado}
-              onChange={(e) => onChange({
+            <MassValueField
+              compact={!isDesktop}
+              value={payload.excentricidade.valor_aplicado_valor || ""}
+              unit={payload.excentricidade.valor_aplicado_unidade || defaultUnit}
+              defaultUnit={defaultUnit}
+              onValueChange={(v) => onChange({
                 ...payload,
-                excentricidade: { ...payload.excentricidade, valor_aplicado: e.target.value },
+                excentricidade: syncEccValorAplicado({
+                  ...payload.excentricidade,
+                  valor_aplicado_valor: v,
+                }, defaultUnit),
+              })}
+              onUnitChange={(u) => onChange({
+                ...payload,
+                excentricidade: syncEccValorAplicado({
+                  ...payload.excentricidade,
+                  valor_aplicado_unidade: u,
+                }, defaultUnit),
               })}
             />
           </Field>
@@ -418,24 +452,33 @@ export default function ColetaForm({
         num="6"
         title="Calibração da Balança"
       >
+        <p className="text-xs text-slate-500 -mt-2">
+          A identificação do peso padrão não altera o valor nominal — preencha-o separadamente.
+        </p>
         {!isDesktop && (
           <div className="space-y-3">
             {payload.calibracao.pontos.map((pt, i) => (
               <FormRowCard key={i} label={`Ponto P${i + 1}`} readOnly>
                 <Field label="Valor nominal do Peso de Referência">
-                  <Input value={pt.peso_nominal} onChange={(e) => setCalPonto(i, "peso_nominal", e.target.value)} className="h-10" />
+                  <MassValueField
+                    value={pt.peso_nominal_valor || ""}
+                    unit={pt.peso_nominal_unidade || defaultUnit}
+                    defaultUnit={defaultUnit}
+                    onValueChange={(v) => setCalPontoNominal(i, v, pt.peso_nominal_unidade || defaultUnit)}
+                    onUnitChange={(u) => setCalPontoNominal(i, pt.peso_nominal_valor || "", u)}
+                  />
                 </Field>
                 <Field label="Leitura antes do ajuste">
-                  <Input value={pt.leitura_antes} onChange={(e) => setCalPonto(i, "leitura_antes", e.target.value)} className="h-10" />
+                  <Input inputMode="decimal" value={pt.leitura_antes} onChange={(e) => setCalPontoReading(i, "leitura_antes", e.target.value)} className="h-10" />
                 </Field>
                 <Field label="Leitura 1">
-                  <Input value={pt.rep1} onChange={(e) => setCalPonto(i, "rep1", e.target.value)} className="h-10" />
+                  <Input inputMode="decimal" value={pt.rep1} onChange={(e) => setCalPontoReading(i, "rep1", e.target.value)} className="h-10" />
                 </Field>
                 <Field label="Leitura 2">
-                  <Input value={pt.rep2} onChange={(e) => setCalPonto(i, "rep2", e.target.value)} className="h-10" />
+                  <Input inputMode="decimal" value={pt.rep2} onChange={(e) => setCalPontoReading(i, "rep2", e.target.value)} className="h-10" />
                 </Field>
                 <Field label="Leitura 3">
-                  <Input value={pt.rep3} onChange={(e) => setCalPonto(i, "rep3", e.target.value)} className="h-10" />
+                  <Input inputMode="decimal" value={pt.rep3} onChange={(e) => setCalPontoReading(i, "rep3", e.target.value)} className="h-10" />
                 </Field>
                 <Field label="Identificação do(s) Peso(s) Padrão">
                   <PesoPadraoMultiSelect
@@ -453,7 +496,8 @@ export default function ColetaForm({
             <FormRowsTableHead>
               <tr>
                 <th className="p-2 font-semibold sticky left-0 z-[1] bg-slate-50">Ponto</th>
-                <th className="p-2 font-semibold">Valor nominal do Peso de Referência</th>
+                <th className="p-2 font-semibold" title="Valor nominal do Peso de Referência aplicado">Valor nominal</th>
+                <th className="p-2 font-semibold w-16" title="Unidade de massa">Un.</th>
                 <th className="p-2 font-semibold">Leitura antes do ajuste</th>
                 <th className="p-2 font-semibold">Leitura 1</th>
                 <th className="p-2 font-semibold">Leitura 2</th>
@@ -465,11 +509,29 @@ export default function ColetaForm({
               {payload.calibracao.pontos.map((pt, i) => (
                 <tr key={i} className="border-b border-slate-100">
                   <td className="p-2 font-mono align-top sticky left-0 z-[1] bg-white">P{i + 1}</td>
-                  <td className="p-1 align-top"><Input value={pt.peso_nominal} onChange={(e) => setCalPonto(i, "peso_nominal", e.target.value)} className="h-10 text-sm" /></td>
-                  <td className="p-1 align-top"><Input value={pt.leitura_antes} onChange={(e) => setCalPonto(i, "leitura_antes", e.target.value)} className="h-10 text-sm" /></td>
-                  <td className="p-1 align-top"><Input value={pt.rep1} onChange={(e) => setCalPonto(i, "rep1", e.target.value)} className="h-10 text-sm" /></td>
-                  <td className="p-1 align-top"><Input value={pt.rep2} onChange={(e) => setCalPonto(i, "rep2", e.target.value)} className="h-10 text-sm" /></td>
-                  <td className="p-1 align-top"><Input value={pt.rep3} onChange={(e) => setCalPonto(i, "rep3", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top min-w-[88px]">
+                    <Input
+                      inputMode="decimal"
+                      value={pt.peso_nominal_valor || ""}
+                      onChange={(e) => setCalPontoNominal(i, e.target.value, pt.peso_nominal_unidade || defaultUnit)}
+                      className="h-10 text-sm"
+                    />
+                  </td>
+                  <td className="p-1 align-top w-16">
+                    <select
+                      value={pt.peso_nominal_unidade || defaultUnit}
+                      onChange={(e) => setCalPontoNominal(i, pt.peso_nominal_valor || "", e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-transparent px-1 text-xs shadow-sm"
+                    >
+                      {UNIDADE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.leitura_antes} onChange={(e) => setCalPontoReading(i, "leitura_antes", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep1} onChange={(e) => setCalPontoReading(i, "rep1", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep2} onChange={(e) => setCalPontoReading(i, "rep2", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep3} onChange={(e) => setCalPontoReading(i, "rep3", e.target.value)} className="h-10 text-sm" /></td>
                   <td className="p-1 align-top min-w-[180px]">
                     <PesoPadraoMultiSelect
                       weightItems={weightItems}
@@ -484,7 +546,7 @@ export default function ColetaForm({
         )}
       </SectionCard>
 
-      <ColetaVersoForm payload={payload} onChange={onChange} />
+      <ColetaVersoForm payload={payload} onChange={onChange} defaultUnit={defaultUnit} />
     </div>
   );
 }

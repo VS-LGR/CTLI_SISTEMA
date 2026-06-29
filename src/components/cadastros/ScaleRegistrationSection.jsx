@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
 import { PLATFORM_TYPE_OPTIONS } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
@@ -309,21 +310,21 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
                   title="Indicação máxima (C)"
                   hint="Capacidade máxima da faixa — valor máximo que o visor pode indicar nesta faixa."
                 />
-                <Input value={form.capacity_1} onChange={(e) => setF("capacity_1", e.target.value)} placeholder="Ex.: 220" />
+                <Input inputMode="decimal" value={form.capacity_1} onChange={(e) => setF("capacity_1", sanitizeMassNumericInput(e.target.value))} placeholder="Ex.: 220" />
               </div>
               <div>
                 <FieldLabel
                   title="Resolução (d)"
                   hint="Menor incremento exibido no visor; usada nos cálculos de incerteza (ur) e arredondamento do certificado."
                 />
-                <Input value={form.resolution_1} onChange={(e) => setF("resolution_1", e.target.value)} placeholder="Ex.: 0,0001" />
+                <Input inputMode="decimal" value={form.resolution_1} onChange={(e) => setF("resolution_1", sanitizeMassNumericInput(e.target.value))} placeholder="Ex.: 0,0001" />
               </div>
               <div>
                 <FieldLabel
                   title="Divisão de verificação (e)"
                   hint="Intervalo de escala para verificação legal. Na maioria dos instrumentos e = d."
                 />
-                <Input value={form.verification_division_1} onChange={(e) => setF("verification_division_1", e.target.value)} placeholder="Ex.: 0,0001" />
+                <Input inputMode="decimal" value={form.verification_division_1} onChange={(e) => setF("verification_division_1", sanitizeMassNumericInput(e.target.value))} placeholder="Ex.: 0,0001" />
               </div>
 
               <SectionHeading

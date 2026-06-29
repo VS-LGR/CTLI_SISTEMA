@@ -1,12 +1,15 @@
 import { supabase } from "@/lib/supabaseClient";
-import { emptyColetaPayload, denormalizeFromPayload } from "@/lib/coletaSchema";
+import { emptyColetaPayload, denormalizeFromPayload, syncCalPointNominal } from "@/lib/coletaSchema";
 import { formatProposalRef } from "./commercialProposalSchema";
 import { scaleToBalanca } from "./commercialProposalCadastroExport";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 
-function emptyColetaCalPoint() {
+function emptyColetaCalPoint(defaultUnit = "g") {
   return {
     peso_nominal: "",
+    peso_nominal_valor: "",
+    peso_nominal_unidade: defaultUnit,
     leitura_antes: "",
     rep1: "",
     rep2: "",
@@ -18,6 +21,7 @@ function emptyColetaCalPoint() {
 export function buildColetaPayloadFromProposalScale(proposal, scale) {
   const snap = proposal.client_snapshot || {};
   const payload = emptyColetaPayload();
+  const scaleUnit = scale.unit || "g";
 
   payload.cliente = {
     end_customer_id: proposal.end_customer_id || "",
@@ -28,6 +32,9 @@ export function buildColetaPayloadFromProposalScale(proposal, scale) {
   payload.balanca = {
     ...payload.balanca,
     ...scaleToBalanca(scale),
+    unidade: scaleUnit,
+    capacidade: sanitizeMassNumericInput(scale.capacity || ""),
+    resolucao: sanitizeMassNumericInput(scale.resolution || ""),
   };
 
   const points = (scale.calibration_points || [])
@@ -36,12 +43,16 @@ export function buildColetaPayloadFromProposalScale(proposal, scale) {
 
   payload.calibracao.pontos = Array.from({ length: 10 }, (_, i) => {
     const src = points.find((p) => p.point_number === i + 1);
-    if (!src?.nominal_value) return emptyColetaCalPoint();
-    return { ...emptyColetaCalPoint(), peso_nominal: src.nominal_value };
+    if (!src?.nominal_value) return emptyColetaCalPoint(scaleUnit);
+    return syncCalPointNominal({
+      ...emptyColetaCalPoint(scaleUnit),
+      peso_nominal_valor: sanitizeMassNumericInput(src.nominal_value),
+      peso_nominal_unidade: src.nominal_unit || scaleUnit,
+    }, scaleUnit);
   });
 
-  if (points.length) {
-    payload.controle.pontos_solicitados = points.map((p) => p.nominal_value).filter(Boolean).join(", ");
+  if (scale.client_requested_points === "sim" || scale.client_requested_points === "nao") {
+    payload.controle.pontos_solicitados = scale.client_requested_points;
   }
 
   return payload;
@@ -64,6 +75,7 @@ export async function createColetaFromProposalScale(proposal, scale, { userId } 
         serial_number: enrichedScale.serial_number || reg.serial_number || "",
         capacity: enrichedScale.capacity || reg.capacity_1 || "",
         resolution: enrichedScale.resolution || reg.resolution_1 || "",
+        unit: enrichedScale.unit || reg.unit || "g",
         _balanceFromCadastro: balanceSnapshotFromScaleRegistration(reg),
       };
     }

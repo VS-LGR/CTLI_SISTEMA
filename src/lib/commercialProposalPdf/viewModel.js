@@ -1,4 +1,5 @@
 import { displayValue, formatDateBr } from "@/lib/quotationRequestDisplay";
+import { formatMassDisplay } from "@/lib/massValueUtils";
 import {
   calibrationPointsDisplay,
   formatProposalNumber,
@@ -22,16 +23,20 @@ export function buildCommercialProposalPdfViewModel(proposal, tenant) {
   const boilerplate = getProposalBoilerplate(tenant);
   const labName = tenant?.name || "Laboratório";
 
-  const scaleRows = (proposal.scales || []).map((s) => ({
-    manufacturer: displayValue(s.manufacturer),
-    model: displayValue(s.model),
-    tag: displayValue(s.tag),
-    serial: displayValue(s.serial_number),
-    capacity: displayValue(s.capacity),
-    resolution: displayValue(s.resolution),
-    points: displayValue(calibrationPointsDisplay(s.calibration_points)),
-    unit_value: formatMoney(s.unit_value),
-  }));
+  const scaleRows = (proposal.scales || []).map((s) => {
+    const scaleUnit = s.unit || "g";
+    return {
+      manufacturer: displayValue(s.manufacturer),
+      model: displayValue(s.model),
+      tag: displayValue(s.tag),
+      serial: displayValue(s.serial_number),
+      capacity: displayValue(formatMassDisplay(s.capacity, scaleUnit, { fallback: "" }) || s.capacity),
+      resolution: displayValue(formatMassDisplay(s.resolution, scaleUnit, { fallback: "" }) || s.resolution),
+      points: displayValue(calibrationPointsDisplay(s.calibration_points, scaleUnit)),
+      clientPoints: s.client_requested_points === "sim" ? "SIM" : s.client_requested_points === "nao" ? "NÃO" : "—",
+      unit_value: formatMoney(s.unit_value),
+    };
+  });
 
   const replaceLab = (text) =>
     String(text || "").replace(/laboratório/gi, labName).replace(/RF BALANCAS E AUTOMACAO LTDA/gi, labName);

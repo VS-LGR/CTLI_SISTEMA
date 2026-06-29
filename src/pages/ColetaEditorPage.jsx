@@ -21,7 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
+import DocumentEditorActionBar from "@/components/documents/DocumentEditorActionBar";
 
 const ColetaForm = lazy(() => import("@/components/coleta/ColetaForm"));
 
@@ -395,6 +395,28 @@ const ColetaEditorPage = () => {
           isNew={isNew}
         />
       </Suspense>
+
+      <DocumentEditorActionBar
+        primary={{
+          label: "Guardar",
+          icon: FloppyDisk,
+          onClick: save,
+          loading: saving,
+          loadingLabel: "A guardar…",
+        }}
+        actions={[
+          ...(showGenerateCert ? [{
+            label: generatingCert ? "A gerar…" : "Gerar Certificado",
+            icon: Certificate,
+            onClick: generateCertificate,
+            disabled: generatingCert,
+          }] : []),
+          ...(!isNew ? [
+            { label: "Exportar PDF", icon: FilePdf, onClick: () => exportCurrent("pdf") },
+            { label: "Exportar TXT", icon: FileText, onClick: () => exportCurrent("tsv") },
+          ] : []),
+        ]}
+      />
     </div>
   );
 };
