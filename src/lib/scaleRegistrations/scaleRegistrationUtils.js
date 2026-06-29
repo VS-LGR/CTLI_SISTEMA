@@ -1,5 +1,39 @@
 /** Converte registro de balança (cadastro) para balance_snapshot do certificado. */
 import { decimalPlacesFromResolution } from "@/lib/certificateCalculations";
+import { normalizePointMaxTolerances } from "@/lib/certificateCalculations/pointMaxToleranceVerification";
+
+export function emptyPointMaxTolerancesForm() {
+  return Array.from({ length: 10 }, (_, i) => ({ point: i + 1, value: "" }));
+}
+
+export function pointMaxTolerancesFromForm(formValues = {}) {
+  return Array.from({ length: 10 }, (_, i) => {
+    const point = i + 1;
+    const key = `point_max_tolerance_p${point}`;
+    const fromKey = formValues[key];
+    const fromArray = Array.isArray(formValues.point_max_tolerances)
+      ? formValues.point_max_tolerances.find((p) => p.point === point)?.value
+      : undefined;
+    return {
+      point,
+      value: String(fromKey ?? fromArray ?? "").trim(),
+    };
+  }).filter((p) => p.value !== "");
+}
+
+export function formValuesFromPointMaxTolerances(raw) {
+  const normalized = normalizePointMaxTolerances(raw);
+  const values = emptyPointMaxTolerancesForm();
+  for (const entry of normalized) {
+    const idx = entry.point - 1;
+    if (idx >= 0 && idx < 10) values[idx].value = entry.value ?? "";
+  }
+  const out = { point_max_tolerances: values };
+  values.forEach(({ point, value }) => {
+    out[`point_max_tolerance_p${point}`] = value;
+  });
+  return out;
+}
 
 export function balanceSnapshotFromScaleRegistration(scale) {
   if (!scale) return {};
@@ -39,6 +73,7 @@ export function balanceSnapshotFromScaleRegistration(scale) {
       p9: scale.decimal_places_p9 ?? 2,
       p10: scale.decimal_places_p10 ?? 2,
     },
+    point_max_tolerances: normalizePointMaxTolerances(scale.point_max_tolerances),
   };
 }
 
@@ -95,6 +130,7 @@ export function buildScaleRegistrationFromBalance({
     decimal_places_p8: pointDecimals(8),
     decimal_places_p9: pointDecimals(9),
     decimal_places_p10: pointDecimals(10),
+    point_max_tolerances: normalizePointMaxTolerances(balanca.point_max_tolerances),
     active: true,
   };
 }

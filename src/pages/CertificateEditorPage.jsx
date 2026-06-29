@@ -70,6 +70,8 @@ import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/s
 import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import { buildEnvironmentalSnapshotPatch, hydrateEnvironmentalTbh } from "@/lib/tbhCorrection/tbhCorrectionCalculations";
+import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
+import { hasAnyConfiguredTolerance } from "@/lib/certificateCalculations/pointMaxToleranceVerification";
 
 function certificatePointDisplay(cert, point) {
   const balance = cert?.balance_snapshot || {};
@@ -79,6 +81,26 @@ function certificatePointDisplay(cert, point) {
 function formatPointDisplayValue(value, decimals = 4) {
   if (value == null || value === "") return "—";
   return formatCalcDisplay(value, decimals);
+}
+
+function maxToleranceLabel(value) {
+  if (value === "aprovado") return "Aprovado";
+  if (value === "alerta") return "Alerta";
+  return "Não avaliado";
+}
+
+function maxToleranceBadgeClass(value) {
+  if (value === "aprovado") return "bg-emerald-100 text-emerald-800";
+  if (value === "alerta") return "bg-amber-100 text-amber-900";
+  return "bg-slate-100 text-slate-700";
+}
+
+function resolveCertMaxTolerances(cert, scales = []) {
+  if (cert?.scale_registration_id) {
+    const scale = scales.find((s) => s.id === cert.scale_registration_id);
+    return scale?.point_max_tolerances || cert.balance_snapshot?.point_max_tolerances || [];
+  }
+  return cert?.balance_snapshot?.point_max_tolerances || [];
 }
 
 export default function CertificateEditorPage() {
@@ -570,6 +592,12 @@ export default function CertificateEditorPage() {
         </div>
       )}
 
+      {cert.conformity?.general_max_tolerance_result === "alerta" && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          Emissão bloqueada — ponto(s) acima da tolerância máxima cadastrada na balança.
+        </div>
+      )}
+
       <Tabs defaultValue="dados">
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="dados">Dados</TabsTrigger>
@@ -677,7 +705,7 @@ export default function CertificateEditorPage() {
                     <p className="text-xs text-amber-700 mt-1">Cadastre balanças em Cadastros → Balanças para selecionar aqui.</p>
                   )}
                   {!cert.scale_registration_id && (
-                    <div className="mt-2">
+                    <div className="mt-2 space-y-3">
                       <Button
                         type="button"
                         variant="outline"
@@ -689,8 +717,23 @@ export default function CertificateEditorPage() {
                         {savingScale ? "A cadastrar…" : "Cadastrar balança no cliente"}
                       </Button>
                       {!cert.end_customer_id && (
-                        <p className="text-xs text-amber-700 mt-1">Selecione o cliente do ambiente para cadastrar a balança.</p>
+                        <p className="text-xs text-amber-700">Selecione o cliente do ambiente para cadastrar a balança.</p>
                       )}
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                        <p className="text-xs font-semibold text-slate-700 mb-2">
+                          Tolerância máxima permitida por ponto calibrado
+                        </p>
+                        <PointMaxToleranceFields
+                          tolerances={cert.balance_snapshot?.point_max_tolerances || []}
+                          unit={cert.balance_snapshot?.unidade || "g"}
+                          onChange={(next) => patch({
+                            balance_snapshot: {
+                              ...(cert.balance_snapshot || {}),
+                              point_max_tolerances: next,
+                            },
+                          })}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1154,6 +1197,76 @@ export default function CertificateEditorPage() {
                       Execute Calcular para avaliar conformidade por ponto.
                     </p>
                   ) : null}
+
+                  <div className="pt-4 border-t border-slate-200 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-800">
+                        Verificação — tolerância máxima por ponto
+                      </p>
+                      <Badge className={maxToleranceBadgeClass(cert.conformity.general_max_tolerance_result)}>
+                        {maxToleranceLabel(cert.conformity.general_max_tolerance_result)}
+                      </Badge>
+                    </div>
+                    {!hasAnyConfiguredTolerance(resolveCertMaxTolerances(cert, scales)) ? (
+                      <p className="text-xs text-slate-500">
+                        {isStandalone && !cert.scale_registration_id
+                          ? "Preencha as tolerâncias máximas na aba Dados (balança manual) ou vincule uma balança cadastrada."
+                          : "Vincule uma balança cadastrada com tolerâncias por ponto ou preencha manualmente no certificado."}
+                      </p>
+                    ) : (cert.conformity.max_tolerance_point_results || []).length > 0 ? (
+                      <div className="overflow-x-auto -mx-2 px-2">
+                        <table className="w-full text-xs sm:text-sm min-w-[560px]">
+                          <thead className="bg-slate-50 text-[10px] uppercase text-slate-500">
+                            <tr>
+                              <th className="p-2 text-left">Ponto</th>
+                              <th className="p-2 text-left">Tol. máx.</th>
+                              <th className="p-2 text-left">E</th>
+                              <th className="p-2 text-left">U</th>
+                              <th className="p-2 text-left">|E+U|</th>
+                              <th className="p-2 text-left">Resultado</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(cert.conformity.max_tolerance_point_results || []).map((pr) => {
+                              const pt = (cert.points || []).find((p) => p.point_number === pr.pointNumber);
+                              const display = pt?.calc_status === "calculado" ? certificatePointDisplay(cert, pt) : null;
+                              const decimals = pt?.display_decimals ?? display?.decimals ?? 4;
+                              const rowAlert = pr.result === "alerta";
+                              return (
+                                <tr
+                                  key={`max-tol-${pr.pointNumber}`}
+                                  className={`border-t border-slate-100 ${rowAlert ? "bg-amber-50/80" : ""}`}
+                                >
+                                  <td className="p-2">P{pr.pointNumber}</td>
+                                  <td className="p-2 font-mono text-xs">
+                                    {pr.toleranceMax != null ? formatCalcDisplay(pr.toleranceMax, decimals) : "—"}
+                                  </td>
+                                  <td className="p-2 font-mono text-xs">
+                                    {formatPointDisplayValue(pr.error ?? display?.indicationError ?? pt?.indication_error, decimals)}
+                                  </td>
+                                  <td className="p-2 font-mono text-xs">
+                                    {formatPointDisplayValue(pr.uncertainty ?? display?.expandedUncertainty ?? pt?.expanded_uncertainty, decimals)}
+                                  </td>
+                                  <td className="p-2 font-mono text-xs">
+                                    {pr.testValue != null ? formatCalcDisplay(pr.testValue, decimals) : "—"}
+                                  </td>
+                                  <td className="p-2">
+                                    <Badge variant="outline" className={`text-[10px] ${rowAlert ? "border-amber-400 text-amber-900" : ""}`}>
+                                      {maxToleranceLabel(pr.result)}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 text-xs">
+                        Execute Calcular para verificar |Erro + Incerteza| contra as tolerâncias configuradas.
+                      </p>
+                    )}
+                  </div>
                 </>
               ) : (
                 <p className="text-slate-500">Conformidade não avaliada.</p>

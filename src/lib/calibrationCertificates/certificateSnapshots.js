@@ -45,7 +45,11 @@ export function buildTechnicalSnapshot({
     standardsSnapshot: (standards || []).map((s) => ({ ...s, snapshot: s.snapshot || {} })),
     calibrationPointsSnapshot: points || [],
     uncertaintySnapshot: (points || []).map((p) => p.calculation_memory || {}),
-    conformitySnapshot: conformity || {},
+    conformitySnapshot: {
+      ...(conformity || {}),
+      max_tolerance_point_results: conformity?.max_tolerance_point_results || [],
+      general_max_tolerance_result: conformity?.general_max_tolerance_result || "nao_avaliado",
+    },
     executorSnapshot: buildEmployeeSnapshot(executor),
     signatorySnapshot: buildEmployeeSnapshot(signatory),
     eccentricitySnapshot: certificate.eccentricity_snapshot || {},

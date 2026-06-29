@@ -1,4 +1,9 @@
 import { CRITICAL_ANALYSIS_CHECKLIST } from "./certificateSchema";
+import {
+  evaluateCertificateMaxTolerance,
+  formatMaxToleranceEmitErrors,
+  hasAnyConfiguredTolerance,
+} from "@/lib/certificateCalculations/pointMaxToleranceVerification";
 
 export function validateBeforeCalculate(cert, points, standards, environmental) {
   const errors = [];
@@ -48,7 +53,7 @@ export function validateBeforeApproval(cert, points, standards, environmental, c
   return { ok: !errors.length, errors };
 }
 
-export function validateBeforeEmit(cert, points, standards, environmental) {
+export function validateBeforeEmit(cert, points, standards, environmental, options = {}) {
   const errors = [];
   if (!cert?.signatory_id) errors.push("Signatário deve aprovar antes da emissão");
   if (!cert?.certificate_number) errors.push("Número do certificado obrigatório");
@@ -66,6 +71,23 @@ export function validateBeforeEmit(cert, points, standards, environmental) {
     { calculations_ok: true, preview_reviewed: true },
   );
   errors.push(...base.errors.filter((e) => !e.startsWith("Análise crítica")));
+
+  const { scaleRegistration } = options;
+  const tolerances = scaleRegistration?.point_max_tolerances
+    || cert?.balance_snapshot?.point_max_tolerances
+    || [];
+
+  if (hasAnyConfiguredTolerance(tolerances)) {
+    const tolCheck = evaluateCertificateMaxTolerance(points, tolerances);
+    if (tolCheck.errors.length) {
+      errors.push(...tolCheck.errors);
+    }
+    if (tolCheck.general === "alerta") {
+      errors.push(...formatMaxToleranceEmitErrors(tolCheck.pointResults));
+    }
+  } else if (cert?.conformity?.general_max_tolerance_result === "alerta") {
+    errors.push(...formatMaxToleranceEmitErrors(cert.conformity.max_tolerance_point_results || []));
+  }
 
   return { ok: !errors.length, errors: [...new Set(errors)] };
 }

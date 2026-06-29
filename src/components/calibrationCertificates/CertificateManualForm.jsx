@@ -11,6 +11,7 @@ import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/sca
 import { calculateAirDensityFromEnvironmental, formatAirDensityDisplay } from "@/lib/certificateCalculations/environmentalCalculations";
 import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
+import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
 import {
   coletaPointToPanelPoint,
   panelPointToColetaPoint,
@@ -296,6 +297,17 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                     {TIPO_PLATAFORMA_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                <p className="text-xs font-semibold text-slate-700 mb-2">
+                  Tolerância máxima permitida por ponto calibrado
+                </p>
+                <PointMaxToleranceFields
+                  tolerances={payload.balanca.point_max_tolerances || []}
+                  unit={payload.balanca.unidade || "g"}
+                  onChange={(next) => setBalanca("point_max_tolerances", next)}
+                />
               </div>
 
               {endCustomerId ? (

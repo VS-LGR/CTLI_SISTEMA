@@ -20,10 +20,14 @@ export function resolveScaleRegistration(scaleSerial, endCustomerId, scaleRegist
 
 /** Mescla snapshot da coleta com cadastro de balança (cadastro prevalece quando preenchido). */
 export function mergeBalanceSnapshotFromScale(coletaBalance, scaleRegistration) {
-  if (!scaleRegistration) return coletaBalance || {};
+  if (!scaleRegistration) return { ...(coletaBalance || {}) };
   const fromScale = balanceSnapshotFromScaleRegistration(scaleRegistration);
   const base = { ...(coletaBalance || {}) };
   for (const [key, val] of Object.entries(fromScale)) {
+    if (key === "point_max_tolerances") {
+      if (Array.isArray(val) && val.length) base.point_max_tolerances = val;
+      continue;
+    }
     if (val != null && String(val).trim() !== "") base[key] = val;
   }
   if (!base.serie && scaleRegistration.serial_number) base.serie = scaleRegistration.serial_number;

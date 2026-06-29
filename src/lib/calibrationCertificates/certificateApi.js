@@ -7,6 +7,7 @@ import { validateBeforeCalculate, validateBeforeEmit, validateBeforeApproval } f
 import { canTransitionCertificateStatus, canColetaGenerateOfficial, canMarkCertificateObsolete, canDeleteCertificate, INACTIVE_CERTIFICATE_STATUSES } from "./certificateSchema";
 import { defaultValidityDate } from "./certificateDateUtils";
 import { calculateCertificatePoints, calculateConformityForCertificate } from "@/lib/certificateCalculations";
+import { evaluateCertificateMaxTolerance } from "@/lib/certificateCalculations/pointMaxToleranceVerification";
 
 export function assertSupabaseCertificates() {
   if (!isSupabaseAuthMode) throw new Error("Certificados requerem ligação Supabase.");
@@ -308,11 +309,13 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
 
   let items = weightItems;
   let certs = weightCerts;
+  const cad = await loadCadastrosForImport(full.tenant_id);
   if (!items) {
-    const cad = await loadCadastrosForImport(full.tenant_id);
     items = cad.weightItems;
     certs = cad.weightCerts;
   }
+
+  const scaleReg = cad.scaleRegistrations.find((s) => s.id === full.scale_registration_id);
 
   const calculated = calculateCertificatePoints(
     full.points,
@@ -332,6 +335,11 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
 
   const confByPoint = Object.fromEntries(
     (confResult.pointResults || []).map((pr) => [pr.pointNumber, pr]),
+  );
+
+  const maxTolCheck = evaluateCertificateMaxTolerance(
+    calculated,
+    scaleReg?.point_max_tolerances || full.balance_snapshot?.point_max_tolerances || [],
   );
 
   for (const pt of calculated) {
@@ -362,6 +370,8 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
       instrument_class: confResult.instrumentClass || full.conformity.instrument_class,
       general_conformity_result: confResult.general,
       point_results: confResult.pointResults,
+      max_tolerance_point_results: maxTolCheck.pointResults,
+      general_max_tolerance_result: maxTolCheck.general,
     }).eq("id", full.conformity.id);
   }
 
@@ -433,10 +443,18 @@ export async function emitCertificate(id, { userId, documentMeta, fileName } = {
   if (!canTransitionCertificateStatus(full.status, "emitido")) {
     throw new Error(`Transição inválida: ${full.status} → emitido`);
   }
-  const v = validateBeforeEmit(full, full.points, full.standards, full.environmental);
+  const cad = await loadCadastrosForImport(full.tenant_id);
+  const v = validateBeforeEmit(
+    full,
+    full.points,
+    full.standards,
+    full.environmental,
+    {
+      scaleRegistration: cad.scaleRegistrations.find((s) => s.id === full.scale_registration_id),
+    },
+  );
   if (!v.ok) throw new Error(v.errors.join("; "));
 
-  const cad = await loadCadastrosForImport(full.tenant_id);
   const executor = cad.employees.find((e) => e.id === full.executor_id);
   const signatory = cad.employees.find((e) => e.id === full.signatory_id);
   const endCustomer = cad.endCustomers.find((c) => c.id === full.end_customer_id);

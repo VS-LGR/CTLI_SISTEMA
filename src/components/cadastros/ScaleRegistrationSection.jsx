@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
-import { PLATFORM_TYPE_OPTIONS } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { PLATFORM_TYPE_OPTIONS, formValuesFromPointMaxTolerances, pointMaxTolerancesFromForm } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { TIPO_BALANCA_OPTIONS } from "@/lib/coletaSchema";
 
 const emptyForm = () => ({
@@ -48,6 +48,7 @@ const emptyForm = () => ({
   decimal_places_p8: 2,
   decimal_places_p9: 2,
   decimal_places_p10: 2,
+  ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`point_max_tolerance_p${i + 1}`, ""])),
 });
 
 function SectionHeading({ title, description }) {
@@ -103,6 +104,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
       ...emptyForm(),
       ...Object.fromEntries(Object.keys(emptyForm()).map((k) => [k, r[k] ?? emptyForm()[k]])),
       end_customer_id: r.end_customer_id || "",
+      ...formValuesFromPointMaxTolerances(r.point_max_tolerances),
     });
     setOpen(true);
   };
@@ -131,6 +133,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
       decimal_places_p8: Number(form.decimal_places_p8) || 0,
       decimal_places_p9: Number(form.decimal_places_p9) || 0,
       decimal_places_p10: Number(form.decimal_places_p10) || 0,
+      point_max_tolerances: pointMaxTolerancesFromForm(form),
       active: true,
     };
     try {
@@ -344,6 +347,28 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
                         onChange={(e) => setF(`decimal_places_p${n}`, e.target.value)}
                         className="h-8 text-sm mt-0.5"
                         title={`Casas decimais no certificado para o ponto P${n}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <SectionHeading
+                title="Tolerância máxima permitida por ponto calibrado"
+                description="Limite máximo de |Erro + Incerteza| na emissão do certificado (mesma unidade da balança)."
+              />
+              <div className="sm:col-span-2">
+                <div className="grid grid-cols-5 gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                    <div key={`tol-${n}`}>
+                      <Label className="text-[10px] text-slate-600">Tol. máx. P{n}</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={form[`point_max_tolerance_p${n}`] ?? ""}
+                        onChange={(e) => setF(`point_max_tolerance_p${n}`, sanitizeMassNumericInput(e.target.value))}
+                        className="h-8 text-sm mt-0.5"
+                        placeholder="—"
+                        title={`Tolerância máxima |E+U| para o ponto P${n}`}
                       />
                     </div>
                   ))}
