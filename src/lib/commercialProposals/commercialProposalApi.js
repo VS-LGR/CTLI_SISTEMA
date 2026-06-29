@@ -111,6 +111,22 @@ function buildProposalPayload(form, tenantId, userId, isUpdate = false) {
   return payload;
 }
 
+async function replaceScaleCalibrationPoints(scaleId, points = []) {
+  await supabase
+    .from("commercial_proposal_calibration_points")
+    .delete()
+    .eq("scale_id", scaleId);
+  if (!points.length) return;
+  const { error } = await supabase.from("commercial_proposal_calibration_points").insert(
+    points.map((p) => ({
+      scale_id: scaleId,
+      point_number: p.point_number,
+      nominal_value: p.nominal_value,
+    })),
+  );
+  if (error) throw error;
+}
+
 async function saveScales(proposalId, scales = []) {
   const existingRes = await supabase
     .from("commercial_proposal_scales")
@@ -118,51 +134,58 @@ async function saveScales(proposalId, scales = []) {
     .eq("proposal_id", proposalId);
   if (existingRes.error) throw existingRes.error;
 
-  const withCollection = new Set(
-    (existingRes.data || []).filter((s) => s.collection_id).map((s) => s.id),
-  );
+  const existingById = Object.fromEntries((existingRes.data || []).map((s) => [s.id, s]));
+  const formIds = new Set((scales || []).map((s) => s.id).filter(Boolean));
 
-  const existingIds = (existingRes.data || []).map((s) => s.id);
-  if (existingIds.length) {
-    await supabase.from("commercial_proposal_calibration_points").delete().in("scale_id", existingIds);
-    await supabase.from("commercial_proposal_scales").delete().eq("proposal_id", proposalId);
+  for (const ex of existingRes.data || []) {
+    if (formIds.has(ex.id)) continue;
+    if (ex.collection_id) {
+      throw new Error(
+        "Não é possível remover balança que já possui coleta de dados vinculada. Exclua a coleta primeiro.",
+      );
+    }
+    await supabase.from("commercial_proposal_calibration_points").delete().eq("scale_id", ex.id);
+    await supabase.from("commercial_proposal_scales").delete().eq("id", ex.id);
   }
 
   const savedScales = [];
   for (let i = 0; i < scales.length; i++) {
     const norm = normalizeScaleForSave(scales[i], i + 1);
-    const prev = (existingRes.data || []).find(
-      (s) => s.id === scales[i].id && withCollection.has(s.id),
-    );
-    const { data: scaleRow, error: scaleErr } = await supabase
-      .from("commercial_proposal_scales")
-      .insert({
-        proposal_id: proposalId,
-        item_number: norm.item_number,
-        manufacturer: norm.manufacturer,
-        model: norm.model,
-        tag: norm.tag,
-        serial_number: norm.serial_number,
-        capacity: norm.capacity,
-        resolution: norm.resolution,
-        unit_value: norm.unit_value,
-        scale_registration_id: scales[i].scale_registration_id || null,
-        collection_id: prev?.collection_id || scales[i].collection_id || null,
-      })
-      .select()
-      .single();
-    if (scaleErr) throw scaleErr;
+    const rowPayload = {
+      proposal_id: proposalId,
+      item_number: norm.item_number,
+      manufacturer: norm.manufacturer,
+      model: norm.model,
+      tag: norm.tag,
+      serial_number: norm.serial_number,
+      capacity: norm.capacity,
+      resolution: norm.resolution,
+      unit_value: norm.unit_value,
+      scale_registration_id: scales[i].scale_registration_id || null,
+      collection_id: scales[i].collection_id || null,
+    };
 
-    if (norm.calibration_points.length) {
-      const { error: ptsErr } = await supabase.from("commercial_proposal_calibration_points").insert(
-        norm.calibration_points.map((p) => ({
-          scale_id: scaleRow.id,
-          point_number: p.point_number,
-          nominal_value: p.nominal_value,
-        })),
-      );
-      if (ptsErr) throw ptsErr;
+    let scaleRow;
+    if (scales[i].id && existingById[scales[i].id]) {
+      const { data, error: scaleErr } = await supabase
+        .from("commercial_proposal_scales")
+        .update(rowPayload)
+        .eq("id", scales[i].id)
+        .select()
+        .single();
+      if (scaleErr) throw scaleErr;
+      scaleRow = data;
+    } else {
+      const { data, error: scaleErr } = await supabase
+        .from("commercial_proposal_scales")
+        .insert(rowPayload)
+        .select()
+        .single();
+      if (scaleErr) throw scaleErr;
+      scaleRow = data;
     }
+
+    await replaceScaleCalibrationPoints(scaleRow.id, norm.calibration_points);
     savedScales.push(scaleRow);
   }
   return savedScales;

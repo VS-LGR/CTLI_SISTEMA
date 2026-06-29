@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { emptyColetaPayload, denormalizeFromPayload } from "@/lib/coletaSchema";
 import { formatProposalRef } from "./commercialProposalSchema";
 import { scaleToBalanca } from "./commercialProposalCadastroExport";
+import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 
 function emptyColetaCalPoint() {
   return {
@@ -47,7 +48,31 @@ export function buildColetaPayloadFromProposalScale(proposal, scale) {
 }
 
 export async function createColetaFromProposalScale(proposal, scale, { userId } = {}) {
-  const payload = buildColetaPayloadFromProposalScale(proposal, scale);
+  let enrichedScale = { ...scale, calibration_points: scale.calibration_points || [] };
+  if (scale.scale_registration_id) {
+    const { data: reg } = await supabase
+      .from("scale_registrations")
+      .select("*")
+      .eq("id", scale.scale_registration_id)
+      .maybeSingle();
+    if (reg) {
+      enrichedScale = {
+        ...enrichedScale,
+        manufacturer: enrichedScale.manufacturer || reg.manufacturer || "",
+        model: enrichedScale.model || reg.model || "",
+        tag: enrichedScale.tag || reg.tag || "",
+        serial_number: enrichedScale.serial_number || reg.serial_number || "",
+        capacity: enrichedScale.capacity || reg.capacity_1 || "",
+        resolution: enrichedScale.resolution || reg.resolution_1 || "",
+        _balanceFromCadastro: balanceSnapshotFromScaleRegistration(reg),
+      };
+    }
+  }
+
+  const payload = buildColetaPayloadFromProposalScale(proposal, enrichedScale);
+  if (enrichedScale._balanceFromCadastro) {
+    payload.balanca = { ...payload.balanca, ...enrichedScale._balanceFromCadastro };
+  }
   const denorm = denormalizeFromPayload(payload);
   const commercialProposalRef = formatProposalRef(proposal.proposal_number, proposal.proposal_year);
 
@@ -90,12 +115,30 @@ export async function generateColetasFromProposal(proposalId, { userId } = {}) {
 
   const created = [];
   for (const scale of pending) {
-    const withPoints = {
-      ...scale,
-      calibration_points: scale.calibration_points || [],
-    };
-    const collection = await createColetaFromProposalScale(proposal, withPoints, { userId });
+    const collection = await createColetaFromProposalScale(
+      proposal,
+      { ...scale, calibration_points: scale.calibration_points || [] },
+      { userId },
+    );
     created.push({ scale, collection });
   }
   return { created, skipped: (proposal.scales || []).filter((s) => s.collection_id) };
+}
+
+/** Gera uma coleta para uma balança específica da proposta (com dados pré-preenchidos). */
+export async function generateColetaFromProposalScale(proposalId, scaleId, { userId } = {}) {
+  const { getCommercialProposal } = await import("./commercialProposalApi");
+  const proposal = await getCommercialProposal(proposalId);
+  const scale = (proposal.scales || []).find((s) => s.id === scaleId);
+  if (!scale) throw new Error("Balança não encontrada nesta proposta");
+  if (scale.collection_id) {
+    const { data: existing } = await supabase
+      .from("scale_calibration_collections")
+      .select("id")
+      .eq("id", scale.collection_id)
+      .maybeSingle();
+    if (existing) throw new Error("Esta balança já possui coleta de dados vinculada");
+  }
+  const collection = await createColetaFromProposalScale(proposal, scale, { userId });
+  return { proposal, scale, collection };
 }

@@ -234,14 +234,12 @@ export default function CommercialProposalEditorPage() {
         </CardContent>
       </Card>
 
-      {proposalId && (
-        <ProposalColetasCard
-          proposalId={proposalId}
-          scales={form.scales}
-          userId={user?.id}
-          onGenerated={refreshProposal}
-        />
-      )}
+      <ProposalColetasCard
+        proposalId={proposalId}
+        scales={form.scales}
+        userId={user?.id}
+        onGenerated={refreshProposal}
+      />
 
       <ProposalExportCadastroDialog
         open={exportOpen}
