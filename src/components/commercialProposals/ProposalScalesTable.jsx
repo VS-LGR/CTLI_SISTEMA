@@ -111,7 +111,14 @@ export default function ProposalScalesTable({ scales, onChange }) {
                   <Label className="text-xs">Unidade</Label>
                   <select
                     value={scaleUnit}
-                    onChange={(e) => updateScale(index, { unit: e.target.value })}
+                    onChange={(e) => {
+                      const unit = e.target.value;
+                      const pts = (scale.calibration_points || []).map((p) => ({
+                        ...p,
+                        nominal_unit: unit,
+                      }));
+                      updateScale(index, { unit, calibration_points: pts });
+                    }}
                     className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm"
                   >
                     {MASS_UNIT_OPTIONS.map((o) => (

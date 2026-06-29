@@ -63,6 +63,40 @@ export function emptyCertificatePoint(pointNumber) {
   };
 }
 
+/** Ponto considerado preenchido quando há V.R., leituras, pesos ou lote de carga. */
+export function isCertificatePointFilled(point) {
+  const synced = syncLegacyReadingColumns(point);
+  if (Boolean(synced.use_load_batch)) return true;
+  if (synced.load_batch_nominal != null && String(synced.load_batch_nominal).trim() !== "") return true;
+  if (synced.nominal_value != null && String(synced.nominal_value).trim() !== "") return true;
+  if ((synced.standard_weight_ids || []).length > 0) return true;
+  if ((synced.readings_after || []).some((r) => String(r).trim() !== "")) return true;
+  if ((synced.readings_before || []).some((r) => String(r).trim() !== "")) return true;
+  return false;
+}
+
+/** Resolução e divisão de verificação derivadas da balança (cadastro ou manual no certificado). */
+export function applyBalanceInstrumentToPoint(point, balance = {}, unit = "g") {
+  const synced = syncLegacyReadingColumns(point);
+  const filled = isCertificatePointFilled(synced);
+  const u = balance?.unidade || unit || "g";
+  if (!filled) {
+    return {
+      ...synced,
+      point_enabled: false,
+      resolution: "",
+      verification_division: "",
+    };
+  }
+  const nominal = synced.nominal_value;
+  return {
+    ...synced,
+    point_enabled: true,
+    resolution: resolveDefaultResolutionForPoint(nominal, balance, u),
+    verification_division: resolveDefaultVerificationDivision(nominal, balance, u),
+  };
+}
+
 /** Garante 10 slots P1–P10 para o painel de cadastro. */
 export function ensureTenCertificatePoints(points = []) {
   const byNum = Object.fromEntries(
@@ -81,28 +115,28 @@ export function coletaPointToPanelPoint(pt, pointNumber, balance = {}) {
   );
   const before = pt?.leitura_antes ? [String(pt.leitura_antes)] : (pt?.readings_antes || []);
   const after = reps.length ? reps.map(String) : (pt?.readings_depois || []).map(String);
-  const enabled = Boolean(
-    pt?.point_enabled || pt?.peso_nominal || after.length || before.length || pt?.pesos_padrao_ids?.length,
-  );
-  return {
+  const panel = {
     point_number: pointNumber,
-    point_enabled: enabled,
     nominal_value: pt?.peso_nominal ?? "",
     readings_before: before.map(String),
     readings_after: after.map(String),
     standard_weight_ids: pt?.pesos_padrao_ids || [],
-    resolution: pt?.resolucao || balance.resolucao || "",
-    verification_division: pt?.divisao_verificacao || balance.divisao_verificacao || "",
     buoyancy_ppm: pt?.ppm_empuxo || "",
     material_density: pt?.densidade_material || "",
     material_preset: pt?.material_preset || "",
   };
+  const withInstrument = applyBalanceInstrumentToPoint(panel, balance);
+  return {
+    ...withInstrument,
+    point_enabled: isCertificatePointFilled(withInstrument),
+  };
 }
 
 /** Converte ponto do painel de volta para coleta (payload manual). */
-export function panelPointToColetaPoint(panelPt) {
+export function panelPointToColetaPoint(panelPt, balance = {}) {
   const after = panelPt.readings_after || [];
   const before = panelPt.readings_before || [];
+  const withInstrument = applyBalanceInstrumentToPoint(panelPt, balance);
   return {
     peso_nominal: panelPt.nominal_value ?? "",
     leitura_antes: before[0] ?? "",
@@ -115,44 +149,42 @@ export function panelPointToColetaPoint(panelPt) {
     rep6: after[5] ?? "",
     readings_depois: after,
     pesos_padrao_ids: panelPt.standard_weight_ids || [],
-    resolucao: panelPt.resolution || "",
-    divisao_verificacao: panelPt.verification_division || "",
+    resolucao: withInstrument.resolution || balance.resolucao || "",
+    divisao_verificacao: withInstrument.verification_division || balance.divisao_verificacao || "",
     ppm_empuxo: panelPt.buoyancy_ppm || "",
     densidade_material: panelPt.material_density || "",
     material_preset: panelPt.material_preset || "",
-    point_enabled: panelPt.point_enabled,
+    point_enabled: isCertificatePointFilled(panelPt),
   };
 }
 
 /** Converte ponto do certificado (DB) para formato do painel. */
 export function certificatePointToPanelPoint(pt, balance = {}) {
   const synced = syncLegacyReadingColumns(pt);
-  const enabled = synced.point_enabled ?? Boolean(
-    synced.nominal_value || synced.readings_after?.length || synced.readings_before?.length
-      || synced.standard_weight_ids?.length,
-  );
+  const unit = balance?.unidade || "g";
+  const withInstrument = applyBalanceInstrumentToPoint(synced, balance, unit);
   return {
-    id: synced.id,
-    point_number: synced.point_number,
-    point_enabled: enabled,
-    nominal_value: synced.nominal_value != null && synced.nominal_value !== "" ? String(synced.nominal_value) : "",
-    readings_before: (synced.readings_before || []).map(String),
-    readings_after: (synced.readings_after || []).map(String),
-    standard_weight_ids: synced.standard_weight_ids || [],
-    resolution: synced.resolution != null && synced.resolution !== "" ? String(synced.resolution) : "",
-    verification_division: synced.verification_division || resolveDefaultVerificationDivision(synced.nominal_value, balance),
-    buoyancy_ppm: synced.buoyancy_ppm || "",
-    material_density: synced.material_density || "",
-    material_preset: synced.material_preset || "",
-    notes: synced.notes || "",
-    use_load_batch: Boolean(synced.use_load_batch),
-    load_batch_formation: synced.load_batch_formation || "",
-    load_batch_nominal: synced.load_batch_nominal != null && synced.load_batch_nominal !== ""
-      ? String(synced.load_batch_nominal)
+    id: withInstrument.id,
+    point_number: withInstrument.point_number,
+    point_enabled: isCertificatePointFilled(withInstrument),
+    nominal_value: withInstrument.nominal_value != null && withInstrument.nominal_value !== ""
+      ? String(withInstrument.nominal_value)
       : "",
-    load_batch_material_preset: synced.load_batch_material_preset || "",
-    error_multiplier: synced.error_multiplier != null && synced.error_multiplier !== ""
-      ? String(synced.error_multiplier)
+    readings_before: (withInstrument.readings_before || []).map(String),
+    readings_after: (withInstrument.readings_after || []).map(String),
+    standard_weight_ids: withInstrument.standard_weight_ids || [],
+    buoyancy_ppm: withInstrument.buoyancy_ppm || "",
+    material_density: withInstrument.material_density || "",
+    material_preset: withInstrument.material_preset || "",
+    notes: withInstrument.notes || "",
+    use_load_batch: Boolean(withInstrument.use_load_batch),
+    load_batch_formation: withInstrument.load_batch_formation || "",
+    load_batch_nominal: withInstrument.load_batch_nominal != null && withInstrument.load_batch_nominal !== ""
+      ? String(withInstrument.load_batch_nominal)
+      : "",
+    load_batch_material_preset: withInstrument.load_batch_material_preset || "",
+    error_multiplier: withInstrument.error_multiplier != null && withInstrument.error_multiplier !== ""
+      ? String(withInstrument.error_multiplier)
       : "",
   };
 }
@@ -165,8 +197,9 @@ export function mergePanelIntoCertificatePoint(existing, panelFields) {
   });
   return merged;
 }
-export function pointToDbPatch(point) {
-  const synced = syncLegacyReadingColumns(point);
+export function pointToDbPatch(point, balance = {}, unit = "g") {
+  const withInstrument = applyBalanceInstrumentToPoint(point, balance, unit);
+  const synced = syncLegacyReadingColumns(withInstrument);
   const afterNums = synced.readings_after.map((r) => {
     const p = parseImportNumeric(r);
     return p.valid ? p.value : null;
@@ -176,8 +209,12 @@ export function pointToDbPatch(point) {
     return p.valid ? p.value : null;
   });
 
+  const filled = isCertificatePointFilled(synced);
+  const resolutionStr = filled ? synced.resolution : "";
+  const verificationStr = filled ? synced.verification_division : "";
+
   const patch = {
-    point_enabled: Boolean(synced.point_enabled),
+    point_enabled: filled,
     nominal_value: synced.nominal_value != null && synced.nominal_value !== ""
       ? toDbNumeric(synced.nominal_value)
       : null,
@@ -188,10 +225,10 @@ export function pointToDbPatch(point) {
     readings_before: beforeNums.filter((v) => v != null),
     readings_after: afterNums.filter((v) => v != null),
     standard_weight_ids: synced.standard_weight_ids || [],
-    resolution: synced.resolution != null && String(synced.resolution).trim()
-      ? toDbNumeric(synced.resolution)
+    resolution: resolutionStr != null && String(resolutionStr).trim()
+      ? toDbNumeric(resolutionStr)
       : null,
-    verification_division: synced.verification_division || "",
+    verification_division: verificationStr || "",
     buoyancy_ppm: synced.buoyancy_ppm || "",
     material_density: synced.material_density || "",
     material_preset: synced.material_preset || "",

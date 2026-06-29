@@ -340,6 +340,7 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
   const maxTolCheck = evaluateCertificateMaxTolerance(
     calculated,
     scaleReg?.point_max_tolerances || full.balance_snapshot?.point_max_tolerances || [],
+    { defaultUnit: full.balance_snapshot?.unidade || "g" },
   );
 
   for (const pt of calculated) {

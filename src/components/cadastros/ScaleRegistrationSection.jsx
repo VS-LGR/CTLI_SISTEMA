@@ -10,7 +10,8 @@ import { toast } from "sonner";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
-import { PLATFORM_TYPE_OPTIONS, formValuesFromPointMaxTolerances, omitPointMaxToleranceFormKeys, pointMaxTolerancesFromForm } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { PLATFORM_TYPE_OPTIONS, formRowsFromPointMaxTolerances, loadMaxTolerancesFromForm, omitPointMaxToleranceFormKeys } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
 import { TIPO_BALANCA_OPTIONS } from "@/lib/coletaSchema";
 
 const emptyForm = () => ({
@@ -48,7 +49,7 @@ const emptyForm = () => ({
   decimal_places_p8: 2,
   decimal_places_p9: 2,
   decimal_places_p10: 2,
-  ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`point_max_tolerance_p${i + 1}`, ""])),
+  point_max_tolerances: [],
 });
 
 function SectionHeading({ title, description }) {
@@ -104,7 +105,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
       ...emptyForm(),
       ...Object.fromEntries(Object.keys(emptyForm()).map((k) => [k, r[k] ?? emptyForm()[k]])),
       end_customer_id: r.end_customer_id || "",
-      ...formValuesFromPointMaxTolerances(r.point_max_tolerances),
+      point_max_tolerances: formRowsFromPointMaxTolerances(r.point_max_tolerances, r.unit || "g"),
     });
     setOpen(true);
   };
@@ -133,7 +134,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
       decimal_places_p8: Number(form.decimal_places_p8) || 0,
       decimal_places_p9: Number(form.decimal_places_p9) || 0,
       decimal_places_p10: Number(form.decimal_places_p10) || 0,
-      point_max_tolerances: pointMaxTolerancesFromForm(form),
+      point_max_tolerances: loadMaxTolerancesFromForm(form.point_max_tolerances, form.unit || "g"),
       active: true,
     };
     try {
@@ -354,25 +355,15 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
               </div>
 
               <SectionHeading
-                title="Tolerância máxima permitida por ponto calibrado"
-                description="Limite máximo de |Erro + Incerteza| na emissão do certificado (mesma unidade da balança)."
+                title="Tolerância máxima por valor de pesagem"
+                description="Informe a pesagem calibrada (V.R.) e o limite máximo de |Erro + Incerteza| para essa carga."
               />
               <div className="sm:col-span-2">
-                <div className="grid grid-cols-5 gap-2">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                    <div key={`tol-${n}`}>
-                      <Label className="text-[10px] text-slate-600">Tol. máx. P{n}</Label>
-                      <Input
-                        inputMode="decimal"
-                        value={form[`point_max_tolerance_p${n}`] ?? ""}
-                        onChange={(e) => setF(`point_max_tolerance_p${n}`, sanitizeMassNumericInput(e.target.value))}
-                        className="h-8 text-sm mt-0.5"
-                        placeholder="—"
-                        title={`Tolerância máxima |E+U| para o ponto P${n}`}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <PointMaxToleranceFields
+                  tolerances={form.point_max_tolerances}
+                  unit={form.unit || "g"}
+                  onChange={(next) => setF("point_max_tolerances", next)}
+                />
               </div>
             </div>
             <DialogFooter>

@@ -68,6 +68,30 @@ export function formatMassDisplay(valor, unidade, { fallback = "—" } = {}) {
   return u ? `${v} ${u}`.trim() : v;
 }
 
+/** Converte massa para gramas para comparação entre unidades. */
+export function massToGrams(value, unit) {
+  const n = parseMassNumber(value);
+  if (n == null) return null;
+  const u = normalizeMassUnit(unit, "g");
+  if (u === "mg") return n / 1000;
+  if (u === "kg") return n * 1000;
+  return n;
+}
+
+/** Chave estável para mapa pesagem → tolerância. */
+export function massLoadKey(value, unit) {
+  const grams = massToGrams(value, unit);
+  if (grams == null) return null;
+  return String(Math.round(grams * 1e9) / 1e9);
+}
+
+export function massLoadsMatch(aVal, aUnit, bVal, bUnit, epsilon = 1e-6) {
+  const ga = massToGrams(aVal, aUnit);
+  const gb = massToGrams(bVal, bUnit);
+  if (ga == null || gb == null) return false;
+  return Math.abs(ga - gb) <= epsilon;
+}
+
 export function resolveMassFields(record, {
   valorKey,
   unidadeKey,

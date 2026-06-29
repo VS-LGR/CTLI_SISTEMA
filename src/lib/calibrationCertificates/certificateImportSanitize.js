@@ -2,7 +2,7 @@ import { parseImportNumeric, toDbNumeric } from "@/lib/certificateCalculations/p
 import { veffForDbStorage } from "@/lib/certificateCalculations/pointCalculations";
 import { calculateAirDensityFromEnvironmental } from "@/lib/certificateCalculations/environmentalCalculations";
 import { applyLoadBatchFromColeta } from "@/lib/certificateCalculations/loadBatchCalculations";
-import { syncLegacyReadingColumns, readingsAfterFromPoint, readingsBeforeFromPoint } from "./certificatePointUtils";
+import { syncLegacyReadingColumns, readingsAfterFromPoint, readingsBeforeFromPoint, isCertificatePointFilled } from "./certificatePointUtils";
 
 const POINT_NUMERIC_FIELDS = [
   "nominal_value",
@@ -46,9 +46,7 @@ export function mapColetaPointForDb(pt, pointNumber, warnings = [], repeatabilit
     point_number: pointNumber,
     standard_weight_ids: Array.isArray(pt?.pesos_padrao_ids) ? pt.pesos_padrao_ids : [],
     notes: "",
-    point_enabled: Boolean(
-      pt?.point_enabled || pt?.peso_nominal || afterRaw.length || beforeRaw.length || pt?.pesos_padrao_ids?.length,
-    ),
+    point_enabled: false,
     verification_division: pt?.divisao_verificacao || "",
     buoyancy_ppm: pt?.ppm_empuxo || "",
     material_density: pt?.densidade_material || "",
@@ -96,6 +94,8 @@ export function mapColetaPointForDb(pt, pointNumber, warnings = [], repeatabilit
     : null;
   result.load_batch_material_preset = loadBatch.load_batch_material_preset || "";
   result.error_multiplier = loadBatch.error_multiplier ?? null;
+
+  result.point_enabled = isCertificatePointFilled(result);
 
   return result;
 }

@@ -6,8 +6,12 @@ import {
   sanitizeMassNumericInput,
 } from "@/lib/massValueUtils";
 
-const selectClass =
-  "flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm";
+const selectBaseClass =
+  "flex rounded-md border border-input bg-transparent shadow-sm";
+
+const selectClass = `${selectBaseClass} h-9 w-full px-2 text-sm`;
+
+const compactSelectClass = `${selectBaseClass} h-8 shrink-0 w-12 px-1 text-xs`;
 
 export default function MassValueField({
   value = "",
@@ -42,20 +46,20 @@ export default function MassValueField({
 
   if (compact) {
     return (
-      <div className={`flex gap-1 min-w-0 ${className}`}>
+      <div className={`flex items-center gap-1.5 min-w-0 w-full ${className}`}>
         <Input
           inputMode="decimal"
           value={value}
           onChange={handleValue}
           disabled={disabled}
           placeholder={valuePlaceholder}
-          className="h-8 text-xs min-w-0 flex-1"
+          className="h-8 text-xs min-w-0 flex-1 basis-0"
         />
         <select
           value={resolvedUnit}
           onChange={(e) => onUnitChange?.(e.target.value)}
           disabled={disabled}
-          className={`${selectClass} h-8 text-xs w-14 shrink-0`}
+          className={compactSelectClass}
           aria-label="Unidade"
         >
           {MASS_UNIT_OPTIONS.map((o) => (

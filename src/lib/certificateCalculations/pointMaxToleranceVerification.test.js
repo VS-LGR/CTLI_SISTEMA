@@ -4,14 +4,29 @@ import {
   generalMaxToleranceResult,
   normalizePointMaxTolerances,
   toleranceMapFromRaw,
+  maxToleranceAlertPointSet,
+  maxToleranceAlertSummary,
+  formatMaxTolerancePointLabel,
+  findToleranceForNominal,
+  buildLoadToleranceMap,
 } from "./pointMaxToleranceVerification";
 
 describe("pointMaxToleranceVerification", () => {
-  test("normalizePointMaxTolerances deduplica e ordena", () => {
-    const raw = [{ point: 2, value: "0,1" }, { point: 1, value: "0,05" }, { point: 2, value: "0,2" }];
+  test("normalizePointMaxTolerances — por pesagem deduplica e ordena", () => {
+    const raw = [
+      { nominal_value: "300", unit: "kg", max_tolerance: "0,6" },
+      { nominal_value: "150", unit: "kg", max_tolerance: "0,3" },
+      { nominal_value: "300", unit: "kg", max_tolerance: "0,7" },
+    ];
     expect(normalizePointMaxTolerances(raw)).toEqual([
-      { point: 1, value: "0,05" },
-      { point: 2, value: "0,2" },
+      { nominal_value: "150", unit: "kg", max_tolerance: "0,3" },
+      { nominal_value: "300", unit: "kg", max_tolerance: "0,6" },
+    ]);
+  });
+
+  test("normalizePointMaxTolerances — aceita legado por ponto", () => {
+    expect(normalizePointMaxTolerances([{ point: 2, value: "0,1" }])).toEqual([
+      { point: 2, max_tolerance: "0,1", _legacyPoint: true },
     ]);
   });
 
@@ -58,23 +73,58 @@ describe("pointMaxToleranceVerification", () => {
     expect(r.general).toBe("nao_avaliado");
   });
 
-  test("evaluateCertificateMaxTolerance — ponto calculado dentro", () => {
+  test("evaluateCertificateMaxTolerance — pesagem 300 kg dentro da tolerância", () => {
     const r = evaluateCertificateMaxTolerance(
       [{
         point_number: 1,
-        nominal_value: "100",
-        reading1: "100",
+        nominal_value: "300",
+        reading1: "300",
         calc_status: "calculado",
         indication_error: 0.02,
         expanded_uncertainty: 0.01,
       }],
-      [{ point: 1, value: "0,05" }],
+      [{ nominal_value: "300", unit: "kg", max_tolerance: "0,6" }],
+      { defaultUnit: "kg" },
     );
     expect(r.general).toBe("aprovado");
+    expect(r.pointResults[0].nominalDisplay).toBe("300 kg");
     expect(r.pointResults[0].testValue).toBeCloseTo(0.03, 6);
   });
 
-  test("evaluateCertificateMaxTolerance — ponto acima gera alerta", () => {
+  test("evaluateCertificateMaxTolerance — mesma pesagem em P2 gera alerta", () => {
+    const r = evaluateCertificateMaxTolerance(
+      [{
+        point_number: 2,
+        nominal_value: "300",
+        reading1: "300.1",
+        calc_status: "calculado",
+        indication_error: 0.5,
+        expanded_uncertainty: 0.2,
+      }],
+      [{ nominal_value: "300", unit: "kg", max_tolerance: "0,6" }],
+      { defaultUnit: "kg" },
+    );
+    expect(r.general).toBe("alerta");
+    expect(r.pointResults[0].pointNumber).toBe(2);
+  });
+
+  test("evaluateCertificateMaxTolerance — pesagem sem tolerância cadastrada não avalia", () => {
+    const r = evaluateCertificateMaxTolerance(
+      [{
+        point_number: 1,
+        nominal_value: "50",
+        calc_status: "calculado",
+        indication_error: 0.5,
+        expanded_uncertainty: 0.2,
+      }],
+      [{ nominal_value: "300", unit: "kg", max_tolerance: "0,6" }],
+      { defaultUnit: "kg" },
+    );
+    expect(r.pointResults).toEqual([]);
+    expect(r.general).toBe("nao_avaliado");
+  });
+
+  test("evaluateCertificateMaxTolerance — legado por número de ponto", () => {
     const r = evaluateCertificateMaxTolerance(
       [{
         point_number: 2,
@@ -89,9 +139,27 @@ describe("pointMaxToleranceVerification", () => {
     expect(r.general).toBe("alerta");
   });
 
-  test("toleranceMapFromRaw ignora valores vazios", () => {
+  test("findToleranceForNominal — converte unidades", () => {
+    const map = buildLoadToleranceMap([
+      { nominal_value: "300", unit: "kg", max_tolerance: "0,6" },
+    ]);
+    const match = findToleranceForNominal("300000", "g", map);
+    expect(match?.parsedTolerance).toBeCloseTo(0.6, 6);
+  });
+
+  test("toleranceMapFromRaw legado ignora valores vazios", () => {
     const map = toleranceMapFromRaw([{ point: 1, value: "" }, { point: 3, value: "0,5" }]);
     expect(map.size).toBe(1);
     expect(map.get(3)).toBeCloseTo(0.5, 6);
+  });
+
+  test("maxToleranceAlertPointSet retorna apenas pontos em alerta", () => {
+    const results = [
+      { pointNumber: 1, nominalValue: "300", nominalUnit: "kg", result: "aprovado" },
+      { pointNumber: 3, nominalValue: "150", nominalUnit: "kg", result: "alerta" },
+    ];
+    expect(maxToleranceAlertPointSet(results)).toEqual(new Set([3]));
+    expect(maxToleranceAlertSummary(results)).toContain("P3");
+    expect(formatMaxTolerancePointLabel(results[1])).toBe("150 kg");
   });
 });

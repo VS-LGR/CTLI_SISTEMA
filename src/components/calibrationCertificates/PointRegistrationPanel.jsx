@@ -10,11 +10,10 @@ import PesoPadraoPointTable from "@/components/calibrationCertificates/PesoPadra
 import { sumConventionalFromWeightIds } from "@/lib/certificateCalculations/environmentalCalculations";
 import { MATERIAL_PRESETS, densityFromPresetId } from "@/lib/certificateCalculations/materialConstants";
 import { formationKeyForPoint, errorMultiplierForFormation } from "@/lib/certificateCalculations/loadBatchCalculations";
-import {
-  resolveDefaultResolutionForPoint,
-  resolveDefaultVerificationDivision,
-} from "@/lib/calibrationCertificates/certificatePointUtils";
+import { isCertificatePointFilled } from "@/lib/calibrationCertificates/certificatePointUtils";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
+import { MaxTolerancePointLabel } from "@/components/calibrationCertificates/MaxTolerancePointFlag";
+import { cn } from "@/lib/utils";
 
 const MIN_READINGS_AFTER = 3;
 
@@ -74,68 +73,47 @@ function ReadingRow({ label, readings, onChange, disabled, minCount = 0, maxCoun
 
 function PointTabContent({
   point,
-  balance,
   weightItems,
   weightCerts,
   disabled,
   onChange,
   unit = "g",
+  maxToleranceAlert = false,
 }) {
-  const enabled = Boolean(point.point_enabled);
-  const fieldsDisabled = disabled || !enabled;
-
   const setField = (fields) => onChange(point.point_number, fields);
 
   const handlePesos = (ids) => {
     const vvc = sumConventionalFromWeightIds(ids, weightItems, unit);
     const nominal = vvc.valid ? String(vvc.value) : point.nominal_value;
-    const resolution = point.resolution || resolveDefaultResolutionForPoint(nominal, balance, unit);
-    const verification = point.verification_division || resolveDefaultVerificationDivision(nominal, balance, unit);
     setField({
       standard_weight_ids: ids,
       nominal_value: nominal,
-      resolution,
-      verification_division: verification,
     });
-  };
-
-  const handleEnable = (checked) => {
-    const on = Boolean(checked);
-    const fields = { point_enabled: on };
-    if (on && !(point.readings_after?.length >= MIN_READINGS_AFTER)) {
-      const current = point.readings_after || [];
-      const padded = [...current];
-      while (padded.length < MIN_READINGS_AFTER) padded.push("");
-      fields.readings_after = padded;
-    }
-    setField(fields);
   };
 
   return (
     <div className="space-y-4">
+      {maxToleranceAlert && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          <strong>P{point.point_number}</strong> — |Erro + Incerteza| acima da tolerância máxima cadastrada.
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">Ponto {point.point_number}</h3>
+          <h3 className="text-sm font-semibold text-slate-800">
+            <MaxTolerancePointLabel pointNumber={point.point_number} isAlert={maxToleranceAlert} />
+          </h3>
           <p className="text-xs text-slate-500 mt-1 max-w-xl">
-            Instruções: Selecione o ponto para liberar os campos para preenchimento; Os campos devem ser preenchidos em gramas.
+            Preencha leituras, V.R. ou pesos padrão. Resolução e divisão de verificação vêm dos dados da balança.
           </p>
         </div>
       </div>
-
-      <label className="flex items-center gap-2 cursor-pointer w-fit">
-        <Checkbox
-          checked={enabled}
-          disabled={disabled}
-          onCheckedChange={handleEnable}
-        />
-        <span className="text-sm font-medium">P{point.point_number}</span>
-      </label>
 
       <ReadingRow
         label="Leitura Antes do Ajuste"
         readings={point.readings_before?.length ? point.readings_before : [""]}
         minCount={0}
-        disabled={fieldsDisabled}
+        disabled={disabled}
         onChange={(readings) => setField({ readings_before: readings.filter((r, i) => r !== "" || i === 0) })}
       />
 
@@ -147,34 +125,16 @@ function PointTabContent({
             : Array.from({ length: MIN_READINGS_AFTER }, (_, i) => point.readings_after?.[i] ?? "")
         }
         minCount={MIN_READINGS_AFTER}
-        disabled={fieldsDisabled}
+        disabled={disabled}
         onChange={(readings) => setField({ readings_after: readings })}
       />
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div>
-          <Label className="text-xs">Resolução (d)</Label>
-          <Input
-            value={point.resolution ?? ""}
-            disabled={fieldsDisabled}
-            onChange={(e) => setField({ resolution: e.target.value })}
-            className="h-9 mt-1"
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Divisão de Verificação</Label>
-          <Input
-            value={point.verification_division ?? ""}
-            disabled={fieldsDisabled}
-            onChange={(e) => setField({ verification_division: e.target.value })}
-            className="h-9 mt-1"
-          />
-        </div>
+      <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Material do peso padrão</Label>
           <select
             className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-            disabled={fieldsDisabled}
+            disabled={disabled}
             value={point.material_preset ?? ""}
             onChange={(e) => {
               const id = e.target.value;
@@ -195,7 +155,7 @@ function PointTabContent({
           <Label className="text-xs">Densidade material (kg/m³)</Label>
           <Input
             value={point.material_density ?? ""}
-            disabled={fieldsDisabled}
+            disabled={disabled}
             onChange={(e) => setField({ material_density: e.target.value })}
             className="h-9 mt-1"
             placeholder="Ex.: 7900"
@@ -208,7 +168,7 @@ function PointTabContent({
         <Input
           inputMode="decimal"
           value={point.nominal_value ?? ""}
-          disabled={fieldsDisabled}
+          disabled={disabled}
           onChange={(e) => setField({ nominal_value: sanitizeMassNumericInput(e.target.value) })}
           className="h-9 max-w-xs"
         />
@@ -219,7 +179,7 @@ function PointTabContent({
           <label className="flex items-center gap-2 cursor-pointer w-fit">
             <Checkbox
               checked={Boolean(point.use_load_batch)}
-              disabled={fieldsDisabled}
+              disabled={disabled}
               onCheckedChange={(checked) => {
                 const on = Boolean(checked);
                 const formation = formationKeyForPoint(point.point_number, on);
@@ -246,7 +206,7 @@ function PointTabContent({
                 <Label className="text-xs">Nominal do lote (Vc)</Label>
                 <Input
                   value={point.load_batch_nominal ?? ""}
-                  disabled={fieldsDisabled}
+                  disabled={disabled}
                   onChange={(e) => setField({ load_batch_nominal: e.target.value })}
                   className="h-9 mt-1"
                   placeholder="Ex.: 190"
@@ -256,7 +216,7 @@ function PointTabContent({
                 <Label className="text-xs">Material do lote</Label>
                 <select
                   className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-                  disabled={fieldsDisabled}
+                  disabled={disabled}
                   value={point.load_batch_material_preset ?? "aco"}
                   onChange={(e) => setField({ load_batch_material_preset: e.target.value })}
                 >
@@ -277,7 +237,7 @@ function PointTabContent({
           weightCerts={weightCerts}
           value={point.standard_weight_ids || []}
           onChange={handlePesos}
-          disabled={fieldsDisabled}
+          disabled={disabled}
         />
       </div>
     </div>
@@ -294,15 +254,26 @@ export default function PointRegistrationPanel({
   onLegalMetrologyChange,
   onPointChange,
   unit = "g",
+  maxToleranceAlertPoints = null,
 }) {
   const [tab, setTab] = useState("p1");
 
-  const enabledCount = useMemo(
-    () => points.filter((p) => p.point_enabled).length,
+  const alertSet = useMemo(() => {
+    if (!maxToleranceAlertPoints) return new Set();
+    if (maxToleranceAlertPoints instanceof Set) return maxToleranceAlertPoints;
+    return new Set(maxToleranceAlertPoints);
+  }, [maxToleranceAlertPoints]);
+
+  const isTolAlert = (n) => alertSet.has(n);
+
+  const filledCount = useMemo(
+    () => points.filter((p) => isCertificatePointFilled(p)).length,
     [points],
   );
 
-  const getPoint = (n) => points.find((p) => p.point_number === n) || { point_number: n, point_enabled: false };
+  const getPoint = (n) => points.find((p) => p.point_number === n) || { point_number: n };
+
+  const isPointFilled = (n) => isCertificatePointFilled(getPoint(n));
 
   return (
     <div className="space-y-3">
@@ -327,12 +298,22 @@ export default function PointRegistrationPanel({
           <TabsTrigger value="cadastro" className="text-xs">Cadastro</TabsTrigger>
           {Array.from({ length: 10 }, (_, i) => {
             const n = i + 1;
-            const pt = getPoint(n);
+            const filled = isPointFilled(n);
             return (
-              <TabsTrigger key={n} value={`p${n}`} className="text-xs px-2">
+              <TabsTrigger
+                key={n}
+                value={`p${n}`}
+                className={cn(
+                  "text-xs px-2",
+                  isTolAlert(n) && "ring-2 ring-amber-500 bg-amber-50 text-amber-950 font-semibold data-[state=active]:bg-amber-100",
+                )}
+              >
                 P{n}
-                {pt.point_enabled && (
-                  <span className="ml-1 w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                {isTolAlert(n) && (
+                  <span className="ml-1 w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" title="Acima da tolerância máxima" />
+                )}
+                {!isTolAlert(n) && filled && (
+                  <span className="ml-1 w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" title="Ponto preenchido" />
                 )}
               </TabsTrigger>
             );
@@ -342,13 +323,15 @@ export default function PointRegistrationPanel({
         <TabsContent value="cadastro" className="mt-4">
           <div className="border rounded-lg p-4 space-y-3 bg-slate-50/50">
             <p className="text-sm text-slate-600">
-              Configure cada ponto P1–P10 nas abas correspondentes. Mínimo de {MIN_READINGS_AFTER} leituras depois do ajuste por ponto ativo.
+              Configure cada ponto P1–P10 nas abas correspondentes. O sistema identifica automaticamente quais pontos estão preenchidos.
+              Mínimo de {MIN_READINGS_AFTER} leituras depois do ajuste por ponto utilizado.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{enabledCount} ponto(s) ativo(s)</Badge>
+              <Badge variant="outline">{filledCount} ponto(s) preenchido(s)</Badge>
               <Badge variant="outline">{weightItems.length} peso(s) cadastrado(s)</Badge>
             </div>
             <ul className="text-xs text-slate-500 list-disc pl-4 space-y-1">
+              <li>Resolução (d) e divisão de verificação vêm da balança cadastrada ou manual no certificado</li>
               <li>Deriva do padrão: 1ª calibração = Ue; 2ª+ = V.V.C − V.V.C anterior</li>
               <li>Seleção de pesos preenche automaticamente o V.R. (soma dos V.V.C)</li>
             </ul>
@@ -362,12 +345,12 @@ export default function PointRegistrationPanel({
             <TabsContent key={n} value={`p${n}`} className="mt-4">
               <PointTabContent
                 point={pt}
-                balance={balance}
                 weightItems={weightItems}
                 weightCerts={weightCerts}
                 disabled={disabled}
                 unit={unit}
                 onChange={onPointChange}
+                maxToleranceAlert={isTolAlert(n)}
               />
             </TabsContent>
           );

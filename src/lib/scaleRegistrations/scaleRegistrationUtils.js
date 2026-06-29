@@ -1,24 +1,33 @@
 /** Converte registro de balança (cadastro) para balance_snapshot do certificado. */
 import { decimalPlacesFromResolution } from "@/lib/certificateCalculations";
 import { normalizePointMaxTolerances } from "@/lib/certificateCalculations/pointMaxToleranceVerification";
+import { normalizeMassUnit } from "@/lib/massValueUtils";
 
-export function emptyPointMaxTolerancesForm() {
-  return Array.from({ length: 10 }, (_, i) => ({ point: i + 1, value: "" }));
+export function emptyLoadMaxTolerances(defaultUnit = "g") {
+  return [{ nominal_value: "", unit: normalizeMassUnit(defaultUnit, "g"), max_tolerance: "" }];
 }
 
-export function pointMaxTolerancesFromForm(formValues = {}) {
-  return Array.from({ length: 10 }, (_, i) => {
-    const point = i + 1;
-    const key = `point_max_tolerance_p${point}`;
-    const fromKey = formValues[key];
-    const fromArray = Array.isArray(formValues.point_max_tolerances)
-      ? formValues.point_max_tolerances.find((p) => p.point === point)?.value
-      : undefined;
-    return {
-      point,
-      value: String(fromKey ?? fromArray ?? "").trim(),
-    };
-  }).filter((p) => p.value !== "");
+/** @deprecated Use emptyLoadMaxTolerances */
+export function emptyPointMaxTolerancesForm() {
+  return emptyLoadMaxTolerances();
+}
+
+export function loadMaxTolerancesFromForm(rows = [], defaultUnit = "g") {
+  return normalizePointMaxTolerances(
+    (rows || []).map((row) => ({
+      nominal_value: row?.nominal_value ?? "",
+      unit: row?.unit || defaultUnit,
+      max_tolerance: row?.max_tolerance ?? "",
+    })),
+  );
+}
+
+/** @deprecated Use loadMaxTolerancesFromForm */
+export function pointMaxTolerancesFromForm(formValues = {}, defaultUnit = "g") {
+  if (Array.isArray(formValues.point_max_tolerances)) {
+    return loadMaxTolerancesFromForm(formValues.point_max_tolerances, defaultUnit);
+  }
+  return [];
 }
 
 /** Remove chaves só de formulário antes de persistir em scale_registrations. */
@@ -30,18 +39,30 @@ export function omitPointMaxToleranceFormKeys(formValues = {}) {
   );
 }
 
-export function formValuesFromPointMaxTolerances(raw) {
-  const normalized = normalizePointMaxTolerances(raw);
-  const values = emptyPointMaxTolerancesForm();
-  for (const entry of normalized) {
-    const idx = entry.point - 1;
-    if (idx >= 0 && idx < 10) values[idx].value = entry.value ?? "";
+export function formRowsFromPointMaxTolerances(raw, defaultUnit = "g") {
+  if (Array.isArray(raw)) {
+    if (raw.length === 0) return emptyLoadMaxTolerances(defaultUnit);
+    const hasLoadRows = raw.some((e) => e?.nominal_value != null || e?.max_tolerance != null);
+    if (hasLoadRows) {
+      return raw.map((entry) => ({
+        nominal_value: entry.nominal_value ?? "",
+        unit: normalizeMassUnit(entry.unit, defaultUnit),
+        max_tolerance: entry.max_tolerance ?? "",
+      }));
+    }
   }
-  const out = { point_max_tolerances: values };
-  values.forEach(({ point, value }) => {
-    out[`point_max_tolerance_p${point}`] = value;
-  });
-  return out;
+  const normalized = normalizePointMaxTolerances(raw).filter((e) => !e._legacyPoint);
+  if (!normalized.length) return emptyLoadMaxTolerances(defaultUnit);
+  return normalized.map((entry) => ({
+    nominal_value: entry.nominal_value ?? "",
+    unit: entry.unit || defaultUnit,
+    max_tolerance: entry.max_tolerance ?? "",
+  }));
+}
+
+/** @deprecated Use formRowsFromPointMaxTolerances */
+export function formValuesFromPointMaxTolerances(raw) {
+  return { point_max_tolerances: formRowsFromPointMaxTolerances(raw) };
 }
 
 export function balanceSnapshotFromScaleRegistration(scale) {

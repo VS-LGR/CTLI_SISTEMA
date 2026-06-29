@@ -119,7 +119,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
       const pontos = [...p.calibracao.pontos];
       const idx = pointNumber - 1;
       const current = coletaPointToPanelPoint(pontos[idx] || {}, pointNumber, p.balanca);
-      pontos[idx] = panelPointToColetaPoint({ ...current, ...fields });
+      pontos[idx] = panelPointToColetaPoint({ ...current, ...fields }, p.balanca);
       return { ...p, calibracao: { ...p.calibracao, pontos } };
     });
   };
@@ -301,7 +301,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
 
               <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                 <p className="text-xs font-semibold text-slate-700 mb-2">
-                  Tolerância máxima permitida por ponto calibrado
+                  Tolerância máxima por valor de pesagem
                 </p>
                 <PointMaxToleranceFields
                   tolerances={payload.balanca.point_max_tolerances || []}
@@ -383,7 +383,6 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
         <CardContent className="p-4">
           <PointRegistrationPanel
             points={panelPoints}
-            balance={payload.balanca}
             weightItems={weightItems}
             weightCerts={weightCerts}
             legalMetrologyApplicable={legalMetrology}

@@ -2,7 +2,7 @@ import {
   balanceSnapshotFromScaleRegistration,
   buildScaleRegistrationFromBalance,
   omitPointMaxToleranceFormKeys,
-  pointMaxTolerancesFromForm,
+  loadMaxTolerancesFromForm,
 } from "./scaleRegistrationUtils";
 
 describe("buildScaleRegistrationFromBalance", () => {
@@ -48,6 +48,9 @@ describe("buildScaleRegistrationFromBalance", () => {
         resolucao: "0,05",
         unidade: "kg",
         tipo_plataforma: "redonda",
+        point_max_tolerances: [
+          { nominal_value: "300", unit: "kg", max_tolerance: "0,6" },
+        ],
       },
     });
     const snap = balanceSnapshotFromScaleRegistration(scale);
@@ -55,20 +58,23 @@ describe("buildScaleRegistrationFromBalance", () => {
     expect(snap.capacidade).toBe("100");
     expect(snap.tipo_plataforma).toBe("redonda");
     expect(snap.decimal_places.p1).toBe(2);
+    expect(snap.point_max_tolerances[0].nominal_value).toBe("300");
   });
 });
 
-describe("omitPointMaxToleranceFormKeys", () => {
-  it("remove chaves de UI antes do insert em scale_registrations", () => {
-    const form = {
+describe("loadMaxTolerancesFromForm", () => {
+  it("persiste tolerâncias por pesagem", () => {
+    const rows = [
+      { nominal_value: "300", unit: "kg", max_tolerance: "0,6" },
+      { nominal_value: "", unit: "kg", max_tolerance: "" },
+    ];
+    expect(loadMaxTolerancesFromForm(rows, "kg")).toEqual([
+      { nominal_value: "300", unit: "kg", max_tolerance: "0,6" },
+    ]);
+    const cleaned = omitPointMaxToleranceFormKeys({
       serial_number: "SN-1",
-      point_max_tolerance_p1: "0,05",
-      point_max_tolerance_p2: "",
-      point_max_tolerances: [{ point: 1, value: "0,05" }],
-    };
-    const cleaned = omitPointMaxToleranceFormKeys(form);
+      point_max_tolerances: rows,
+    });
     expect(cleaned).toEqual({ serial_number: "SN-1" });
-    expect(cleaned.point_max_tolerance_p1).toBeUndefined();
-    expect(pointMaxTolerancesFromForm(form)).toEqual([{ point: 1, value: "0,05" }]);
   });
 });
