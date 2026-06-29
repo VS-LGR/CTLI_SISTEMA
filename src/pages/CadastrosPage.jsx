@@ -27,6 +27,7 @@ import {
 } from "@/lib/cadastroConstants";
 import { downloadWeightCertificatesValidPdf, downloadEnvironmentCertificatesValidPdf } from "@/lib/cadastroPdf";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
+import TbhCalibrationPointsEditor, { emptyTbhCorrectionCalibration, normalizeTbhCorrectionCalibration } from "@/components/cadastros/TbhCalibrationPointsEditor";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import { ensureDefaultPositionsSeeded } from "@/lib/personnelPositionsApi";
@@ -987,6 +988,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
   const [calDate, setCalDate] = useState(todayIso());
   const [calBy, setCalBy] = useState("");
   const [file, setFile] = useState(null);
+  const [tbhCalibration, setTbhCalibration] = useState(() => emptyTbhCorrectionCalibration());
 
   const reset = () => {
     setEditing(null);
@@ -998,6 +1000,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
     setCalDate(todayIso());
     setCalBy("");
     setFile(null);
+    setTbhCalibration(emptyTbhCorrectionCalibration());
   };
 
   const save = async () => {
@@ -1015,6 +1018,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
       certificate_number: certNum.trim(),
       calibration_date: calDate,
       calibrated_by: calBy.trim(),
+      tbh_correction_calibration: normalizeTbhCorrectionCalibration(tbhCalibration),
     };
     try {
       if (editing) {
@@ -1145,6 +1149,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
                       setManuf(r.manufacturer); setModel(r.model);
                       setCertNum(r.certificate_number); setCalDate(fmtIsoDate(r.calibration_date));
                       setCalBy(r.calibrated_by); setFile(null);
+                      setTbhCalibration(normalizeTbhCorrectionCalibration(r.tbh_correction_calibration));
                       setOpen(true);
                     }}><PencilSimple size={16} /></Button>
                     <Button variant="ghost" size="sm" className="text-red-600" onClick={() => remove(r)}><Trash size={16} /></Button>
@@ -1155,7 +1160,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
           </table>
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Editar equipamento" : "Novo equipamento ambiental"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div>
@@ -1181,6 +1186,11 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
                 <Label>Anexo (PDF/imagem)</Label>
                 <Input type="file" accept=".pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </div>
+              <TbhCalibrationPointsEditor
+                value={tbhCalibration}
+                onChange={setTbhCalibration}
+                equipmentType={equipmentType}
+              />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>

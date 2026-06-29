@@ -202,6 +202,9 @@ export function emptyColetaPayload() {
       existe_vibracao: "",
       existe_corrente_ar: "",
       observacoes: "",
+      tbh_correction_raw: {},
+      tbh_correction_meta: null,
+      tbh_correction_applied: false,
     },
     excentricidade: {
       valor_aplicado: "",
@@ -248,6 +251,11 @@ export function mergeColetaPayload(raw) {
     const merged = { ...base.ambiente, ...(a || {}) };
     delete merged.climatizacao;
     if (merged.thermo_cert_id_2 == null) merged.thermo_cert_id_2 = "";
+    if (merged.tbh_correction_raw == null || typeof merged.tbh_correction_raw !== "object") {
+      merged.tbh_correction_raw = {};
+    }
+    if (merged.tbh_correction_applied == null) merged.tbh_correction_applied = false;
+    if (merged.tbh_correction_meta == null) merged.tbh_correction_meta = null;
     return merged;
   };
 

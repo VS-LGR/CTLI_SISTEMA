@@ -23,6 +23,7 @@ import { cadastroSectionPath } from "@/lib/cadastroSections";
 import { proposalEditorPath } from "@/lib/commercialProposals/commercialProposalRoutes";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
 import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
+import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import CalibracaoOrdemTooltip from "@/components/coleta/CalibracaoOrdemTooltip";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import FormRowCard from "@/components/forms/FormRowCard";
@@ -109,7 +110,20 @@ export default function ColetaForm({
 
   const setCliente = (k, v) => onChange({ ...payload, cliente: { ...payload.cliente, [k]: v } });
   const setBalanca = (k, v) => onChange({ ...payload, balanca: { ...payload.balanca, [k]: v } });
-  const setAmbiente = (k, v) => onChange({ ...payload, ambiente: { ...payload.ambiente, [k]: v } });
+  const AMBIENTE_READING_KEYS = [
+    "temp_inicial", "temp_final", "umidade_inicial", "umidade_final", "pressao_inicial", "pressao_final",
+  ];
+
+  const setAmbiente = (k, v) => {
+    const next = { ...payload.ambiente, [k]: v };
+    if (AMBIENTE_READING_KEYS.includes(k) && payload.ambiente.tbh_correction_applied) {
+      next.tbh_correction_applied = false;
+      const raw = { ...(next.tbh_correction_raw || {}) };
+      delete raw[k];
+      next.tbh_correction_raw = raw;
+    }
+    onChange({ ...payload, ambiente: next });
+  };
   const setControle = (k, v) => onChange({ ...payload, controle: { ...payload.controle, [k]: v } });
 
   const setEccPonto = (idx, k, v) => {
@@ -318,6 +332,12 @@ export default function ColetaForm({
             <Input value={payload.ambiente.pressao_final} onChange={(ev) => setAmbiente("pressao_final", ev.target.value)} />
           </Field>
         </div>
+        <TbhCorrectionPanel
+          mode="coleta"
+          ambiente={payload.ambiente}
+          envCerts={envCerts}
+          onAmbienteChange={(ambiente) => onChange({ ...payload, ambiente })}
+        />
         <RadioRow label="A balança foi ajustada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_ajustada} onChange={(v) => setAmbiente("balanca_ajustada", v)} />
         <RadioRow label="A balança foi nivelada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_nivelada} onChange={(v) => setAmbiente("balanca_nivelada", v)} />
         <RadioRow label="Existe vibração no local?" options={BINARY_OPTIONS} value={payload.ambiente.existe_vibracao} onChange={(v) => setAmbiente("existe_vibracao", v)} />

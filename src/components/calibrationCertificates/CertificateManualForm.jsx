@@ -10,6 +10,7 @@ import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/s
 import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
 import { calculateAirDensityFromEnvironmental, formatAirDensityDisplay } from "@/lib/certificateCalculations/environmentalCalculations";
 import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
+import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import {
   coletaPointToPanelPoint,
   panelPointToColetaPoint,
@@ -357,6 +358,12 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
               </select>
             </div>
           </div>
+          <TbhCorrectionPanel
+            mode="coleta"
+            ambiente={payload.ambiente}
+            envCerts={envCerts}
+            onAmbienteChange={(ambiente) => setPayload((p) => ({ ...p, ambiente }))}
+          />
         </CardContent>
       </Card>
 

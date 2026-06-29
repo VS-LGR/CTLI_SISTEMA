@@ -68,6 +68,8 @@ import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { jobLabel } from "@/lib/cadastroConstants";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
+import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
+import { buildEnvironmentalSnapshotPatch, hydrateEnvironmentalTbh } from "@/lib/tbhCorrection/tbhCorrectionCalculations";
 
 function certificatePointDisplay(cert, point) {
   const balance = cert?.balance_snapshot || {};
@@ -101,6 +103,7 @@ export default function CertificateEditorPage() {
   const [weightCerts, setWeightCerts] = useState([]);
   const [scales, setScales] = useState([]);
   const [endCustomers, setEndCustomers] = useState([]);
+  const [envCerts, setEnvCerts] = useState([]);
   const [savingScale, setSavingScale] = useState(false);
   const [showCalcTrace, setShowCalcTrace] = useState(() => {
     try {
@@ -145,11 +148,13 @@ export default function CertificateEditorPage() {
       supabase.from("weight_standard_certificates").select("*").eq("tenant_id", currentTenantId),
       supabase.from("scale_registrations").select("*").eq("tenant_id", currentTenantId).eq("active", true).order("serial_number"),
       supabase.from("end_customer_registrations").select("*").eq("tenant_id", currentTenantId).order("name"),
-    ]).then(([w, c, s, ec]) => {
+      supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", currentTenantId).order("equipment_name"),
+    ]).then(([w, c, s, ec, env]) => {
       if (!w.error) setWeightItems(w.data || []);
       if (!c.error) setWeightCerts(c.data || []);
       if (!s.error) setScales(s.data || []);
       if (!ec.error) setEndCustomers(ec.data || []);
+      if (!env.error) setEnvCerts(env.data || []);
     });
   }, [currentTenantId]);
 
@@ -268,6 +273,9 @@ export default function CertificateEditorPage() {
           air_density: enrichedEnv.air_density,
           balance_adjusted: cert.environmental.balance_adjusted,
           notes: cert.environmental.notes,
+          thermo_hygrometer_id: cert.environmental.thermo_hygrometer_id || null,
+          thermo_hygrometer_id_2: cert.environmental.thermo_hygrometer_id_2 || null,
+          snapshot: buildEnvironmentalSnapshotPatch(cert.environmental),
         });
       }
 
@@ -985,14 +993,72 @@ export default function CertificateEditorPage() {
                 <>
                   {isStandalone && editable ? (
                     <>
-                      <div><Label className="text-xs">Temp. inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_temperature || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_temperature: e.target.value } })} /></div>
-                      <div><Label className="text-xs">Temp. final</Label><Input className="mt-1 h-9" value={cert.environmental.final_temperature || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_temperature: e.target.value } })} /></div>
-                      <div><Label className="text-xs">UR inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_humidity || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_humidity: e.target.value } })} /></div>
-                      <div><Label className="text-xs">UR final</Label><Input className="mt-1 h-9" value={cert.environmental.final_humidity || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_humidity: e.target.value } })} /></div>
-                      <div><Label className="text-xs">Pressão inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_pressure: e.target.value } })} /></div>
-                      <div><Label className="text-xs">Pressão final</Label><Input className="mt-1 h-9" value={cert.environmental.final_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_pressure: e.target.value } })} /></div>
+                      <div>
+                        <Label className="text-xs">Termo-baro 1</Label>
+                        <select
+                          value={cert.environmental.thermo_hygrometer_id || ""}
+                          onChange={(e) => patch({ environmental: { ...cert.environmental, thermo_hygrometer_id: e.target.value } })}
+                          className="mt-1 w-full border rounded-md h-9 px-2 text-sm"
+                        >
+                          <option value="">—</option>
+                          {envCerts.map((e) => (
+                            <option key={e.id} value={e.id}>{e.equipment_name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Termo-baro 2</Label>
+                        <select
+                          value={cert.environmental.thermo_hygrometer_id_2 || ""}
+                          onChange={(e) => patch({ environmental: { ...cert.environmental, thermo_hygrometer_id_2: e.target.value } })}
+                          className="mt-1 w-full border rounded-md h-9 px-2 text-sm"
+                        >
+                          <option value="">—</option>
+                          {envCerts.map((e) => (
+                            <option key={e.id} value={e.id}>{e.equipment_name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div><Label className="text-xs">Temp. inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_temperature || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_temperature: e.target.value, tbh_correction_applied: false } })} /></div>
+                      <div><Label className="text-xs">Temp. final</Label><Input className="mt-1 h-9" value={cert.environmental.final_temperature || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_temperature: e.target.value, tbh_correction_applied: false } })} /></div>
+                      <div><Label className="text-xs">UR inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_humidity || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_humidity: e.target.value, tbh_correction_applied: false } })} /></div>
+                      <div><Label className="text-xs">UR final</Label><Input className="mt-1 h-9" value={cert.environmental.final_humidity || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_humidity: e.target.value, tbh_correction_applied: false } })} /></div>
+                      <div><Label className="text-xs">Pressão inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_pressure: e.target.value, tbh_correction_applied: false } })} /></div>
+                      <div><Label className="text-xs">Pressão final</Label><Input className="mt-1 h-9" value={cert.environmental.final_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_pressure: e.target.value, tbh_correction_applied: false } })} /></div>
                       <div><Label className="text-xs">Massa específica do ar (calculada)</Label><Input className="mt-1 h-9 bg-slate-50" readOnly value={`${formatAirDensityDisplay(enrichEnvironmentalAirDensity(cert.environmental, cert).air_density)} kg/m³`} /></div>
                       <div><Label className="text-xs">Balança ajustada</Label><Input className="mt-1 h-9" value={cert.environmental.balance_adjusted || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, balance_adjusted: e.target.value } })} /></div>
+                      <div className="sm:col-span-2">
+                        <TbhCorrectionPanel
+                          mode="certificado"
+                          environmental={hydrateEnvironmentalTbh(cert.environmental)}
+                          envCerts={envCerts}
+                          onEnvironmentalChange={(environmental) => patch({ environmental })}
+                          onAfterApply={async (result) => {
+                            const env = result.environmental;
+                            patch({ environmental: env });
+                            try {
+                              const enrichedEnv = enrichEnvironmentalAirDensity(env, cert);
+                              await updateCertificateEnvironmental(cert.id, {
+                                initial_temperature: env.initial_temperature,
+                                final_temperature: env.final_temperature,
+                                initial_humidity: env.initial_humidity,
+                                final_humidity: env.final_humidity,
+                                initial_pressure: env.initial_pressure,
+                                final_pressure: env.final_pressure,
+                                air_density: enrichedEnv.air_density,
+                                thermo_hygrometer_id: env.thermo_hygrometer_id || null,
+                                thermo_hygrometer_id_2: env.thermo_hygrometer_id_2 || null,
+                                snapshot: buildEnvironmentalSnapshotPatch(env),
+                              });
+                              const updated = await recalculateCertificate(cert.id);
+                              setCert(updated);
+                              setPreviewCalcPoints(null);
+                            } catch (e) {
+                              toast.error(e.message);
+                            }
+                          }}
+                        />
+                      </div>
                     </>
                   ) : (
                     <>
