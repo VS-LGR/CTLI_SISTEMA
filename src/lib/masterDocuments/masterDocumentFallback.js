@@ -11,6 +11,7 @@ const LEGACY_BY_CODE = {
   "RE-6.6C": { code: "RE-6.6C", reference: "PR-6.6", revision: "00", title: "SOLICITAÇÃO DE ORÇAMENTO", modelIssueDate: "2025-06-30" },
   "RE-6.6D": { code: "RE-6.6D", reference: "PR-6.6", revision: "00", title: "PEDIDO DE COMPRA", modelIssueDate: "2025-06-30" },
   "RE-7.2A": { code: "RE-7.2A", reference: DEFAULT_COLETA_FORM_REF, revision: "00", title: DEFAULT_COLETA_FORM_TITLE, modelIssueDate: "2025-06-30" },
+  "RE-7.1A": { code: "RE-7.1A", reference: "PR-7.1", revision: "00", title: "PROPOSTA COMERCIAL", modelIssueDate: "2025-06-30" },
   "RE-7.2B": { code: "RE-7.2B", reference: "PR-7.2", revision: "00", title: "CERTIFICADO DE CALIBRAÇÃO", modelIssueDate: "2025-06-30" },
 };
 
@@ -24,6 +25,7 @@ const LEGACY_BY_TEMPLATE = {
   "re-66c-solicitacao-orcamento-pdf": LEGACY_BY_CODE["RE-6.6C"],
   "re-66d-pedido-compra-pdf": LEGACY_BY_CODE["RE-6.6D"],
   "re-72a-coleta-pdf": LEGACY_BY_CODE["RE-7.2A"],
+  "re-71a-proposta-comercial-pdf": LEGACY_BY_CODE["RE-7.1A"],
   "re-72b-certificado-calibracao-pdf": LEGACY_BY_CODE["RE-7.2B"],
 };
 

@@ -10,6 +10,7 @@ export const DOCUMENT_SECTIONS = {
   assinatura: { id: "assinatura", label: "Assinaturas" },
   pedidos_compra: { id: "pedidos_compra", label: "Pedidos de compra" },
   solicitacoes_orcamento: { id: "solicitacoes_orcamento", label: "Solicitações de orçamento" },
+  propostas_comerciais: { id: "propostas_comerciais", label: "Propostas Comerciais" },
   lista_mestra_internos: { id: "lista_mestra_internos", label: "Documentos Internos" },
   lista_mestra_externos: { id: "lista_mestra_externos", label: "Documentos Externos" },
   lista_mestra_revisoes: { id: "lista_mestra_revisoes", label: "Histórico de Revisões" },
@@ -28,6 +29,12 @@ const FOLDER_MODES = {
     richEditor: true,
     purchaseOrders: true,
     quotationRequests: true,
+  },
+  "pr-7-1": {
+    sections: ["procedimento", "propostas_comerciais"],
+    defaultSection: "procedimento",
+    richEditor: true,
+    commercialProposals: true,
   },
   "pr-6-2": {
     sections: ["procedimento", "registro"],
@@ -69,6 +76,7 @@ export function getFolderDocumentMode(requirementId, folderKey) {
     if (
       rid === "5"
       || (rid === "6" && (folderKey === "pr-6-6" || folderKey === "pr-6-2"))
+      || (rid === "7" && folderKey === "pr-7-1")
       || (rid === "8" && folderKey === "pr-8-3")
     ) {
       return { ...FOLDER_MODES[folderKey] };
@@ -83,6 +91,10 @@ export function isPurchaseOrdersFolder(requirementId, folderKey) {
 
 export function isQuotationRequestsFolder(requirementId, folderKey) {
   return String(requirementId) === "6" && folderKey === "pr-6-6";
+}
+
+export function isCommercialProposalsFolder(requirementId, folderKey) {
+  return String(requirementId) === "7" && folderKey === "pr-7-1";
 }
 
 export function getVisibleSections(requirementId, folderKey) {

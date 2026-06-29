@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
@@ -28,6 +28,7 @@ const ColetaForm = lazy(() => import("@/components/coleta/ColetaForm"));
 const ColetaEditorPage = () => {
   const { id } = useParams();
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
   // Rota dedicada /coleta/nova não expõe :id — detectar pelo path
   const isNew = id === "nova" || pathname.endsWith("/coleta/nova");
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ const ColetaEditorPage = () => {
 
   const [payload, setPayload] = useState(() => emptyColetaPayload());
   const [commercialProposalRef, setCommercialProposalRef] = useState("");
+  const [commercialProposalId, setCommercialProposalId] = useState(null);
+  const [commercialProposalScaleId, setCommercialProposalScaleId] = useState(null);
   const [workflowStatus, setWorkflowStatus] = useState("rascunho");
   const [certificateId, setCertificateId] = useState(null);
   const [certType, setCertType] = useState("rastreavel");
@@ -92,6 +95,37 @@ const ColetaEditorPage = () => {
 
   const load = useCallback(async () => {
     if (isNew) {
+      const fromScale = searchParams.get("fromProposalScale");
+      if (fromScale && currentTenantId) {
+        try {
+          const { data: scaleRow } = await supabase
+            .from("commercial_proposal_scales")
+            .select("*, proposal:proposal_id(*)")
+            .eq("id", fromScale)
+            .maybeSingle();
+          if (scaleRow?.proposal) {
+            const { data: points } = await supabase
+              .from("commercial_proposal_calibration_points")
+              .select("*")
+              .eq("scale_id", scaleRow.id)
+              .order("point_number");
+            const { buildColetaPayloadFromProposalScale } = await import(
+              "@/lib/commercialProposals/commercialProposalToColeta"
+            );
+            const { formatProposalRef } = await import("@/lib/commercialProposals/commercialProposalSchema");
+            const prefill = buildColetaPayloadFromProposalScale(
+              { ...scaleRow.proposal, scales: [{ ...scaleRow, calibration_points: points || [] }] },
+              { ...scaleRow, calibration_points: points || [] },
+            );
+            setPayload(mergeColetaPayload(prefill));
+            setCommercialProposalRef(formatProposalRef(scaleRow.proposal.proposal_number, scaleRow.proposal.proposal_year));
+            setCommercialProposalId(scaleRow.proposal.id);
+            setCommercialProposalScaleId(scaleRow.id);
+          }
+        } catch {
+          /* prefill opcional */
+        }
+      }
       setLoading(false);
       return;
     }
@@ -122,12 +156,14 @@ const ColetaEditorPage = () => {
       }
       setPayload(mergeColetaPayload(data.payload));
       setCommercialProposalRef(data.commercial_proposal_ref || "");
+      setCommercialProposalId(data.commercial_proposal_id || null);
+      setCommercialProposalScaleId(data.commercial_proposal_scale_id || null);
       setWorkflowStatus(data.workflow_status || "rascunho");
       setCertificateId(data.certificate_id || null);
     } finally {
       setLoading(false);
     }
-  }, [id, isNew, currentTenantId, user?.role, navigate]);
+  }, [id, isNew, currentTenantId, user?.role, navigate, searchParams]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadCerts(); }, [loadCerts]);
@@ -148,6 +184,8 @@ const ColetaEditorPage = () => {
     return {
       tenant_id: currentTenantId,
       commercial_proposal_ref: denorm.commercial_proposal_ref,
+      commercial_proposal_id: commercialProposalId || null,
+      commercial_proposal_scale_id: commercialProposalScaleId || null,
       payload: denorm.payload,
       client_name: denorm.client_name,
       responsible_name: denorm.responsible_name,
@@ -349,6 +387,7 @@ const ColetaEditorPage = () => {
           onChange={setPayload}
           commercialProposalRef={commercialProposalRef}
           onProposalChange={setCommercialProposalRef}
+          linkedProposalId={commercialProposalId}
           weightItems={weightItems}
           envCerts={envCerts}
           endCustomers={endCustomers}

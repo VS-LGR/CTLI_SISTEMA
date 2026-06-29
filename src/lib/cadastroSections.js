@@ -11,6 +11,7 @@ export const CADASTRO_SECTIONS = [
   { id: "balancas", label: "Balanças" },
   { id: "thermo", label: "Termo-baro-higrômetro" },
   { id: "config-coleta", label: "Config. RE-7.2A", roles: ["admin", "client"] },
+  { id: "config-proposta", label: "Config. RE-7.1A", roles: ["admin", "client"] },
   { id: "tecnicos", label: "Técnicos de campo", techniciansOnly: true },
 ];
 

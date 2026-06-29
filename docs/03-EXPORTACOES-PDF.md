@@ -30,6 +30,7 @@ O **conteúdo** de cada documento (tabelas, secções, dados do registro) perman
 | Coleta RE-7.2A | `ColetaPage` / `ColetaEditorPage` — menu export | PDF + TXT (VBA) |
 | Pedido de compra | Lista + editor | PDF |
 | Solicitação orçamento | Lista + editor | PDF |
+| Proposta comercial RE-7.1A | Lista + editor | PDF |
 | Cadastros | Botão «Baixar certificados vigentes» | PDF relatório |
 | Documentos QMS | `DocumentEditor` / cartão em `RequirementView` | PDF (+ DOCX à parte) |
 
@@ -88,6 +89,7 @@ flowchart TB
 | Coleta | `coletaExport.js` | `coletaPdf/viewModel.js` | `coletaPdf/drawColetaPdf.js` | `coleta-{slug}.pdf` | Custom: proposta + título + codeLine |
 | Pedido compra | `pedidosCompraExport.js` | `pedidoCompraPdf/viewModel.js` | `pedidoCompraPdf/drawPedidoCompraPdf.js` | `pedido-{num}.pdf` | `drawInstitutionalPdfHeaderWithCenterLines` |
 | Orçamento | `quotationRequestsExport.js` | `quotationRequestPdf/viewModel.js` | `quotationRequestPdf/drawQuotationRequestPdf.js` | `solicitacao-orcamento-{num}.pdf` | Idem + DATA e Nº |
+| Proposta comercial | `commercialProposalsExport.js` | `commercialProposalPdf/viewModel.js` | `commercialProposalPdf/drawCommercialProposalPdf.js` | `proposta-{num}.pdf` | `drawInstitutionalPdfHeaderWithCenterLines` |
 | Cadastro certs | `cadastroPdf.js` | inline (sem pasta viewModel) | autoTable landscape | `certificados-*-vigentes-{data}.pdf` | `drawInstitutionalReportHeader` |
 | Documento Supabase | `documentsApi.exportDocumentBlob` → `documentExport.js` | `doc` record | html2canvas + overlay jsPDF | blob → download | `drawDocumentPdfPageHeader` |
 

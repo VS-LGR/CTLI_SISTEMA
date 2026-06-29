@@ -67,6 +67,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
 import { jobLabel } from "@/lib/cadastroConstants";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
 
 function certificatePointDisplay(cert, point) {
   const balance = cert?.balance_snapshot || {};
@@ -99,6 +100,8 @@ export default function CertificateEditorPage() {
   const [weightItems, setWeightItems] = useState([]);
   const [weightCerts, setWeightCerts] = useState([]);
   const [scales, setScales] = useState([]);
+  const [endCustomers, setEndCustomers] = useState([]);
+  const [savingScale, setSavingScale] = useState(false);
   const [showCalcTrace, setShowCalcTrace] = useState(() => {
     try {
       return localStorage.getItem("certEditorShowCalcTrace") === "1";
@@ -141,10 +144,12 @@ export default function CertificateEditorPage() {
       supabase.from("standard_weight_items").select("*").eq("tenant_id", currentTenantId).eq("active", true).order("identification"),
       supabase.from("weight_standard_certificates").select("*").eq("tenant_id", currentTenantId),
       supabase.from("scale_registrations").select("*").eq("tenant_id", currentTenantId).eq("active", true).order("serial_number"),
-    ]).then(([w, c, s]) => {
+      supabase.from("end_customer_registrations").select("*").eq("tenant_id", currentTenantId).order("name"),
+    ]).then(([w, c, s, ec]) => {
       if (!w.error) setWeightItems(w.data || []);
       if (!c.error) setWeightCerts(c.data || []);
       if (!s.error) setScales(s.data || []);
+      if (!ec.error) setEndCustomers(ec.data || []);
     });
   }, [currentTenantId]);
 
@@ -174,6 +179,36 @@ export default function CertificateEditorPage() {
   const executors = employees.filter((e) => ["tecnico_em_balancas", "gerente_tecnico", "signatario"].includes(e.job_role));
 
   const patch = (fields) => setCert((c) => ({ ...c, ...fields }));
+
+  const registerManualScale = async () => {
+    if (!cert.end_customer_id) {
+      toast.error("Selecione o cliente do ambiente para vincular a balança");
+      return;
+    }
+    const snap = cert.balance_snapshot || {};
+    setSavingScale(true);
+    try {
+      const saved = await createScaleRegistrationFromBalance({
+        tenantId: currentTenantId,
+        endCustomerId: cert.end_customer_id,
+        balanca: { ...snap, serie: cert.scale_serial || snap.serie || "" },
+        legalMetrology: Boolean(cert.conformity?.legal_metrology_applicable),
+      });
+      setScales((prev) => [...prev, saved]);
+      const mergedSnap = { ...snap, ...balanceSnapshotFromScaleRegistration(saved) };
+      setCert((c) => ({
+        ...c,
+        scale_registration_id: saved.id,
+        scale_serial: saved.serial_number || c.scale_serial,
+        balance_snapshot: mergedSnap,
+      }));
+      toast.success("Balança cadastrada e vinculada ao cliente");
+    } catch (e) {
+      toast.error(e.message || "Falha ao cadastrar balança");
+    } finally {
+      setSavingScale(false);
+    }
+  };
 
   const patchPoint = (pointId, fields) => {
     setCert((c) => ({
@@ -214,6 +249,7 @@ export default function CertificateEditorPage() {
         calibration_location: cert.calibration_location,
         ...(isStandalone ? {
           client_name: cert.client_name,
+          end_customer_id: cert.end_customer_id || null,
           scale_serial: cert.scale_serial,
           scale_registration_id: cert.scale_registration_id || null,
           balance_snapshot: cert.balance_snapshot,
@@ -558,12 +594,32 @@ export default function CertificateEditorPage() {
               </div>
               <div>
                 <Label>Cliente</Label>
-                <Input
-                  className="mt-1 h-10"
-                  value={cert.client_name}
-                  disabled={!editable || !isStandalone}
-                  onChange={(e) => patch({ client_name: e.target.value })}
-                />
+                {isStandalone && editable ? (
+                  <Select
+                    value={cert.end_customer_id || ""}
+                    onValueChange={(customerId) => {
+                      const c = endCustomers.find((x) => x.id === customerId);
+                      patch({
+                        end_customer_id: customerId || null,
+                        client_name: c?.name || cert.client_name,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="h-10 mt-1"><SelectValue placeholder={cert.client_name || "Selecionar cliente"} /></SelectTrigger>
+                    <SelectContent>
+                      {endCustomers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    className="mt-1 h-10"
+                    value={cert.client_name}
+                    disabled={!editable || !isStandalone}
+                    onChange={(e) => patch({ client_name: e.target.value })}
+                  />
+                )}
               </div>
               <div>
                 <Label>Série</Label>
@@ -611,6 +667,23 @@ export default function CertificateEditorPage() {
                   </Select>
                   {!scales.length && (
                     <p className="text-xs text-amber-700 mt-1">Cadastre balanças em Cadastros → Balanças para selecionar aqui.</p>
+                  )}
+                  {!cert.scale_registration_id && (
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={savingScale}
+                        onClick={registerManualScale}
+                      >
+                        <FloppyDisk size={16} className="mr-1.5" />
+                        {savingScale ? "A cadastrar…" : "Cadastrar balança no cliente"}
+                      </Button>
+                      {!cert.end_customer_id && (
+                        <p className="text-xs text-amber-700 mt-1">Selecione o cliente do ambiente para cadastrar a balança.</p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

@@ -15,7 +15,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals } from "@/lib/roles";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -261,6 +261,7 @@ const Layout = () => {
                       canCalibrationCertificates: canAccessCalibrationCertificates(user?.role),
                       canPersonnelStandardOptions: canEditPersonnelStandardOptions(user?.role),
                       canMasterDocuments: canAccessMasterDocuments(user?.role),
+                      canCommercialProposals: canAccessCommercialProposals(user?.role),
                     };
                     const sidebarItems = buildFolderSidebarNav(r.id, f, navOpts);
                     const hasSidebar = folderHasSidebarNav(r.id, f);

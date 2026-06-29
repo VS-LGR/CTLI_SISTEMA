@@ -19,6 +19,7 @@ Cada módulo descreve **utilização** (manual operacional) e **referência téc
 | [06-PEDIDOS-ORCAMENTOS.md](./06-PEDIDOS-ORCAMENTOS.md) | PR-6.6 Compras | Pedidos de compra + solicitações de orçamento |
 | [07-CADASTROS.md](./07-CADASTROS.md) | Cadastros | Dados mestres, certificados, config coleta |
 | [08-DASHBOARD-ADMIN.md](./08-DASHBOARD-ADMIN.md) | Dashboard e Admin | Atalhos, lembretes, backup, AdminClients |
+| [09-PROPOSTA-COMERCIAL.md](./09-PROPOSTA-COMERCIAL.md) | PR-7.1 Proposta | RE-7.1A, multi-balança, PDF, coleta |
 
 ### Documentação legada (referência)
 

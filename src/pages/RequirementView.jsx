@@ -16,10 +16,12 @@ import {
   isFileOnlyFolder,
   allowsRichEditor,
   isPurchaseOrdersFolder,
+  isCommercialProposalsFolder,
   isMasterDocumentListFolder,
 } from "@/lib/documentFolderConfig";
 import PurchaseOrdersListPanel from "@/components/purchaseOrders/PurchaseOrdersListPanel";
 import QuotationRequestsListPanel from "@/components/quotationRequests/QuotationRequestsListPanel";
+import CommercialProposalsListPanel from "@/components/commercialProposals/CommercialProposalsListPanel";
 import {
   listDocuments,
   createDocument,
@@ -522,8 +524,9 @@ const RequirementView = () => {
   const fileOnly = isFileOnlyFolder(id, folderKey);
   const purchaseOrdersTab = isPurchaseOrdersFolder(id, folderKey) && section === "pedidos_compra";
   const quotationRequestsTab = isPurchaseOrdersFolder(id, folderKey) && section === "solicitacoes_orcamento";
+  const commercialProposalsTab = isCommercialProposalsFolder(id, folderKey) && section === "propostas_comerciais";
   const masterDocumentTab = isMasterDocumentListFolder(id, folderKey) && section.startsWith("lista_mestra_");
-  const moduleTab = purchaseOrdersTab || quotationRequestsTab || masterDocumentTab;
+  const moduleTab = purchaseOrdersTab || quotationRequestsTab || commercialProposalsTab || masterDocumentTab;
   const variant = status === "vigente" ? "vigente" : "obsoleto";
   const currentSectionMeta = visibleSections.find((s) => s.id === section);
 
@@ -615,6 +618,8 @@ const RequirementView = () => {
             <PurchaseOrdersListPanel tenantId={currentTenantId} tenant={currentTenant} />
           ) : quotationRequestsTab ? (
             <QuotationRequestsListPanel tenantId={currentTenantId} tenant={currentTenant} />
+          ) : commercialProposalsTab ? (
+            <CommercialProposalsListPanel tenantId={currentTenantId} tenant={currentTenant} />
           ) : isColetaRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta…</div>}>
               <ColetaPage embedded />

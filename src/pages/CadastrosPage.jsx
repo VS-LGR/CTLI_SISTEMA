@@ -5,6 +5,7 @@ import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
 import ScaleRegistrationSection from "@/components/cadastros/ScaleRegistrationSection";
 import ColetaTenantConfig from "@/components/cadastros/ColetaTenantConfig";
+import CommercialProposalTenantConfig from "@/components/cadastros/CommercialProposalTenantConfig";
 import { cadastroSectionPath, getCadastroSectionLabel, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
@@ -225,6 +226,9 @@ const CadastrosPage = () => {
         )}
         {activeSection === "config-coleta" && (
           <ColetaTenantConfig tenantId={currentTenantId} tenant={currentTenant} onSaved={() => reloadTenants?.()} />
+        )}
+        {activeSection === "config-proposta" && (
+          <CommercialProposalTenantConfig tenantId={currentTenantId} tenant={currentTenant} onSaved={() => reloadTenants?.()} />
         )}
         {activeSection === "tecnicos" && <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />}
       </div>

@@ -51,6 +51,9 @@ export const canAccessPurchaseOrders = (role) =>
 /** Solicitações de orçamento — mesmos papéis que pedidos de compra. */
 export const canAccessQuotationRequests = canAccessPurchaseOrders;
 
+/** Propostas comerciais RE-7.1A — mesmos papéis que pedidos de compra. */
+export const canAccessCommercialProposals = canAccessPurchaseOrders;
+
 /** Módulo 6.2 Pessoal — mesmos papéis que pedidos de compra. */
 export const canAccessPersonnel = canAccessPurchaseOrders;
 

@@ -1,8 +1,9 @@
-import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessMasterDocuments } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessCommercialProposals, canAccessMasterDocuments } from "@/lib/roles";
 import { getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { PR_66_PEDIDOS_PATH } from "@/lib/pedidosCompraRoutes";
 import { PR_66_QUOTATION_PATH } from "@/lib/quotationRequestsRoutes";
+import { PR_71_PROPOSAL_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 
 /** Atalhos da dashboard — atualizar `to` e `enabled` quando rotas forem definidas. */
@@ -14,7 +15,7 @@ export const DASHBOARD_SHORTCUTS = [
     enabled: true,
     requiresColeta: true,
   },
-  { id: "propostas", label: "Propostas", enabled: false },
+  { id: "propostas", label: "Propostas", to: PR_71_PROPOSAL_PATH, enabled: true, requiresCommercialProposals: true },
   {
     id: "pedidos-compra",
     label: "Pedidos de Compra",
@@ -95,6 +96,15 @@ export function getVisibleDashboardShortcuts(role) {
         label: item.label,
         active: false,
         disabledReason: "Sem permissão para solicitações de orçamento",
+      };
+    }
+
+    if (item.requiresCommercialProposals && !canAccessCommercialProposals(role)) {
+      return {
+        id: item.id,
+        label: item.label,
+        active: false,
+        disabledReason: "Sem permissão para propostas comerciais",
       };
     }
 

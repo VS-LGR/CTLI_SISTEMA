@@ -96,7 +96,7 @@ flowchart TB
 | solicitacao-orcamento | PR-6.6 orçamentos | `canAccessQuotationRequests` |
 | termo-baro-higro | `/cadastros/thermo` | secção visível |
 | pesos-padrao | `/cadastros/pesos` | secção visível |
-| propostas | — | `enabled: false` (futuro) |
+| propostas | `/requirement/7/pr-7-1?tab=propostas_comerciais` | `enabled: true` |
 
 ### Ficheiros backup e admin
 

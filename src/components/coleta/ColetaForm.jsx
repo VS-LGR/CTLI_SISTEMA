@@ -17,6 +17,7 @@ import {
   nominalFromWeightIds,
 } from "@/lib/coletaSchema";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
+import { proposalEditorPath } from "@/lib/commercialProposals/commercialProposalRoutes";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
 import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
 import CalibracaoOrdemTooltip from "@/components/coleta/CalibracaoOrdemTooltip";
@@ -71,6 +72,7 @@ export default function ColetaForm({
   onChange,
   commercialProposalRef,
   onProposalChange,
+  linkedProposalId = null,
   weightItems = [],
   envCerts = [],
   endCustomers = [],
@@ -133,12 +135,21 @@ export default function ColetaForm({
     <div className="space-y-6">
       <div className="rounded-lg border bg-slate-50 px-4 py-3 text-center">
         <p className="text-xs text-slate-600">Referente à Proposta Comercial:</p>
-        <Input
-          value={commercialProposalRef}
-          onChange={(e) => onProposalChange(e.target.value)}
-          className="mt-1 max-w-md mx-auto text-center"
-          placeholder="Nº / referência da proposta"
-        />
+        {linkedProposalId ? (
+          <div className="mt-1 space-y-1">
+            <p className="font-mono text-sm font-semibold">{commercialProposalRef || "—"}</p>
+            <Link to={proposalEditorPath(linkedProposalId)} className="text-xs text-blue-600 hover:underline">
+              Ver proposta vinculada
+            </Link>
+          </div>
+        ) : (
+          <Input
+            value={commercialProposalRef}
+            onChange={(e) => onProposalChange(e.target.value)}
+            className="mt-1 max-w-md mx-auto text-center"
+            placeholder="Nº / referência da proposta"
+          />
+        )}
         <p className="text-sm font-semibold mt-2">COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA</p>
         <p className="text-xs text-slate-500">Cód. RE-7.2A  Ref. PR-7.2  Rev.03 de 14/05/2026</p>
       </div>

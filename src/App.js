@@ -6,13 +6,14 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
-import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, canAccessMasterDocuments, canAccessCalibrationCertificates, isTechnicianOnlyNav } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, isTechnicianOnlyNav } from "@/lib/roles";
 import { PERSONNEL_BASE_PATH, PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
 import { PERSONNEL_DASHBOARD_PATH } from "@/lib/personnelRegistrosRoutes";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH, certificateEditorPath, isCertificatePath, isPr72ModulePath } from "@/lib/certificateRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
+import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 import "@/App.css";
 
@@ -31,6 +32,8 @@ const PedidosCompraPage = lazy(() => import("@/pages/PedidosCompraPage"));
 const PedidoCompraEditorPage = lazy(() => import("@/pages/PedidoCompraEditorPage"));
 const QuotationRequestsPage = lazy(() => import("@/pages/QuotationRequestsPage"));
 const QuotationRequestEditorPage = lazy(() => import("@/pages/QuotationRequestEditorPage"));
+const CommercialProposalsPage = lazy(() => import("@/pages/CommercialProposalsPage"));
+const CommercialProposalEditorPage = lazy(() => import("@/pages/CommercialProposalEditorPage"));
 const PersonnelPage = lazy(() => import("@/pages/PersonnelPage"));
 const PositionEditorPage = lazy(() => import("@/pages/PositionEditorPage"));
 const CompetencyAdequacyEditorPage = lazy(() => import("@/pages/CompetencyAdequacyEditorPage"));
@@ -50,7 +53,7 @@ const ColetaLegacyRedirect = () => {
   return <Navigate to={coletaEditorPath(id)} replace />;
 };
 
-const Protected = ({ children, adminOnly = false, coletaOnly = false, certificatesOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false, personnelOnly = false, masterDocumentsOnly = false }) => {
+const Protected = ({ children, adminOnly = false, coletaOnly = false, certificatesOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false, commercialProposalsOnly = false, personnelOnly = false, masterDocumentsOnly = false }) => {
   const { user } = useAuth();
   const loc = useLocation();
   if (user === null) {
@@ -72,6 +75,9 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, certificat
     return <Navigate to="/dashboard" replace />;
   }
   if (quotationRequestsOnly && !canAccessQuotationRequests(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (commercialProposalsOnly && !canAccessCommercialProposals(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (personnelOnly && !canAccessPersonnel(user.role)) {
@@ -213,6 +219,26 @@ const App = () => (
                 <Protected quotationRequestsOnly>
                   <Suspense fallback={pageSuspenseFallback}>
                     <QuotationRequestEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path={PROPOSAL_LIST_PATH}
+              element={(
+                <Protected commercialProposalsOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <CommercialProposalsPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path={`${PROPOSAL_LIST_PATH}/:id`}
+              element={(
+                <Protected commercialProposalsOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <CommercialProposalEditorPage />
                   </Suspense>
                 </Protected>
               )}

@@ -3,15 +3,19 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { emptyColetaPayload } from "@/lib/coletaSchema";
+import { emptyColetaPayload, UNIDADE_OPTIONS, TIPO_BALANCA_OPTIONS, TIPO_PLATAFORMA_OPTIONS } from "@/lib/coletaSchema";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
 import { calculateAirDensityFromEnvironmental, formatAirDensityDisplay } from "@/lib/certificateCalculations/environmentalCalculations";
 import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
 import {
   coletaPointToPanelPoint,
   panelPointToColetaPoint,
 } from "@/lib/calibrationCertificates/certificatePointUtils";
+import { toast } from "sonner";
+import { FloppyDisk } from "@phosphor-icons/react";
 
 const POINT_COUNT = 10;
 
@@ -32,6 +36,8 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
   const [calibrationDate, setCalibrationDate] = useState(todayIso());
   const [executorId, setExecutorId] = useState("");
   const [legalMetrology, setLegalMetrology] = useState(false);
+  const [registerScaleForFuture, setRegisterScaleForFuture] = useState(false);
+  const [savingScale, setSavingScale] = useState(false);
   const [payload, setPayload] = useState(() => {
     const p = emptyColetaPayload();
     p.calibracao.pontos = p.calibracao.pontos.slice(0, POINT_COUNT);
@@ -82,6 +88,9 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
   }, [scaleId, scales]);
 
   const setAmbiente = (k, v) => setPayload((p) => ({ ...p, ambiente: { ...p.ambiente, [k]: v } }));
+  const setBalanca = (k, v) => setPayload((p) => ({ ...p, balanca: { ...p.balanca, [k]: v } }));
+
+  const isManualBalance = !scaleId;
 
   const calculatedAirDensity = calculateAirDensityFromEnvironmental({
     initial_temperature: payload.ambiente.temp_inicial,
@@ -113,13 +122,46 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
     });
   };
 
-  const handleSubmit = () => {
+  const persistManualScale = async () => {
+    const balanca = {
+      ...payload.balanca,
+      portaria_inmetro: legalMetrology ? (payload.balanca.portaria_inmetro || "aplicável") : payload.balanca.portaria_inmetro,
+    };
+    setSavingScale(true);
+    try {
+      const saved = await createScaleRegistrationFromBalance({
+        tenantId,
+        endCustomerId,
+        balanca,
+        legalMetrology,
+      });
+      setScales((prev) => [...prev, saved]);
+      setScaleId(saved.id);
+      setRegisterScaleForFuture(false);
+      toast.success("Balança cadastrada e vinculada ao cliente");
+      return saved.id;
+    } catch (e) {
+      toast.error(e.message || "Falha ao cadastrar balança");
+      return null;
+    } finally {
+      setSavingScale(false);
+    }
+  };
+
+  const handleSubmit = async () => {
     const customer = endCustomers.find((c) => c.id === endCustomerId);
     const executor = employees.find((e) => e.id === executorId);
     const balanca = {
       ...payload.balanca,
       portaria_inmetro: legalMetrology ? (payload.balanca.portaria_inmetro || "aplicável") : payload.balanca.portaria_inmetro,
     };
+
+    let registrationId = scaleId || null;
+    if (!registrationId && registerScaleForFuture) {
+      registrationId = await persistManualScale();
+      if (!registrationId) return;
+    }
+
     onSubmit({
       certificateType: certType,
       payload: {
@@ -134,7 +176,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
       endCustomerId: endCustomerId || null,
       clientName: customer?.name || payload.cliente.cliente,
       scaleSerial: payload.balanca.serie,
-      scaleRegistrationId: scaleId || null,
+      scaleRegistrationId: registrationId,
       calibrationDate,
       executorId: executorId || null,
       executorName: executor?.full_name || "",
@@ -158,7 +200,14 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
             </div>
             <div>
               <Label>Balança (cadastro)</Label>
-              <select value={scaleId} onChange={(e) => setScaleId(e.target.value)} className="w-full border rounded-md h-10 px-2 text-sm mt-1">
+              <select
+                value={scaleId}
+                onChange={(e) => {
+                  setScaleId(e.target.value);
+                  if (!e.target.value) setRegisterScaleForFuture(false);
+                }}
+                className="w-full border rounded-md h-10 px-2 text-sm mt-1"
+              >
                 <option value="">— Preencher manualmente —</option>
                 {scalesForCustomer.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -167,10 +216,9 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                 ))}
               </select>
               {!scales.length && (
-                <p className="text-xs text-amber-700 mt-1">Nenhuma balança cadastrada. Cadastre em Cadastros → Balanças ou preencha os campos abaixo.</p>
+                <p className="text-xs text-amber-700 mt-1">Nenhuma balança cadastrada. Preencha os campos abaixo ou cadastre em Cadastros → Balanças.</p>
               )}
             </div>
-            <div><Label>Nº série</Label><Input value={payload.balanca.serie} onChange={(e) => setPayload((p) => ({ ...p, balanca: { ...p.balanca, serie: e.target.value } }))} className="mt-1" /></div>
             <div><Label>Data calibração</Label><Input type="date" value={calibrationDate} onChange={(e) => setCalibrationDate(e.target.value)} className="mt-1" /></div>
             <div>
               <Label>Executor</Label>
@@ -179,8 +227,107 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                 {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
               </select>
             </div>
-            <div><Label>Local</Label><Input value={payload.balanca.local} onChange={(e) => setPayload((p) => ({ ...p, balanca: { ...p.balanca, local: e.target.value } }))} className="mt-1" /></div>
           </div>
+
+          {isManualBalance && (
+            <div className="pt-3 border-t border-slate-100 space-y-3">
+              <p className="text-sm font-semibold text-slate-800">Dados da balança (preenchimento manual)</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  ["Fabricante", "fabricante"],
+                  ["Modelo", "modelo"],
+                  ["Nº de série", "serie"],
+                  ["Tag / Código interno", "tag"],
+                  ["Local da calibração", "local"],
+                  ["Etiqueta IPEM", "etiqueta_ipem"],
+                  ["Portaria INMETRO", "portaria_inmetro"],
+                ].map(([lbl, key]) => (
+                  <div key={key}>
+                    <Label className="text-xs">{lbl}</Label>
+                    <Input
+                      value={payload.balanca[key] || ""}
+                      onChange={(e) => setBalanca(key, e.target.value)}
+                      className="mt-1 h-9"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-12 gap-3 items-end">
+                <div className="col-span-12 sm:col-span-5">
+                  <Label className="text-xs">Capacidade</Label>
+                  <Input value={payload.balanca.capacidade || ""} onChange={(e) => setBalanca("capacidade", e.target.value)} className="mt-1 h-9" />
+                </div>
+                <div className="col-span-12 sm:col-span-5">
+                  <Label className="text-xs">Resolução</Label>
+                  <Input value={payload.balanca.resolucao || ""} onChange={(e) => setBalanca("resolucao", e.target.value)} className="mt-1 h-9" />
+                </div>
+                <div className="col-span-12 sm:col-span-2">
+                  <Label className="text-xs">Unidade</Label>
+                  <select
+                    value={payload.balanca.unidade || "g"}
+                    onChange={(e) => setBalanca("unidade", e.target.value)}
+                    className="w-full border rounded-md h-9 px-2 text-sm mt-1"
+                  >
+                    {UNIDADE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Tipo de balança</Label>
+                  <select
+                    value={payload.balanca.tipo_balanca || ""}
+                    onChange={(e) => setBalanca("tipo_balanca", e.target.value)}
+                    className="w-full border rounded-md h-9 px-2 text-sm mt-1"
+                  >
+                    <option value="">—</option>
+                    {TIPO_BALANCA_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Tipo de plataforma</Label>
+                  <select
+                    value={payload.balanca.tipo_plataforma || ""}
+                    onChange={(e) => setBalanca("tipo_plataforma", e.target.value)}
+                    className="w-full border rounded-md h-9 px-2 text-sm mt-1"
+                  >
+                    <option value="">—</option>
+                    {TIPO_PLATAFORMA_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {endCustomerId ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-3">
+                  <label className="flex items-start gap-2 cursor-pointer text-sm text-slate-700">
+                    <Checkbox
+                      checked={registerScaleForFuture}
+                      onCheckedChange={(v) => setRegisterScaleForFuture(Boolean(v))}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      Cadastrar esta balança no cadastro do cliente para uso futuro
+                      <span className="block text-xs text-slate-500 mt-0.5">
+                        Ao criar o certificado, a balança ficará disponível na lista de cadastro deste cliente.
+                      </span>
+                    </span>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={savingScale || submitting}
+                    onClick={persistManualScale}
+                  >
+                    <FloppyDisk size={16} className="mr-1.5" />
+                    {savingScale ? "A cadastrar…" : "Cadastrar balança agora"}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-amber-700">Selecione um cliente para poder cadastrar a balança para uso futuro.</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

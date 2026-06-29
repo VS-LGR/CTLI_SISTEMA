@@ -5,6 +5,7 @@
 
 import { COLETA_LIST_PATH, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "./coletaRoutes";
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "./certificateRoutes";
+import { PROPOSAL_LIST_PATH } from "./commercialProposals/commercialProposalRoutes";
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 import { LISTA_MESTRA_PATH } from "./masterDocuments/masterDocumentRoutes";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
@@ -57,7 +58,16 @@ const FOLDERS = {
     { folderKey: "pr-6-6", label: "PR-6.6 Produtos e Serviços Providos Externamente" },
   ],
   "7": [
-    { folderKey: "pr-7-1", label: "PR-7.1 Análise Crítica de Pedidos, Propostas e Contratos" },
+    { folderKey: "pr-7-1", label: "PR-7.1 Análise Crítica de Pedidos, Propostas e Contratos",
+      children: [
+        {
+          key: "propostas",
+          label: "Propostas Comerciais (RE-7.1A)",
+          to: PROPOSAL_LIST_PATH,
+          requiresCommercialProposals: true,
+        },
+      ],
+    },
     { folderKey: "pr-7-1-7", label: "PR-7.1.7 Atendimento ao Cliente" },
     { folderKey: "pr-7-10", label: "PR-7.10 Trabalho Não Conforme" },
     { folderKey: "pr-7-11", label: "PR-7.11 Controle de Dados e Gestão da Informação" },
@@ -117,19 +127,20 @@ export function getFoldersForRequirement(requirementId) {
 }
 
 /** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2, listas em PR-6.2). */
-export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false } = {}) {
+export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false, canCommercialProposals = false } = {}) {
   const list = folder?.children || [];
   return list.filter((c) => {
     if (c.requiresColeta && !canColeta) return false;
     if (c.requiresCalibrationCertificates && !canCalibrationCertificates) return false;
     if (c.requiresPersonnelStandardOptions && !canPersonnelStandardOptions) return false;
     if (c.requiresMasterDocuments && !canMasterDocuments) return false;
+    if (c.requiresCommercialProposals && !canCommercialProposals) return false;
     return true;
   });
 }
 
 /** Itens de sidebar: secções da pasta (Procedimentos, Registros, …) + extras configurados. */
-export function buildFolderSidebarNav(requirementId, folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false } = {}) {
+export function buildFolderSidebarNav(requirementId, folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false, canCommercialProposals = false } = {}) {
   const rid = String(requirementId);
   const fk = folder?.folderKey;
   if (!fk) return [];
@@ -147,7 +158,7 @@ export function buildFolderSidebarNav(requirementId, folder, { canColeta = false
     folderDefaultSection: mode.defaultSection,
   }));
 
-  const extras = getFolderNavChildren(folder, { canColeta, canPersonnelStandardOptions, canMasterDocuments, canCalibrationCertificates });
+  const extras = getFolderNavChildren(folder, { canColeta, canPersonnelStandardOptions, canMasterDocuments, canCalibrationCertificates, canCommercialProposals });
   return [...sectionItems, ...extras];
 }
 
