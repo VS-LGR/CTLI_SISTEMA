@@ -18,6 +18,7 @@ import {
   syncEccValorAplicado,
   sanitizeMassNumericInput,
 } from "@/lib/coletaSchema";
+import { describeWeightComposition } from "@/lib/certificateCalculations/pointCalculations";
 import MassValueField from "@/components/forms/MassValueField";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import { proposalEditorPath } from "@/lib/commercialProposals/commercialProposalRoutes";
@@ -153,7 +154,17 @@ export default function ColetaForm({
 
   const setCalPontoPesos = (idx, ids) => {
     const pontos = [...payload.calibracao.pontos];
-    pontos[idx] = { ...pontos[idx], pesos_padrao_ids: ids };
+    const pt = { ...pontos[idx], pesos_padrao_ids: ids };
+    const comp = describeWeightComposition(ids, weightItems, { targetUnit: defaultUnit });
+    if (comp.valid && comp.total != null) {
+      const valorStr = String(comp.total).replace(".", ",");
+      pontos[idx] = syncCalPointNominal(
+        { ...pt, peso_nominal_valor: valorStr, peso_nominal_unidade: defaultUnit },
+        defaultUnit,
+      );
+    } else {
+      pontos[idx] = pt;
+    }
     onChange({ ...payload, calibracao: { ...payload.calibracao, pontos } });
   };
 
@@ -505,6 +516,7 @@ export default function ColetaForm({
                     weightItems={weightItems}
                     value={pt.pesos_padrao_ids || []}
                     onChange={(ids) => setCalPontoPesos(i, ids)}
+                    unit={pt.peso_nominal_unidade || defaultUnit}
                   />
                 </Field>
               </FormRowCard>
@@ -557,6 +569,7 @@ export default function ColetaForm({
                       weightItems={weightItems}
                       value={pt.pesos_padrao_ids || []}
                       onChange={(ids) => setCalPontoPesos(i, ids)}
+                      unit={pt.peso_nominal_unidade || defaultUnit}
                     />
                   </td>
                 </tr>

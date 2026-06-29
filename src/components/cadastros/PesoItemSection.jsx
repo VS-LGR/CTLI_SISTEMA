@@ -20,6 +20,10 @@ import {
   formatWeightStatus,
   driftFromWeightItem,
 } from "@/lib/standardWeightCalculations";
+import {
+  oimlNominalHint,
+  oimlNominalOptionsForUnit,
+} from "@/lib/oimlR111NominalValues";
 
 const WEIGHT_STATUS_OPTIONS = [
   { value: "", label: "—" },
@@ -56,6 +60,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     }),
     [weightStatus, expandedUncertainty, conventionalValue, previousConventionalValue],
   );
+
+  const oimlNominalOptions = useMemo(() => oimlNominalOptionsForUnit(unit), [unit]);
+  const oimlHint = useMemo(() => oimlNominalHint(nominalValue, unit), [nominalValue, unit]);
 
   const filtered = useMemo(
     () => filterCadastroByQuery(rows, query, (r) => [
@@ -259,7 +266,21 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>V.N (valor nominal)</Label>
-                  <Input inputMode="decimal" value={nominalValue} onChange={(e) => setNominalValue(sanitizeMassNumericInput(e.target.value))} />
+                  <Input
+                    inputMode="decimal"
+                    list="oiml-nominal-values"
+                    value={nominalValue}
+                    onChange={(e) => setNominalValue(sanitizeMassNumericInput(e.target.value))}
+                    placeholder="Série OIML R 111-1"
+                  />
+                  <datalist id="oiml-nominal-values">
+                    {oimlNominalOptions.map((v) => (
+                      <option key={`${unit}-${v}`} value={v} />
+                    ))}
+                  </datalist>
+                  {oimlHint && (
+                    <p className="text-xs text-amber-700 mt-1">{oimlHint}</p>
+                  )}
                 </div>
                 <div>
                   <Label>V.V.C (valor convencional)</Label>

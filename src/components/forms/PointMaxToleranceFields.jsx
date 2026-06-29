@@ -50,7 +50,7 @@ export default function PointMaxToleranceFields({
   return (
     <div className={className}>
       <p className="text-xs text-slate-600 mb-2">
-        Limite máximo de |Erro + Incerteza| por valor nominal da pesagem (V.N. do peso padrão).
+        Limite máximo de |Erro + Incerteza| por valor nominal total da pesagem (V.N.), como definido na proposta.
         Tolerância na mesma unidade do erro/incerteza no certificado.
       </p>
       {legacyCount > 0 && (
@@ -63,7 +63,7 @@ export default function PointMaxToleranceFields({
         <table className="w-full text-xs min-w-[420px]">
           <thead>
             <tr className="text-[10px] uppercase text-slate-500 border-b border-slate-200">
-              <th className="py-1.5 pr-2 text-left font-medium">Pesagem (V.R.)</th>
+              <th className="py-1.5 pr-2 text-left font-medium">Pesagem (V.N.)</th>
               <th className="py-1.5 px-2 text-left font-medium w-16">Un.</th>
               <th className="py-1.5 px-2 text-left font-medium">Tol. máx. |E+U|</th>
               {!readOnly && <th className="py-1.5 pl-2 w-8" />}

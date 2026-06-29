@@ -453,7 +453,7 @@ export default function CertificateEditorPage() {
 
   const handleEmit = async () => {
     if (!canEmit) return toast.error("Sem permissão para emitir certificados");
-    const pre = validateBeforeEmit(cert, cert.points, cert.standards, cert.environmental);
+    const pre = validateBeforeEmit(cert, cert.points, cert.standards, cert.environmental, { weightItems });
     if (!pre.ok) return toast.error(pre.errors.join("; "));
     try {
       const { prepareMasterDocumentExport, recordMasterDocumentExport } = await import("@/lib/masterDocuments/masterDocumentExportHelper");

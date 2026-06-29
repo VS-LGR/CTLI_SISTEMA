@@ -135,6 +135,52 @@ describe("pointMaxToleranceVerification", () => {
     expect(r.general).toBe("nao_avaliado");
   });
 
+  test("evaluateCertificateMaxTolerance — composição multi-peso 200 g aprovada", () => {
+    const weightItems = [
+      { id: "w100", nominal_value: "100", unit: "g", identification: "100g" },
+      { id: "w50a", nominal_value: "50", unit: "g", identification: "50g-A" },
+      { id: "w50b", nominal_value: "50", unit: "g", identification: "50g-B" },
+    ];
+    const r = evaluateCertificateMaxTolerance(
+      [{
+        point_number: 1,
+        nominal_value: "200.0001",
+        standard_weight_ids: ["w100", "w50a", "w50b"],
+        reading1: "200",
+        calc_status: "calculado",
+        indication_error: 0.02,
+        expanded_uncertainty: 0.01,
+      }],
+      [{ nominal_value: "200", unit: "g", max_tolerance: "0,05" }],
+      { defaultUnit: "g", weightItems },
+    );
+    expect(r.general).toBe("aprovado");
+    expect(r.pointResults[0].nominalValue).toBeCloseTo(200, 6);
+    expect(r.pointResults[0].weightCompositionDisplay).toBe("100 g + 50 g + 50 g");
+    expect(formatMaxTolerancePointLabel(r.pointResults[0])).toBe("100 g + 50 g + 50 g → 200 g");
+  });
+
+  test("evaluateCertificateMaxTolerance — composição 150 g sem tolerância 200 g não avalia", () => {
+    const weightItems = [
+      { id: "w100", nominal_value: "100", unit: "g" },
+      { id: "w50a", nominal_value: "50", unit: "g" },
+    ];
+    const r = evaluateCertificateMaxTolerance(
+      [{
+        point_number: 1,
+        standard_weight_ids: ["w100", "w50a"],
+        reading1: "150",
+        calc_status: "calculado",
+        indication_error: 0.02,
+        expanded_uncertainty: 0.01,
+      }],
+      [{ nominal_value: "200", unit: "g", max_tolerance: "0,05" }],
+      { defaultUnit: "g", weightItems },
+    );
+    expect(r.pointResults).toEqual([]);
+    expect(r.general).toBe("nao_avaliado");
+  });
+
   test("evaluateCertificateMaxTolerance — mesma pesagem em P2 gera alerta", () => {
     const r = evaluateCertificateMaxTolerance(
       [{

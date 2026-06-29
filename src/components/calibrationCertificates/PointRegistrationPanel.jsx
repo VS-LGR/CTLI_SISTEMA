@@ -238,6 +238,7 @@ function PointTabContent({
           value={point.standard_weight_ids || []}
           onChange={handlePesos}
           disabled={disabled}
+          unit={unit}
         />
       </div>
     </div>

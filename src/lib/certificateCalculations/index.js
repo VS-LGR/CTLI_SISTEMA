@@ -9,6 +9,7 @@ export {
   calculateEccentricityError,
   calculateCalibrationPoint,
   sumNominalFromWeightIds,
+  describeWeightComposition,
   maxStandardUncertaintyPpm,
   standardUncertaintyAbsFromWeightIds,
   standardUncertaintyUpFromWeightIds,
@@ -89,6 +90,7 @@ export { buildPointCalculationTrace } from "./calculationTrace";
 
 import {
   sumNominalFromWeightIds,
+  describeWeightComposition,
   calculateCalibrationPoint,
   standardUncertaintyUpFromWeightIds,
   driftUncertaintyUdFromWeightIds,

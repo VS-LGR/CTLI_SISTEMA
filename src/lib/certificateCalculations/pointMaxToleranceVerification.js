@@ -1,5 +1,5 @@
 import { parseCalibrationNumber } from "./parseNumber";
-import { sumNominalFromWeightIds } from "./pointCalculations";
+import { sumNominalFromWeightIds, describeWeightComposition } from "./pointCalculations";
 import {
   formatMassDisplay,
   massLoadKey,
@@ -185,6 +185,7 @@ function pushPointResult(pointResults, errors, pt, toleranceMax, ev, matchMeta =
     nominalUnit: matchMeta.unit ?? null,
     nominalDisplay: matchMeta.display ?? null,
     nominalSource: matchMeta.source ?? null,
+    weightCompositionDisplay: matchMeta.weightCompositionDisplay ?? null,
     toleranceMax: ev.toleranceMax ?? toleranceMax,
     error: ev.error ?? null,
     uncertainty: ev.uncertainty ?? null,
@@ -237,11 +238,19 @@ export function evaluateCertificateMaxTolerance(
       if (!match) continue;
 
       const display = formatMassDisplay(nominalRes.value, balanceUnit, { fallback: "" });
+      let weightCompositionDisplay = null;
+      if (nominalRes.source === "peso_padrao" && pt.standard_weight_ids?.length) {
+        const comp = describeWeightComposition(pt.standard_weight_ids, weightItems, { targetUnit: balanceUnit });
+        if (comp.valid && comp.parts.length > 1) {
+          weightCompositionDisplay = comp.compositionDisplay;
+        }
+      }
       const meta = {
         unit: balanceUnit,
         display: display || `P${pt.point_number}`,
         nominalValue: nominalRes.value,
         source: nominalRes.source,
+        weightCompositionDisplay,
       };
 
       if (pt.calc_status !== "calculado") {
@@ -252,6 +261,7 @@ export function evaluateCertificateMaxTolerance(
           nominalUnit: balanceUnit,
           nominalDisplay: meta.display,
           nominalSource: nominalRes.source,
+          weightCompositionDisplay,
           toleranceMax: match.parsedTolerance,
           result: "nao_avaliado",
           reason: "Cálculo incompleto",
@@ -304,6 +314,9 @@ export function evaluateCertificateMaxTolerance(
 }
 
 export function formatMaxTolerancePointLabel(result) {
+  if (result?.weightCompositionDisplay && result?.nominalDisplay) {
+    return `${result.weightCompositionDisplay} → ${result.nominalDisplay}`;
+  }
   if (result?.nominalDisplay) return result.nominalDisplay;
   if (result?.nominalValue != null && result?.nominalValue !== "") {
     return formatMassDisplay(result.nominalValue, result.nominalUnit || "g", { fallback: `P${result.pointNumber}` });

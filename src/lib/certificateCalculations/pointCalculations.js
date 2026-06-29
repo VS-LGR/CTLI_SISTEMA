@@ -1,5 +1,6 @@
 import { parseCalibrationNumber } from "./parseNumber";
 import { driftFromWeightItem } from "@/lib/standardWeightCalculations";
+import { formatMassDisplay } from "@/lib/massValueUtils";
 
 const SQRT3 = Math.sqrt(3);
 const DEFAULT_STANDARD_K = 2;
@@ -446,6 +447,67 @@ export function sumNominalFromWeightIds(weightIds, weightItems = [], targetUnit 
   if (targetUnit === "kg") return { value: sumG / 1000, valid: true, reason: "" };
   if (targetUnit === "mg") return { value: sumG * 1000, valid: true, reason: "" };
   return { value: sumG, valid: true, reason: "" };
+}
+
+/**
+ * Descreve composição de pesos por ponto: partes individuais e V.N. total.
+ * @returns {{ total, valid, parts, display, compositionDisplay, totalDisplay, reason }}
+ */
+export function describeWeightComposition(
+  weightIds,
+  weightItems = [],
+  { targetUnit = "g", preferNominal = true } = {},
+) {
+  const parts = [];
+  for (const id of weightIds || []) {
+    const item = weightItems.find((w) => w.id === id);
+    if (!item) continue;
+    const raw = preferNominal
+      ? item.nominal_value
+      : (item.conventional_value || item.nominal_value);
+    const p = parseCalibrationNumber(raw);
+    if (!p.valid) continue;
+    parts.push({
+      id,
+      identification: item.identification || id,
+      nominal: p.value,
+      unit: item.unit || "g",
+    });
+  }
+
+  if (!parts.length) {
+    return {
+      total: null,
+      valid: false,
+      parts: [],
+      display: "",
+      compositionDisplay: "",
+      totalDisplay: "",
+      reason: "Pesos não encontrados",
+    };
+  }
+
+  const sum = sumNominalFromWeightIds(weightIds, weightItems, targetUnit);
+  const compositionDisplay = parts
+    .map((p) => formatMassDisplay(p.nominal, p.unit, { fallback: "" }))
+    .filter(Boolean)
+    .join(" + ");
+  const totalDisplay = sum.valid
+    ? formatMassDisplay(sum.value, targetUnit, { fallback: "" })
+    : "";
+  const display = parts.length > 1 && totalDisplay
+    ? `${compositionDisplay} = ${totalDisplay}`
+    : (totalDisplay || compositionDisplay);
+
+  return {
+    total: sum.value,
+    valid: sum.valid,
+    parts,
+    display,
+    compositionDisplay,
+    totalDisplay,
+    reason: sum.reason || "",
+  };
 }
 
 export function maxStandardUncertaintyPpm(weightIds, weightItems = [], weightCerts = []) {
