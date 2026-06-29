@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
-import { PLATFORM_TYPE_OPTIONS, formValuesFromPointMaxTolerances, pointMaxTolerancesFromForm } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { PLATFORM_TYPE_OPTIONS, formValuesFromPointMaxTolerances, omitPointMaxToleranceFormKeys, pointMaxTolerancesFromForm } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { TIPO_BALANCA_OPTIONS } from "@/lib/coletaSchema";
 
 const emptyForm = () => ({
@@ -114,7 +114,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
     if (!form.serial_number.trim()) return toast.error("Informe o número de série");
     const payload = {
       tenant_id: tenantId,
-      ...form,
+      ...omitPointMaxToleranceFormKeys(form),
       end_customer_id: form.end_customer_id || null,
       serial_number: form.serial_number.trim(),
       identification_code: form.identification_code.trim(),

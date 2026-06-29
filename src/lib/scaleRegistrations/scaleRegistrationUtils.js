@@ -21,6 +21,15 @@ export function pointMaxTolerancesFromForm(formValues = {}) {
   }).filter((p) => p.value !== "");
 }
 
+/** Remove chaves só de formulário antes de persistir em scale_registrations. */
+export function omitPointMaxToleranceFormKeys(formValues = {}) {
+  return Object.fromEntries(
+    Object.entries(formValues).filter(
+      ([key]) => !/^point_max_tolerance_p\d+$/.test(key) && key !== "point_max_tolerances",
+    ),
+  );
+}
+
 export function formValuesFromPointMaxTolerances(raw) {
   const normalized = normalizePointMaxTolerances(raw);
   const values = emptyPointMaxTolerancesForm();

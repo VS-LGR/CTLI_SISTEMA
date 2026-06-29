@@ -1,6 +1,8 @@
 import {
   balanceSnapshotFromScaleRegistration,
   buildScaleRegistrationFromBalance,
+  omitPointMaxToleranceFormKeys,
+  pointMaxTolerancesFromForm,
 } from "./scaleRegistrationUtils";
 
 describe("buildScaleRegistrationFromBalance", () => {
@@ -53,5 +55,20 @@ describe("buildScaleRegistrationFromBalance", () => {
     expect(snap.capacidade).toBe("100");
     expect(snap.tipo_plataforma).toBe("redonda");
     expect(snap.decimal_places.p1).toBe(2);
+  });
+});
+
+describe("omitPointMaxToleranceFormKeys", () => {
+  it("remove chaves de UI antes do insert em scale_registrations", () => {
+    const form = {
+      serial_number: "SN-1",
+      point_max_tolerance_p1: "0,05",
+      point_max_tolerance_p2: "",
+      point_max_tolerances: [{ point: 1, value: "0,05" }],
+    };
+    const cleaned = omitPointMaxToleranceFormKeys(form);
+    expect(cleaned).toEqual({ serial_number: "SN-1" });
+    expect(cleaned.point_max_tolerance_p1).toBeUndefined();
+    expect(pointMaxTolerancesFromForm(form)).toEqual([{ point: 1, value: "0,05" }]);
   });
 });
