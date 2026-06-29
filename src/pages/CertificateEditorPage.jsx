@@ -1257,7 +1257,7 @@ export default function CertificateEditorPage() {
                           <thead className="bg-slate-50 text-[10px] uppercase text-slate-500">
                             <tr>
                               <th className="p-2 text-left">Ponto</th>
-                              <th className="p-2 text-left">Pesagem</th>
+                              <th className="p-2 text-left">V.N. (peso padrão)</th>
                               <th className="p-2 text-left">Tol. máx.</th>
                               <th className="p-2 text-left">E</th>
                               <th className="p-2 text-left">U</th>

@@ -427,19 +427,25 @@ export function calculateCalibrationPoint(point, {
   };
 }
 
-export function sumNominalFromWeightIds(weightIds, weightItems = []) {
-  let sum = 0;
+export function sumNominalFromWeightIds(weightIds, weightItems = [], targetUnit = "g") {
+  let sumG = 0;
   let valid = false;
   for (const id of weightIds || []) {
     const item = weightItems.find((w) => w.id === id);
     if (!item) continue;
     const p = parseCalibrationNumber(item.nominal_value);
-    if (p.valid) {
-      sum += p.value;
-      valid = true;
-    }
+    if (!p.valid) continue;
+    const unit = item.unit || "g";
+    let grams = p.value;
+    if (unit === "kg") grams *= 1000;
+    else if (unit === "mg") grams /= 1000;
+    sumG += grams;
+    valid = true;
   }
-  return { value: valid ? sum : null, valid, reason: valid ? "" : "Pesos não encontrados" };
+  if (!valid) return { value: null, valid: false, reason: "Pesos não encontrados" };
+  if (targetUnit === "kg") return { value: sumG / 1000, valid: true, reason: "" };
+  if (targetUnit === "mg") return { value: sumG * 1000, valid: true, reason: "" };
+  return { value: sumG, valid: true, reason: "" };
 }
 
 export function maxStandardUncertaintyPpm(weightIds, weightItems = [], weightCerts = []) {

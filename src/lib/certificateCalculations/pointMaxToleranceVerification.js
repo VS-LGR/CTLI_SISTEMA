@@ -1,4 +1,5 @@
 import { parseCalibrationNumber } from "./parseNumber";
+import { sumNominalFromWeightIds } from "./pointCalculations";
 import {
   formatMassDisplay,
   massLoadKey,
@@ -88,6 +89,26 @@ export function findToleranceForNominal(nominalValue, unit, loadMap) {
   return loadMap.get(key) ?? null;
 }
 
+/**
+ * Valor nominal para casar com tolerância cadastrada: soma V.N. dos pesos padrão.
+ * Sem pesos vinculados, usa o V.R. informado manualmente no ponto.
+ */
+export function resolveToleranceNominalForPoint(point, weightItems = [], targetUnit = "g") {
+  const ids = point?.standard_weight_ids;
+  if (Array.isArray(ids) && ids.length > 0) {
+    const sum = sumNominalFromWeightIds(ids, weightItems, targetUnit);
+    if (sum.valid && sum.value != null) {
+      return { value: sum.value, valid: true, source: "peso_padrao" };
+    }
+    return { value: null, valid: false, source: "peso_padrao", reason: sum.reason || "Pesos não encontrados" };
+  }
+  const manual = parseCalibrationNumber(point?.nominal_value);
+  if (manual.valid) {
+    return { value: manual.value, valid: true, source: "vr_manual" };
+  }
+  return { value: null, valid: false, source: "none" };
+}
+
 /** @deprecated Preferir buildLoadToleranceMap — legado por número de ponto. */
 export function toleranceMapFromRaw(raw) {
   const map = new Map();
@@ -160,9 +181,10 @@ export function generalMaxToleranceResult(pointResults = []) {
 function pushPointResult(pointResults, errors, pt, toleranceMax, ev, matchMeta = {}) {
   pointResults.push({
     pointNumber: pt.point_number,
-    nominalValue: pt.nominal_value,
+    nominalValue: matchMeta.nominalValue ?? pt.nominal_value,
     nominalUnit: matchMeta.unit ?? null,
     nominalDisplay: matchMeta.display ?? null,
+    nominalSource: matchMeta.source ?? null,
     toleranceMax: ev.toleranceMax ?? toleranceMax,
     error: ev.error ?? null,
     uncertainty: ev.uncertainty ?? null,
@@ -183,7 +205,7 @@ function pushPointResult(pointResults, errors, pt, toleranceMax, ev, matchMeta =
 export function evaluateCertificateMaxTolerance(
   points = [],
   tolerancesRaw = [],
-  { defaultUnit = "g" } = {},
+  { defaultUnit = "g", weightItems = [] } = {},
 ) {
   const normalized = normalizePointMaxTolerances(tolerancesRaw);
   const loadEntries = normalized.filter(isLoadBasedMaxToleranceEntry);
@@ -201,21 +223,35 @@ export function evaluateCertificateMaxTolerance(
     const loadMap = buildLoadToleranceMap(loadEntries);
 
     for (const pt of points || []) {
-      if (!(pt.nominal_value || pt.reading1)) continue;
+      if (!(pt.nominal_value || pt.reading1 || pt.standard_weight_ids?.length)) continue;
 
-      const match = findToleranceForNominal(pt.nominal_value, balanceUnit, loadMap);
+      const nominalRes = resolveToleranceNominalForPoint(pt, weightItems, balanceUnit);
+      if (!nominalRes.valid) {
+        if (pt.standard_weight_ids?.length) {
+          errors.push(`P${pt.point_number}: não foi possível obter valor nominal dos pesos padrão para verificação de tolerância`);
+        }
+        continue;
+      }
+
+      const match = findToleranceForNominal(nominalRes.value, balanceUnit, loadMap);
       if (!match) continue;
 
-      const display = formatMassDisplay(pt.nominal_value, balanceUnit, { fallback: "" });
-      const meta = { unit: balanceUnit, display: display || `P${pt.point_number}` };
+      const display = formatMassDisplay(nominalRes.value, balanceUnit, { fallback: "" });
+      const meta = {
+        unit: balanceUnit,
+        display: display || `P${pt.point_number}`,
+        nominalValue: nominalRes.value,
+        source: nominalRes.source,
+      };
 
       if (pt.calc_status !== "calculado") {
         errors.push(`${meta.display} (P${pt.point_number}): cálculo incompleto para verificação de tolerância`);
         pointResults.push({
           pointNumber: pt.point_number,
-          nominalValue: pt.nominal_value,
+          nominalValue: nominalRes.value,
           nominalUnit: balanceUnit,
           nominalDisplay: meta.display,
+          nominalSource: nominalRes.source,
           toleranceMax: match.parsedTolerance,
           result: "nao_avaliado",
           reason: "Cálculo incompleto",

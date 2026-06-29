@@ -340,7 +340,7 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
   const maxTolCheck = evaluateCertificateMaxTolerance(
     calculated,
     scaleReg?.point_max_tolerances || full.balance_snapshot?.point_max_tolerances || [],
-    { defaultUnit: full.balance_snapshot?.unidade || "g" },
+    { defaultUnit: full.balance_snapshot?.unidade || "g", weightItems: items },
   );
 
   for (const pt of calculated) {
@@ -452,6 +452,7 @@ export async function emitCertificate(id, { userId, documentMeta, fileName } = {
     full.environmental,
     {
       scaleRegistration: cad.scaleRegistrations.find((s) => s.id === full.scale_registration_id),
+      weightItems: cad.weightItems,
     },
   );
   if (!v.ok) throw new Error(v.errors.join("; "));

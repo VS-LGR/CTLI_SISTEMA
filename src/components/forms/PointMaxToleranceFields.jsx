@@ -50,7 +50,7 @@ export default function PointMaxToleranceFields({
   return (
     <div className={className}>
       <p className="text-xs text-slate-600 mb-2">
-        Limite máximo de |Erro + Incerteza| por valor de pesagem calibrado.
+        Limite máximo de |Erro + Incerteza| por valor nominal da pesagem (V.N. do peso padrão).
         Tolerância na mesma unidade do erro/incerteza no certificado.
       </p>
       {legacyCount > 0 && (

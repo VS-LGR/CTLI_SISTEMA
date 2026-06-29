@@ -7,6 +7,7 @@ import {
   maxToleranceAlertPointSet,
   maxToleranceAlertSummary,
   formatMaxTolerancePointLabel,
+  resolveToleranceNominalForPoint,
   findToleranceForNominal,
   buildLoadToleranceMap,
 } from "./pointMaxToleranceVerification";
@@ -89,6 +90,49 @@ describe("pointMaxToleranceVerification", () => {
     expect(r.general).toBe("aprovado");
     expect(r.pointResults[0].nominalDisplay).toBe("300 kg");
     expect(r.pointResults[0].testValue).toBeCloseTo(0.03, 6);
+  });
+
+  test("evaluateCertificateMaxTolerance — usa V.N. dos pesos, não V.V.C. do certificado", () => {
+    const weightItems = [
+      { id: "w1", nominal_value: "300", conventional_value: "300.0004", unit: "kg" },
+    ];
+    const r = evaluateCertificateMaxTolerance(
+      [{
+        point_number: 1,
+        nominal_value: "300.0004",
+        standard_weight_ids: ["w1"],
+        reading1: "300",
+        calc_status: "calculado",
+        indication_error: 0.02,
+        expanded_uncertainty: 0.01,
+      }],
+      [{ nominal_value: "300", unit: "kg", max_tolerance: "0,6" }],
+      { defaultUnit: "kg", weightItems },
+    );
+    expect(r.general).toBe("aprovado");
+    expect(r.pointResults[0].nominalSource).toBe("peso_padrao");
+    expect(r.pointResults[0].nominalValue).toBeCloseTo(300, 6);
+  });
+
+  test("evaluateCertificateMaxTolerance — V.V.C. sem tolerância para V.N. não avalia", () => {
+    const weightItems = [
+      { id: "w1", nominal_value: "300", conventional_value: "300.0004", unit: "kg" },
+    ];
+    const r = evaluateCertificateMaxTolerance(
+      [{
+        point_number: 1,
+        nominal_value: "300.0004",
+        standard_weight_ids: ["w1"],
+        reading1: "300",
+        calc_status: "calculado",
+        indication_error: 0.5,
+        expanded_uncertainty: 0.2,
+      }],
+      [{ nominal_value: "300.0004", unit: "kg", max_tolerance: "0,1" }],
+      { defaultUnit: "kg", weightItems },
+    );
+    expect(r.pointResults).toEqual([]);
+    expect(r.general).toBe("nao_avaliado");
   });
 
   test("evaluateCertificateMaxTolerance — mesma pesagem em P2 gera alerta", () => {

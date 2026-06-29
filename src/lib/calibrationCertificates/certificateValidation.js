@@ -80,6 +80,7 @@ export function validateBeforeEmit(cert, points, standards, environmental, optio
   if (hasAnyConfiguredTolerance(tolerances)) {
     const tolCheck = evaluateCertificateMaxTolerance(points, tolerances, {
       defaultUnit: cert?.balance_snapshot?.unidade || scaleRegistration?.unit || "g",
+      weightItems: options.weightItems || [],
     });
     if (tolCheck.errors.length) {
       errors.push(...tolCheck.errors);
