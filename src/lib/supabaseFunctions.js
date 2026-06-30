@@ -44,6 +44,7 @@ export async function invokeSupabaseEdgeFunction(functionName, body) {
   if (!token) throw new Error("Sessão expirada. Faça login novamente.");
 
   const url = `${baseUrl}/functions/v1/${functionName}`;
+  console.warn("[cert-email] fetch edge", { functionName, hasToken: Boolean(token) });
   // #region agent log
   fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'supabaseFunctions.js:invoke:start',message:'edge invoke start',data:{functionName,baseUrl,hasToken:Boolean(token),bodyKeys:Object.keys(body||{})},timestamp:Date.now(),hypothesisId:'H1-H5'})}).catch(()=>{});
   // #endregion
@@ -69,6 +70,7 @@ export async function invokeSupabaseEdgeFunction(functionName, body) {
 
   let data = null;
   const text = await res.text();
+  console.warn("[cert-email] edge response", { functionName, status: res.status, ok: res.ok, preview: text.slice(0, 120) });
   // #region agent log
   fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'supabaseFunctions.js:invoke:response',message:'edge fetch response',data:{functionName,status:res.status,ok:res.ok,textPreview:text.slice(0,120)},timestamp:Date.now(),hypothesisId:'H1-H3'})}).catch(()=>{});
   // #endregion

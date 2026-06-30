@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { buildCertificatePdfViewModel } from "./viewModel";
+import { pdfImageFormat } from "./compressPdfImages";
 import {
   ML,
   MR,
@@ -243,7 +244,7 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
         }
         doc.addImage(
           panel.dataUrl,
-          "PNG",
+          pdfImageFormat(panel.dataUrl),
           px + pad + (maxW - drawW) / 2,
           y + pad,
           drawW,
@@ -340,7 +341,7 @@ function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signa
 
   if (signatureUrls.signatory) {
     try {
-      doc.addImage(signatureUrls.signatory, "PNG", sigX, metaY, sigW, 9);
+      doc.addImage(signatureUrls.signatory, pdfImageFormat(signatureUrls.signatory), sigX, metaY, sigW, 9);
     } catch { /* opcional */ }
   }
 

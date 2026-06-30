@@ -105,6 +105,104 @@ export async function exportCertificatePdfPreview(cert, tenantName = "", {
   return { meta, fileName };
 }
 
+/** Mesmo pipeline da prévia/ download, mas retorna blob (sem gravar registro de exportação). */
+export async function exportCertificatePdfBlob(cert, tenantName = "", {
+  logoDataUrl,
+  tenant = null,
+  cancelled = false,
+  skipRecordExport = true,
+  documentMeta: preMeta = null,
+  fileName: preFileName = null,
+  compressForEmail = false,
+} = {}) {
+  let meta = preMeta;
+  let fileName = preFileName;
+
+  if (!meta || !fileName) {
+    const { prepareMasterDocumentExport } = await import(
+      "./masterDocuments/masterDocumentExportHelper"
+    );
+    const prepared = await prepareMasterDocumentExport({
+      tenantId: tenant?.id,
+      templateKey: CERTIFICATE_TEMPLATE_KEY,
+      code: CERTIFICATE_DOC_CODE,
+      record: cert,
+      defaultTitle: cert.certificate_type === "rbc"
+        ? "CERTIFICADO DE CALIBRAÇÃO RBC"
+        : "CERTIFICADO DE CALIBRAÇÃO RASTREÁVEL",
+      fileNameContext: {
+        numero: `${cert.certificate_number}-${cert.certificate_year}`,
+        cliente: cert.client_name,
+        numeroSerie: cert.scale_serial,
+      },
+      showFallbackToast: false,
+    });
+    meta = prepared.meta;
+    fileName = prepared.fileName;
+  }
+
+  const { renderCertificatePdf } = await import(
+    /* webpackChunkName: "certificate-pdf" */ "./certificatePdf/drawCertificatePdf"
+  );
+  const { loadPlatformDiagramPanels } = await import(
+    /* webpackChunkName: "certificate-pdf" */ "./certificatePdf/loadPlatformDiagrams"
+  );
+
+  const [signatureUrls, platformDiagrams] = await Promise.all([
+    loadCertificateSignatures(cert),
+    loadPlatformDiagramPanels(cert.balance_snapshot?.tipo_plataforma),
+  ]);
+
+  let renderLogo = logoDataUrl;
+  let renderSigs = signatureUrls;
+  let renderDiagrams = platformDiagrams;
+  if (compressForEmail) {
+    const { compressAssetsForEmailPdf } = await import("./certificatePdf/compressPdfImages");
+    const compressed = await compressAssetsForEmailPdf({
+      logoDataUrl,
+      signatureUrls,
+      platformDiagrams,
+    });
+    renderLogo = compressed.logoDataUrl;
+    renderSigs = compressed.signatureUrls;
+    renderDiagrams = compressed.platformDiagrams;
+    console.warn("[cert-email] pdf step: assets compressed for email");
+  }
+
+  const preview = cert.status !== "emitido" || cert.is_preview_only;
+  const { blob, fileName: outName } = await renderCertificatePdf(cert, tenantName, {
+    logoDataUrl: renderLogo,
+    tenant,
+    documentMeta: meta,
+    fileName,
+    preview,
+    cancelled,
+    signatureUrls: renderSigs,
+    platformDiagrams: renderDiagrams,
+    download: false,
+  });
+
+  if (
+    tenant?.id
+    && cert.status === "emitido"
+    && !cert.is_preview_only
+    && !skipRecordExport
+  ) {
+    const { recordMasterDocumentExport } = await import(
+      "./masterDocuments/masterDocumentExportHelper"
+    );
+    await recordMasterDocumentExport({
+      tenantId: tenant.id,
+      meta,
+      fileName: outName || fileName,
+      sourceModule: "calibration_certificate",
+      sourceRecordId: cert.id,
+    });
+  }
+
+  return { blob, fileName: outName || fileName, meta };
+}
+
 export async function exportCertificatePdfOfficial(cert, tenantName, opts = {}) {
   const { emitCertificate } = await import("./calibrationCertificates/certificateApi");
   const emitted = opts.alreadyEmitted ? cert : await emitCertificate(cert.id, {

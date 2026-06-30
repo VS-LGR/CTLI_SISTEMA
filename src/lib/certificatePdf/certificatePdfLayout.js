@@ -3,6 +3,7 @@
  */
 
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
+import { pdfImageFormat } from "./compressPdfImages";
 import {
   FORM_COLORS,
   drawSectionBar,
@@ -40,7 +41,7 @@ export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6) {
 
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, "PNG", labX, headerTop, LOGO_W, LOGO_H);
+      doc.addImage(logoDataUrl, pdfImageFormat(logoDataUrl), labX, headerTop, LOGO_W, LOGO_H);
       labBottom = headerTop + LOGO_H + 1;
     } catch { /* opcional */ }
   }
