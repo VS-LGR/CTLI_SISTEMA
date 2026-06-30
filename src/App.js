@@ -6,11 +6,11 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
-import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, isTechnicianOnlyNav } from "@/lib/roles";
+import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, isTechnicianOnlyNav, isSignatoryOnlyNav } from "@/lib/roles";
 import { PERSONNEL_BASE_PATH, PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
 import { PERSONNEL_DASHBOARD_PATH } from "@/lib/personnelRegistrosRoutes";
 import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
-import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH, certificateEditorPath, isCertificatePath, isPr72ModulePath } from "@/lib/certificateRoutes";
+import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH, CERTIFICATE_PENDING_APPROVAL_PATH, certificateEditorPath, isCertificatePath, isPr72ModulePath } from "@/lib/certificateRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
@@ -89,6 +89,9 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, certificat
   if (isTechnicianOnlyNav(user.role) && !isPr72ModulePath(loc.pathname)) {
     return <Navigate to={COLETA_LIST_PATH} replace />;
   }
+  if (isSignatoryOnlyNav(user.role) && !isCertificatePath(loc.pathname)) {
+    return <Navigate to={CERTIFICATE_PENDING_APPROVAL_PATH} replace />;
+  }
   return children;
 };
 
@@ -96,6 +99,9 @@ const HomeRedirect = () => {
   const { user } = useAuth();
   if (user && isTechnicianOnlyNav(user.role)) {
     return <Navigate to={COLETA_LIST_PATH} replace />;
+  }
+  if (user && isSignatoryOnlyNav(user.role)) {
+    return <Navigate to={CERTIFICATE_PENDING_APPROVAL_PATH} replace />;
   }
   return <Navigate to="/dashboard" replace />;
 };

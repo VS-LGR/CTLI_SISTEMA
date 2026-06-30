@@ -528,6 +528,8 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
   const [positionId, setPositionId] = useState("");
   const [edu, setEdu] = useState("medio_completo");
   const [supId, setSupId] = useState("");
+  const [email, setEmail] = useState("");
+  const [jobRole, setJobRole] = useState("auxiliar_tecnico");
   const [sigFile, setSigFile] = useState(null);
   const [sigPath, setSigPath] = useState("");
   const [sourceSelectionId, setSourceSelectionId] = useState("");
@@ -538,6 +540,7 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
     setCode(generateEmployeeRegistrationCode());
     setFullName(""); setCpf(""); setRg(""); setRgIss("");
     setAdm(todayIso()); setPositionId(""); setEdu("medio_completo"); setSupId("");
+    setEmail(""); setJobRole("auxiliar_tecnico");
     setSigFile(null);
     setSigPath("");
     setSourceSelectionId("");
@@ -583,7 +586,8 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
       rg: rg.trim(),
       rg_issuer: rgIss.trim(),
       admission_date: adm || todayIso(),
-      job_role: editing?.job_role || "auxiliar_tecnico",
+      job_role: jobRole,
+      email: email.trim(),
       position_id: positionId || null,
       education_level: edu,
       supervisor_id: supId || null,
@@ -679,6 +683,8 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
                       setFullName(r.full_name); setCpf(r.cpf); setRg(r.rg); setRgIss(r.rg_issuer);
                       setAdm(fmtIsoDate(r.admission_date)); setPositionId(r.position_id || ""); setEdu(r.education_level);
                       setSupId(r.supervisor_id || "");
+                      setEmail(r.email || "");
+                      setJobRole(r.job_role || "auxiliar_tecnico");
                       setSourceSelectionId(r.source_selection_id || "");
                       setSigPath(r.signature_storage_path || "");
                       setSigFile(null);
@@ -697,10 +703,17 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
             <div className="space-y-3">
               <div><Label>Matrícula</Label><Input value={code} onChange={(e) => setCode(e.target.value)} readOnly={!editing} className={!editing ? "bg-slate-50" : ""} /></div>
               <div><Label>Nome *</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
+              <div><Label>E-mail (notificações)</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="signatario@empresa.com.br" /></div>
               <div><Label>CPF</Label><Input value={cpf} onChange={(e) => setCpf(e.target.value)} /></div>
               <div><Label>RG</Label><Input value={rg} onChange={(e) => setRg(e.target.value)} /></div>
               <div><Label>Órgão emissor do RG</Label><Input value={rgIss} onChange={(e) => setRgIss(e.target.value)} /></div>
               <div><Label>Data de admissão</Label><Input type="date" value={adm} onChange={(e) => setAdm(e.target.value)} /></div>
+              <div>
+                <Label>Função no sistema</Label>
+                <select value={jobRole} onChange={(e) => setJobRole(e.target.value)} className="w-full border rounded-md h-10 px-3 text-sm">
+                  {JOB_ROLES.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+                </select>
+              </div>
               <div>
                 <Label>Cargo (função)</Label>
                 <select value={positionId} onChange={(e) => setPositionId(e.target.value)} className="w-full border rounded-md h-10 px-3 text-sm">

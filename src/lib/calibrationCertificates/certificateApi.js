@@ -436,7 +436,32 @@ export async function transitionCertificateStatus(id, newStatus, { userId, notes
   }
 
   await updateCertificateHeader(id, { status: newStatus }, userId);
-  return getCertificate(id);
+  const updated = await getCertificate(id);
+
+  if (newStatus === "aguardando_aprovacao") {
+    try {
+      const { notifySignatoryPendingApproval } = await import("@/lib/certificateEmail/certificateEmailApi");
+      await notifySignatoryPendingApproval(updated, { tenantId: updated.tenant_id });
+    } catch {
+      /* notificação opcional — não bloqueia fluxo */
+    }
+  }
+
+  return updated;
+}
+
+export async function bulkApproveCertificates(certificateIds, { userId, notes = "" } = {}) {
+  assertSupabaseCertificates();
+  if (!certificateIds?.length) return { approved: 0, ids: [] };
+
+  const { data, error } = await supabase.rpc("approve_calibration_certificates", {
+    p_certificate_ids: certificateIds,
+    p_user_id: userId || null,
+    p_notes: notes || "",
+  });
+  if (error) throw error;
+
+  return { approved: Number(data) || 0, ids: certificateIds };
 }
 
 export async function emitCertificate(id, { userId, documentMeta, fileName } = {}) {

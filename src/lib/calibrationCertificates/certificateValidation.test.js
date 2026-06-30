@@ -44,4 +44,27 @@ describe("certificateValidation", () => {
     const r = validateBeforeCalculate(baseCert, basePoints, baseStandards, {});
     expect(r.ok).toBe(false);
   });
+
+  test("validateBeforeEmit permite emissão com tolerância excedida (aviso)", () => {
+    const r = validateBeforeEmit(
+      {
+        ...baseCert,
+        balance_snapshot: { unidade: "g", point_max_tolerances: [{ nominal_value: "200", unit: "g", max_tolerance: "0,05" }] },
+        conformity: { general_max_tolerance_result: "alerta", max_tolerance_point_results: [] },
+      },
+      [{
+        point_number: 1,
+        nominal_value: "200",
+        reading1: "200.1",
+        calc_status: "calculado",
+        indication_error: 0.08,
+        expanded_uncertainty: 0.02,
+      }],
+      baseStandards,
+      baseEnv,
+    );
+    expect(r.ok).toBe(true);
+    expect(r.warnings.length).toBeGreaterThan(0);
+    expect(r.warnings[0]).toContain("tolerância máxima");
+  });
 });

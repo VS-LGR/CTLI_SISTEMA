@@ -113,9 +113,25 @@ async function listRemindersSupabase(tenantId) {
   return (data || []).map(mapReminderRow);
 }
 
+async function countPendingApprovalCertificates(tenantId) {
+  if (!supabase || !tenantId) return 0;
+  const { count, error } = await supabase
+    .from("calibration_certificates")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .eq("status", "aguardando_aprovacao");
+  if (error) return 0;
+  return count || 0;
+}
+
 export function fetchDashboard(tenantId) {
   if (isSupabaseAuthMode) {
     return listRemindersSupabase(tenantId).then(async (reminders) => {
+      let certificate_pending_approval = 0;
+      try {
+        certificate_pending_approval = await countPendingApprovalCertificates(tenantId);
+      } catch { /* optional */ }
+
       if (isSupabaseDocumentsEnabled()) {
         try {
           const docs = await fetchDocumentStatsSupabase(tenantId);
@@ -123,20 +139,25 @@ export function fetchDashboard(tenantId) {
           try {
             documentAlerts = await getAllDocumentAlerts(tenantId);
           } catch { /* optional */ }
-          return { data: buildDashboardFromDocs(docs, reminders, documentAlerts) };
+          return {
+            data: {
+              ...buildDashboardFromDocs(docs, reminders, documentAlerts),
+              certificate_pending_approval,
+            },
+          };
         } catch {
-          return { data: emptyDashboardPayload(reminders) };
+          return { data: { ...emptyDashboardPayload(reminders), certificate_pending_approval } };
         }
       }
       if (hasLegacyDashboardApi) {
         try {
           const r = await api.get("/dashboard", { params: { tenant_id: tenantId } });
-          return { data: { ...r.data, reminders } };
+          return { data: { ...r.data, reminders, certificate_pending_approval } };
         } catch {
-          return { data: emptyDashboardPayload(reminders) };
+          return { data: { ...emptyDashboardPayload(reminders), certificate_pending_approval } };
         }
       }
-      return { data: emptyDashboardPayload(reminders) };
+      return { data: { ...emptyDashboardPayload(reminders), certificate_pending_approval } };
     });
   }
   return api.get("/dashboard", { params: { tenant_id: tenantId } });

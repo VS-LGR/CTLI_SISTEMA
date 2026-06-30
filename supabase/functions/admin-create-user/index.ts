@@ -45,7 +45,7 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceKey);
 
     const body = await req.json();
-    const { email, password, full_name, role, tenant_id } = body;
+    const { email, password, full_name, role, tenant_id, employee_registration_id } = body;
 
     if (!email || !password || !full_name || !role) {
       return new Response(JSON.stringify({ error: "Campos obrigatórios: email, password, full_name, role" }), {
@@ -77,6 +77,19 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (employee_registration_id) {
+      const { error: linkErr } = await adminClient
+        .from("profiles")
+        .update({ employee_registration_id })
+        .eq("id", newUser.user.id);
+      if (linkErr) {
+        return new Response(JSON.stringify({ error: linkErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     return new Response(

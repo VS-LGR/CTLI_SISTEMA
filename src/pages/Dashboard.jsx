@@ -2,11 +2,12 @@ import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { fetchDashboard } from "@/lib/dashboardApi";
-import { canManageDashboardReminders, isCtliAdmin } from "@/lib/roles";
+import { canManageDashboardReminders, isCtliAdmin, canApproveCalibrationCertificate } from "@/lib/roles";
+import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 import { getVisibleDashboardShortcuts } from "@/lib/dashboardShortcuts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  FolderSimple, PushPin, NotePencil, X, Info,
+  FolderSimple, PushPin, NotePencil, X, Info, SealCheck,
 } from "@phosphor-icons/react";
 import { consumeTenantSwitchNotice } from "@/lib/tenantSwitchNotice";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -89,6 +90,8 @@ const Dashboard = () => {
   const alertCount = documentAlerts?.totalCount || 0;
   const showReminders = canManageDashboardReminders(user?.role);
   const shortcuts = getVisibleDashboardShortcuts(user?.role);
+  const pendingApprovals = data?.certificate_pending_approval || 0;
+  const showApprovalQueue = canApproveCalibrationCertificate(user?.role) && pendingApprovals > 0;
 
   return (
     <div className="space-y-8 min-w-0" data-testid="dashboard">
@@ -131,6 +134,21 @@ const Dashboard = () => {
           />
         ))}
       </div>
+
+      {showApprovalQueue && (
+        <Alert className="border-orange-300 bg-orange-50">
+          <SealCheck size={18} className="text-orange-700" />
+          <AlertTitle className="text-orange-950">
+            {pendingApprovals} certificado{pendingApprovals === 1 ? "" : "s"} aguardando aprovação
+          </AlertTitle>
+          <AlertDescription className="text-orange-900/90">
+            Há certificados na fila de aprovação do signatário.{" "}
+            <Link to={CERTIFICATE_PENDING_APPROVAL_PATH} className="underline font-medium">
+              Abrir fila
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {alertCount > 0 && listaMestraPath && (
         <Alert className="border-amber-300 bg-amber-50">

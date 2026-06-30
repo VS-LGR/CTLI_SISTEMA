@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { isSupabaseAuthMode } from "@/lib/api";
-import { canAccessCalibrationCertificates } from "@/lib/roles";
+import { canAccessCalibrationCertificates, canEditCalibrationCertificate } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,10 @@ export default function CertificateNewPage() {
 
   if (!canAccessCalibrationCertificates(user?.role)) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  if (!canEditCalibrationCertificate(user?.role)) {
+    return <Navigate to={CERTIFICATE_LIST_PATH} replace />;
   }
 
   if (!isSupabaseAuthMode || !currentTenantId) {

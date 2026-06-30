@@ -25,3 +25,21 @@ describe("certificate obsolete lifecycle", () => {
     expect(canTransitionCertificateStatus("emitido", "obsoleto")).toBe(false);
   });
 });
+
+describe("certificate enviado lifecycle", () => {
+  test("aprovado and emitido can transition to enviado", () => {
+    expect(canTransitionCertificateStatus("aprovado", "enviado")).toBe(true);
+    expect(canTransitionCertificateStatus("emitido", "enviado")).toBe(true);
+  });
+
+  test("enviado allows re-send and substitution paths", () => {
+    expect(canTransitionCertificateStatus("enviado", "enviado")).toBe(true);
+    expect(canTransitionCertificateStatus("enviado", "substituido")).toBe(true);
+    expect(canTransitionCertificateStatus("enviado", "cancelado")).toBe(true);
+  });
+
+  test("canMarkCertificateObsolete includes enviado but not emitido", () => {
+    expect(canMarkCertificateObsolete("enviado")).toBe(true);
+    expect(canMarkCertificateObsolete("emitido")).toBe(false);
+  });
+});

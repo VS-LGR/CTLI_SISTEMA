@@ -67,6 +67,10 @@ export function MaxToleranceAlertBanner({ pointResults = [], className = "" }) {
           );
         })}
       </ul>
+      <p className="mt-2 text-xs text-amber-900 border-t border-amber-200/80 pt-2">
+        A emissão do certificado permanece permitida, mas pode gerar complicações metrológicas ou comerciais.
+        Confirme com o responsável técnico antes de prosseguir.
+      </p>
     </div>
   );
 }

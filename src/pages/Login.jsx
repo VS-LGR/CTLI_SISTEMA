@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeSlash, Spinner } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
-import { isTechnicianOnlyNav } from "@/lib/roles";
+import { isTechnicianOnlyNav, isSignatoryOnlyNav } from "@/lib/roles";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
+import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 import { APP_NAME, APP_TAGLINE, APP_LOGO_WIDE } from "@/lib/appBranding";
 import AppBrand from "@/components/branding/AppBrand";
 
@@ -58,7 +59,13 @@ const Login = () => {
   const [error, setError] = useState("");
 
   if (user && user !== false) {
-    return <Navigate to={isTechnicianOnlyNav(user.role) ? COLETA_LIST_PATH : "/dashboard"} replace />;
+    if (isTechnicianOnlyNav(user.role)) {
+      return <Navigate to={COLETA_LIST_PATH} replace />;
+    }
+    if (isSignatoryOnlyNav(user.role)) {
+      return <Navigate to={CERTIFICATE_PENDING_APPROVAL_PATH} replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
   }
 
   const submit = async (e) => {
@@ -72,7 +79,10 @@ const Login = () => {
       toast.error(res.error);
     } else {
       toast.success("Bem-vindo de volta!");
-      navigate(isTechnicianOnlyNav(res.user?.role) ? COLETA_LIST_PATH : "/dashboard");
+      const role = res.user?.role;
+      if (isTechnicianOnlyNav(role)) navigate(COLETA_LIST_PATH);
+      else if (isSignatoryOnlyNav(role)) navigate(CERTIFICATE_PENDING_APPROVAL_PATH);
+      else navigate("/dashboard");
     }
   };
 

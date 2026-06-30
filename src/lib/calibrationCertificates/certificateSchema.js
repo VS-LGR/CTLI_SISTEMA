@@ -20,6 +20,7 @@ export const CERTIFICATE_STATUSES = [
   { value: "aguardando_aprovacao", label: "Aguardando Aprovação" },
   { value: "aprovado", label: "Aprovado" },
   { value: "emitido", label: "Emitido" },
+  { value: "enviado", label: "Enviado ao cliente" },
   { value: "substituido", label: "Substituído" },
   { value: "cancelado", label: "Cancelado" },
   { value: "obsoleto", label: "Obsoleto" },
@@ -62,7 +63,7 @@ export const COLETA_OFFICIAL_STATUSES = ["conferida", "aprovada_certificado"];
 export const COLETA_PREVIEW_STATUSES = ["rascunho", "preenchida", ...COLETA_OFFICIAL_STATUSES];
 
 export const EDITABLE_CERTIFICATE_STATUSES = ["rascunho", "calculado", "em_revisao_tecnica", "reprovado"];
-export const LOCKED_CERTIFICATE_STATUSES = ["aprovado", "emitido", "substituido", "cancelado", "obsoleto"];
+export const LOCKED_CERTIFICATE_STATUSES = ["aprovado", "emitido", "enviado", "substituido", "cancelado", "obsoleto"];
 
 export function coletaWorkflowLabel(value) {
   return COLETA_WORKFLOW_STATUSES.find((s) => s.value === value)?.label || value || "—";
@@ -103,9 +104,10 @@ export function canTransitionCertificateStatus(from, to) {
     calculado: ["em_revisao_tecnica", "aguardando_aprovacao", "rascunho", "cancelado", "obsoleto"],
     em_revisao_tecnica: ["aguardando_aprovacao", "calculado", "cancelado", "obsoleto"],
     aguardando_aprovacao: ["aprovado", "reprovado", "cancelado", "obsoleto"],
-    aprovado: ["emitido", "cancelado", "obsoleto"],
+    aprovado: ["emitido", "enviado", "cancelado", "obsoleto"],
     reprovado: ["calculado", "rascunho", "cancelado", "obsoleto"],
-    emitido: ["substituido", "cancelado"],
+    emitido: ["substituido", "cancelado", "enviado"],
+    enviado: ["substituido", "cancelado", "enviado"],
     substituido: ["obsoleto"],
     cancelado: ["obsoleto"],
     obsoleto: [],
@@ -116,7 +118,7 @@ export function canTransitionCertificateStatus(from, to) {
 /** Certificados emitidos devem ser cancelados ou substituídos antes de obsoletar. */
 export const OBSOLETABLE_CERTIFICATE_STATUSES = [
   "cancelado", "substituido", "reprovado", "rascunho", "calculado",
-  "em_revisao_tecnica", "aguardando_aprovacao", "aprovado",
+  "em_revisao_tecnica", "aguardando_aprovacao", "aprovado", "enviado",
 ];
 
 export const INACTIVE_CERTIFICATE_STATUSES = ["cancelado", "substituido", "obsoleto"];

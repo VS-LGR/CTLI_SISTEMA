@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { isSupabaseAuthMode } from "@/lib/api";
-import { canAccessCalibrationCertificates, canApproveCalibrationCertificate, canEmitCalibrationCertificate } from "@/lib/roles";
+import { canAccessCalibrationCertificates, canApproveCalibrationCertificate, canEmitCalibrationCertificate, canSendCertificateEmail, canEditCalibrationCertificate } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +84,9 @@ import {
   maxToleranceRowClass,
   maxToleranceValueClass,
 } from "@/components/calibrationCertificates/MaxTolerancePointFlag";
+import CertificateEmitSendDialog from "@/components/calibrationCertificates/CertificateEmitSendDialog";
+import { resolveClientEmail, emitAndSendCertificate } from "@/lib/certificateEmail/certificateEmailApi";
+import { toast } from "sonner";
 
 function certificatePointDisplay(cert, point) {
   const balance = cert?.balance_snapshot || {};
@@ -147,6 +150,9 @@ export default function CertificateEditorPage() {
     }
   });
   const [previewCalcPoints, setPreviewCalcPoints] = useState(null);
+  const [emitSendOpen, setEmitSendOpen] = useState(false);
+  const [emitSendBusy, setEmitSendBusy] = useState(false);
+  const [pendingApprovedCert, setPendingApprovedCert] = useState(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -211,7 +217,7 @@ export default function CertificateEditorPage() {
     return <p className="text-sm text-slate-500 py-12 text-center">A carregar certificado…</p>;
   }
 
-  const editable = isCertificateEditable(cert.status);
+  const editable = isCertificateEditable(cert.status) && canEditCalibrationCertificate(user?.role);
   const isStandalone = !cert.collection_id;
   const expiredStandards = validateExpiredStandards(cert.standards, cert.calibration_date);
   const maxToleranceAlerts = maxToleranceAlertPointSet(cert.conformity?.max_tolerance_point_results);
@@ -424,6 +430,8 @@ export default function CertificateEditorPage() {
 
   const canApprove = canApproveCalibrationCertificate(user?.role);
   const canEmit = canEmitCalibrationCertificate(user?.role);
+  const canSendEmail = canSendCertificateEmail(user?.role);
+  const clientEmailResolved = cert ? resolveClientEmail(cert, endCustomers).email : "";
 
   const handleReprove = async () => {
     try {
@@ -432,6 +440,43 @@ export default function CertificateEditorPage() {
       toast.success("Certificado reprovado");
     } catch (e) {
       toast.error(e.message);
+    }
+  };
+
+  const handleEmitAndSend = async (targetCert = pendingApprovedCert || cert) => {
+    if (!targetCert || !canSendEmail) return;
+    setEmitSendBusy(true);
+    try {
+      const { prepareMasterDocumentExport } = await import("@/lib/masterDocuments/masterDocumentExportHelper");
+      const { meta, fileName } = await prepareMasterDocumentExport({
+        tenantId: currentTenantId,
+        templateKey: "re-72b-certificado-calibracao-pdf",
+        code: "RE-7.2B",
+        record: targetCert,
+        defaultTitle: "CERTIFICADO DE CALIBRAÇÃO",
+        fileNameContext: {
+          numero: `${targetCert.certificate_number}-${targetCert.certificate_year}`,
+          cliente: targetCert.client_name,
+          numeroSerie: targetCert.scale_serial,
+        },
+      });
+      const updated = await emitAndSendCertificate(targetCert, {
+        userId: user.id,
+        tenant: currentTenant,
+        tenantName: currentTenant?.name || "",
+        logoDataUrl,
+        endCustomers,
+        documentMeta: meta,
+        fileName,
+      });
+      setCert(updated);
+      setPendingApprovedCert(null);
+      setEmitSendOpen(false);
+      toast.success(`Certificado enviado para ${updated.client_email_sent_to || clientEmailResolved}`);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setEmitSendBusy(false);
     }
   };
 
@@ -446,6 +491,10 @@ export default function CertificateEditorPage() {
       });
       setCert(updated);
       toast.success("Certificado aprovado");
+      if (canSendEmail) {
+        setPendingApprovedCert(updated);
+        setEmitSendOpen(true);
+      }
     } catch (e) {
       toast.error(e.message);
     }
@@ -455,6 +504,16 @@ export default function CertificateEditorPage() {
     if (!canEmit) return toast.error("Sem permissão para emitir certificados");
     const pre = validateBeforeEmit(cert, cert.points, cert.standards, cert.environmental, { weightItems });
     if (!pre.ok) return toast.error(pre.errors.join("; "));
+    if (pre.warnings?.length) {
+      const detail = pre.warnings.map((w) => `• ${w}`).join("\n");
+      const confirmed = window.confirm(
+        "Tolerância máxima excedida em uma ou mais pesagens:\n\n"
+        + `${detail}\n\n`
+        + "A emissão é permitida, mas pode gerar complicações metrológicas ou comerciais.\n\n"
+        + "Deseja emitir o certificado mesmo assim?",
+      );
+      if (!confirmed) return;
+    }
     try {
       const { prepareMasterDocumentExport, recordMasterDocumentExport } = await import("@/lib/masterDocuments/masterDocumentExportHelper");
       const { meta, fileName } = await prepareMasterDocumentExport({
@@ -622,9 +681,9 @@ export default function CertificateEditorPage() {
       )}
 
       <MaxToleranceAlertBanner pointResults={cert.conformity?.max_tolerance_point_results} />
-      {cert.conformity?.general_max_tolerance_result === "alerta" && (
+      {cert.conformity?.general_max_tolerance_result === "alerta" && cert.status === "aprovado" && (
         <p className="text-xs text-amber-800 -mt-2">
-          A emissão do certificado está bloqueada até corrigir os pontos sinalizados.
+          Ao emitir, será solicitada confirmação. A emissão com tolerância excedida é permitida, mas pode gerar complicações.
         </p>
       )}
 
@@ -1352,7 +1411,44 @@ export default function CertificateEditorPage() {
                 </div>
               )}
               {cert.status === "aprovado" && !cert.is_preview_only && (
-                <Button onClick={handleEmit} disabled={!canEmit}><FilePdf size={16} className="mr-1" /> Emitir PDF oficial</Button>
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-600">
+                    E-mail do cliente: {clientEmailResolved || "— (cadastre em Clientes)"}
+                  </p>
+                  {cert.conformity?.general_max_tolerance_result === "alerta" && (
+                    <p className="text-xs text-amber-800 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                      Tolerância máxima excedida: a emissão é permitida mediante confirmação, mas pode gerar complicações.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {canSendEmail && (
+                      <Button onClick={() => { setPendingApprovedCert(cert); setEmitSendOpen(true); }} disabled={!clientEmailResolved || emitSendBusy}>
+                        <FilePdf size={16} className="mr-1" /> Emitir e enviar por e-mail
+                      </Button>
+                    )}
+                    <Button variant="outline" onClick={handleEmit} disabled={!canEmit}>
+                      <FilePdf size={16} className="mr-1" /> Só emitir PDF
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {cert.status === "enviado" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-emerald-700">
+                    Enviado ao cliente em {cert.client_email_sent_to}
+                    {cert.client_email_sent_at ? ` (${new Date(cert.client_email_sent_at).toLocaleString("pt-BR")})` : ""}.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={handlePreview}>
+                      <FilePdf size={16} className="mr-1" /> Baixar PDF
+                    </Button>
+                    {canSendEmail && (
+                      <Button variant="outline" onClick={() => handleEmitAndSend(cert)} disabled={emitSendBusy}>
+                        Reenviar por e-mail
+                      </Button>
+                    )}
+                  </div>
+                </div>
               )}
               {cert.status === "emitido" && (
                 <div className="space-y-3">
@@ -1360,6 +1456,11 @@ export default function CertificateEditorPage() {
                   <Button variant="outline" onClick={handlePreview}>
                     <FilePdf size={16} className="mr-1" /> Baixar PDF emitido
                   </Button>
+                  {canSendEmail && (
+                    <Button onClick={() => handleEmitAndSend(cert)} disabled={emitSendBusy || !clientEmailResolved}>
+                      <FilePdf size={16} className="mr-1" /> Enviar por e-mail ao cliente
+                    </Button>
+                  )}
                   <div>
                     <Label>Motivo da substituição</Label>
                     <Textarea value={substituteReason} onChange={(e) => setSubstituteReason(e.target.value)} className="mt-1" />
@@ -1467,6 +1568,22 @@ export default function CertificateEditorPage() {
         open={criticalOpen}
         onOpenChange={setCriticalOpen}
         onConfirm={handleSendApproval}
+      />
+
+      <CertificateEmitSendDialog
+        open={emitSendOpen}
+        onOpenChange={(open) => {
+          setEmitSendOpen(open);
+          if (!open) setPendingApprovedCert(null);
+        }}
+        count={1}
+        clientEmail={resolveClientEmail(pendingApprovedCert || cert, endCustomers).email}
+        onEmitAndSend={() => handleEmitAndSend()}
+        onSkip={() => {
+          setEmitSendOpen(false);
+          setPendingApprovedCert(null);
+        }}
+        busy={emitSendBusy}
       />
     </div>
   );

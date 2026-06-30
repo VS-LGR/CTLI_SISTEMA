@@ -15,7 +15,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals } from "@/lib/roles";
+import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 import {
   REQ_MENU_ITEMS,
   getFoldersForRequirement,
@@ -111,6 +112,8 @@ const Layout = () => {
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";
   const technicianNav = isTechnicianOnlyNav(user?.role);
+  const signatoryNav = isSignatoryOnlyNav(user?.role);
+  const restrictedNav = technicianNav || signatoryNav;
 
   const {
     confirmOpen: tenantConfirmOpen,
@@ -173,13 +176,19 @@ const Layout = () => {
 
   const renderNav = (onNavigate) => (
     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain">
-      {!technicianNav && (
+      {!restrictedNav && (
         <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard" onClick={onNavigate}>
           <House size={18} weight="duotone" /> Dashboard
         </NavLink>
       )}
 
-      {!technicianNav && (
+      {signatoryNav && (
+        <NavLink to={CERTIFICATE_PENDING_APPROVAL_PATH} className={navLinkClass} data-testid="nav-certificates-approval" onClick={onNavigate}>
+          <ClipboardText size={18} weight="duotone" /> Certificados — aprovação
+        </NavLink>
+      )}
+
+      {!restrictedNav && (
         <Collapsible open={cadastrosExpanded} onOpenChange={setCadastrosExpanded}>
           <CollapsibleTrigger
             className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
@@ -208,13 +217,13 @@ const Layout = () => {
         </Collapsible>
       )}
 
-      {!technicianNav && canAccessMasterDocuments(user?.role) && (
+      {!restrictedNav && canAccessMasterDocuments(user?.role) && (
         <NavLink to={LISTA_MESTRA_PATH} className={navLinkClass} data-testid="nav-lista-mestra" onClick={onNavigate}>
           <List size={18} weight="duotone" /> Lista Mestra
         </NavLink>
       )}
 
-      {!technicianNav && (
+      {!restrictedNav && (
         <>
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Requisitos

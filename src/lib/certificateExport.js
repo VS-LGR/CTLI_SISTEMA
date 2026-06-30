@@ -25,7 +25,7 @@ async function loadSignatureDataUrl(storagePath) {
   }
 }
 
-async function loadCertificateSignatures(cert) {
+export async function loadCertificateSignatures(cert) {
   const executorPath = cert.technical_snapshot?.executorSnapshot?.signature_storage_path;
   const signatoryPath = cert.technical_snapshot?.signatorySnapshot?.signature_storage_path;
   const ids = [cert.executor_id, cert.signatory_id].filter(Boolean);

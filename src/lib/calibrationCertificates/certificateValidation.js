@@ -1,7 +1,7 @@
 import { CRITICAL_ANALYSIS_CHECKLIST } from "./certificateSchema";
 import {
   evaluateCertificateMaxTolerance,
-  formatMaxToleranceEmitErrors,
+  formatMaxToleranceEmitWarnings,
   hasAnyConfiguredTolerance,
 } from "@/lib/certificateCalculations/pointMaxToleranceVerification";
 
@@ -55,6 +55,7 @@ export function validateBeforeApproval(cert, points, standards, environmental, c
 
 export function validateBeforeEmit(cert, points, standards, environmental, options = {}) {
   const errors = [];
+  const warnings = [];
   if (!cert?.signatory_id) errors.push("Signatário deve aprovar antes da emissão");
   if (!cert?.certificate_number) errors.push("Número do certificado obrigatório");
   if (cert?.status !== "aprovado") errors.push("Certificado deve estar aprovado");
@@ -86,13 +87,17 @@ export function validateBeforeEmit(cert, points, standards, environmental, optio
       errors.push(...tolCheck.errors);
     }
     if (tolCheck.general === "alerta") {
-      errors.push(...formatMaxToleranceEmitErrors(tolCheck.pointResults));
+      warnings.push(...formatMaxToleranceEmitWarnings(tolCheck.pointResults));
     }
   } else if (cert?.conformity?.general_max_tolerance_result === "alerta") {
-    errors.push(...formatMaxToleranceEmitErrors(cert.conformity.max_tolerance_point_results || []));
+    warnings.push(...formatMaxToleranceEmitWarnings(cert.conformity.max_tolerance_point_results || []));
   }
 
-  return { ok: !errors.length, errors: [...new Set(errors)] };
+  return {
+    ok: !errors.length,
+    errors: [...new Set(errors)],
+    warnings: [...new Set(warnings)],
+  };
 }
 
 export function validateExpiredStandards(standards, calibrationDate) {

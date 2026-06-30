@@ -59,6 +59,8 @@ const AdminClients = () => {
   const [uEmail, setUEmail] = useState("");
   const [uPassword, setUPassword] = useState("");
   const [uRole, setURole] = useState("gerente_qualidade");
+  const [uEmployeeId, setUEmployeeId] = useState("");
+  const [tenantSignatories, setTenantSignatories] = useState([]);
 
   const [rTenant, setRTenant] = useState("");
   const [rName, setRName] = useState("");
@@ -110,6 +112,7 @@ const AdminClients = () => {
     setUEmail("");
     setUPassword("");
     setURole("gerente_qualidade");
+    setUEmployeeId("");
   };
 
   const resetRespForm = () => {
@@ -144,7 +147,13 @@ const AdminClients = () => {
         .select("*")
         .eq("tenant_id", t.id);
       if (pe) us[t.id] = [];
-      else us[t.id] = (profs || []).map((p) => ({ id: p.id, name: p.full_name, email: p.email, role: p.role }));
+      else us[t.id] = (profs || []).map((p) => ({
+        id: p.id,
+        name: p.full_name,
+        email: p.email,
+        role: p.role,
+        employee_registration_id: p.employee_registration_id,
+      }));
 
       const { data: respRows, error: re } = await supabase
         .from("responsibles")
@@ -188,6 +197,23 @@ const AdminClients = () => {
     load();
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseAuthMode || !uTenant || uRole !== "signatario") {
+      setTenantSignatories([]);
+      return;
+    }
+    supabase
+      .from("employee_registrations")
+      .select("id, full_name, email, registration_code")
+      .eq("tenant_id", uTenant)
+      .eq("job_role", "signatario")
+      .order("full_name")
+      .then(({ data, error }) => {
+        if (error) setTenantSignatories([]);
+        else setTenantSignatories(data || []);
+      });
+  }, [uTenant, uRole]);
 
   if (!isAdmin) return <div className="text-slate-600">Acesso restrito a administradores CTLI.</div>;
 
@@ -322,6 +348,10 @@ const AdminClients = () => {
     if (!editingUserId && !uPassword) return toast.error("Informe a senha para novo utilizador");
     if (uRole !== "admin" && !uTenant) return toast.error("Selecione o ambiente (cliente) para este utilizador");
 
+    if (uRole === "signatario" && !uEmployeeId) {
+      return toast.error("Selecione o colaborador signatário vinculado a este login");
+    }
+
     try {
       if (isSupabaseAuthMode) {
         if (editingUserId) {
@@ -331,6 +361,7 @@ const AdminClients = () => {
             role: uRole,
             tenant_id: uRole === "admin" ? null : uTenant,
             email: uEmail.trim(),
+            employee_registration_id: uRole === "signatario" ? uEmployeeId : null,
           });
           toast.success("Utilizador atualizado");
         } else {
@@ -340,6 +371,7 @@ const AdminClients = () => {
             full_name: uName.trim(),
             role: uRole,
             tenant_id: uRole === "admin" ? null : uTenant,
+            employee_registration_id: uRole === "signatario" ? uEmployeeId : undefined,
           });
           toast.success("Utilizador criado");
         }
@@ -372,6 +404,7 @@ const AdminClients = () => {
     setUPassword("");
     setURole(u.role);
     setUTenant(u.role === "admin" ? "" : tenantIdForScope || u.tenant_id || "");
+    setUEmployeeId(u.employee_registration_id || "");
     setOpenUser(true);
   };
 
@@ -571,7 +604,10 @@ const AdminClients = () => {
                   <Label>Nível de acesso</Label>
                   <select
                     value={uRole}
-                    onChange={(e) => setURole(e.target.value)}
+                    onChange={(e) => {
+                      setURole(e.target.value);
+                      if (e.target.value !== "signatario") setUEmployeeId("");
+                    }}
                     className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
                     data-testid="user-role-select"
                   >
@@ -582,6 +618,33 @@ const AdminClients = () => {
                     ))}
                   </select>
                 </div>
+                {uRole === "signatario" && (
+                  <div>
+                    <Label>Colaborador signatário *</Label>
+                    <select
+                      value={uEmployeeId}
+                      onChange={(e) => setUEmployeeId(e.target.value)}
+                      className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                      disabled={!uTenant}
+                    >
+                      <option value="">Selecione o colaborador…</option>
+                      {tenantSignatories.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.full_name}
+                          {e.registration_code ? ` (${e.registration_code})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {!uTenant && (
+                      <p className="text-xs text-slate-500 mt-1">Selecione o ambiente primeiro.</p>
+                    )}
+                    {uTenant && tenantSignatories.length === 0 && (
+                      <p className="text-xs text-amber-700 mt-1">
+                        Cadastre um colaborador com função Signatário em Cadastros.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <Label>Nome *</Label>
                   <Input value={uName} onChange={(e) => setUName(e.target.value)} data-testid="user-name-input" />

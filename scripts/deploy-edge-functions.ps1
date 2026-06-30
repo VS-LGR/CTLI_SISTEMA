@@ -16,7 +16,8 @@ $functions = @(
   "admin-update-user",
   "admin-delete-user",
   "tenant-manage-technician",
-  "tenant-backup"
+  "tenant-backup",
+  "send-calibration-certificate"
 )
 
 Write-Host "ProcVault — deploy Edge Functions" -ForegroundColor Cyan
@@ -31,6 +32,11 @@ Write-Host "A publicar: $($functions -join ', ')"
 npx supabase functions deploy $functions
 
 Write-Host ""
-Write-Host "Concluido. No painel Supabase:" -ForegroundColor Green
-Write-Host "  Edge Functions -> Secrets -> adicione CTLI_SERVICE_ROLE_KEY = valor service_role (Settings -> API)"
+Write-Host "Concluido. No painel Supabase (NAO na Vercel):" -ForegroundColor Green
+Write-Host "  Edge Functions -> Secrets:"
+Write-Host "    CTLI_SERVICE_ROLE_KEY = service_role (Settings -> API)"
+Write-Host "    RESEND_API_KEY = chave da API Resend"
+Write-Host "    RESEND_FROM_EMAIL = remetente padrao (fallback se o ambiente nao tiver billing_email)"
+Write-Host "  Remetente por ambiente: cadastre billing_email em Admin -> Clientes."
 Write-Host "  (SUPABASE_URL e SUPABASE_ANON_KEY ja existem por defeito nas funcoes.)"
+Write-Host "  Vercel: apenas REACT_APP_* do frontend (URL/anon key). Nunca service_role nem RESEND_API_KEY."

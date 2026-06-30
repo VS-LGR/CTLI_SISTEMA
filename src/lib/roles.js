@@ -3,6 +3,7 @@ export const ROLES = [
   { value: "admin", label: "Administrador CTLI", short: "CTLI" },
   { value: "client", label: "Conta cliente (portal)", short: "Cliente" },
   { value: "tecnico_campo", label: "Técnico de campo", short: "Técnico" },
+  { value: "signatario", label: "Signatário", short: "Signatário" },
   { value: "diretor", label: "Diretor", short: "Diretor" },
   { value: "gerente_qualidade", label: "Gerente da Qualidade", short: "Gerente Qualidade" },
   { value: "gerente_tecnico", label: "Gerente Técnico", short: "Gerente Técnico" },
@@ -19,12 +20,33 @@ export const isCtliAdmin = (role) => role === "admin";
 export const canAccessColeta = (role) =>
   ["admin", "client", "tecnico_campo"].includes(role);
 
+const CERTIFICATE_INTERNAL_ROLES = [
+  "admin",
+  "client",
+  "diretor",
+  "gerente_qualidade",
+  "gerente_tecnico",
+  "signatario",
+];
+
 /** Papéis que podem aprovar certificados (signatário interno). */
 export const canApproveCalibrationCertificate = (role) =>
-  ["admin", "client", "diretor", "gerente_qualidade", "gerente_tecnico"].includes(role);
+  CERTIFICATE_INTERNAL_ROLES.includes(role);
 
 /** Papéis que podem emitir certificado oficial. */
 export const canEmitCalibrationCertificate = canApproveCalibrationCertificate;
+
+/** Papéis que podem enviar certificado por e-mail ao cliente. */
+export const canSendCertificateEmail = (role) =>
+  [
+    "admin",
+    "client",
+    "diretor",
+    "gerente_qualidade",
+    "gerente_tecnico",
+    "administrativo_vendas",
+    "signatario",
+  ].includes(role);
 
 /** Certificados RE-7.2B — coleta + papéis internos de calibração. */
 export const canAccessCalibrationCertificates = (role) =>
@@ -32,6 +54,18 @@ export const canAccessCalibrationCertificates = (role) =>
     "admin",
     "client",
     "tecnico_campo",
+    ...CERTIFICATE_INTERNAL_ROLES,
+    "administrativo_vendas",
+  ].includes(role);
+
+/** Signatário: acesso restrito à fila de aprovação/envio (sem edição técnica completa). */
+export const isSignatoryOnlyNav = (role) => role === "signatario";
+
+/** Edição técnica de certificados — exclui signatário e técnico de campo. */
+export const canEditCalibrationCertificate = (role) =>
+  [
+    "admin",
+    "client",
     "diretor",
     "gerente_qualidade",
     "gerente_tecnico",

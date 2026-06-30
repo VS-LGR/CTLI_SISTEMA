@@ -324,16 +324,21 @@ export function formatMaxTolerancePointLabel(result) {
   return `P${result.pointNumber}`;
 }
 
-/** Mensagens de erro para bloqueio na emissão. */
-export function formatMaxToleranceEmitErrors(pointResults = []) {
+/** Mensagens de aviso na emissão quando tolerância máxima foi excedida (não bloqueia). */
+export function formatMaxToleranceEmitWarnings(pointResults = []) {
   return pointResults
     .filter((p) => p.result === "alerta")
     .map((p) => {
       const tv = p.testValue != null ? p.testValue.toFixed(4).replace(".", ",") : "—";
       const tol = p.toleranceMax != null ? p.toleranceMax.toFixed(4).replace(".", ",") : "—";
       const load = formatMaxTolerancePointLabel(p);
-      return `Verificação de tolerância: ${load} (P${p.pointNumber}, |E+U|=${tv}) excede tolerância máxima (${tol})`;
+      return `${load} (P${p.pointNumber}): |E+U| = ${tv} excede tolerância máxima (${tol})`;
     });
+}
+
+/** @deprecated Use formatMaxToleranceEmitWarnings — tolerância excedida não bloqueia mais a emissão. */
+export function formatMaxToleranceEmitErrors(pointResults = []) {
+  return formatMaxToleranceEmitWarnings(pointResults);
 }
 
 export function maxToleranceAlertPoints(pointResults = []) {

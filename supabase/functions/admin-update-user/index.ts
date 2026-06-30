@@ -39,7 +39,7 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceKey);
 
     const body = await req.json();
-    const { user_id, full_name, role, tenant_id, email } = body;
+    const { user_id, full_name, role, tenant_id, email, employee_registration_id } = body;
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id obrigatório" }), {
@@ -82,6 +82,10 @@ serve(async (req) => {
     }
 
     if (email) patch.email = email;
+
+    if (employee_registration_id !== undefined) {
+      patch.employee_registration_id = employee_registration_id || null;
+    }
 
     const { error: upErr } = await adminClient.from("profiles").update(patch).eq("id", user_id);
     if (upErr) {

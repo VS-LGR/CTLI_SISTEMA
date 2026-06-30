@@ -540,10 +540,22 @@ export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls, pla
   if (model.cancelled) drawWatermark(doc, "CANCELADO");
 }
 
-export async function renderCertificatePdf(cert, tenantName, opts = {}) {
+export function buildCertificatePdfBlob(cert, tenantName, opts = {}) {
   const model = buildCertificatePdfViewModel(cert, opts);
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   drawCertificatePdf(doc, model, opts);
-  const name = opts.fileName || `certificado-${cert.certificate_number || cert.id?.slice(0, 8)}.pdf`;
-  doc.save(name);
+  const fileName = opts.fileName || `certificado-${cert.certificate_number || cert.id?.slice(0, 8)}.pdf`;
+  return { blob: doc.output("blob"), fileName };
+}
+
+export async function renderCertificatePdf(cert, tenantName, opts = {}) {
+  const { blob, fileName } = buildCertificatePdfBlob(cert, tenantName, opts);
+  if (opts.download === false) return { blob, fileName };
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+  return { blob, fileName };
 }
