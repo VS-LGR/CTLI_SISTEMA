@@ -16,7 +16,7 @@ export default function PesoPadraoMultiSelect({
 }) {
   const items = weightItems.length ? weightItems : (weightCerts || []);
   const [open, setOpen] = useState(false);
-  const selected = value || [];
+  const selected = useMemo(() => value || [], [value]);
 
   const composition = useMemo(
     () => describeWeightComposition(selected, weightItems, { targetUnit: unit }),

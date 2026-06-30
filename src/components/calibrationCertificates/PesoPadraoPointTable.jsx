@@ -19,7 +19,7 @@ export default function PesoPadraoPointTable({
   disabled = false,
   unit = "g",
 }) {
-  const selected = value || [];
+  const selected = useMemo(() => value || [], [value]);
 
   const composition = useMemo(
     () => describeWeightComposition(selected, weightItems, { targetUnit: unit }),
