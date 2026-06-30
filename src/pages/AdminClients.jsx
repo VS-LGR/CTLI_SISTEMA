@@ -765,8 +765,8 @@ const AdminClients = () => {
                         <Input value={tBillingPhone} onChange={(e) => setTBillingPhone(e.target.value)} />
                       </div>
                       <div className="min-w-0">
-                        <Label className="text-xs">E-mail</Label>
-                        <Input value={tBillingEmail} onChange={(e) => setTBillingEmail(e.target.value)} />
+                        <Label className="text-xs">E-mail (faturamento e envio de certificados)</Label>
+                        <Input type="email" value={tBillingEmail} onChange={(e) => setTBillingEmail(e.target.value)} placeholder="certificados@empresa.com.br" />
                       </div>
                       <div className="min-w-0">
                         <Label className="text-xs">CNPJ</Label>

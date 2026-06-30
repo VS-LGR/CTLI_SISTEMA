@@ -10,9 +10,9 @@ export const ROLES = [
   { value: "administrativo_vendas", label: "Administrativo / Vendas", short: "Adm/Vendas" },
 ];
 
-// Responsáveis: sem administrador CTLI nem contas portal-only
+// Responsáveis documentais (lista mestra) — não inclui login signatário nem CTLI/cliente/técnico
 export const RESPONSIBLE_ROLES = ROLES.filter(
-  (r) => !["admin", "client", "tecnico_campo"].includes(r.value),
+  (r) => !["admin", "client", "tecnico_campo", "signatario"].includes(r.value),
 );
 
 export const isCtliAdmin = (role) => role === "admin";
