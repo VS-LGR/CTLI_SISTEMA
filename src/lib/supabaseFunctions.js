@@ -33,21 +33,12 @@ export async function invokeSupabaseEdgeFunction(functionName, body) {
   const apikey = supabasePublicKey();
   if (!apikey) throw new Error("REACT_APP_SUPABASE_ANON_KEY ou REACT_APP_SUPABASE_PUBLISHABLE_KEY em falta.");
 
-  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-  if (refreshError) {
-    // #region agent log
-    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'supabaseFunctions.js:refresh_failed',message:'session refresh failed',data:{err:refreshError.message},timestamp:Date.now(),hypothesisId:'H12'})}).catch(()=>{});
-    // #endregion
-  }
+  const { data: refreshData } = await supabase.auth.refreshSession();
   const token = refreshData?.session?.access_token
     || (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error("Sessão expirada. Faça login novamente.");
 
   const url = `${baseUrl}/functions/v1/${functionName}`;
-  console.warn("[cert-email] fetch edge", { functionName, hasToken: Boolean(token) });
-  // #region agent log
-  fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'supabaseFunctions.js:invoke:start',message:'edge invoke start',data:{functionName,baseUrl,hasToken:Boolean(token),bodyKeys:Object.keys(body||{})},timestamp:Date.now(),hypothesisId:'H1-H5'})}).catch(()=>{});
-  // #endregion
   let res;
   try {
     res = await fetch(url, {
@@ -61,19 +52,12 @@ export async function invokeSupabaseEdgeFunction(functionName, body) {
     });
   } catch (netErr) {
     const msg = netErr?.message || String(netErr);
-    // #region agent log
-    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'supabaseFunctions.js:invoke:netErr',message:'edge fetch network error',data:{functionName,msg},timestamp:Date.now(),hypothesisId:'H1-H4'})}).catch(()=>{});
-    // #endregion
     if (EDGE_FN_GENERIC.test(msg)) throw new Error(deployHint(functionName));
     throw new Error(`${msg} ${deployHint(functionName)}`);
   }
 
   let data = null;
   const text = await res.text();
-  console.warn("[cert-email] edge response", { functionName, status: res.status, ok: res.ok, preview: text.slice(0, 120) });
-  // #region agent log
-  fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'supabaseFunctions.js:invoke:response',message:'edge fetch response',data:{functionName,status:res.status,ok:res.ok,textPreview:text.slice(0,120)},timestamp:Date.now(),hypothesisId:'H1-H3'})}).catch(()=>{});
-  // #endregion
   if (text) {
     try {
       data = JSON.parse(text);

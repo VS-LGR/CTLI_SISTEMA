@@ -61,10 +61,6 @@ function resolveFromEmail(tenantBilling: string, envRaw: string): { email: strin
   return { email: "", source: "none" };
 }
 
-function debugLog(step: string, data: Record<string, unknown> = {}) {
-  console.log(JSON.stringify({ fn: "send-calibration-certificate", step, ...data }));
-}
-
 async function authGate(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
@@ -189,21 +185,16 @@ async function resolveSignatoryEmail(
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    debugLog("preflight");
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const contentLength = req.headers.get("content-length") || "unknown";
   try {
-    debugLog("request_start", { method: req.method, contentLength });
     const gate = await authGate(req);
     if ("error" in gate && gate.error) {
-      debugLog("auth_failed");
       return gate.error;
     }
 
     const { user, profile, adminClient } = gate;
-    debugLog("auth_ok", { role: profile.role, userId: user.id });
     const body = await req.json();
     const action = String(body.action || "send");
 
@@ -236,11 +227,6 @@ serve(async (req) => {
 
     const tenantFromEmail = String(tenant?.billing_email || "").trim();
     const fromResolved = resolveFromEmail(tenantFromEmail, Deno.env.get("RESEND_FROM_EMAIL") || "");
-    debugLog("from_email_resolved", {
-      source: fromResolved.source,
-      hasBilling: Boolean(tenantFromEmail),
-      hasEnv: Boolean(Deno.env.get("RESEND_FROM_EMAIL")),
-    });
     if (!fromResolved.email) {
       return jsonResponse({
         error: "E-mail de envio não configurado. Use onboarding@resend.dev nos Secrets ou remova Gmail do ambiente.",
@@ -301,12 +287,6 @@ serve(async (req) => {
     if (!pdfBase64) {
       return jsonResponse({ error: "pdfBase64 é obrigatório" }, 400);
     }
-    debugLog("send_prepare", {
-      certificateId,
-      status: cert.status,
-      pdfLen: pdfBase64.length,
-      recipientDomain: recipientEmail.split("@")[1] || "",
-    });
 
     const certLabel = cert.certificate_number
       ? `${cert.certificate_number}/${cert.certificate_year}`
@@ -327,8 +307,6 @@ serve(async (req) => {
         attachment: { filename: fileName, content: pdfBase64 },
       });
     } catch (sendErr) {
-      const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr);
-      debugLog("resend_failed", { errMsg });
       await adminClient.from("certificate_email_deliveries").insert({
         certificate_id: certificateId,
         tenant_id: tenantId,
@@ -367,7 +345,6 @@ serve(async (req) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    debugLog("fatal_error", { message });
     return jsonResponse({ error: message }, 500);
   }
 });

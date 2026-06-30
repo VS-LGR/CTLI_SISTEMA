@@ -166,7 +166,6 @@ export async function exportCertificatePdfBlob(cert, tenantName = "", {
     renderLogo = compressed.logoDataUrl;
     renderSigs = compressed.signatureUrls;
     renderDiagrams = compressed.platformDiagrams;
-    console.warn("[cert-email] pdf step: assets compressed for email");
   }
 
   const preview = cert.status !== "emitido" || cert.is_preview_only;

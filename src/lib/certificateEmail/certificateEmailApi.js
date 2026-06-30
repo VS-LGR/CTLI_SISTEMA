@@ -43,48 +43,21 @@ export async function buildCertificatePdfForEmail(
   tenantName,
   { tenant, logoDataUrl, documentMeta, fileName } = {},
 ) {
-  console.warn("[cert-email] pdf step: start", {
-    certId: cert?.id,
-    hasPreMeta: Boolean(documentMeta),
-    hasPreFileName: Boolean(fileName),
+  const { exportCertificatePdfBlob } = await import("@/lib/certificateExport");
+  const { blob, fileName: outName } = await exportCertificatePdfBlob(cert, tenantName, {
+    logoDataUrl,
+    tenant,
+    cancelled: cert.status === "cancelado",
+    documentMeta,
+    fileName,
+    compressForEmail: true,
   });
-  // #region agent log
-  fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:pdf_start',message:'pdf build start',data:{certId:cert?.id,hasPreMeta:Boolean(documentMeta),hasPreFileName:Boolean(fileName)},timestamp:Date.now(),hypothesisId:'H1-H3'})}).catch(()=>{});
-  // #endregion
 
-  try {
-    const { exportCertificatePdfBlob } = await import("@/lib/certificateExport");
-    console.warn("[cert-email] pdf step: export module loaded");
-    // #region agent log
-    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:pdf_module',message:'export module loaded',data:{certId:cert?.id},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
-
-    const { blob, fileName: outName } = await exportCertificatePdfBlob(cert, tenantName, {
-      logoDataUrl,
-      tenant,
-      cancelled: cert.status === "cancelado",
-      documentMeta,
-      fileName,
-      compressForEmail: true,
-    });
-    console.warn("[cert-email] pdf step: blob ready", { fileName: outName, pdfKb: Math.round(blob.size / 1024) });
-    // #region agent log
-    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:pdf_blob',message:'pdf blob ready',data:{certId:cert?.id,pdfKb:Math.round(blob.size/1024),fileName:outName},timestamp:Date.now(),hypothesisId:'H3-H4'})}).catch(()=>{});
-    // #endregion
-
-    if (blob.size > 4 * 1024 * 1024) {
-      const mb = Math.round((blob.size / (1024 * 1024)) * 10) / 10;
-      throw new Error(`PDF muito grande para envio por e-mail (${mb} MB; máx. 4 MB).`);
-    }
-    return { blob, fileName: outName };
-  } catch (err) {
-    const msg = err?.message || String(err);
-    console.error("[cert-email] pdf step: failed", msg);
-    // #region agent log
-    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:pdf_error',message:'pdf build failed',data:{certId:cert?.id,errMsg:msg},timestamp:Date.now(),hypothesisId:'H1-H4'})}).catch(()=>{});
-    // #endregion
-    throw err;
+  if (blob.size > 4 * 1024 * 1024) {
+    const mb = Math.round((blob.size / (1024 * 1024)) * 10) / 10;
+    throw new Error(`PDF muito grande para envio por e-mail (${mb} MB; máx. 4 MB).`);
   }
+  return { blob, fileName: outName };
 }
 
 export async function sendCertificateByEmail(
@@ -106,7 +79,6 @@ export async function sendCertificateByEmail(
     throw new Error("E-mail do cliente não cadastrado. Atualize em Cadastros → Clientes.");
   }
 
-  console.warn("[cert-email] send start", { certId: cert.id, recipientDomain: resolved.email.split("@")[1] });
   const { blob, fileName: pdfName } = await buildCertificatePdfForEmail(cert, tenantName || tenant?.name || "", {
     tenant,
     logoDataUrl,
@@ -114,34 +86,15 @@ export async function sendCertificateByEmail(
     fileName,
   });
   const pdfBase64 = await blobToBase64(blob);
-  console.warn("[cert-email] PDF ready", { fileName: pdfName, pdfKb: Math.round(blob.size / 1024), b64Len: pdfBase64.length });
 
-  // #region agent log
-  fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:pre_invoke',message:'calling edge send',data:{certId:cert.id,tenantId:tenant?.id||cert.tenant_id,pdfLen:pdfBase64.length,recipientDomain:(resolved.email.split('@')[1]||'')},timestamp:Date.now(),hypothesisId:'H8-H10'})}).catch(()=>{});
-  // #endregion
-
-  console.warn("[cert-email] edge invoke start", { certId: cert.id });
-  try {
-    const result = await invokeSupabaseEdgeFunction("send-calibration-certificate", {
-      action: "send",
-      certificateId: cert.id,
-      tenantId: tenant?.id || cert.tenant_id,
-      pdfBase64,
-      fileName: pdfName,
-      recipientEmail: resolved.email,
-    });
-    console.warn("[cert-email] edge invoke ok", { certId: cert.id, status: result?.status });
-    // #region agent log
-    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:post_invoke',message:'edge send ok',data:{ok:Boolean(result?.ok),status:result?.status},timestamp:Date.now(),hypothesisId:'H8-H10'})}).catch(()=>{});
-    // #endregion
-    return result;
-  } catch (err) {
-    console.error("[cert-email] edge invoke failed", err?.message || err);
-    // #region agent log
-    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:invoke_error',message:'edge send failed',data:{errMsg:err?.message||String(err)},timestamp:Date.now(),hypothesisId:'H6-H10'})}).catch(()=>{});
-    // #endregion
-    throw err;
-  }
+  return invokeSupabaseEdgeFunction("send-calibration-certificate", {
+    action: "send",
+    certificateId: cert.id,
+    tenantId: tenant?.id || cert.tenant_id,
+    pdfBase64,
+    fileName: pdfName,
+    recipientEmail: resolved.email,
+  });
 }
 
 export async function notifySignatoryPendingApproval(cert, { tenantId } = {}) {
@@ -170,16 +123,12 @@ export async function emitAndSendCertificate(
   } = {},
 ) {
   let current = cert;
-  console.warn("[cert-email] emitAndSend start", { certId: cert?.id, status: cert?.status });
   if (current.status === "aprovado") {
-    console.warn("[cert-email] emitting certificate…");
     current = await emitCertificate(current.id, { userId, documentMeta, fileName });
-    console.warn("[cert-email] emit done", { status: current?.status });
   } else if (!["emitido", "enviado"].includes(current.status)) {
     throw new Error(`Certificado não pode ser enviado no status: ${current.status}`);
   }
 
-  console.warn("[cert-email] building PDF and invoking edge…");
   await sendCertificateByEmail(current, {
     tenant,
     tenantName,
@@ -189,7 +138,6 @@ export async function emitAndSendCertificate(
     documentMeta,
     fileName,
   });
-
   const { getCertificate } = await import("@/lib/calibrationCertificates/certificateApi");
   return getCertificate(current.id);
 }
