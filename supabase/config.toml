@@ -21,3 +21,6 @@ verify_jwt = false
 
 [functions.tenant-backup]
 verify_jwt = false
+
+[functions.send-calibration-certificate]
+verify_jwt = false

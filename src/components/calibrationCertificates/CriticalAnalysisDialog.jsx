@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,9 @@ export default function CriticalAnalysisDialog({ open, onOpenChange, onConfirm, 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Análise crítica antes da aprovação</DialogTitle>
+          <DialogDescription>
+            Marque todos os itens conferidos antes de enviar o certificado para aprovação.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2 max-h-[60vh] overflow-y-auto">
           {CRITICAL_ANALYSIS_CHECKLIST.map((item) => (

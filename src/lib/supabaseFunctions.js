@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 
-const EDGE_FN_GENERIC = /failed to send a request to the edge function/i;
+const EDGE_FN_GENERIC = /failed to send a request to the edge function|cors|preflight|networkerror|net::err_failed/i;
 const NOT_FOUND_FN = /not found|404|requested function/i;
 
 function supabasePublicKey() {
@@ -14,10 +14,10 @@ function supabasePublicKey() {
 
 function deployHint(functionName) {
   return (
-    `A função "${functionName}" não está disponível no projeto Supabase. ` +
-    "Publique-a: no terminal (pasta frontend) execute .\\scripts\\deploy-edge-functions.ps1 " +
-    "ou npx supabase functions deploy tenant-manage-technician após supabase login e link. " +
-    "Depois, em Edge Functions → Secrets, defina CTLI_SERVICE_ROLE_KEY (valor service_role da API)."
+    `A função "${functionName}" não está publicada ou não responde ao browser (CORS). ` +
+    "Publique-a: .\\scripts\\deploy-edge-functions.ps1 (ou npx supabase functions deploy send-calibration-certificate). " +
+    "Confirme supabase/config.toml com verify_jwt = false para esta função. " +
+    "Depois, em Edge Functions → Secrets: CTLI_SERVICE_ROLE_KEY, RESEND_API_KEY e RESEND_FROM_EMAIL."
   );
 }
 
