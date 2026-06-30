@@ -115,20 +115,37 @@ export async function sendCertificateByEmail(
     throw new Error("E-mail do cliente não cadastrado. Atualize em Cadastros → Clientes.");
   }
 
+  console.warn("[cert-email] send start", { certId: cert.id, recipientDomain: resolved.email.split("@")[1] });
   const { blob, fileName } = await buildCertificatePdfForEmail(cert, tenantName || tenant?.name || "", {
     tenant,
     logoDataUrl,
   });
   const pdfBase64 = await blobToBase64(blob);
+  console.warn("[cert-email] PDF ready", { fileName, pdfKb: Math.round(blob.size / 1024), b64Len: pdfBase64.length });
 
-  return invokeSupabaseEdgeFunction("send-calibration-certificate", {
-    action: "send",
-    certificateId: cert.id,
-    tenantId: tenant?.id || cert.tenant_id,
-    pdfBase64,
-    fileName,
-    recipientEmail: resolved.email,
-  });
+  // #region agent log
+  fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:pre_invoke',message:'calling edge send',data:{certId:cert.id,tenantId:tenant?.id||cert.tenant_id,pdfLen:pdfBase64.length,recipientDomain:(resolved.email.split('@')[1]||'')},timestamp:Date.now(),hypothesisId:'H8-H10'})}).catch(()=>{});
+  // #endregion
+
+  try {
+    const result = await invokeSupabaseEdgeFunction("send-calibration-certificate", {
+      action: "send",
+      certificateId: cert.id,
+      tenantId: tenant?.id || cert.tenant_id,
+      pdfBase64,
+      fileName,
+      recipientEmail: resolved.email,
+    });
+    // #region agent log
+    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:post_invoke',message:'edge send ok',data:{ok:Boolean(result?.ok),status:result?.status},timestamp:Date.now(),hypothesisId:'H8-H10'})}).catch(()=>{});
+    // #endregion
+    return result;
+  } catch (err) {
+    // #region agent log
+    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'certificateEmailApi.js:invoke_error',message:'edge send failed',data:{errMsg:err?.message||String(err)},timestamp:Date.now(),hypothesisId:'H6-H10'})}).catch(()=>{});
+    // #endregion
+    throw err;
+  }
 }
 
 export async function notifySignatoryPendingApproval(cert, { tenantId } = {}) {
@@ -157,12 +174,16 @@ export async function emitAndSendCertificate(
   } = {},
 ) {
   let current = cert;
+  console.warn("[cert-email] emitAndSend start", { certId: cert?.id, status: cert?.status });
   if (current.status === "aprovado") {
+    console.warn("[cert-email] emitting certificate…");
     current = await emitCertificate(current.id, { userId, documentMeta, fileName });
+    console.warn("[cert-email] emit done", { status: current?.status });
   } else if (!["emitido", "enviado"].includes(current.status)) {
     throw new Error(`Certificado não pode ser enviado no status: ${current.status}`);
   }
 
+  console.warn("[cert-email] building PDF and invoking edge…");
   await sendCertificateByEmail(current, {
     tenant,
     tenantName,

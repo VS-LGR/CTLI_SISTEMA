@@ -33,8 +33,14 @@ export async function invokeSupabaseEdgeFunction(functionName, body) {
   const apikey = supabasePublicKey();
   if (!apikey) throw new Error("REACT_APP_SUPABASE_ANON_KEY ou REACT_APP_SUPABASE_PUBLISHABLE_KEY em falta.");
 
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) {
+    // #region agent log
+    fetch('http://127.0.0.1:7299/ingest/7b244137-7f40-4eba-9295-132edf0400d6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0cb612'},body:JSON.stringify({sessionId:'0cb612',location:'supabaseFunctions.js:refresh_failed',message:'session refresh failed',data:{err:refreshError.message},timestamp:Date.now(),hypothesisId:'H12'})}).catch(()=>{});
+    // #endregion
+  }
+  const token = refreshData?.session?.access_token
+    || (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error("Sessão expirada. Faça login novamente.");
 
   const url = `${baseUrl}/functions/v1/${functionName}`;

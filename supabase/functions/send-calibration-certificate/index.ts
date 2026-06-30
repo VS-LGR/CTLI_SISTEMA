@@ -30,6 +30,41 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+const CONSUMER_MAIL_DOMAINS = /^(gmail|googlemail|hotmail|outlook|live|yahoo|icloud)\./i;
+
+function normalizeResendFromEmail(raw: string): string {
+  const t = raw.trim();
+  if (!t) return "";
+  if (isValidEmail(t)) return t;
+  if (t === "onboarding") return "onboarding@resend.dev";
+  return "";
+}
+
+function isResendSafeFromEmail(email: string): boolean {
+  if (!isValidEmail(email)) return false;
+  const domain = email.split("@")[1]?.toLowerCase() || "";
+  if (domain === "resend.dev") return true;
+  if (CONSUMER_MAIL_DOMAINS.test(domain)) return false;
+  return true;
+}
+
+function resolveFromEmail(tenantBilling: string, envRaw: string): { email: string; source: string } {
+  const env = normalizeResendFromEmail(envRaw);
+  const tenant = tenantBilling.trim();
+  if (tenant && isValidEmail(tenant) && isResendSafeFromEmail(tenant)) {
+    return { email: tenant, source: "tenant_billing" };
+  }
+  if (env) return { email: env, source: "resend_env" };
+  if (tenant && isValidEmail(tenant)) {
+    return { email: tenant, source: "tenant_billing_unverified" };
+  }
+  return { email: "", source: "none" };
+}
+
+function debugLog(step: string, data: Record<string, unknown> = {}) {
+  console.log(JSON.stringify({ fn: "send-calibration-certificate", step, ...data }));
+}
+
 async function authGate(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
@@ -154,14 +189,21 @@ async function resolveSignatoryEmail(
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
+    debugLog("preflight");
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  const contentLength = req.headers.get("content-length") || "unknown";
   try {
+    debugLog("request_start", { method: req.method, contentLength });
     const gate = await authGate(req);
-    if ("error" in gate && gate.error) return gate.error;
+    if ("error" in gate && gate.error) {
+      debugLog("auth_failed");
+      return gate.error;
+    }
 
     const { user, profile, adminClient } = gate;
+    debugLog("auth_ok", { role: profile.role, userId: user.id });
     const body = await req.json();
     const action = String(body.action || "send");
 
@@ -193,14 +235,18 @@ serve(async (req) => {
       .maybeSingle();
 
     const tenantFromEmail = String(tenant?.billing_email || "").trim();
-    const fromEmail = (tenantFromEmail && isValidEmail(tenantFromEmail))
-      ? tenantFromEmail
-      : (Deno.env.get("RESEND_FROM_EMAIL") || "");
-    if (!fromEmail) {
+    const fromResolved = resolveFromEmail(tenantFromEmail, Deno.env.get("RESEND_FROM_EMAIL") || "");
+    debugLog("from_email_resolved", {
+      source: fromResolved.source,
+      hasBilling: Boolean(tenantFromEmail),
+      hasEnv: Boolean(Deno.env.get("RESEND_FROM_EMAIL")),
+    });
+    if (!fromResolved.email) {
       return jsonResponse({
-        error: "E-mail de envio não configurado no ambiente (Cadastros → Cliente) nem em RESEND_FROM_EMAIL",
+        error: "E-mail de envio não configurado. Use onboarding@resend.dev nos Secrets ou remova Gmail do ambiente.",
       }, 500);
     }
+    const fromEmail = fromResolved.email;
     const fromName = tenant?.certificate_email_from_name || tenant?.name || "Calibração";
     const from = `${fromName} <${fromEmail}>`;
 
@@ -255,6 +301,12 @@ serve(async (req) => {
     if (!pdfBase64) {
       return jsonResponse({ error: "pdfBase64 é obrigatório" }, 400);
     }
+    debugLog("send_prepare", {
+      certificateId,
+      status: cert.status,
+      pdfLen: pdfBase64.length,
+      recipientDomain: recipientEmail.split("@")[1] || "",
+    });
 
     const certLabel = cert.certificate_number
       ? `${cert.certificate_number}/${cert.certificate_year}`
@@ -275,6 +327,8 @@ serve(async (req) => {
         attachment: { filename: fileName, content: pdfBase64 },
       });
     } catch (sendErr) {
+      const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr);
+      debugLog("resend_failed", { errMsg });
       await adminClient.from("certificate_email_deliveries").insert({
         certificate_id: certificateId,
         tenant_id: tenantId,
@@ -313,6 +367,7 @@ serve(async (req) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    debugLog("fatal_error", { message });
     return jsonResponse({ error: message }, 500);
   }
 });
