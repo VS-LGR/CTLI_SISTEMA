@@ -1,11 +1,12 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { buildCertificatePdfViewModel } from "./viewModel";
+import { buildCertificatePdfViewModel, repeatabilityRowsForPdfLayout } from "./viewModel";
 import { pdfImageFormat } from "./compressPdfImages";
 import {
   ML,
   MR,
   PAGE_W,
+  PAGE_H,
   CW,
   FORM_COLORS,
   drawCertificateHeader,
@@ -41,7 +42,15 @@ function drawWatermark(doc, text) {
   }
 }
 
-function singlePageTableOpts(ctx) {
+function resolveTableMargin(ctx, margin) {
+  if (!ctx.singlePage) return margin;
+  return {
+    ...margin,
+    bottom: PAGE_H - ctx.metrics.contentBottom,
+  };
+}
+
+function singlePageTableBreakOpts(ctx) {
   return ctx.singlePage ? { rowPageBreak: "avoid", pageBreak: "avoid" } : {};
 }
 
@@ -49,7 +58,7 @@ function drawClientSection(doc, model, y, ctx) {
   const m = ctx.metrics;
   ({ y } = ensureSpace(doc, y, m.singlePage ? 20 : 28, ctx));
   y = drawSectionBar(doc, ML, y, CW, "DADOS DO CLIENTE", m);
-  y = drawFieldGrid(doc, ML, y, CW, 3, [
+  y = drawFieldGrid(doc, ML, y, CW, m.clientGridCols || 3, [
     { label: "Cliente", value: model.client.name },
     { label: "C.N.P.J.", value: model.client.cnpj },
     { label: "Responsável", value: model.client.representative },
@@ -68,7 +77,7 @@ function drawInstrumentSection(doc, model, y, ctx) {
 
   autoTable(doc, {
     startY: y,
-    margin: { left: ML, right: PAGE_W - MR },
+    margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
     head: [[
       "Tipo de Balança", "Fabricante", "Modelo", "Nº Série",
       "Faixa de Indicação", "Resolução", "Divisão de Verificação", "Unidade",
@@ -86,13 +95,13 @@ function drawInstrumentSection(doc, model, y, ctx) {
     styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding, halign: "center", valign: "middle" },
     headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
     theme: "grid",
-    ...singlePageTableOpts(ctx),
+    ...singlePageTableBreakOpts(ctx),
   });
   y = doc.lastAutoTable.finalY + (m.singlePage ? 0.5 : 1);
 
   autoTable(doc, {
     startY: y,
-    margin: { left: ML, right: PAGE_W - MR },
+    margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
     head: [["Local da Calibração", "Etiqueta IPEM", "Identificação", "Tipo de Plataforma"]],
     body: [[
       s(model.balance.local),
@@ -103,14 +112,14 @@ function drawInstrumentSection(doc, model, y, ctx) {
     styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding, halign: "center" },
     headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
     theme: "grid",
-    ...singlePageTableOpts(ctx),
+    ...singlePageTableBreakOpts(ctx),
   });
   y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
 
   if (model.balance.capacidade2 || model.balance.resolucao2) {
     autoTable(doc, {
       startY: y,
-      margin: { left: ML, right: PAGE_W - MR },
+      margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
       head: [["", "C2", "C3", "d2", "d3", "e2", "e3"]],
       body: [[
         "Faixas adicionais",
@@ -142,13 +151,13 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
     { label: "Umidade Relativa", value: model.environmental.humidity },
     { label: "Pressão Atmosférica", value: model.environmental.pressure },
     { label: "Massa específica do ar", value: model.environmental.airDensity },
-  ]);
+  ], m);
 
   if (model.instrumentStandards?.length) {
     y += m.singlePage ? 0.5 : 1;
     autoTable(doc, {
       startY: y,
-      margin: { left: ML, right: PAGE_W - MR },
+      margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
       head: [[
         "Termo-Higrômetro / Barômetro",
         "Certificado número",
@@ -188,7 +197,7 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
     }
     autoTable(doc, {
       startY: y,
-      margin: { left: ML, right: PAGE_W - MR },
+      margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
       head: [[
         "Identificação", "Data Calibração", "Validade", "Rastreabilidade",
         "Identificação", "Data Calibração", "Validade", "Rastreabilidade",
@@ -309,7 +318,7 @@ function drawEccentricitySection(doc, model, y, ctx) {
 
   autoTable(doc, {
     startY: y,
-    margin: { left: ML, right: PAGE_W - ML - tableW },
+    margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - ML - tableW }),
     head: [["", "Antes do Ajuste", "Após Ajuste"]],
     body: model.eccentricity.points.map((pt) => [
       String(pt.number),
@@ -319,7 +328,7 @@ function drawEccentricitySection(doc, model, y, ctx) {
     styles: { fontSize: m.tableFontSize, cellPadding: m.compactTablePadding, halign: "center" },
     headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
     theme: "grid",
-    ...singlePageTableOpts(ctx),
+    ...singlePageTableBreakOpts(ctx),
   });
   const tableEndY = doc.lastAutoTable.finalY;
   const diagramEndY = drawPlatformDiagramAt(doc, model, y, diagramX, diagramW, ctx);
@@ -382,10 +391,11 @@ function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signa
 }
 
 function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
-  const rows = model.repeatabilityRows || [];
-  if (!rows.some((r) => !r.empty) && !model.points?.length) return y;
+  const allRows = model.repeatabilityRows || [];
+  if (!allRows.some((r) => !r.empty) && !model.points?.length) return y;
 
   const m = ctx.metrics;
+  const rows = repeatabilityRowsForPdfLayout(allRows, m);
   const unitLabel = model.unit || model.balance?.unidade || "kg";
   const leftW = CW * 0.42;
   const rightW = CW * 0.56;
@@ -456,7 +466,7 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
 
   autoTable(doc, {
     startY: y,
-    margin: { left: ML, right: PAGE_W - ML - leftW },
+    margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - ML - leftW }),
     head: [tableHead],
     body: leftBody,
     styles: sharedStyles,
@@ -467,13 +477,13 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
       5: unitColStyle,
     },
     theme: "grid",
-    ...singlePageTableOpts(ctx),
+    ...singlePageTableBreakOpts(ctx),
   });
   const leftEndY = doc.lastAutoTable.finalY;
 
   autoTable(doc, {
     startY: y,
-    margin: { left: rightX, right: ML },
+    margin: resolveTableMargin(ctx, { left: rightX, right: ML }),
     head: [rightHead],
     body: rightBody,
     styles: sharedStyles,
@@ -487,7 +497,7 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
       9: { cellWidth: m.singlePage ? 7 : 8 },
     },
     theme: "grid",
-    ...singlePageTableOpts(ctx),
+    ...singlePageTableBreakOpts(ctx),
   });
   y = Math.max(leftEndY, doc.lastAutoTable.finalY) + (m.singlePage ? 1 : 2);
 
@@ -511,7 +521,7 @@ function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
   y = drawSectionBar(doc, ML, y, CW, "REPETIBILIDADE COM LOTE DE CARGA", m);
   autoTable(doc, {
     startY: y,
-    margin: { left: ML, right: PAGE_W - MR },
+    margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
     head: [["Linha", "Valor nominal", "Leitura 1", "Leitura 2", "Leitura 3"]],
     body: model.substitutionRepeatability.rows.map((r) => [
       s(r.label), s(r.nominal), s(r.reading1), s(r.reading2), s(r.reading3),
@@ -519,7 +529,7 @@ function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
     styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding },
     headStyles: tableHeadStyles(doc),
     theme: "grid",
-    ...singlePageTableOpts(ctx),
+    ...singlePageTableBreakOpts(ctx),
   });
   y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
   if (model.substitutionRepeatability.observations) {
@@ -532,9 +542,18 @@ function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
 
 function drawObservationsSection(doc, model, y, ctx) {
   const m = ctx.metrics;
-  ({ y } = ensureSpace(doc, y, m.singlePage ? 28 : 40, ctx));
+  const available = m.contentBottom - y;
+  let obsMetrics = m;
+  if (m.singlePage && available < 36) {
+    obsMetrics = {
+      ...m,
+      observationFontSize: 4.35,
+      observationLineH: 2.1,
+      observationGap: 0.35,
+    };
+  }
   y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES", m);
-  y = drawNumberedObservations(doc, ML + 1, y + 0.5, model.observations, CW - 2, m) + (m.singlePage ? 0.8 : 2);
+  y = drawNumberedObservations(doc, ML + 1, y + 0.5, model.observations, CW - 2, obsMetrics) + (m.singlePage ? 0.5 : 2);
   if (model.conformityDeclaration) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(m.singlePage ? 7 : 8);
@@ -554,7 +573,7 @@ function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
 }
 
 function drawCertificatePdfContent(doc, model, opts = {}) {
-  const singlePage = opts.singlePage ?? !model.preview;
+  const singlePage = opts.singlePage !== false;
   const metrics = opts.metrics || getCertificateLayoutMetrics(singlePage);
   const ctx = {
     model,
@@ -583,16 +602,14 @@ function drawCertificatePdfContent(doc, model, opts = {}) {
 }
 
 export function drawCertificatePdf(doc, model, opts = {}) {
-  const singlePage = opts.singlePage ?? !model.preview;
-  if (!singlePage) {
-    drawCertificatePdfContent(doc, model, opts);
-    return;
-  }
-
+  const singlePage = opts.singlePage !== false;
   const originalAddPage = doc.addPage.bind(doc);
   doc.addPage = () => doc;
   try {
-    drawCertificatePdfContent(doc, model, { ...opts, singlePage: true });
+    drawCertificatePdfContent(doc, model, { ...opts, singlePage });
+    while (doc.internal.getNumberOfPages() > 1) {
+      doc.deletePage(doc.internal.getNumberOfPages());
+    }
   } finally {
     doc.addPage = originalAddPage;
   }

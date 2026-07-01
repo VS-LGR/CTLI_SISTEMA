@@ -49,6 +49,10 @@ export function getCertificateLayoutMetrics(singlePage = false) {
       headerStartY: 6,
       logoW: LOGO_W,
       logoH: LOGO_H,
+      clientGridCols: 3,
+      measureHeaderH: 4.2,
+      measureBodyH: 5.5,
+      repeatabilityMinRows: 10,
       contentBottom: FOOTER_Y - 6,
     };
   }
@@ -64,22 +68,26 @@ export function getCertificateLayoutMetrics(singlePage = false) {
     tableFontSize: 5.1,
     tableHeadFontSize: 4.7,
     tableCellPadding: 0.55,
-    compactTableFontSize: 4.7,
-    compactTablePadding: 0.4,
-    compactTableHeadFontSize: 4.5,
-    platformImgH: 17,
-    platformLabelH: 3.5,
-    observationFontSize: 4.9,
-    observationLineH: 2.45,
-    observationGap: 0.6,
+    compactTableFontSize: 4.5,
+    compactTablePadding: 0.32,
+    compactTableHeadFontSize: 4.3,
+    platformImgH: 14,
+    platformLabelH: 3,
+    observationFontSize: 4.55,
+    observationLineH: 2.25,
+    observationGap: 0.45,
     observationColumns: 2,
-    metaLineH: 3.3,
-    metaFontSize: 6,
-    signatureH: 7,
+    metaLineH: 3.1,
+    metaFontSize: 5.8,
+    signatureH: 6.5,
     headerStartY: 4,
-    logoW: 28,
-    logoH: 11,
-    contentBottom: FOOTER_Y - 3,
+    logoW: 26,
+    logoH: 10,
+    clientGridCols: 4,
+    measureHeaderH: 3.6,
+    measureBodyH: 4.8,
+    repeatabilityMinRows: 5,
+    contentBottom: FOOTER_Y - 2,
   };
 }
 
@@ -268,12 +276,13 @@ export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6, metri
 }
 
 /** Linha de medidas ambientais compactas (4 células lado a lado). */
-export function drawCompactMeasureRow(doc, x, y, totalW, cells) {
-  const gap = 1;
+export function drawCompactMeasureRow(doc, x, y, totalW, cells, metrics = null) {
+  const m = metrics || getCertificateLayoutMetrics(false);
+  const gap = m.singlePage ? 0.7 : 1;
   const count = Math.max(cells.length, 1);
   const cellW = (totalW - gap * (count - 1)) / count;
-  const headerH = 4.2;
-  const bodyH = 5.5;
+  const headerH = m.measureHeaderH ?? 4.2;
+  const bodyH = m.measureBodyH ?? 5.5;
 
   cells.forEach((cell, i) => {
     const cx = x + i * (cellW + gap);
@@ -284,16 +293,16 @@ export function drawCompactMeasureRow(doc, x, y, totalW, cells) {
     doc.rect(cx, y, cellW, headerH + bodyH, "S");
     doc.line(cx, y + headerH, cx + cellW, y + headerH);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(5.5);
+    doc.setFontSize(m.singlePage ? 5 : 5.5);
     doc.setTextColor(...FORM_COLORS.text);
-    doc.text(cell.label, cx + 0.4, y + 2.9, { maxWidth: cellW - 0.8 });
+    doc.text(cell.label, cx + 0.4, y + headerH - 1.3, { maxWidth: cellW - 0.8 });
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
-    doc.text(cell.value || "—", cx + 0.4, y + headerH + 3.5, { maxWidth: cellW - 0.8 });
+    doc.setFontSize(m.singlePage ? 5.3 : 6);
+    doc.text(cell.value || "—", cx + 0.4, y + headerH + (m.singlePage ? 2.8 : 3.5), { maxWidth: cellW - 0.8 });
   });
 
   doc.setLineWidth(0.12);
-  return y + headerH + bodyH + 2;
+  return y + headerH + bodyH + (m.singlePage ? 1 : 2);
 }
 
 /** Duas faixas de título sobre tabelas lado a lado. */

@@ -1,6 +1,7 @@
 import { addOneYear, defaultValidityDate } from "./certificateDateUtils";
 import { getRbcObservations, getRastreavelObservations } from "../certificatePdf/legalObservations";
 import { getCertificateLayoutMetrics } from "../certificatePdf/certificatePdfLayout";
+import { repeatabilityRowsForPdfLayout } from "../certificatePdf/viewModel";
 import {
   resolveActivePlatformPanel,
   platformPanelDisplayLabel,
@@ -20,8 +21,16 @@ describe("certificatePdfLayout", () => {
     const standard = getCertificateLayoutMetrics(false);
     expect(compact.singlePage).toBe(true);
     expect(compact.observationColumns).toBe(2);
+    expect(compact.repeatabilityMinRows).toBe(5);
     expect(compact.platformImgH).toBeLessThan(standard.platformImgH);
     expect(compact.compactTableFontSize).toBeLessThan(standard.compactTableFontSize);
+  });
+
+  test("repeatabilityRowsForPdfLayout reduz linhas vazias", () => {
+    const rows = Array.from({ length: 10 }, (_, i) => ({ empty: i > 0 }));
+    const compact = getCertificateLayoutMetrics(true);
+    expect(repeatabilityRowsForPdfLayout(rows, compact)).toHaveLength(5);
+    expect(repeatabilityRowsForPdfLayout(rows, getCertificateLayoutMetrics(false))).toHaveLength(10);
   });
 });
 

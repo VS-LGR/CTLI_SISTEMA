@@ -120,6 +120,18 @@ function buildRepeatabilityRows(certPoints, balance, unit, adjustmentPerformed) 
   });
 }
 
+/** Limita linhas vazias no PDF de uma página (mantém mínimo de slots do formulário). */
+export function repeatabilityRowsForPdfLayout(rows, metrics = {}) {
+  if (!metrics.singlePage) return rows;
+  let lastFilled = -1;
+  rows.forEach((r, i) => {
+    if (!r.empty) lastFilled = i;
+  });
+  const minRows = metrics.repeatabilityMinRows ?? 5;
+  const keep = Math.min(rows.length, Math.max(lastFilled + 1, minRows));
+  return rows.slice(0, keep);
+}
+
 function resolveReadingsPerPoint(cert) {
   const pts = activePoints(cert);
   const counts = pts
