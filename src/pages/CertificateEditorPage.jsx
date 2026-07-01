@@ -66,7 +66,7 @@ import PointRegistrationPanel from "@/components/calibrationCertificates/PointRe
 import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
 import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
 import { supabase } from "@/lib/supabaseClient";
-import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
+import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { jobLabel } from "@/lib/cadastroConstants";
 import { balanceSnapshotFromScaleRegistration, loadMaxTolerancesFromForm } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
@@ -199,12 +199,12 @@ export default function CertificateEditorPage() {
   }, [currentTenantId]);
 
   useEffect(() => {
-    const path = currentTenant?.logo_storage_path;
-    if (!path) return;
-    supabase.storage.from(TENANT_BRANDING_BUCKET).createSignedUrl(path, 3600).then(({ data }) => {
-      if (data?.signedUrl) setLogoDataUrl(data.signedUrl);
+    let cancelled = false;
+    loadTenantLogoDataUrl(currentTenant).then((dataUrl) => {
+      if (!cancelled) setLogoDataUrl(dataUrl);
     });
-  }, [currentTenant?.logo_storage_path]);
+    return () => { cancelled = true; };
+  }, [currentTenant?.logo_storage_path, currentTenant?.id]);
 
   if (!canAccessCalibrationCertificates(user?.role)) {
     return <Navigate to="/dashboard" replace />;

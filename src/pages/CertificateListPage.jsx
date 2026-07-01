@@ -44,7 +44,7 @@ import CertificateEmitSendDialog from "@/components/calibrationCertificates/Cert
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import { sendCertificatesByEmailBatch } from "@/lib/certificateEmail/certificateEmailApi";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
-import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
+import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 
@@ -128,12 +128,12 @@ export default function CertificateListPage() {
   }, [currentTenantId]);
 
   useEffect(() => {
-    const path = currentTenant?.logo_storage_path;
-    if (!path) return;
-    supabase.storage.from(TENANT_BRANDING_BUCKET).createSignedUrl(path, 3600).then(({ data }) => {
-      if (data?.signedUrl) setLogoDataUrl(data.signedUrl);
+    let cancelled = false;
+    loadTenantLogoDataUrl(currentTenant).then((dataUrl) => {
+      if (!cancelled) setLogoDataUrl(dataUrl);
     });
-  }, [currentTenant?.logo_storage_path]);
+    return () => { cancelled = true; };
+  }, [currentTenant?.logo_storage_path, currentTenant?.id]);
 
   const filtered = useMemo(() => rows.filter((r) => {
     const q = query.trim().toLowerCase();

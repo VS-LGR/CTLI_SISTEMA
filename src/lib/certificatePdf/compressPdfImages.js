@@ -1,3 +1,5 @@
+import { isImageDataUrl, resolveImageDataUrl } from "@/lib/tenantBranding";
+
 /** Formato jsPDF a partir de data URL (JPEG comprime melhor que PNG em anexos). */
 export function pdfImageFormat(dataUrl) {
   return typeof dataUrl === "string" && dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
@@ -48,7 +50,7 @@ export function scaledDataUrlFromImageElement(
   try {
     return { dataUrl: canvas.toDataURL(mime, quality), aspectRatio: cw / ch };
   } catch {
-    return { dataUrl: canvas.toDataURL("image/png"), aspectRatio: cw / ch };
+    return { dataUrl: "", aspectRatio: cw / ch };
   }
 }
 
@@ -58,20 +60,30 @@ export function scaledDataUrlFromImageElement(
  * @param {number} maxPx maior lado máximo em pixels
  * @param {{ minPx?: number, mime?: string, quality?: number }} opts
  */
-export function downscaleDataUrl(
+export async function downscaleDataUrl(
   dataUrl,
   maxPx = 320,
   { minPx = 0, mime = "image/jpeg", quality = 0.85 } = {},
 ) {
-  if (!dataUrl || !maxPx) return Promise.resolve(dataUrl);
+  if (!dataUrl || !maxPx) return dataUrl;
+  const resolved = isImageDataUrl(dataUrl) ? dataUrl : await resolveImageDataUrl(dataUrl);
+  if (!resolved) return null;
+
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      const longest = Math.max(w, h);
+      if (longest <= maxPx && (!minPx || longest >= minPx)) {
+        resolve(resolved);
+        return;
+      }
       const { dataUrl: scaled } = scaledDataUrlFromImageElement(img, maxPx, { minPx, mime, quality });
-      resolve(scaled || dataUrl);
+      resolve(scaled || resolved);
     };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
+    img.onerror = () => resolve(resolved);
+    img.src = resolved;
   });
 }
 
