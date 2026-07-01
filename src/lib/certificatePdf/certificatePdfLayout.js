@@ -1,26 +1,117 @@
 /**
- * Layout visual do certificado RE-7.2B — reutiliza paleta e helpers da coleta RE-7.2A.
+ * Layout visual do certificado RE-7.2B — paleta cinza institucional.
  */
 
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 import { pdfImageFormat } from "./compressPdfImages";
-import {
-  FORM_COLORS,
-  drawSectionBar,
-  drawFieldGrid,
-  drawMeasureBlock,
-  tableHeadStyles,
-  fieldLabelWithColon,
-} from "@/lib/coletaPdf/coletaPdfLayout";
+import { FORM_COLORS } from "./certificatePdfColors";
 
-export {
-  FORM_COLORS,
-  drawSectionBar,
-  drawFieldGrid,
-  drawMeasureBlock,
-  tableHeadStyles,
-  fieldLabelWithColon,
-};
+export { FORM_COLORS };
+
+/** Rótulo de campo com dois-pontos (ex.: "Representante do Cliente: "). */
+export function fieldLabelWithColon(label) {
+  const t = String(label ?? "").trim();
+  if (!t) return "";
+  return t.endsWith(":") ? `${t} ` : `${t}: `;
+}
+
+const SECTION_BAR_H = 5;
+const SECTION_CONTENT_GAP = 2.5;
+const FIELD_LABEL_H = 3.5;
+const FIELD_BOX_H = 7;
+
+/** @param {import('jspdf').jsPDF} doc */
+export function tableHeadStyles(doc) {
+  return {
+    fillColor: FORM_COLORS.tableHeader,
+    textColor: FORM_COLORS.text,
+    fontStyle: "bold",
+    lineWidth: 0.1,
+  };
+}
+
+/**
+ * Faixa de título de secção (y = topo da barra).
+ * @returns {number} y para o primeiro conteúdo abaixo da barra
+ */
+export function drawSectionBar(doc, x, y, width, text) {
+  const barTop = y;
+  doc.setFillColor(...FORM_COLORS.sectionBar);
+  doc.rect(x, barTop, width, SECTION_BAR_H, "F");
+  doc.setDrawColor(...FORM_COLORS.border);
+  doc.setLineWidth(0.12);
+  doc.rect(x, barTop, width, SECTION_BAR_H, "S");
+  doc.setTextColor(...FORM_COLORS.sectionBarText);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text(text, x + 1.5, barTop + 3.6);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...FORM_COLORS.text);
+  return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
+}
+
+/** Campo com rótulo e área de valor. */
+function drawFieldBox(doc, x, y, w, label, value) {
+  doc.setFillColor(...FORM_COLORS.fieldLabel);
+  doc.rect(x, y, w, FIELD_LABEL_H, "F");
+  doc.setDrawColor(...FORM_COLORS.border);
+  doc.setLineWidth(0.1);
+  doc.rect(x, y, w, FIELD_BOX_H, "S");
+  doc.setFontSize(6);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text(label, x + 0.8, y + 2.4);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  const val = value == null ? "" : String(value);
+  const lines = doc.splitTextToSize(val || " ", w - 2);
+  doc.text(lines.slice(0, 2), x + 0.8, y + FIELD_LABEL_H + 2.8);
+}
+
+/**
+ * Grelha de campos (cols × rows).
+ * @param {Array<{ label: string, value: string }>} fields
+ */
+export function drawFieldGrid(doc, x, y, totalWidth, cols, fields) {
+  const gap = 1.2;
+  const cellW = (totalWidth - gap * (cols - 1)) / cols;
+  const cellH = FIELD_BOX_H + 0.5;
+  let maxY = y;
+  fields.forEach((f, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const cx = x + col * (cellW + gap);
+    const cy = y + row * cellH;
+    drawFieldBox(doc, cx, cy, cellW, f.label, f.value);
+    maxY = Math.max(maxY, cy + FIELD_BOX_H + 0.5);
+  });
+  return maxY + 2;
+}
+
+const MEASURE_BAR_H = 5;
+const MEASURE_VALUE_GAP = 1.2;
+
+/**
+ * Bloco T/U/P: faixa com título + linha de valores abaixo.
+ * @returns {number} y após o bloco
+ */
+export function drawMeasureBlock(doc, x, y, w, title, valueLine) {
+  const barTop = y;
+  doc.setFillColor(...FORM_COLORS.fieldLabel);
+  doc.rect(x, barTop, w, MEASURE_BAR_H, "F");
+  doc.setDrawColor(...FORM_COLORS.border);
+  doc.setLineWidth(0.1);
+  doc.rect(x, barTop, w, MEASURE_BAR_H, "S");
+  doc.setFontSize(6.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text(title, x + 0.5, barTop + 3.6, { maxWidth: w - 2 });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  const valueY = barTop + MEASURE_BAR_H + MEASURE_VALUE_GAP + 2.5;
+  doc.text(valueLine, x + 0.5, valueY, { maxWidth: w - 2 });
+  return valueY + 4.5;
+}
 
 export const ML = 10;
 export const MR = 200;
@@ -115,7 +206,7 @@ export function drawCompactMeasureRow(doc, x, y, totalW, cells) {
 
   cells.forEach((cell, i) => {
     const cx = x + i * (cellW + gap);
-    doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
+    doc.setFillColor(...FORM_COLORS.fieldLabel);
     doc.rect(cx, y, cellW, headerH, "F");
     doc.setDrawColor(...FORM_COLORS.border);
     doc.setLineWidth(0.1);

@@ -224,10 +224,10 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
     const boxH = imgH + 1;
 
     if (active) {
-      doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
+      doc.setFillColor(...FORM_COLORS.fieldLabel);
       doc.rect(px, y, colW, boxH + labelH, "F");
     }
-    doc.setDrawColor(...(active ? FORM_COLORS.brand : FORM_COLORS.border));
+    doc.setDrawColor(...(active ? FORM_COLORS.accent : FORM_COLORS.border));
     doc.setLineWidth(active ? 0.3 : 0.1);
     doc.rect(px, y, colW, boxH, "S");
 

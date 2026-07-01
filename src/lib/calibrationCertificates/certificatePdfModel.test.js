@@ -45,8 +45,8 @@ describe("platformDiagramAssets", () => {
 
   test("each panel points to dedicated webp asset", () => {
     expect(PLATFORM_DIAGRAM_PANELS).toHaveLength(3);
-    expect(PLATFORM_DIAGRAM_PANELS[0].src).toContain("Retangular_QuadradaBalanças.webp");
-    expect(PLATFORM_DIAGRAM_PANELS[1].src).toContain("RedondaBalanças.webp");
-    expect(PLATFORM_DIAGRAM_PANELS[2].src).toContain("RodoviariaBalanças.webp");
+    expect(PLATFORM_DIAGRAM_PANELS[0].src).toContain("Quadrada%20ou%20retangular");
+    expect(PLATFORM_DIAGRAM_PANELS[1].src).toContain("RedondaBalan%C3%A7as.webp");
+    expect(PLATFORM_DIAGRAM_PANELS[2].src).toContain("RodoviariaBalan%C3%A7as.webp");
   });
 });

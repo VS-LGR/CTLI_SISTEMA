@@ -3,6 +3,7 @@ import {
   resolveActivePlatformPanel,
   platformPanelDisplayLabel,
 } from "./platformDiagramAssets";
+import { PDF_PLATFORM_IMAGE_MAX_PX, scaledDataUrlFromImageElement } from "./compressPdfImages";
 
 let cachedPanels = null;
 let loadPromise = null;
@@ -17,23 +18,9 @@ function loadImage(src) {
   });
 }
 
-function imageToPngDataUrl(img) {
-  const w = img.naturalWidth || img.width;
-  const h = img.naturalHeight || img.height;
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0, w, h);
-  return {
-    dataUrl: canvas.toDataURL("image/png"),
-    aspectRatio: w / h,
-  };
-}
-
 async function loadPanelAsset(panel) {
   const img = await loadImage(panel.src);
-  const { dataUrl, aspectRatio } = imageToPngDataUrl(img);
+  const { dataUrl, aspectRatio } = scaledDataUrlFromImageElement(img, PDF_PLATFORM_IMAGE_MAX_PX);
   return {
     id: panel.id,
     label: panel.label,

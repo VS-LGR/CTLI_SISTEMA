@@ -1,25 +1,29 @@
 const PUBLIC = process.env.PUBLIC_URL || "";
 
+function publicAsset(filename) {
+  return `${PUBLIC}/${encodeURIComponent(filename)}`;
+}
+
 /** Diagramas individuais por tipo de plataforma (public/). */
 export const PLATFORM_DIAGRAM_PANELS = [
   {
     id: "retangular_quadrada",
     label: "Retangular ou Quadrada",
     platformValues: ["retangular_quadrada"],
-    src: `${PUBLIC}/Retangular_QuadradaBalanças.webp`,
+    src: publicAsset("Quadrada ou retangularBalanças.webp"),
   },
   {
     id: "redondo",
     label: "Redonda",
     platformValues: ["redondo"],
-    src: `${PUBLIC}/RedondaBalanças.webp`,
+    src: publicAsset("RedondaBalanças.webp"),
   },
   {
     id: "rodoviaria",
     label: "Rodoviária",
     /** ferroviaria usa o mesmo painel visual (layout horizontal). */
     platformValues: ["rodoviaria", "ferroviaria"],
-    src: `${PUBLIC}/RodoviariaBalanças.webp`,
+    src: publicAsset("RodoviariaBalanças.webp"),
     ferroviariaLabel: "Rodoviária / Ferroviária",
   },
 ];
