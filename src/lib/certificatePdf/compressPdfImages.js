@@ -3,27 +3,32 @@ export function pdfImageFormat(dataUrl) {
   return typeof dataUrl === "string" && dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
 }
 
-export const PDF_PLATFORM_IMAGE_MAX_PX = 380;
-export const EMAIL_PLATFORM_IMAGE_MAX_PX = 320;
+/** Diagramas de plataforma: PNG (arte em linha). Assinaturas/logo: JPEG/PNG conforme preset. */
+export const PDF_PLATFORM_EXPORT_MAX_PX = 512;
+export const PDF_PLATFORM_MIN_PX = 480;
+export const PDF_PLATFORM_EMAIL_MAX_PX = 400;
 
 /**
  * Escala elemento img para data URL (jsPDF embute bitmap em resolução nativa).
  * @param {HTMLImageElement} img
  * @param {number} maxPx
- * @param {{ mime?: string, quality?: number }} opts
+ * @param {{ minPx?: number, mime?: string, quality?: number }} opts
  * @returns {{ dataUrl: string, aspectRatio: number }}
  */
 export function scaledDataUrlFromImageElement(
   img,
-  maxPx = PDF_PLATFORM_IMAGE_MAX_PX,
-  { mime = "image/jpeg", quality = 0.82 } = {},
+  maxPx = PDF_PLATFORM_EXPORT_MAX_PX,
+  { minPx = 0, mime = "image/png", quality = 0.92 } = {},
 ) {
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
   if (!w || !h) {
     return { dataUrl: "", aspectRatio: 1 };
   }
-  const scale = Math.min(1, maxPx / Math.max(w, h));
+  let scale = Math.min(1, maxPx / Math.max(w, h));
+  if (minPx > 0 && Math.max(w, h) * scale < minPx) {
+    scale = minPx / Math.max(w, h);
+  }
   const cw = Math.max(1, Math.round(w * scale));
   const ch = Math.max(1, Math.round(h * scale));
   const canvas = document.createElement("canvas");
@@ -32,6 +37,9 @@ export function scaledDataUrlFromImageElement(
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     return { dataUrl: "", aspectRatio: cw / ch };
+  }
+  if (scale > 1) {
+    ctx.imageSmoothingEnabled = false;
   }
   ctx.drawImage(img, 0, 0, cw, ch);
   try {
@@ -45,14 +53,18 @@ export function scaledDataUrlFromImageElement(
  * Reduz resolução de imagem embutida no PDF (jsPDF não escala o bitmap internamente).
  * @param {string|null} dataUrl
  * @param {number} maxPx maior lado máximo em pixels
- * @param {{ mime?: string, quality?: number }} opts
+ * @param {{ minPx?: number, mime?: string, quality?: number }} opts
  */
-export function downscaleDataUrl(dataUrl, maxPx = 320, { mime = "image/jpeg", quality = 0.78 } = {}) {
+export function downscaleDataUrl(
+  dataUrl,
+  maxPx = 320,
+  { minPx = 0, mime = "image/jpeg", quality = 0.85 } = {},
+) {
   if (!dataUrl || !maxPx) return Promise.resolve(dataUrl);
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const { dataUrl: scaled } = scaledDataUrlFromImageElement(img, maxPx, { mime, quality });
+      const { dataUrl: scaled } = scaledDataUrlFromImageElement(img, maxPx, { minPx, mime, quality });
       resolve(scaled || dataUrl);
     };
     img.onerror = () => resolve(dataUrl);
@@ -60,22 +72,56 @@ export function downscaleDataUrl(dataUrl, maxPx = 320, { mime = "image/jpeg", qu
   });
 }
 
-/** Comprime logo, assinaturas e diagramas de plataforma para caber no limite da Edge Function. */
-export async function compressAssetsForEmailPdf({
-  logoDataUrl,
-  signatureUrls,
-  platformDiagrams,
-} = {}) {
+const EXPORT_PRESET = {
+  logoMaxPx: 280,
+  logoMime: "image/png",
+  signatureMaxPx: 480,
+  signatureQuality: 0.9,
+  platformMaxPx: PDF_PLATFORM_EXPORT_MAX_PX,
+  platformMime: "image/png",
+  platformQuality: 1,
+};
+
+const EMAIL_PRESET = {
+  logoMaxPx: 220,
+  logoMime: "image/png",
+  signatureMaxPx: 360,
+  signatureQuality: 0.85,
+  platformMaxPx: PDF_PLATFORM_EMAIL_MAX_PX,
+  platformMime: "image/png",
+  platformQuality: 1,
+};
+
+/** Comprime logo, assinaturas e diagramas antes de embutir no PDF. */
+export async function prepareCertificatePdfAssets(
+  {
+    logoDataUrl,
+    signatureUrls,
+    platformDiagrams,
+  } = {},
+  { forEmail = false } = {},
+) {
+  const preset = forEmail ? EMAIL_PRESET : EXPORT_PRESET;
+
   const [logo, executor, signatory, panels] = await Promise.all([
-    logoDataUrl ? downscaleDataUrl(logoDataUrl, 220, { mime: "image/png" }) : null,
-    signatureUrls?.executor ? downscaleDataUrl(signatureUrls.executor, 360) : null,
-    signatureUrls?.signatory ? downscaleDataUrl(signatureUrls.signatory, 360) : null,
+    logoDataUrl
+      ? downscaleDataUrl(logoDataUrl, preset.logoMaxPx, { mime: preset.logoMime, quality: 0.92 })
+      : null,
+    signatureUrls?.executor
+      ? downscaleDataUrl(signatureUrls.executor, preset.signatureMaxPx, { quality: preset.signatureQuality })
+      : null,
+    signatureUrls?.signatory
+      ? downscaleDataUrl(signatureUrls.signatory, preset.signatureMaxPx, { quality: preset.signatureQuality })
+      : null,
     platformDiagrams?.panels?.length
       ? Promise.all(
         platformDiagrams.panels.map(async (panel) => ({
           ...panel,
           dataUrl: panel.dataUrl
-            ? await downscaleDataUrl(panel.dataUrl, EMAIL_PLATFORM_IMAGE_MAX_PX, { quality: 0.78 })
+            ? await downscaleDataUrl(panel.dataUrl, preset.platformMaxPx, {
+              mime: preset.platformMime,
+              quality: preset.platformQuality,
+            })
             : panel.dataUrl,
         })),
       )
@@ -92,4 +138,9 @@ export async function compressAssetsForEmailPdf({
       ? { ...platformDiagrams, panels }
       : platformDiagrams,
   };
+}
+
+/** @deprecated use prepareCertificatePdfAssets(..., { forEmail: true }) */
+export async function compressAssetsForEmailPdf(assets) {
+  return prepareCertificatePdfAssets(assets, { forEmail: true });
 }

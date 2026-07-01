@@ -3,7 +3,11 @@ import {
   resolveActivePlatformPanel,
   platformPanelDisplayLabel,
 } from "./platformDiagramAssets";
-import { PDF_PLATFORM_IMAGE_MAX_PX, scaledDataUrlFromImageElement } from "./compressPdfImages";
+import {
+  PDF_PLATFORM_EXPORT_MAX_PX,
+  PDF_PLATFORM_MIN_PX,
+  scaledDataUrlFromImageElement,
+} from "./compressPdfImages";
 
 let cachedPanels = null;
 let loadPromise = null;
@@ -20,7 +24,11 @@ function loadImage(src) {
 
 async function loadPanelAsset(panel) {
   const img = await loadImage(panel.src);
-  const { dataUrl, aspectRatio } = scaledDataUrlFromImageElement(img, PDF_PLATFORM_IMAGE_MAX_PX);
+  const { dataUrl, aspectRatio } = scaledDataUrlFromImageElement(img, PDF_PLATFORM_EXPORT_MAX_PX, {
+    minPx: PDF_PLATFORM_MIN_PX,
+    mime: "image/png",
+    quality: 1,
+  });
   return {
     id: panel.id,
     label: panel.label,

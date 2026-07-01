@@ -80,16 +80,21 @@ export async function exportCertificatePdfPreview(cert, tenantName = "", {
     loadCertificateSignatures(cert),
     loadPlatformDiagramPanels(cert.balance_snapshot?.tipo_plataforma),
   ]);
+  const { prepareCertificatePdfAssets } = await import("./certificatePdf/compressPdfImages");
+  const prepared = await prepareCertificatePdfAssets(
+    { logoDataUrl, signatureUrls, platformDiagrams },
+    { forEmail: false },
+  );
   const preview = cert.status !== "emitido" || cert.is_preview_only;
   await renderCertificatePdf(cert, tenantName, {
-    logoDataUrl,
+    logoDataUrl: prepared.logoDataUrl,
     tenant,
     documentMeta: meta,
     fileName,
     preview,
     cancelled,
-    signatureUrls,
-    platformDiagrams,
+    signatureUrls: prepared.signatureUrls,
+    platformDiagrams: prepared.platformDiagrams,
   });
 
   if (tenant?.id && cert.status === "emitido" && !cert.is_preview_only && !skipRecordExport) {
@@ -153,31 +158,22 @@ export async function exportCertificatePdfBlob(cert, tenantName = "", {
     loadPlatformDiagramPanels(cert.balance_snapshot?.tipo_plataforma),
   ]);
 
-  let renderLogo = logoDataUrl;
-  let renderSigs = signatureUrls;
-  let renderDiagrams = platformDiagrams;
-  if (compressForEmail) {
-    const { compressAssetsForEmailPdf } = await import("./certificatePdf/compressPdfImages");
-    const compressed = await compressAssetsForEmailPdf({
-      logoDataUrl,
-      signatureUrls,
-      platformDiagrams,
-    });
-    renderLogo = compressed.logoDataUrl;
-    renderSigs = compressed.signatureUrls;
-    renderDiagrams = compressed.platformDiagrams;
-  }
+  const { prepareCertificatePdfAssets } = await import("./certificatePdf/compressPdfImages");
+  const prepared = await prepareCertificatePdfAssets(
+    { logoDataUrl, signatureUrls, platformDiagrams },
+    { forEmail: compressForEmail },
+  );
 
   const preview = cert.status !== "emitido" || cert.is_preview_only;
   const { blob, fileName: outName } = await renderCertificatePdf(cert, tenantName, {
-    logoDataUrl: renderLogo,
+    logoDataUrl: prepared.logoDataUrl,
     tenant,
     documentMeta: meta,
     fileName,
     preview,
     cancelled,
-    signatureUrls: renderSigs,
-    platformDiagrams: renderDiagrams,
+    signatureUrls: prepared.signatureUrls,
+    platformDiagrams: prepared.platformDiagrams,
     download: false,
   });
 

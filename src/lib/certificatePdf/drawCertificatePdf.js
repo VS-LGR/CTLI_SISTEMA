@@ -214,8 +214,8 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
   const gap = 1;
   const panels = platformDiagrams.panels;
   const colW = (width - gap * (panels.length - 1)) / panels.length;
-  const imgH = 18;
-  const labelH = 4;
+  const imgH = 26;
+  const labelH = 4.5;
   let maxY = y;
 
   panels.forEach((panel, i) => {
@@ -273,7 +273,7 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
 
 function drawEccentricitySection(doc, model, y, ctx) {
   if (model.eccentricity?.showSection === false) return y;
-  ({ y } = ensureSpace(doc, y, 52, ctx));
+  ({ y } = ensureSpace(doc, y, 58, ctx));
   y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE");
 
   const tableW = 42;
