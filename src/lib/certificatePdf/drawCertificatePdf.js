@@ -543,7 +543,7 @@ export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls, pla
 
 export function buildCertificatePdfBlob(cert, tenantName, opts = {}) {
   const model = buildCertificatePdfViewModel(cert, opts);
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
   drawCertificatePdf(doc, model, opts);
   const fileName = opts.fileName || `certificado-${cert.certificate_number || cert.id?.slice(0, 8)}.pdf`;
   return { blob: doc.output("blob"), fileName };

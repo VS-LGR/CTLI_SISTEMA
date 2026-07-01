@@ -25,26 +25,41 @@ async function loadSignatureDataUrl(storagePath) {
   }
 }
 
-export async function loadCertificateSignatures(cert) {
-  const executorPath = cert.technical_snapshot?.executorSnapshot?.signature_storage_path;
+export async function loadCertificateSignatures(cert, { signatoryOnly = false } = {}) {
   const signatoryPath = cert.technical_snapshot?.signatorySnapshot?.signature_storage_path;
-  const ids = [cert.executor_id, cert.signatory_id].filter(Boolean);
-  let executorStorage = executorPath;
   let signatoryStorage = signatoryPath;
 
-  if (ids.length && (!executorStorage || !signatoryStorage)) {
+  if (signatoryOnly) {
+    if (!signatoryStorage && cert.signatory_id) {
+      const { data } = await supabase
+        .from("employee_registrations")
+        .select("id, signature_storage_path")
+        .eq("id", cert.signatory_id)
+        .maybeSingle();
+      signatoryStorage = data?.signature_storage_path;
+    }
+    const signatory = await loadSignatureDataUrl(signatoryStorage);
+    return { executor: null, signatory };
+  }
+
+  const executorPath = cert.technical_snapshot?.executorSnapshot?.signature_storage_path;
+  const ids = [cert.executor_id, cert.signatory_id].filter(Boolean);
+  let executorStorage = executorPath;
+  let signatoryStorageFull = signatoryPath;
+
+  if (ids.length && (!executorStorage || !signatoryStorageFull)) {
     const { data } = await supabase
       .from("employee_registrations")
       .select("id, signature_storage_path")
       .in("id", ids);
     const byId = Object.fromEntries((data || []).map((e) => [e.id, e.signature_storage_path]));
     if (!executorStorage && cert.executor_id) executorStorage = byId[cert.executor_id];
-    if (!signatoryStorage && cert.signatory_id) signatoryStorage = byId[cert.signatory_id];
+    if (!signatoryStorageFull && cert.signatory_id) signatoryStorageFull = byId[cert.signatory_id];
   }
 
   const [executor, signatory] = await Promise.all([
     loadSignatureDataUrl(executorStorage),
-    loadSignatureDataUrl(signatoryStorage),
+    loadSignatureDataUrl(signatoryStorageFull),
   ]);
   return { executor, signatory };
 }
@@ -77,7 +92,7 @@ export async function exportCertificatePdfPreview(cert, tenantName = "", {
   );
 
   const [signatureUrls, platformDiagrams] = await Promise.all([
-    loadCertificateSignatures(cert),
+    loadCertificateSignatures(cert, { signatoryOnly: true }),
     loadPlatformDiagramPanels(cert.balance_snapshot?.tipo_plataforma),
   ]);
   const { prepareCertificatePdfAssets } = await import("./certificatePdf/compressPdfImages");
@@ -154,7 +169,7 @@ export async function exportCertificatePdfBlob(cert, tenantName = "", {
   );
 
   const [signatureUrls, platformDiagrams] = await Promise.all([
-    loadCertificateSignatures(cert),
+    loadCertificateSignatures(cert, { signatoryOnly: true }),
     loadPlatformDiagramPanels(cert.balance_snapshot?.tipo_plataforma),
   ]);
 

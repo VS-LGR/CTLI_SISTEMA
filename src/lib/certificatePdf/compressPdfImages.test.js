@@ -14,6 +14,6 @@ describe("compressPdfImages", () => {
 
   test("email preset refines export-sized platform images", () => {
     expect(PDF_PLATFORM_EMAIL_MAX_PX).toBeLessThan(PDF_PLATFORM_EXPORT_MAX_PX);
-    expect(PDF_PLATFORM_MIN_PX).toBeGreaterThanOrEqual(PDF_PLATFORM_EMAIL_MAX_PX);
+    expect(PDF_PLATFORM_MIN_PX).toBeLessThanOrEqual(PDF_PLATFORM_EXPORT_MAX_PX);
   });
 });

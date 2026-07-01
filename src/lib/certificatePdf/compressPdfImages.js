@@ -3,10 +3,13 @@ export function pdfImageFormat(dataUrl) {
   return typeof dataUrl === "string" && dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
 }
 
-/** Diagramas de plataforma: PNG (arte em linha). Assinaturas/logo: JPEG/PNG conforme preset. */
-export const PDF_PLATFORM_EXPORT_MAX_PX = 512;
-export const PDF_PLATFORM_MIN_PX = 480;
-export const PDF_PLATFORM_EMAIL_MAX_PX = 400;
+/**
+ * Resolução alvo derivada do tamanho no PDF (~3× para impressão nítida).
+ * Diagramas ~48×26 mm, logo ~32×13 mm, assinatura ~55×9 mm.
+ */
+export const PDF_PLATFORM_EXPORT_MAX_PX = 360;
+export const PDF_PLATFORM_MIN_PX = 280;
+export const PDF_PLATFORM_EMAIL_MAX_PX = 300;
 
 /**
  * Escala elemento img para data URL (jsPDF embute bitmap em resolução nativa).
@@ -73,23 +76,31 @@ export function downscaleDataUrl(
 }
 
 const EXPORT_PRESET = {
-  logoMaxPx: 280,
+  logoMaxPx: 200,
   logoMime: "image/png",
-  signatureMaxPx: 480,
-  signatureQuality: 0.9,
+  logoQuality: 0.92,
+  /** Só signatário entra no PDF (~55×9 mm). */
+  signatureMaxPx: 280,
+  signatureQuality: 0.88,
+  signatureMime: "image/jpeg",
   platformMaxPx: PDF_PLATFORM_EXPORT_MAX_PX,
   platformMime: "image/png",
   platformQuality: 1,
+  /** Diagramas já vêm dimensionados em loadPlatformDiagrams. */
+  recompressPlatform: false,
 };
 
 const EMAIL_PRESET = {
-  logoMaxPx: 220,
+  logoMaxPx: 180,
   logoMime: "image/png",
-  signatureMaxPx: 360,
+  logoQuality: 0.9,
+  signatureMaxPx: 260,
   signatureQuality: 0.85,
+  signatureMime: "image/jpeg",
   platformMaxPx: PDF_PLATFORM_EMAIL_MAX_PX,
   platformMime: "image/png",
   platformQuality: 1,
+  recompressPlatform: true,
 };
 
 /** Comprime logo, assinaturas e diagramas antes de embutir no PDF. */
@@ -103,17 +114,20 @@ export async function prepareCertificatePdfAssets(
 ) {
   const preset = forEmail ? EMAIL_PRESET : EXPORT_PRESET;
 
-  const [logo, executor, signatory, panels] = await Promise.all([
+  const [logo, signatory, panels] = await Promise.all([
     logoDataUrl
-      ? downscaleDataUrl(logoDataUrl, preset.logoMaxPx, { mime: preset.logoMime, quality: 0.92 })
-      : null,
-    signatureUrls?.executor
-      ? downscaleDataUrl(signatureUrls.executor, preset.signatureMaxPx, { quality: preset.signatureQuality })
+      ? downscaleDataUrl(logoDataUrl, preset.logoMaxPx, {
+        mime: preset.logoMime,
+        quality: preset.logoQuality,
+      })
       : null,
     signatureUrls?.signatory
-      ? downscaleDataUrl(signatureUrls.signatory, preset.signatureMaxPx, { quality: preset.signatureQuality })
+      ? downscaleDataUrl(signatureUrls.signatory, preset.signatureMaxPx, {
+        mime: preset.signatureMime,
+        quality: preset.signatureQuality,
+      })
       : null,
-    platformDiagrams?.panels?.length
+    preset.recompressPlatform && platformDiagrams?.panels?.length
       ? Promise.all(
         platformDiagrams.panels.map(async (panel) => ({
           ...panel,
@@ -131,7 +145,7 @@ export async function prepareCertificatePdfAssets(
   return {
     logoDataUrl: logo || logoDataUrl,
     signatureUrls: {
-      executor: executor ?? signatureUrls?.executor ?? null,
+      executor: signatureUrls?.executor ?? null,
       signatory: signatory ?? signatureUrls?.signatory ?? null,
     },
     platformDiagrams: panels
