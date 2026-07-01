@@ -17,6 +17,7 @@ import {
   ensureSpace,
   drawNumberedObservations,
   tableHeadStyles,
+  getCertificateLayoutMetrics,
 } from "./certificatePdfLayout";
 
 function s(v) {
@@ -40,9 +41,14 @@ function drawWatermark(doc, text) {
   }
 }
 
+function singlePageTableOpts(ctx) {
+  return ctx.singlePage ? { rowPageBreak: "avoid", pageBreak: "avoid" } : {};
+}
+
 function drawClientSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 28, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "DADOS DO CLIENTE");
+  const m = ctx.metrics;
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 20 : 28, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "DADOS DO CLIENTE", m);
   y = drawFieldGrid(doc, ML, y, CW, 3, [
     { label: "Cliente", value: model.client.name },
     { label: "C.N.P.J.", value: model.client.cnpj },
@@ -51,13 +57,14 @@ function drawClientSection(doc, model, y, ctx) {
     { label: "Cidade", value: model.client.city },
     { label: "Estado", value: model.client.state },
     { label: "Unidade", value: model.client.unit },
-  ]);
-  return y + 1;
+  ], m);
+  return y + (m.singlePage ? 0.3 : 1);
 }
 
 function drawInstrumentSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 36, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "INFORMAÇÕES TÉCNICAS");
+  const m = ctx.metrics;
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 28 : 36, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "INFORMAÇÕES TÉCNICAS", m);
 
   autoTable(doc, {
     startY: y,
@@ -76,11 +83,12 @@ function drawInstrumentSection(doc, model, y, ctx) {
       s(model.balance.divisao),
       s(model.balance.unidade),
     ]],
-    styles: { fontSize: 6, cellPadding: 1.2, halign: "center", valign: "middle" },
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
+    styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding, halign: "center", valign: "middle" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
     theme: "grid",
+    ...singlePageTableOpts(ctx),
   });
-  y = doc.lastAutoTable.finalY + 1;
+  y = doc.lastAutoTable.finalY + (m.singlePage ? 0.5 : 1);
 
   autoTable(doc, {
     startY: y,
@@ -92,11 +100,12 @@ function drawInstrumentSection(doc, model, y, ctx) {
       s(model.balance.identificacao || model.balance.tag),
       s(model.balance.plataforma),
     ]],
-    styles: { fontSize: 6, cellPadding: 1.2, halign: "center" },
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
+    styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding, halign: "center" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
     theme: "grid",
+    ...singlePageTableOpts(ctx),
   });
-  y = doc.lastAutoTable.finalY + 2;
+  y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
 
   if (model.balance.capacidade2 || model.balance.resolucao2) {
     autoTable(doc, {
@@ -112,19 +121,21 @@ function drawInstrumentSection(doc, model, y, ctx) {
         s(model.balance.divisao2),
         s(model.balance.divisao3),
       ]],
-      styles: { fontSize: 5.5, cellPadding: 1, halign: "center" },
+      styles: { fontSize: m.compactTableFontSize, cellPadding: m.compactTablePadding, halign: "center" },
       headStyles: tableHeadStyles(doc),
       theme: "grid",
+      ...singlePageTableOpts(ctx),
     });
-    y = doc.lastAutoTable.finalY + 2;
+    y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
   }
 
   return y;
 }
 
 function drawEnvironmentalSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 32, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "CONDIÇÕES AMBIENTAIS - DURANTE A CALIBRAÇÃO");
+  const m = ctx.metrics;
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 24 : 32, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "CONDIÇÕES AMBIENTAIS - DURANTE A CALIBRAÇÃO", m);
 
   y = drawCompactMeasureRow(doc, ML, y, CW, [
     { label: "Temperatura", value: model.environmental.temperature },
@@ -134,7 +145,7 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
   ]);
 
   if (model.instrumentStandards?.length) {
-    y += 1;
+    y += m.singlePage ? 0.5 : 1;
     autoTable(doc, {
       startY: y,
       margin: { left: ML, right: PAGE_W - MR },
@@ -150,15 +161,16 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
         joinSlash(model.instrumentStandards.map((st) => st.calibrationDate)),
         joinSlash(model.instrumentStandards.map((st) => st.validUntil)),
       ]],
-      styles: { fontSize: 6, cellPadding: 1.2, halign: "center" },
-      headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
+      styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding, halign: "center" },
+      headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
       theme: "grid",
+      ...singlePageTableOpts(ctx),
     });
-    y = doc.lastAutoTable.finalY + 2;
+    y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
   }
 
   if (model.weightStandards?.length) {
-    y = drawSectionBar(doc, ML, y, CW, "PADRÕES DE REFERÊNCIA");
+    y = drawSectionBar(doc, ML, y, CW, "PADRÕES DE REFERÊNCIA", m);
     const pairs = [];
     for (let i = 0; i < model.weightStandards.length; i += 2) {
       const w1 = model.weightStandards[i];
@@ -182,11 +194,12 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
         "Identificação", "Data Calibração", "Validade", "Rastreabilidade",
       ]],
       body: pairs,
-      styles: { fontSize: 5.5, cellPadding: 1, halign: "center" },
-      headStyles: { ...tableHeadStyles(doc), fontSize: 5 },
+      styles: { fontSize: m.compactTableFontSize, cellPadding: m.compactTablePadding, halign: "center" },
+      headStyles: { ...tableHeadStyles(doc), fontSize: m.compactTableHeadFontSize },
       theme: "grid",
+      ...singlePageTableOpts(ctx),
     });
-    y = doc.lastAutoTable.finalY + 3;
+    y = doc.lastAutoTable.finalY + (m.singlePage ? 1.5 : 3);
   }
 
   return y;
@@ -214,8 +227,8 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
   const gap = 1;
   const panels = platformDiagrams.panels;
   const colW = (width - gap * (panels.length - 1)) / panels.length;
-  const imgH = 26;
-  const labelH = 4.5;
+  const imgH = ctx.metrics?.platformImgH ?? 26;
+  const labelH = ctx.metrics?.platformLabelH ?? 4.5;
   let maxY = y;
 
   panels.forEach((panel, i) => {
@@ -273,8 +286,9 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
 
 function drawEccentricitySection(doc, model, y, ctx) {
   if (model.eccentricity?.showSection === false) return y;
-  ({ y } = ensureSpace(doc, y, 58, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE");
+  const m = ctx.metrics;
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 44 : 58, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE", m);
 
   const tableW = 42;
   const gap = 3;
@@ -302,26 +316,28 @@ function drawEccentricitySection(doc, model, y, ctx) {
       s(pt.beforeDisplay),
       s(pt.afterDisplay),
     ]),
-    styles: { fontSize: 6, cellPadding: 1, halign: "center" },
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5 },
+    styles: { fontSize: m.tableFontSize, cellPadding: m.compactTablePadding, halign: "center" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
     theme: "grid",
+    ...singlePageTableOpts(ctx),
   });
   const tableEndY = doc.lastAutoTable.finalY;
   const diagramEndY = drawPlatformDiagramAt(doc, model, y, diagramX, diagramW, ctx);
 
-  return Math.max(tableEndY, diagramEndY) + 3;
+  return Math.max(tableEndY, diagramEndY) + (m.singlePage ? 1.5 : 3);
 }
 
 function cellPair(m) {
   return [s(m?.value ?? "--"), s(m?.unit ?? "")];
 }
 
-function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signatureUrls = {}) {
-  const lineH = 4.2;
-  const metaY = y + 1;
+function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signatureUrls = {}, metrics = null) {
+  const m = metrics || getCertificateLayoutMetrics(false);
+  const lineH = m.metaLineH;
+  const metaY = y + 0.5;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
+  doc.setFontSize(m.metaFontSize);
   doc.setTextColor(...FORM_COLORS.text);
 
   const metaLines = [
@@ -335,13 +351,20 @@ function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signa
     doc.text(line, ML, metaY + i * lineH);
   });
 
-  const sigW = Math.min(rightW * 0.75, 55);
+  const sigW = Math.min(rightW * 0.75, m.singlePage ? 48 : 55);
   const sigX = rightX + (rightW - sigW) / 2;
-  const sigLineY = metaY + 10;
+  const sigLineY = metaY + (m.singlePage ? 8 : 10);
 
   if (signatureUrls.signatory) {
     try {
-      doc.addImage(signatureUrls.signatory, pdfImageFormat(signatureUrls.signatory), sigX, metaY, sigW, 9);
+      doc.addImage(
+        signatureUrls.signatory,
+        pdfImageFormat(signatureUrls.signatory),
+        sigX,
+        metaY,
+        sigW,
+        m.signatureH,
+      );
     } catch { /* opcional */ }
   }
 
@@ -350,26 +373,27 @@ function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signa
   doc.line(sigX, sigLineY, sigX + sigW, sigLineY);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.text("SIGNATÁRIO", sigX, sigLineY + 3.5);
+  doc.setFontSize(m.metaFontSize);
+  doc.text("SIGNATÁRIO", sigX, sigLineY + 3);
   doc.setFont("helvetica", "normal");
-  doc.text(s(model.signatoryName), sigX + sigW, sigLineY + 3.5, { align: "right" });
+  doc.text(s(model.signatoryName), sigX + sigW, sigLineY + 3, { align: "right" });
 
-  return Math.max(metaY + metaLines.length * lineH, sigLineY + 7) + 2;
+  return Math.max(metaY + metaLines.length * lineH, sigLineY + (m.singlePage ? 5 : 7)) + 1;
 }
 
 function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   const rows = model.repeatabilityRows || [];
   if (!rows.some((r) => !r.empty) && !model.points?.length) return y;
 
+  const m = ctx.metrics;
   const unitLabel = model.unit || model.balance?.unidade || "kg";
   const leftW = CW * 0.42;
   const rightW = CW * 0.56;
   const gap = CW * 0.02;
   const rightX = ML + leftW + gap;
 
-  ({ y } = ensureSpace(doc, y, 72, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE");
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 58 : 72, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE", m);
   y = drawDualSubsectionTitles(
     doc,
     ML,
@@ -421,14 +445,14 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   ]);
 
   const sharedStyles = {
-    fontSize: 5.5,
-    cellPadding: 0.8,
+    fontSize: m.compactTableFontSize,
+    cellPadding: m.compactTablePadding,
     halign: "center",
     valign: "middle",
     lineWidth: 0.1,
   };
 
-  const unitColStyle = { cellWidth: 7, fontSize: 5, halign: "center" };
+  const unitColStyle = { cellWidth: m.singlePage ? 6 : 7, fontSize: m.singlePage ? 4.5 : 5, halign: "center" };
 
   autoTable(doc, {
     startY: y,
@@ -436,13 +460,14 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     head: [tableHead],
     body: leftBody,
     styles: sharedStyles,
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5.5, halign: "center" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: m.compactTableHeadFontSize, halign: "center" },
     columnStyles: {
       1: unitColStyle,
       3: unitColStyle,
       5: unitColStyle,
     },
     theme: "grid",
+    ...singlePageTableOpts(ctx),
   });
   const leftEndY = doc.lastAutoTable.finalY;
 
@@ -452,18 +477,19 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     head: [rightHead],
     body: rightBody,
     styles: sharedStyles,
-    headStyles: { ...tableHeadStyles(doc), fontSize: 5, halign: "center" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: m.compactTableHeadFontSize, halign: "center" },
     columnStyles: {
       1: unitColStyle,
       3: unitColStyle,
       5: unitColStyle,
       7: unitColStyle,
-      8: { cellWidth: 10 },
-      9: { cellWidth: 8 },
+      8: { cellWidth: m.singlePage ? 9 : 10 },
+      9: { cellWidth: m.singlePage ? 7 : 8 },
     },
     theme: "grid",
+    ...singlePageTableOpts(ctx),
   });
-  y = Math.max(leftEndY, doc.lastAutoTable.finalY) + 2;
+  y = Math.max(leftEndY, doc.lastAutoTable.finalY) + (m.singlePage ? 1 : 2);
 
   y = drawRepeatabilityMetaFooter(
     doc,
@@ -473,14 +499,16 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     rightX,
     rightW,
     ctx.signatureUrls || {},
+    m,
   );
   return y;
 }
 
 function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
   if (!model.substitutionRepeatability?.applicable || !model.substitutionRepeatability.rows?.length) return y;
-  ({ y } = ensureSpace(doc, y, 22, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "REPETIBILIDADE COM LOTE DE CARGA");
+  const m = ctx.metrics;
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 16 : 22, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "REPETIBILIDADE COM LOTE DE CARGA", m);
   autoTable(doc, {
     startY: y,
     margin: { left: ML, right: PAGE_W - MR },
@@ -488,28 +516,30 @@ function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
     body: model.substitutionRepeatability.rows.map((r) => [
       s(r.label), s(r.nominal), s(r.reading1), s(r.reading2), s(r.reading3),
     ]),
-    styles: { fontSize: 6, cellPadding: 1.2 },
+    styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding },
     headStyles: tableHeadStyles(doc),
     theme: "grid",
+    ...singlePageTableOpts(ctx),
   });
-  y = doc.lastAutoTable.finalY + 2;
+  y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
   if (model.substitutionRepeatability.observations) {
-    doc.setFontSize(6.5);
+    doc.setFontSize(m.metaFontSize);
     doc.text(`Observações: ${model.substitutionRepeatability.observations}`, ML, y, { maxWidth: CW });
-    y += 5;
+    y += m.singlePage ? 3.5 : 5;
   }
-  return y + 1;
+  return y + (m.singlePage ? 0.3 : 1);
 }
 
 function drawObservationsSection(doc, model, y, ctx) {
-  ({ y } = ensureSpace(doc, y, 40, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES");
-  y = drawNumberedObservations(doc, ML + 1, y + 1, model.observations, CW - 2) + 2;
+  const m = ctx.metrics;
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 28 : 40, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES", m);
+  y = drawNumberedObservations(doc, ML + 1, y + 0.5, model.observations, CW - 2, m) + (m.singlePage ? 0.8 : 2);
   if (model.conformityDeclaration) {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(m.singlePage ? 7 : 8);
     doc.text(model.conformityDeclaration, ML, y);
-    y += 6;
+    y += m.singlePage ? 4 : 6;
   }
   return y;
 }
@@ -518,13 +548,24 @@ function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
   if (model.repeatabilityRows?.some((r) => !r.empty) || model.points?.length) {
     return y;
   }
-  ({ y } = ensureSpace(doc, y, 36, ctx));
-  return drawRepeatabilityMetaFooter(doc, model, y, CW * 0.42, ML + CW * 0.44, CW * 0.56, signatureUrls);
+  const m = ctx.metrics;
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 28 : 36, ctx));
+  return drawRepeatabilityMetaFooter(doc, model, y, CW * 0.42, ML + CW * 0.44, CW * 0.56, signatureUrls, m);
 }
 
-export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls, platformDiagrams } = {}) {
-  const ctx = { model, logoDataUrl, compactHeader: true, platformDiagrams, signatureUrls };
-  let y = drawCertificateHeader(doc, model, logoDataUrl);
+function drawCertificatePdfContent(doc, model, opts = {}) {
+  const singlePage = opts.singlePage ?? !model.preview;
+  const metrics = opts.metrics || getCertificateLayoutMetrics(singlePage);
+  const ctx = {
+    model,
+    logoDataUrl: opts.logoDataUrl,
+    compactHeader: true,
+    platformDiagrams: opts.platformDiagrams,
+    signatureUrls: opts.signatureUrls,
+    singlePage,
+    metrics,
+  };
+  let y = drawCertificateHeader(doc, model, opts.logoDataUrl, metrics.headerStartY, metrics);
 
   y = drawClientSection(doc, model, y, ctx);
   y = drawInstrumentSection(doc, model, y, ctx);
@@ -532,13 +573,29 @@ export function drawCertificatePdf(doc, model, { logoDataUrl, signatureUrls, pla
   y = drawEccentricitySection(doc, model, y, ctx);
   y = drawRepeatabilityCalibrationSection(doc, model, y, ctx);
   y = drawSubstitutionRepeatabilitySection(doc, model, y, ctx);
-  y = drawApprovalBlock(doc, model, y, ctx, signatureUrls);
+  y = drawApprovalBlock(doc, model, y, ctx, opts.signatureUrls);
   drawObservationsSection(doc, model, y, ctx);
 
   drawCertificateDocumentFooters(doc, model);
 
   if (model.preview) drawWatermark(doc, "PRÉVIA TÉCNICA");
   if (model.cancelled) drawWatermark(doc, "CANCELADO");
+}
+
+export function drawCertificatePdf(doc, model, opts = {}) {
+  const singlePage = opts.singlePage ?? !model.preview;
+  if (!singlePage) {
+    drawCertificatePdfContent(doc, model, opts);
+    return;
+  }
+
+  const originalAddPage = doc.addPage.bind(doc);
+  doc.addPage = () => doc;
+  try {
+    drawCertificatePdfContent(doc, model, { ...opts, singlePage: true });
+  } finally {
+    doc.addPage = originalAddPage;
+  }
 }
 
 export function buildCertificatePdfBlob(cert, tenantName, opts = {}) {

@@ -20,6 +20,69 @@ const SECTION_CONTENT_GAP = 2.5;
 const FIELD_LABEL_H = 3.5;
 const FIELD_BOX_H = 7;
 
+/** Métricas de layout — modo compacto para certificado emitido em uma página A4. */
+export function getCertificateLayoutMetrics(singlePage = false) {
+  if (!singlePage) {
+    return {
+      singlePage: false,
+      sectionBarH: SECTION_BAR_H,
+      sectionGap: SECTION_CONTENT_GAP,
+      sectionTitleFontSize: 9,
+      fieldLabelH: FIELD_LABEL_H,
+      fieldBoxH: FIELD_BOX_H,
+      fieldCellGap: 0.5,
+      tableFontSize: 6,
+      tableHeadFontSize: 5.5,
+      tableCellPadding: 1.2,
+      compactTableFontSize: 5.5,
+      compactTablePadding: 0.8,
+      compactTableHeadFontSize: 5.5,
+      platformImgH: 26,
+      platformLabelH: 4.5,
+      observationFontSize: 6.5,
+      observationLineH: 3.2,
+      observationGap: 1.5,
+      observationColumns: 1,
+      metaLineH: 4.2,
+      metaFontSize: 6.5,
+      signatureH: 9,
+      headerStartY: 6,
+      logoW: LOGO_W,
+      logoH: LOGO_H,
+      contentBottom: FOOTER_Y - 6,
+    };
+  }
+
+  return {
+    singlePage: true,
+    sectionBarH: 3.8,
+    sectionGap: 1.2,
+    sectionTitleFontSize: 7.5,
+    fieldLabelH: 3,
+    fieldBoxH: 5.8,
+    fieldCellGap: 0.35,
+    tableFontSize: 5.1,
+    tableHeadFontSize: 4.7,
+    tableCellPadding: 0.55,
+    compactTableFontSize: 4.7,
+    compactTablePadding: 0.4,
+    compactTableHeadFontSize: 4.5,
+    platformImgH: 17,
+    platformLabelH: 3.5,
+    observationFontSize: 4.9,
+    observationLineH: 2.45,
+    observationGap: 0.6,
+    observationColumns: 2,
+    metaLineH: 3.3,
+    metaFontSize: 6,
+    signatureH: 7,
+    headerStartY: 4,
+    logoW: 28,
+    logoH: 11,
+    contentBottom: FOOTER_Y - 3,
+  };
+}
+
 /** @param {import('jspdf').jsPDF} doc */
 export function tableHeadStyles(doc) {
   return {
@@ -34,58 +97,61 @@ export function tableHeadStyles(doc) {
  * Faixa de título de secção (y = topo da barra).
  * @returns {number} y para o primeiro conteúdo abaixo da barra
  */
-export function drawSectionBar(doc, x, y, width, text) {
+export function drawSectionBar(doc, x, y, width, text, metrics = null) {
+  const m = metrics || getCertificateLayoutMetrics(false);
   const barTop = y;
   doc.setFillColor(...FORM_COLORS.sectionBar);
-  doc.rect(x, barTop, width, SECTION_BAR_H, "F");
+  doc.rect(x, barTop, width, m.sectionBarH, "F");
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.12);
-  doc.rect(x, barTop, width, SECTION_BAR_H, "S");
+  doc.rect(x, barTop, width, m.sectionBarH, "S");
   doc.setTextColor(...FORM_COLORS.sectionBarText);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(text, x + 1.5, barTop + 3.6);
+  doc.setFontSize(m.sectionTitleFontSize);
+  doc.text(text, x + 1.5, barTop + m.sectionBarH - 1.4);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...FORM_COLORS.text);
-  return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
+  return barTop + m.sectionBarH + m.sectionGap;
 }
 
 /** Campo com rótulo e área de valor. */
-function drawFieldBox(doc, x, y, w, label, value) {
+function drawFieldBox(doc, x, y, w, label, value, metrics = null) {
+  const m = metrics || getCertificateLayoutMetrics(false);
   doc.setFillColor(...FORM_COLORS.fieldLabel);
-  doc.rect(x, y, w, FIELD_LABEL_H, "F");
+  doc.rect(x, y, w, m.fieldLabelH, "F");
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.1);
-  doc.rect(x, y, w, FIELD_BOX_H, "S");
-  doc.setFontSize(6);
+  doc.rect(x, y, w, m.fieldBoxH, "S");
+  doc.setFontSize(m.singlePage ? 5.5 : 6);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...FORM_COLORS.text);
-  doc.text(label, x + 0.8, y + 2.4);
+  doc.text(label, x + 0.8, y + 2.1);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
+  doc.setFontSize(m.singlePage ? 6 : 7);
   const val = value == null ? "" : String(value);
   const lines = doc.splitTextToSize(val || " ", w - 2);
-  doc.text(lines.slice(0, 2), x + 0.8, y + FIELD_LABEL_H + 2.8);
+  doc.text(lines.slice(0, 2), x + 0.8, y + m.fieldLabelH + 2.4);
 }
 
 /**
  * Grelha de campos (cols × rows).
  * @param {Array<{ label: string, value: string }>} fields
  */
-export function drawFieldGrid(doc, x, y, totalWidth, cols, fields) {
-  const gap = 1.2;
+export function drawFieldGrid(doc, x, y, totalWidth, cols, fields, metrics = null) {
+  const m = metrics || getCertificateLayoutMetrics(false);
+  const gap = m.singlePage ? 0.8 : 1.2;
   const cellW = (totalWidth - gap * (cols - 1)) / cols;
-  const cellH = FIELD_BOX_H + 0.5;
+  const cellH = m.fieldBoxH + m.fieldCellGap;
   let maxY = y;
   fields.forEach((f, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const cx = x + col * (cellW + gap);
     const cy = y + row * cellH;
-    drawFieldBox(doc, cx, cy, cellW, f.label, f.value);
-    maxY = Math.max(maxY, cy + FIELD_BOX_H + 0.5);
+    drawFieldBox(doc, cx, cy, cellW, f.label, f.value, m);
+    maxY = Math.max(maxY, cy + m.fieldBoxH + m.fieldCellGap);
   });
-  return maxY + 2;
+  return maxY + (m.singlePage ? 0.8 : 2);
 }
 
 const MEASURE_BAR_H = 5;
@@ -125,75 +191,80 @@ export const LOGO_W = 32;
 export const LOGO_H = 13;
 
 /** @returns {number} y para início do conteúdo após cabeçalho */
-export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6) {
-  const headerTop = yStart;
+export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6, metrics = null) {
+  const m = metrics || getCertificateLayoutMetrics(false);
+  const headerTop = yStart ?? m.headerStartY;
   const labX = ML;
   let labBottom = headerTop;
 
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, pdfImageFormat(logoDataUrl), labX, headerTop, LOGO_W, LOGO_H);
-      labBottom = headerTop + LOGO_H + 1;
+      doc.addImage(logoDataUrl, pdfImageFormat(logoDataUrl), labX, headerTop, m.logoW, m.logoH);
+      labBottom = headerTop + m.logoH + 0.5;
     } catch { /* opcional */ }
   }
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
+  doc.setFontSize(m.singlePage ? 5.8 : 6.5);
   doc.setTextColor(...FORM_COLORS.text);
   const labLines = [
     model.lab?.name || model.tenantName || "",
     model.lab?.address || "",
     [model.lab?.phone, model.lab?.website].filter(Boolean).join(" · "),
   ].filter(Boolean);
+  const labLineH = m.singlePage ? 2.7 : 3.2;
   labLines.forEach((line, i) => {
-    doc.text(line, labX, labBottom + 3 + i * 3.2, { maxWidth: 70 });
+    doc.text(line, labX, labBottom + 2.5 + i * labLineH, { maxWidth: 68 });
   });
-  labBottom += labLines.length * 3.2 + 2;
+  labBottom += labLines.length * labLineH + 1;
 
   const centerX = PAGE_W / 2;
   doc.setTextColor(...FORM_COLORS.text);
   doc.setFont("helvetica", "bold");
   const titleSuffix = model.certificateType === "rbc" ? " RBC" : "";
-  doc.setFontSize(10);
-  doc.text(`CERTIFICADO DE CALIBRAÇÃO${titleSuffix}`, centerX, headerTop + 8, { align: "center" });
-  doc.setFontSize(11);
-  doc.text(`Nº ${model.certificateNumber || "—"}`, centerX, headerTop + 15, { align: "center" });
+  doc.setFontSize(m.singlePage ? 9 : 10);
+  doc.text(`CERTIFICADO DE CALIBRAÇÃO${titleSuffix}`, centerX, headerTop + (m.singlePage ? 6.5 : 8), { align: "center" });
+  doc.setFontSize(m.singlePage ? 10 : 11);
+  doc.text(`Nº ${model.certificateNumber || "—"}`, centerX, headerTop + (m.singlePage ? 12 : 15), { align: "center" });
 
   if (model.certificateType === "rbc") {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(5.5);
+    doc.setFontSize(m.singlePage ? 5 : 5.5);
     const accText = model.lab?.cgcreCalNumber
       ? `Laboratório de Calibração acreditado pela Cgcre de acordo com a NORMA ABNT NBR ISO/IEC 17025:2017, sob o número CAL ${model.lab.cgcreCalNumber}`
       : "Laboratório de Calibração acreditado pela Cgcre de acordo com a NORMA ABNT NBR ISO/IEC 17025:2017";
-    doc.text(accText, centerX, headerTop + 20, { align: "center", maxWidth: 120 });
+    doc.text(accText, centerX, headerTop + (m.singlePage ? 16 : 20), { align: "center", maxWidth: m.singlePage ? 115 : 120 });
   }
 
   const accX = PAGE_W - ML;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
+  doc.setFontSize(m.singlePage ? 6 : 6.5);
   if (model.certificateType === "rbc") {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.text("RBC", accX, headerTop + 4, { align: "right" });
+    doc.setFontSize(m.singlePage ? 6.5 : 7);
+    doc.text("RBC", accX, headerTop + 3.5, { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
-    doc.text("CREDENCIADO CGCRE/INMETRO", accX, headerTop + 9, { align: "right" });
-    doc.text("NBR ISO/IEC 17025:2017", accX, headerTop + 13, { align: "right" });
+    doc.setFontSize(m.singlePage ? 5.5 : 6);
+    doc.text("CREDENCIADO CGCRE/INMETRO", accX, headerTop + (m.singlePage ? 7.5 : 9), { align: "right" });
+    doc.text("NBR ISO/IEC 17025:2017", accX, headerTop + (m.singlePage ? 11 : 13), { align: "right" });
     if (model.lab?.cgcreCalNumber) {
-      doc.text(`CAL ${model.lab.cgcreCalNumber}`, accX, headerTop + 17, { align: "right" });
+      doc.text(`CAL ${model.lab.cgcreCalNumber}`, accX, headerTop + (m.singlePage ? 14.5 : 17), { align: "right" });
     }
   } else {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.text("CREDENCIADA IPEM-MG", accX, headerTop + 6, { align: "right" });
+    doc.setFontSize(m.singlePage ? 6.5 : 7);
+    doc.text("CREDENCIADA IPEM-MG", accX, headerTop + (m.singlePage ? 5 : 6), { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
+    doc.setFontSize(m.singlePage ? 6 : 6.5);
     if (model.lab?.ipemNumber) {
-      doc.text(model.lab.ipemNumber, accX, headerTop + 11, { align: "right" });
+      doc.text(model.lab.ipemNumber, accX, headerTop + (m.singlePage ? 9 : 11), { align: "right" });
     }
   }
 
-  return Math.max(labBottom, headerTop + (model.certificateType === "rbc" ? 26 : 22)) + 2;
+  const headerBottom = model.certificateType === "rbc"
+    ? headerTop + (m.singlePage ? 21 : 26)
+    : headerTop + (m.singlePage ? 17 : 22);
+  return Math.max(labBottom, headerBottom) + (m.singlePage ? 0.5 : 2);
 }
 
 /** Linha de medidas ambientais compactas (4 células lado a lado). */
@@ -264,12 +335,15 @@ export function drawCertificateDocumentFooters(doc, model) {
  * Garante espaço vertical; adiciona página se necessário.
  * @returns {{ y: number, pageAdded: boolean }}
  */
-export function ensureSpace(doc, y, needed, { model, logoDataUrl, compactHeader = true } = {}) {
-  if (y + needed <= CONTENT_BOTTOM) return { y, pageAdded: false };
+export function ensureSpace(doc, y, needed, ctx = {}) {
+  const metrics = ctx.metrics || getCertificateLayoutMetrics(false);
+  const bottom = metrics.contentBottom ?? CONTENT_BOTTOM;
+  if (ctx.singlePage || metrics.singlePage) return { y, pageAdded: false };
+  if (y + needed <= bottom) return { y, pageAdded: false };
   doc.addPage();
-  let newY = 6;
-  if (compactHeader && model) {
-    newY = drawCertificateHeader(doc, model, logoDataUrl, 6);
+  let newY = metrics.headerStartY ?? 6;
+  if (ctx.compactHeader !== false && ctx.model) {
+    newY = drawCertificateHeader(doc, ctx.model, ctx.logoDataUrl, newY, metrics);
   }
   return { y: newY, pageAdded: true };
 }
@@ -290,16 +364,40 @@ export function underlineField(doc, x, y, label, value, width) {
 }
 
 /** Desenha lista numerada de observações legais. */
-export function drawNumberedObservations(doc, x, y, observations, maxWidth) {
+export function drawNumberedObservations(doc, x, y, observations, maxWidth, metrics = null) {
+  const m = metrics || getCertificateLayoutMetrics(false);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
+  doc.setFontSize(m.observationFontSize);
   doc.setTextColor(...FORM_COLORS.text);
+
+  if (m.observationColumns === 2) {
+    const gap = 2.5;
+    const colW = (maxWidth - gap) / 2;
+    const leftItems = observations.filter((_, i) => i % 2 === 0);
+    const rightItems = observations.filter((_, i) => i % 2 === 1);
+
+    const drawColumn = (items, startIndex, cx, startY) => {
+      let cy = startY;
+      items.forEach((text, idx) => {
+        const num = startIndex + idx * 2 + 1;
+        const lines = doc.splitTextToSize(`${num} - ${text}`, colW);
+        doc.text(lines, cx, cy);
+        cy += lines.length * m.observationLineH + m.observationGap;
+      });
+      return cy;
+    };
+
+    const leftEnd = drawColumn(leftItems, 0, x, y);
+    const rightEnd = drawColumn(rightItems, 1, x + colW + gap, y);
+    return Math.max(leftEnd, rightEnd);
+  }
+
   let cy = y;
   observations.forEach((text, i) => {
     const prefix = `${i + 1} - `;
     const lines = doc.splitTextToSize(prefix + text, maxWidth);
     doc.text(lines, x, cy);
-    cy += lines.length * 3.2 + 1.5;
+    cy += lines.length * m.observationLineH + m.observationGap;
   });
   return cy;
 }

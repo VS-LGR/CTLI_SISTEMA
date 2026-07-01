@@ -1,5 +1,6 @@
 import { addOneYear, defaultValidityDate } from "./certificateDateUtils";
 import { getRbcObservations, getRastreavelObservations } from "../certificatePdf/legalObservations";
+import { getCertificateLayoutMetrics } from "../certificatePdf/certificatePdfLayout";
 import {
   resolveActivePlatformPanel,
   platformPanelDisplayLabel,
@@ -10,6 +11,17 @@ describe("certificateDateUtils", () => {
   test("addOneYear advances date by one year", () => {
     expect(addOneYear("2026-01-05")).toBe("2027-01-05");
     expect(defaultValidityDate("2026-06-17")).toBe("2027-06-17");
+  });
+});
+
+describe("certificatePdfLayout", () => {
+  test("modo compacto prepara certificado emitido para uma página", () => {
+    const compact = getCertificateLayoutMetrics(true);
+    const standard = getCertificateLayoutMetrics(false);
+    expect(compact.singlePage).toBe(true);
+    expect(compact.observationColumns).toBe(2);
+    expect(compact.platformImgH).toBeLessThan(standard.platformImgH);
+    expect(compact.compactTableFontSize).toBeLessThan(standard.compactTableFontSize);
   });
 });
 
