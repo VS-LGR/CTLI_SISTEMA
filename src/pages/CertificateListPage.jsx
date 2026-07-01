@@ -133,7 +133,7 @@ export default function CertificateListPage() {
       if (!cancelled) setLogoDataUrl(dataUrl);
     });
     return () => { cancelled = true; };
-  }, [currentTenant?.logo_storage_path, currentTenant?.id]);
+  }, [currentTenant]);
 
   const filtered = useMemo(() => rows.filter((r) => {
     const q = query.trim().toLowerCase();

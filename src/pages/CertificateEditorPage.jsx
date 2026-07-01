@@ -204,7 +204,7 @@ export default function CertificateEditorPage() {
       if (!cancelled) setLogoDataUrl(dataUrl);
     });
     return () => { cancelled = true; };
-  }, [currentTenant?.logo_storage_path, currentTenant?.id]);
+  }, [currentTenant]);
 
   if (!canAccessCalibrationCertificates(user?.role)) {
     return <Navigate to="/dashboard" replace />;
