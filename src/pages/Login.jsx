@@ -173,7 +173,7 @@ const Login = () => {
           src={APP_LOGO_WIDE}
           alt=""
           aria-hidden
-          className="absolute right-[-10%] bottom-[-5%] w-[min(520px,70%)] opacity-[0.07] pointer-events-none select-none object-contain"
+          className="absolute right-[-5%] bottom-[-2%] w-[min(380px,55%)] opacity-[0.06] pointer-events-none select-none object-contain"
         />
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 py-16 text-white max-w-xl">
           <p className="text-[10px] uppercase tracking-[0.28em] text-blue-400 mb-4">{APP_TAGLINE}</p>

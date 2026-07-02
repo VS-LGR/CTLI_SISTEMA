@@ -15,23 +15,24 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { APP_LOGO, APP_NAME } from "@/lib/appBranding";
 
-/** Referência visual da ordem de calibração — só no formulário (não entra no PDF). */
+/** Diagramas de ordem de calibração por formato de plataforma (não entra no PDF). */
 export const CALIBRACAO_ORDEM_IMAGES = [
   {
-    src: "/CircularaCTLI.webp",
+    src: "/RedondaBalanças.webp",
     alt: "Ordem de calibração — plataforma circular",
     label: "Circular",
     platformValues: ["redondo"],
   },
   {
-    src: "/QuadradaCTLI.webp",
+    src: "/Quadrada ou retangularBalanças.webp",
     alt: "Ordem de calibração — plataforma retangular ou quadrada",
     label: "Retangular ou quadrada",
     platformValues: ["retangular_quadrada"],
   },
   {
-    src: "/FerroviariaCTLI.webp",
+    src: "/RodoviariaBalanças.webp",
     alt: "Ordem de calibração — plataforma ferroviária",
     label: "Ferroviária",
     platformValues: ["ferroviaria"],
@@ -84,6 +85,10 @@ export default function CalibracaoOrdemTooltip({ tipoPlataforma = "" }) {
       <p className="mt-2 text-[10px] text-slate-500 leading-snug">
         Selecione o tipo de plataforma na secção 2 para destacar o diagrama correspondente.
       </p>
+      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+        <img src={APP_LOGO} alt="" aria-hidden className="h-5 w-auto object-contain opacity-80" />
+        <span className="text-[9px] uppercase tracking-wide text-slate-400">{APP_NAME}</span>
+      </div>
     </>
   ), [tipoPlataforma]);
 
