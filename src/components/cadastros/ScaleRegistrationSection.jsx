@@ -7,12 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
 import { PLATFORM_TYPE_OPTIONS, formRowsFromPointMaxTolerances, loadMaxTolerancesFromForm, omitPointMaxToleranceFormKeys } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
+import ScaleIndicationRangesFields from "@/components/forms/ScaleIndicationRangesFields";
 import { TIPO_BALANCA_OPTIONS } from "@/lib/coletaSchema";
+import { countScaleRanges } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 
 const emptyForm = () => ({
   end_customer_id: "",
@@ -189,13 +190,14 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
                 <th className="p-2">Identificação</th>
                 <th className="p-2">Fabricante</th>
                 <th className="p-2">Modelo</th>
+                <th className="p-2">Faixas</th>
                 <th className="p-2">Classe</th>
                 <th className="p-2 w-24" />
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-center text-slate-500">Nenhuma balança cadastrada.</td></tr>
+                <tr><td colSpan={8} className="p-4 text-center text-slate-500">Nenhuma balança cadastrada.</td></tr>
               )}
               {filtered.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
@@ -204,6 +206,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
                   <td className="p-2">{r.identification_code || r.tag || "—"}</td>
                   <td className="p-2">{r.manufacturer}</td>
                   <td className="p-2">{r.model}</td>
+                  <td className="p-2 text-xs text-slate-600">{countScaleRanges(r) || "—"}</td>
                   <td className="p-2">{r.instrument_class || "—"}</td>
                   <td className="p-2">
                     <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><PencilSimple size={16} /></Button>
@@ -306,29 +309,16 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
               </div>
 
               <SectionHeading
-                title="Faixa de indicação — faixa 1"
-                description="Símbolos oficiais PR-7.2 / RE-7.2B: C = capacidade máxima, d = resolução, e = divisão de verificação."
+                title="Faixas de indicação (multi-escala)"
+                description="Até 3 faixas em ordem crescente de capacidade. Cada ponto de calibração usa a resolução (d) da faixa correspondente."
               />
-              <div>
-                <FieldLabel
-                  title="Indicação máxima (C)"
-                  hint="Capacidade máxima da faixa — valor máximo que o visor pode indicar nesta faixa."
+              <div className="sm:col-span-2">
+                <ScaleIndicationRangesFields
+                  variant="registration"
+                  values={form}
+                  unit={form.unit || "g"}
+                  onChange={(key, value) => setF(key, value)}
                 />
-                <Input inputMode="decimal" value={form.capacity_1} onChange={(e) => setF("capacity_1", sanitizeMassNumericInput(e.target.value))} placeholder="Ex.: 220" />
-              </div>
-              <div>
-                <FieldLabel
-                  title="Resolução (d)"
-                  hint="Menor incremento exibido no visor; usada nos cálculos de incerteza (ur) e arredondamento do certificado."
-                />
-                <Input inputMode="decimal" value={form.resolution_1} onChange={(e) => setF("resolution_1", sanitizeMassNumericInput(e.target.value))} placeholder="Ex.: 0,0001" />
-              </div>
-              <div>
-                <FieldLabel
-                  title="Divisão de verificação (e)"
-                  hint="Intervalo de escala para verificação legal. Na maioria dos instrumentos e = d."
-                />
-                <Input inputMode="decimal" value={form.verification_division_1} onChange={(e) => setF("verification_division_1", sanitizeMassNumericInput(e.target.value))} placeholder="Ex.: 0,0001" />
               </div>
 
               <SectionHeading

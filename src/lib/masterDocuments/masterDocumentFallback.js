@@ -78,5 +78,11 @@ export function mergeDocumentMeta(masterDoc, recordMeta, fallback) {
     isObsolete: base.is_obsolete || base.status === "obsoleto" || false,
     usedFallback: !masterDoc && !!fallback,
     masterDocumentId: masterDoc?.id || null,
+    exportTemplateConfig: base.exportTemplateConfig || base.export_template_config || {},
+    certificateObservations:
+      base.certificateObservations
+      || base.exportTemplateConfig?.certificateObservations
+      || base.export_template_config?.certificateObservations
+      || null,
   };
 }

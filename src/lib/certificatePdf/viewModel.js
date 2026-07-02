@@ -1,6 +1,7 @@
 import { formatCertificateNumber, certificateTypeLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter, buildCertificatePointDisplay, enrichCertificatePointsForDisplay, resolvePointVeff } from "@/lib/certificateCalculations";
+import { parseCalibrationNumber } from "@/lib/certificateCalculations/parseNumber";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import {
   environmentalAverage,
@@ -11,7 +12,7 @@ import {
 } from "@/lib/certificateCalculations/environmentalCalculations";
 import { unidadeLabel, TIPO_BALANCA_OPTIONS, TIPO_PLATAFORMA_OPTIONS } from "@/lib/coletaSchema";
 import { fmtDmy } from "@/lib/coletaPdf/viewModel";
-import { getCertificateObservations } from "./legalObservations";
+import { resolveCertificateObservations } from "./legalObservations";
 
 function labelFromOptions(options, value) {
   return options.find((o) => o.value === value)?.label || value || "";
@@ -94,7 +95,7 @@ function mapRepeatabilityRow(p, balance, unit, decimals, adjustmentPerformed) {
   const beforeEmpty = adjustmentPerformed === false;
   return {
     empty: false,
-    reference: beforeEmpty ? dashMeasure(unit) : m(display.reference ?? p.nominal_value),
+    reference: m(display.reference ?? p.nominal_value),
     beforeReading: beforeEmpty ? dashMeasure(unit) : m(p.reading_before_adjustment),
     beforeError: beforeEmpty ? dashMeasure(unit) : m(p.error_before_adjustment),
     average: m(display.average ?? p.average_reading),
@@ -236,7 +237,13 @@ function hasFilledEccentricityValue(value) {
 
 function formatEccentricityCell(value, unit, decimals) {
   if (!hasFilledEccentricityValue(value)) return ECCENTRICITY_EMPTY_CELL;
-  const formatted = formatCalcDisplay(value, decimals).replace(".", ",");
+  let num = typeof value === "number" ? value : null;
+  if (num == null) {
+    const parsed = parseCalibrationNumber(value);
+    num = parsed.valid ? parsed.value : null;
+  }
+  if (num == null || !Number.isFinite(num)) return ECCENTRICITY_EMPTY_CELL;
+  const formatted = formatCalcDisplay(num, decimals).replace(".", ",");
   return unit ? `${formatted} ${unit}` : formatted;
 }
 
@@ -261,22 +268,34 @@ export function resolveEccentricity(cert, balance = {}, adjustmentPerformed = nu
     || points.some((p) => hasFilledEccentricityValue(p.before) || hasFilledEccentricityValue(p.after));
 
   const decimalPlaces = decimalPlacesFromResolution(balance.resolucao) ?? decimalPlacesForPoint(balance, 1);
-  const showReadings = hasEccentricityData && adjustmentPerformed === true;
+  const showBeforeAfterColumns = adjustmentPerformed === true;
+  const showResultValues = hasEccentricityData;
+
+  const resolveResultValue = (p) => (
+    hasFilledEccentricityValue(p.after) ? p.after : p.before
+  );
 
   return {
     showSection,
     hasEccentricityData,
+    showBeforeAfterColumns,
     eccentricitySubtitle: !hasEccentricityData ? ECCENTRICITY_NOT_PERFORMED_NOTE : "",
     appliedValue: ecc.valor_aplicado || "",
+    appliedValueDisplay: hasFilledEccentricityValue(ecc.valor_aplicado)
+      ? formatEccentricityCell(ecc.valor_aplicado, unit, decimalPlaces)
+      : "",
     decimalPlaces,
     adjustmentPerformed,
     points: points.map((p) => ({
       ...p,
-      beforeDisplay: showReadings
+      beforeDisplay: showBeforeAfterColumns && showResultValues
         ? formatEccentricityCell(p.before, unit, decimalPlaces)
         : ECCENTRICITY_EMPTY_CELL,
-      afterDisplay: showReadings
+      afterDisplay: showBeforeAfterColumns && showResultValues
         ? formatEccentricityCell(p.after, unit, decimalPlaces)
+        : ECCENTRICITY_EMPTY_CELL,
+      resultDisplay: !showBeforeAfterColumns && showResultValues
+        ? formatEccentricityCell(resolveResultValue(p), unit, decimalPlaces)
         : ECCENTRICITY_EMPTY_CELL,
     })),
   };
@@ -473,7 +492,7 @@ export function buildCertificatePdfViewModel(cert, {
     executorName: enriched.executor_name || enriched.technical_snapshot?.executorSnapshot?.full_name || "",
     signatoryName: enriched.signatory_name || enriched.technical_snapshot?.signatorySnapshot?.full_name || "",
     approvalDate: fmtDmy(enriched.approval_date),
-    observations: getCertificateObservations(enriched.certificate_type),
+    observations: resolveCertificateObservations(enriched.certificate_type, meta),
     unit,
   };
 }

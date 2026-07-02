@@ -6,12 +6,14 @@ import {
   standardUncertaintyUpFromWeightIds,
   driftUncertaintyUdFromWeightIds,
   resolveReadingsAfter,
+  resolveResolutionForNominal,
   welchSatterthwaiteNuEff,
   coverageFactorFromNu,
   truncateVeff,
   veffForDbStorage,
   VEFF_INFINITE_SENTINEL,
 } from "./pointCalculations";
+import { decimalPlacesFromResolution } from "./parseNumber";
 import {
   calculateToleranceOiml,
   evaluatePointConformity,
@@ -216,6 +218,25 @@ describe("certificateCalculations", () => {
 
   test("PR-7.8 roundIndicationError within half resolution", () => {
     expect(roundIndicationError(0.00004, "0.0001", 4)).toBe(0);
+  });
+
+  test("resolveResolutionForNominal — balança multi-escala (5/10/30 kg)", () => {
+    const balance = {
+      unidade: "kg",
+      capacidade: "5",
+      resolucao: "0,005",
+      capacidade_2: "10",
+      resolucao_2: "0,01",
+      capacidade_3: "30",
+      resolucao_3: "0,1",
+    };
+    expect(resolveResolutionForNominal("3", balance, "kg")).toBe("0,005");
+    expect(resolveResolutionForNominal("7", balance, "kg")).toBe("0,01");
+    expect(resolveResolutionForNominal("25", balance, "kg")).toBe("0,1");
+    expect(resolveResolutionForNominal("35", balance, "kg")).toBe("0,1");
+    expect(decimalPlacesFromResolution(resolveResolutionForNominal("3", balance, "kg"))).toBe(3);
+    expect(decimalPlacesFromResolution(resolveResolutionForNominal("7", balance, "kg"))).toBe(2);
+    expect(decimalPlacesFromResolution(resolveResolutionForNominal("25", balance, "kg"))).toBe(1);
   });
 });
 

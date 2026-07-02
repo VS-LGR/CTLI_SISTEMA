@@ -181,6 +181,13 @@ export function emptyColetaPayload() {
       portaria_inmetro: "",
       capacidade: "",
       resolucao: "",
+      capacidade_2: "",
+      resolucao_2: "",
+      capacidade_3: "",
+      resolucao_3: "",
+      divisao_verificacao: "",
+      divisao_verificacao_2: "",
+      divisao_verificacao_3: "",
       unidade: "",
       tipo_balanca: "",
       tipo_balanca_outros: "",
@@ -299,6 +306,13 @@ export function mergeColetaPayload(raw) {
   const balanca = { ...base.balanca, ...(raw.balanca || {}) };
   balanca.capacidade = sanitizeMassNumericInput(balanca.capacidade);
   balanca.resolucao = sanitizeMassNumericInput(balanca.resolucao);
+  balanca.capacidade_2 = sanitizeMassNumericInput(balanca.capacidade_2);
+  balanca.resolucao_2 = sanitizeMassNumericInput(balanca.resolucao_2);
+  balanca.capacidade_3 = sanitizeMassNumericInput(balanca.capacidade_3);
+  balanca.resolucao_3 = sanitizeMassNumericInput(balanca.resolucao_3);
+  balanca.divisao_verificacao = sanitizeMassNumericInput(balanca.divisao_verificacao);
+  balanca.divisao_verificacao_2 = sanitizeMassNumericInput(balanca.divisao_verificacao_2);
+  balanca.divisao_verificacao_3 = sanitizeMassNumericInput(balanca.divisao_verificacao_3);
   const defaultUnit = balanca.unidade || "g";
 
   const migrateEcc = () => {

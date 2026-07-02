@@ -172,6 +172,41 @@ export function decimalPlacesForPoint(balanceSnapshot, pointNumber) {
   return Number.isFinite(Number(v)) ? Number(v) : 2;
 }
 
+/** Quantidade de faixas de indicação preenchidas (1 a 3). */
+export function countScaleRanges(scaleOrBalance = {}) {
+  const caps = [
+    scaleOrBalance.capacity_1 || scaleOrBalance.capacidade,
+    scaleOrBalance.capacity_2 || scaleOrBalance.capacidade_2,
+    scaleOrBalance.capacity_3 || scaleOrBalance.capacidade_3,
+  ];
+  const filled = caps.filter((c) => c != null && String(c).trim() !== "");
+  return filled.length || 0;
+}
+
+/** Resumo textual das faixas para listagens e PDF. */
+export function formatScaleRangesSummary(scaleOrBalance = {}, unit = "g", { skipFirst = false } = {}) {
+  const u = scaleOrBalance.unit || scaleOrBalance.unidade || unit || "g";
+  const ranges = [
+    {
+      cap: scaleOrBalance.capacity_1 || scaleOrBalance.capacidade,
+      res: scaleOrBalance.resolution_1 || scaleOrBalance.resolucao,
+    },
+    {
+      cap: scaleOrBalance.capacity_2 || scaleOrBalance.capacidade_2,
+      res: scaleOrBalance.resolution_2 || scaleOrBalance.resolucao_2,
+    },
+    {
+      cap: scaleOrBalance.capacity_3 || scaleOrBalance.capacidade_3,
+      res: scaleOrBalance.resolution_3 || scaleOrBalance.resolucao_3,
+    },
+  ];
+  const filled = ranges
+    .filter((r) => r.cap && String(r.cap).trim() && r.res && String(r.res).trim())
+    .map((r) => `até ${r.cap} ${u} (d=${r.res})`);
+  const parts = skipFirst ? filled.slice(1) : filled;
+  return parts.join("; ");
+}
+
 export const PLATFORM_TYPE_OPTIONS = [
   { value: "quadrada", label: "Plataforma Quadrada" },
   { value: "redonda", label: "Plataforma Redonda" },

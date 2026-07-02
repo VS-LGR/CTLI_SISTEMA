@@ -5,6 +5,7 @@ import {
   TIPO_PLATAFORMA_OPTIONS,
   unidadeLabel,
 } from "../coletaSchema";
+import { formatScaleRangesSummary } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { buildColetaPdfViewModel, coletaPdfFileSlug } from "./viewModel";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
 import {
@@ -181,6 +182,7 @@ function drawFrente(doc, model) {
 
   y = drawSectionBar(doc, ML, y, CW, "2) Informações da Balança");
   const bal = model.balanca;
+  const scaleSummary = formatScaleRangesSummary(bal, bal.unidade, { skipFirst: true });
   y = drawFieldGrid(doc, ML, y, CW, 5, [
     { label: "Fabricante:", value: bal.fabricante },
     { label: "Modelo:", value: bal.modelo },
@@ -191,6 +193,7 @@ function drawFrente(doc, model) {
     { label: "Portaria Inmetro:", value: bal.portaria_inmetro },
     { label: "Capacidade:", value: bal.capacidade },
     { label: "Resolução:", value: bal.resolucao },
+    ...(scaleSummary ? [{ label: "Faixas adicionais:", value: scaleSummary }] : []),
     { label: "Unidade:", value: unidadeLabel(bal.unidade) },
   ]);
 

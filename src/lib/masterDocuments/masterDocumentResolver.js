@@ -61,6 +61,8 @@ function mapToHeader(doc) {
     export_file_name_pattern: doc.export_file_name_pattern,
     file_naming_rule: doc.file_naming_rule,
     template_key: doc.template_key,
+    exportTemplateConfig: doc.export_template_config || {},
+    certificateObservations: (doc.export_template_config || {}).certificateObservations || null,
   };
 }
 

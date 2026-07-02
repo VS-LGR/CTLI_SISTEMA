@@ -96,6 +96,30 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
     expect(model.observations[1]).toContain("CTLI");
   });
 
+  test("observações da Lista Mestra substituem o padrão", () => {
+    const model = buildCertificatePdfViewModel(EMISSAO_TESTE_CERT, {
+      documentMeta: {
+        certificateObservations: {
+          rbc: ["Observação customizada 1", "Observação customizada 2"],
+        },
+      },
+    });
+    expect(model.observations).toEqual(["Observação customizada 1", "Observação customizada 2"]);
+  });
+
+  test("snapshot do certificado emitido preserva observações", () => {
+    const model = buildCertificatePdfViewModel({
+      ...EMISSAO_TESTE_CERT,
+      document_snapshot: {
+        documentCode: "RE-7.2B",
+        certificateObservations: {
+          rbc: ["Observação congelada na emissão"],
+        },
+      },
+    });
+    expect(model.observations).toEqual(["Observação congelada na emissão"]);
+  });
+
   test("repeatabilityRows com 10 linhas e colunas valor/unidade", () => {
     const model = buildCertificatePdfViewModel(EMISSAO_TESTE_CERT);
     expect(model.repeatabilityRows).toHaveLength(10);
@@ -139,9 +163,10 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
       },
     });
     expect(model.adjustmentSubtitle).toContain("Não foi realizado o ajuste");
+    expect(model.adjustmentPerformed).toBe(false);
+    expect(model.repeatabilityRows[0].reference.value).toBeTruthy();
     expect(model.repeatabilityRows[0].beforeReading.value).toBe("--");
     expect(model.repeatabilityRows[0].beforeError.value).toBe("--");
-    expect(model.repeatabilityRows[0].reference.value).toBe("--");
     expect(model.repeatabilityRows[0].average.value).toBeTruthy();
   });
 });
@@ -178,7 +203,7 @@ describe("buildCertificatePdfViewModel — excentricidade", () => {
     });
   });
 
-  test("sem ajuste com dados — células --- e sem subtítulo de excentricidade", () => {
+  test("sem ajuste com dados — coluna única de resultados e valor aplicado", () => {
     const model = buildCertificatePdfViewModel({
       ...ECCENTRICITY_CERT_BASE,
       environmental: {
@@ -187,12 +212,14 @@ describe("buildCertificatePdfViewModel — excentricidade", () => {
       },
     });
     expect(model.eccentricity.hasEccentricityData).toBe(true);
+    expect(model.eccentricity.showBeforeAfterColumns).toBe(false);
+    expect(model.eccentricity.appliedValueDisplay).toBe("200,0000 g");
     expect(model.eccentricity.eccentricitySubtitle).toBe("");
-    expect(model.eccentricity.points[0].beforeDisplay).toBe("---");
-    expect(model.eccentricity.points[0].afterDisplay).toBe("---");
+    expect(model.eccentricity.points[0].resultDisplay).toBe("201,0001 g");
+    expect(model.eccentricity.points[1].resultDisplay).toBe("201,0000 g");
   });
 
-  test("com ajuste — leituras formatadas com C.D. da resolução", () => {
+  test("com ajuste — colunas antes/após e leituras formatadas", () => {
     const model = buildCertificatePdfViewModel({
       ...ECCENTRICITY_CERT_BASE,
       environmental: {
@@ -200,6 +227,8 @@ describe("buildCertificatePdfViewModel — excentricidade", () => {
         balance_adjusted: "sim",
       },
     });
+    expect(model.eccentricity.showBeforeAfterColumns).toBe(true);
+    expect(model.eccentricity.appliedValueDisplay).toBe("200,0000 g");
     expect(model.eccentricity.points[0].beforeDisplay).toBe("201,0001 g");
     expect(model.eccentricity.points[0].afterDisplay).toBe("201,0001 g");
     expect(model.eccentricity.points[1].beforeDisplay).toBe("150,0000 g");

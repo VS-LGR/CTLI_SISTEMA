@@ -12,6 +12,7 @@ import { calculateAirDensityFromEnvironmental, formatAirDensityDisplay } from "@
 import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
+import ScaleIndicationRangesFields from "@/components/forms/ScaleIndicationRangesFields";
 import {
   coletaPointToPanelPoint,
   panelPointToColetaPoint,
@@ -254,25 +255,22 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-12 gap-3 items-end">
-                <div className="col-span-12 sm:col-span-5">
-                  <Label className="text-xs">Capacidade</Label>
-                  <Input value={payload.balanca.capacidade || ""} onChange={(e) => setBalanca("capacidade", e.target.value)} className="mt-1 h-9" />
-                </div>
-                <div className="col-span-12 sm:col-span-5">
-                  <Label className="text-xs">Resolução</Label>
-                  <Input value={payload.balanca.resolucao || ""} onChange={(e) => setBalanca("resolucao", e.target.value)} className="mt-1 h-9" />
-                </div>
-                <div className="col-span-12 sm:col-span-2">
-                  <Label className="text-xs">Unidade</Label>
-                  <select
-                    value={payload.balanca.unidade || "g"}
-                    onChange={(e) => setBalanca("unidade", e.target.value)}
-                    className="w-full border rounded-md h-9 px-2 text-sm mt-1"
-                  >
-                    {UNIDADE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
+              <ScaleIndicationRangesFields
+                variant="balance"
+                values={payload.balanca}
+                unit={payload.balanca.unidade || "g"}
+                includeVerificationDivision={false}
+                onChange={(key, value) => setBalanca(key, value)}
+              />
+              <div className="max-w-[12rem]">
+                <Label className="text-xs">Unidade</Label>
+                <select
+                  value={payload.balanca.unidade || "g"}
+                  onChange={(e) => setBalanca("unidade", e.target.value)}
+                  className="w-full border rounded-md h-9 px-2 text-sm mt-1"
+                >
+                  {UNIDADE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>

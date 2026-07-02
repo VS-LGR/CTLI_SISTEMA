@@ -21,6 +21,12 @@ import {
   MASTER_DOCUMENT_CATEGORIES,
 } from "@/lib/masterDocuments/masterDocumentConstants";
 import { validateDocumentBeforeActivation } from "@/lib/masterDocuments/masterDocumentValidation";
+import {
+  buildExportTemplateConfigWithObservations,
+  getCertificateObservationsFromConfig,
+  isCertificateMasterDocument,
+  observationsArrayToLines,
+} from "@/lib/certificatePdf/certificateObservationsConfig";
 
 const EMPTY = {
   code: "",
@@ -38,6 +44,7 @@ const EMPTY = {
   retention_time: null,
   retention_unit: "anos",
   notes: "",
+  export_template_config: {},
   critical_analysis_period_months: 24,
 };
 
@@ -45,11 +52,17 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
   const [form, setForm] = useState(EMPTY);
   const [namingRules, setNamingRules] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [obsRbcText, setObsRbcText] = useState("");
+  const [obsRastreavelText, setObsRastreavelText] = useState("");
 
   useEffect(() => {
     if (open) {
       listFileNamingRules().then(setNamingRules).catch(() => setNamingRules([]));
-      setForm(document ? { ...EMPTY, ...document } : { ...EMPTY });
+      const nextForm = document ? { ...EMPTY, ...document } : { ...EMPTY };
+      setForm(nextForm);
+      const obs = getCertificateObservationsFromConfig(nextForm.export_template_config);
+      setObsRbcText(observationsArrayToLines(obs?.rbc));
+      setObsRastreavelText(observationsArrayToLines(obs?.rastreavel));
     }
   }, [open, document]);
 
@@ -75,6 +88,12 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
       const payload = {
         ...form,
         retention_time: form.retention_time ? Number(form.retention_time) : null,
+        export_template_config: isCertificateMasterDocument(form)
+          ? buildExportTemplateConfigWithObservations(form.export_template_config, {
+            rbcText: obsRbcText,
+            rastreavelText: obsRastreavelText,
+          })
+          : (form.export_template_config || {}),
       };
       if (document?.id) {
         await updateMasterDocument(tenantId, document.id, payload);
@@ -192,6 +211,31 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
             <Label>Observações</Label>
             <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} />
           </div>
+          {isCertificateMasterDocument(form) && (
+            <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-medium text-slate-700">
+                Observações do PDF (RE-7.2B) — uma linha por item numerado no certificado
+              </p>
+              <div>
+                <Label>Certificado RBC</Label>
+                <Textarea
+                  value={obsRbcText}
+                  onChange={(e) => setObsRbcText(e.target.value)}
+                  rows={6}
+                  className="mt-1 text-xs"
+                />
+              </div>
+              <div>
+                <Label>Certificado rastreável</Label>
+                <Textarea
+                  value={obsRastreavelText}
+                  onChange={(e) => setObsRastreavelText(e.target.value)}
+                  rows={6}
+                  className="mt-1 text-xs"
+                />
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

@@ -29,3 +29,22 @@ export function getRastreavelObservations() {
 export function getCertificateObservations(certificateType) {
   return certificateType === "rbc" ? getRbcObservations() : getRastreavelObservations();
 }
+
+function pickObservationsFromMeta(documentMeta, certificateType) {
+  if (!documentMeta || typeof documentMeta !== "object") return null;
+  const key = certificateType === "rbc" ? "rbc" : "rastreavel";
+  const direct = documentMeta.certificateObservations?.[key];
+  const fromExport = documentMeta.exportTemplateConfig?.certificateObservations?.[key]
+    || documentMeta.export_template_config?.certificateObservations?.[key];
+  const items = Array.isArray(direct) ? direct : fromExport;
+  if (!Array.isArray(items)) return null;
+  const cleaned = items.map((item) => String(item).trim()).filter(Boolean);
+  return cleaned.length ? cleaned : null;
+}
+
+/** Lista Mestra (RE-7.2B) com fallback ao modelo padrão CTLI. */
+export function resolveCertificateObservations(certificateType, documentMeta = {}) {
+  const fromMaster = pickObservationsFromMeta(documentMeta, certificateType);
+  if (fromMaster) return fromMaster;
+  return getCertificateObservations(certificateType);
+}

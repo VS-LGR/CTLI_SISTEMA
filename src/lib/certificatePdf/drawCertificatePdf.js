@@ -133,7 +133,7 @@ function drawInstrumentSection(doc, model, y, ctx) {
       styles: { fontSize: m.compactTableFontSize, cellPadding: m.compactTablePadding, halign: "center" },
       headStyles: tableHeadStyles(doc),
       theme: "grid",
-      ...singlePageTableOpts(ctx),
+      ...singlePageTableBreakOpts(ctx),
     });
     y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
   }
@@ -173,7 +173,7 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
       styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding, halign: "center" },
       headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
       theme: "grid",
-      ...singlePageTableOpts(ctx),
+      ...singlePageTableBreakOpts(ctx),
     });
     y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
   }
@@ -206,7 +206,7 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
       styles: { fontSize: m.compactTableFontSize, cellPadding: m.compactTablePadding, halign: "center" },
       headStyles: { ...tableHeadStyles(doc), fontSize: m.compactTableHeadFontSize },
       theme: "grid",
-      ...singlePageTableOpts(ctx),
+      ...singlePageTableBreakOpts(ctx),
     });
     y = doc.lastAutoTable.finalY + (m.singlePage ? 1.5 : 3);
   }
@@ -293,9 +293,29 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
   return maxY + 4;
 }
 
+function drawSubsectionTitle(doc, x, y, text, m) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(m.singlePage ? 6 : 6.5);
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text(text, x, y);
+  return y + (m.singlePage ? 3 : 4);
+}
+
+function drawEccentricityAppliedValue(doc, x, y, eccentricity, m) {
+  if (!eccentricity?.appliedValueDisplay) return y;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(m.singlePage ? 5.5 : 6.5);
+  doc.setTextColor(...FORM_COLORS.text);
+  doc.text(`Valor aplicado: ${eccentricity.appliedValueDisplay}`, x, y);
+  return y + (m.singlePage ? 3 : 4);
+}
+
 function drawEccentricitySection(doc, model, y, ctx) {
   if (model.eccentricity?.showSection === false) return y;
   const m = ctx.metrics;
+  const ecc = model.eccentricity;
+  const showBeforeAfter = ecc?.showBeforeAfterColumns === true;
+
   ({ y } = ensureSpace(doc, y, m.singlePage ? 44 : 58, ctx));
   y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE EXCENTRICIDADE", m);
 
@@ -313,18 +333,22 @@ function drawEccentricitySection(doc, model, y, ctx) {
     tableW,
     diagramW,
     gap,
-    model.eccentricity?.eccentricitySubtitle || "",
+    ecc?.eccentricitySubtitle || "",
   );
+
+  y = drawEccentricityAppliedValue(doc, ML, y, ecc, m);
 
   autoTable(doc, {
     startY: y,
     margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - ML - tableW }),
-    head: [["", "Antes do Ajuste", "Após Ajuste"]],
-    body: model.eccentricity.points.map((pt) => [
-      String(pt.number),
-      s(pt.beforeDisplay),
-      s(pt.afterDisplay),
-    ]),
+    head: [showBeforeAfter
+      ? ["", "Antes do Ajuste", "Após Ajuste"]
+      : ["", "Resultados Obtidos"]],
+    body: ecc.points.map((pt) => (
+      showBeforeAfter
+        ? [String(pt.number), s(pt.beforeDisplay), s(pt.afterDisplay)]
+        : [String(pt.number), s(pt.resultDisplay)]
+    )),
     styles: { fontSize: m.tableFontSize, cellPadding: m.compactTablePadding, halign: "center" },
     headStyles: { ...tableHeadStyles(doc), fontSize: m.tableHeadFontSize },
     theme: "grid",
@@ -397,39 +421,36 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   const m = ctx.metrics;
   const rows = repeatabilityRowsForPdfLayout(allRows, m);
   const unitLabel = model.unit || model.balance?.unidade || "kg";
-  const leftW = CW * 0.42;
-  const rightW = CW * 0.56;
-  const gap = CW * 0.02;
-  const rightX = ML + leftW + gap;
+  const showBeforeAdjustment = model.adjustmentPerformed === true;
+  const leftW = showBeforeAdjustment ? CW * 0.42 : 0;
+  const rightW = showBeforeAdjustment ? CW * 0.56 : CW;
+  const gap = showBeforeAdjustment ? CW * 0.02 : 0;
+  const rightX = showBeforeAdjustment ? ML + leftW + gap : ML;
 
   ({ y } = ensureSpace(doc, y, m.singlePage ? 58 : 72, ctx));
   y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE", m);
-  y = drawDualSubsectionTitles(
-    doc,
-    ML,
-    y,
-    "Resultados Obtidos Antes do Ajuste",
-    "Resultados Obtidos",
-    leftW,
-    rightW,
-    gap,
-    model.adjustmentSubtitle || "",
-  );
 
-  const tableHead = [
-    "Valor de Referência",
-    unitLabel,
-    "Leitura 01",
-    unitLabel,
-    "Erro de Indicação",
-    unitLabel,
-  ];
-
-  const leftBody = rows.map((r) => [
-    ...cellPair(r.reference),
-    ...cellPair(r.beforeReading),
-    ...cellPair(r.beforeError),
-  ]);
+  if (showBeforeAdjustment) {
+    y = drawDualSubsectionTitles(
+      doc,
+      ML,
+      y,
+      "Resultados Obtidos Antes do Ajuste",
+      "Resultados Obtidos",
+      leftW,
+      rightW,
+      gap,
+      model.adjustmentSubtitle || "",
+    );
+  } else {
+    y = drawSubsectionTitle(doc, ML, y, "Resultados Obtidos", m);
+    if (model.adjustmentSubtitle) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(m.singlePage ? 5.5 : 6);
+      doc.text(model.adjustmentSubtitle, ML, y, { maxWidth: CW });
+      y += m.singlePage ? 4 : 5;
+    }
+  }
 
   const rightHead = [
     "Valor de Referência",
@@ -464,26 +485,47 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
 
   const unitColStyle = { cellWidth: m.singlePage ? 6 : 7, fontSize: m.singlePage ? 4.5 : 5, halign: "center" };
 
-  autoTable(doc, {
-    startY: y,
-    margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - ML - leftW }),
-    head: [tableHead],
-    body: leftBody,
-    styles: sharedStyles,
-    headStyles: { ...tableHeadStyles(doc), fontSize: m.compactTableHeadFontSize, halign: "center" },
-    columnStyles: {
-      1: unitColStyle,
-      3: unitColStyle,
-      5: unitColStyle,
-    },
-    theme: "grid",
-    ...singlePageTableBreakOpts(ctx),
-  });
-  const leftEndY = doc.lastAutoTable.finalY;
+  let leftEndY = y;
+
+  if (showBeforeAdjustment) {
+    const tableHead = [
+      "Valor de Referência",
+      unitLabel,
+      "Leitura 01",
+      unitLabel,
+      "Erro de Indicação",
+      unitLabel,
+    ];
+    const leftBody = rows.map((r) => [
+      ...cellPair(r.reference),
+      ...cellPair(r.beforeReading),
+      ...cellPair(r.beforeError),
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - ML - leftW }),
+      head: [tableHead],
+      body: leftBody,
+      styles: sharedStyles,
+      headStyles: { ...tableHeadStyles(doc), fontSize: m.compactTableHeadFontSize, halign: "center" },
+      columnStyles: {
+        1: unitColStyle,
+        3: unitColStyle,
+        5: unitColStyle,
+      },
+      theme: "grid",
+      ...singlePageTableBreakOpts(ctx),
+    });
+    leftEndY = doc.lastAutoTable.finalY;
+  }
 
   autoTable(doc, {
     startY: y,
-    margin: resolveTableMargin(ctx, { left: rightX, right: ML }),
+    margin: resolveTableMargin(ctx, {
+      left: rightX,
+      right: showBeforeAdjustment ? ML : PAGE_W - MR,
+    }),
     head: [rightHead],
     body: rightBody,
     styles: sharedStyles,
@@ -505,9 +547,9 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     doc,
     model,
     y,
-    leftW,
-    rightX,
-    rightW,
+    showBeforeAdjustment ? leftW : CW * 0.42,
+    showBeforeAdjustment ? rightX : ML + CW * 0.44,
+    showBeforeAdjustment ? rightW : CW * 0.56,
     ctx.signatureUrls || {},
     m,
   );

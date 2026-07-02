@@ -23,6 +23,7 @@ import MassValueField from "@/components/forms/MassValueField";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import { proposalEditorPath } from "@/lib/commercialProposals/commercialProposalRoutes";
 import PesoPadraoMultiSelect from "@/components/coleta/PesoPadraoMultiSelect";
+import ScaleIndicationRangesFields from "@/components/forms/ScaleIndicationRangesFields";
 import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import CalibracaoOrdemTooltip from "@/components/coleta/CalibracaoOrdemTooltip";
@@ -239,22 +240,15 @@ export default function ColetaForm({
             </Field>
           ))}
         </div>
-        <div className="grid grid-cols-12 gap-3 items-end">
-          <Field label="Capacidade" className="col-span-12 sm:col-span-5">
-            <Input
-              inputMode="decimal"
-              value={payload.balanca.capacidade}
-              onChange={(e) => setBalanca("capacidade", sanitizeMassNumericInput(e.target.value))}
-            />
-          </Field>
-          <Field label="Resolução" className="col-span-12 sm:col-span-5">
-            <Input
-              inputMode="decimal"
-              value={payload.balanca.resolucao}
-              onChange={(e) => setBalanca("resolucao", sanitizeMassNumericInput(e.target.value))}
-            />
-          </Field>
-          <Field label="Unidade" className="col-span-12 sm:col-span-2">
+        <div className="space-y-3">
+          <ScaleIndicationRangesFields
+            variant="balance"
+            values={payload.balanca}
+            unit={payload.balanca.unidade || "g"}
+            includeVerificationDivision={false}
+            onChange={(key, value) => setBalanca(key, value)}
+          />
+          <Field label="Unidade" className="max-w-[12rem]">
             <select
               value={payload.balanca.unidade || ""}
               onChange={(e) => setBalanca("unidade", e.target.value)}

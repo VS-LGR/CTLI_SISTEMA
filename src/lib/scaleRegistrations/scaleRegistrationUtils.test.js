@@ -3,6 +3,8 @@ import {
   buildScaleRegistrationFromBalance,
   omitPointMaxToleranceFormKeys,
   loadMaxTolerancesFromForm,
+  countScaleRanges,
+  formatScaleRangesSummary,
 } from "./scaleRegistrationUtils";
 
 describe("buildScaleRegistrationFromBalance", () => {
@@ -59,6 +61,32 @@ describe("buildScaleRegistrationFromBalance", () => {
     expect(snap.tipo_plataforma).toBe("redonda");
     expect(snap.decimal_places.p1).toBe(2);
     expect(snap.point_max_tolerances[0].nominal_value).toBe("300");
+  });
+
+  it("mapeia múltiplas faixas de indicação", () => {
+    const scale = buildScaleRegistrationFromBalance({
+      tenantId: "t1",
+      endCustomerId: "c1",
+      balanca: {
+        serie: "MULTI",
+        fabricante: "X",
+        modelo: "Y",
+        capacidade: "5",
+        resolucao: "0,005",
+        capacidade_2: "10",
+        resolucao_2: "0,01",
+        capacidade_3: "30",
+        resolucao_3: "0,1",
+        unidade: "kg",
+      },
+    });
+    expect(scale.capacity_2).toBe("10");
+    expect(scale.resolution_3).toBe("0,1");
+    const snap = balanceSnapshotFromScaleRegistration(scale);
+    expect(snap.capacidade_2).toBe("10");
+    expect(snap.resolucao_3).toBe("0,1");
+    expect(countScaleRanges(scale)).toBe(3);
+    expect(formatScaleRangesSummary(snap)).toContain("até 10 kg");
   });
 });
 

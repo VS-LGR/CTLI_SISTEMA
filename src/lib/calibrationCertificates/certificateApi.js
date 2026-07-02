@@ -505,6 +505,7 @@ export async function emitCertificate(id, { userId, documentMeta, fileName } = {
     documentRevision: documentMeta.revision,
     documentIssueDate: documentMeta.modelIssueDate,
     documentTemplateKey: documentMeta.templateKey,
+    certificateObservations: documentMeta.certificateObservations || null,
     exportFileName: fileName,
     generatedAt: new Date().toISOString(),
     generatedBy: userId,

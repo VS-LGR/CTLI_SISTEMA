@@ -9,6 +9,7 @@ import {
   TriStateRow,
 } from "./PdfCheckbox";
 import { unidadeLabel } from "../coletaSchema";
+import { formatScaleRangesSummary } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { FRENTE, CAL_ROW_HEIGHT_EM } from "./layoutSpec";
 function BalField({ label, value }) {
   return (
@@ -21,6 +22,7 @@ function BalField({ label, value }) {
 
 export function ColetaPdfFrente({ model, logoUrl }) {
   const { cliente, balanca, ambiente, excentricidade, controle, calibracaoRows } = model;
+  const extraScaleRanges = formatScaleRangesSummary(balanca, balanca.unidade, { skipFirst: true });
 
   return (
     <section className="coleta-pdf-page">
@@ -54,6 +56,9 @@ export function ColetaPdfFrente({ model, logoUrl }) {
           <BalField label="Portaria Inmetro:" value={balanca.portaria_inmetro} />
           <BalField label="Capacidade:" value={balanca.capacidade} />
           <BalField label="Resolução:" value={balanca.resolucao} />
+          {extraScaleRanges && (
+            <BalField label="Faixas adicionais:" value={extraScaleRanges} />
+          )}
           <BalField label="Unidade" value={unidadeLabel(balanca.unidade)} />
         </div>
       </AbsBlock>
