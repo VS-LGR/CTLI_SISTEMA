@@ -306,18 +306,21 @@ export function drawCompactMeasureRow(doc, x, y, totalW, cells, metrics = null) 
 }
 
 /** Duas faixas de título sobre tabelas lado a lado. */
-export function drawDualSubsectionTitles(doc, x, y, leftText, rightText, leftW, rightW, gap = 2, leftSubtitle = "") {
+export function drawDualSubsectionTitles(doc, x, y, leftText, rightText, leftW, rightW, gap = 2, leftSubtitle = "", metrics = null) {
+  const m = metrics || getCertificateLayoutMetrics(false);
+  const compact = m.singlePage;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
+  doc.setFontSize(compact ? 6 : 6.5);
   doc.setTextColor(...FORM_COLORS.text);
   doc.text(leftText, x, y);
   doc.text(rightText, x + leftW + gap, y);
-  let nextY = y + 3;
+  let nextY = y + (compact ? 3.5 : 4);
   if (leftSubtitle) {
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(6);
-    doc.text(leftSubtitle, x, nextY + 1.5, { maxWidth: leftW });
-    nextY += 5;
+    doc.setFontSize(compact ? 5.5 : 6);
+    const lines = doc.splitTextToSize(leftSubtitle, leftW);
+    doc.text(lines, x, nextY + 0.5);
+    nextY += lines.length * (compact ? 2.8 : 3.2) + (compact ? 1.2 : 1.5);
   }
   return nextY;
 }

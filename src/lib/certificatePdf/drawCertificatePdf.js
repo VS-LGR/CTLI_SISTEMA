@@ -293,12 +293,24 @@ function drawPlatformDiagramAt(doc, model, y, x, width, ctx) {
   return maxY + 4;
 }
 
-function drawSubsectionTitle(doc, x, y, text, m) {
+function drawSubsectionTitle(doc, x, y, text, m, { relaxed = false } = {}) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(m.singlePage ? 6 : 6.5);
   doc.setTextColor(...FORM_COLORS.text);
   doc.text(text, x, y);
+  if (relaxed) return y + (m.singlePage ? 4 : 5);
   return y + (m.singlePage ? 3 : 4);
+}
+
+function drawItalicNote(doc, x, y, text, maxWidth, m) {
+  if (!text) return y;
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(m.singlePage ? 5.5 : 6);
+  doc.setTextColor(...FORM_COLORS.text);
+  const lines = doc.splitTextToSize(text, maxWidth);
+  doc.text(lines, x, y);
+  const lineH = m.singlePage ? 2.9 : 3.3;
+  return y + lines.length * lineH + (m.singlePage ? 1.4 : 1.8);
 }
 
 function drawEccentricityAppliedValue(doc, x, y, eccentricity, m) {
@@ -334,9 +346,16 @@ function drawEccentricitySection(doc, model, y, ctx) {
     diagramW,
     gap,
     ecc?.eccentricitySubtitle || "",
+    m,
   );
+  if (!showBeforeAfter) {
+    y += m.singlePage ? 1 : 1.2;
+  }
 
   y = drawEccentricityAppliedValue(doc, ML, y, ecc, m);
+  if (!showBeforeAfter) {
+    y += m.singlePage ? 0.6 : 0.8;
+  }
 
   autoTable(doc, {
     startY: y,
@@ -364,10 +383,10 @@ function cellPair(m) {
   return [s(m?.value ?? "--"), s(m?.unit ?? "")];
 }
 
-function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signatureUrls = {}, metrics = null) {
+function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signatureUrls = {}, metrics = null, { relaxed = false } = {}) {
   const m = metrics || getCertificateLayoutMetrics(false);
-  const lineH = m.metaLineH;
-  const metaY = y + 0.5;
+  const lineH = relaxed ? (m.singlePage ? 3.5 : 4.2) : m.metaLineH;
+  const metaY = y + (relaxed ? (m.singlePage ? 1.2 : 1.5) : 0.5);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(m.metaFontSize);
@@ -441,14 +460,14 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
       rightW,
       gap,
       model.adjustmentSubtitle || "",
+      m,
     );
   } else {
-    y = drawSubsectionTitle(doc, ML, y, "Resultados Obtidos", m);
-    if (model.adjustmentSubtitle) {
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(m.singlePage ? 5.5 : 6);
-      doc.text(model.adjustmentSubtitle, ML, y, { maxWidth: CW });
-      y += m.singlePage ? 4 : 5;
+    y += m.singlePage ? 1 : 1.5;
+    y = drawSubsectionTitle(doc, ML, y, "Resultados Obtidos", m, { relaxed: true });
+    y = drawItalicNote(doc, ML, y, model.adjustmentSubtitle, CW, m);
+    if (!model.adjustmentSubtitle) {
+      y += m.singlePage ? 0.8 : 1;
     }
   }
 
@@ -541,7 +560,10 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     theme: "grid",
     ...singlePageTableBreakOpts(ctx),
   });
-  y = Math.max(leftEndY, doc.lastAutoTable.finalY) + (m.singlePage ? 1 : 2);
+  const afterTableGap = showBeforeAdjustment
+    ? (m.singlePage ? 1 : 2)
+    : (m.singlePage ? 2.8 : 3.5);
+  y = Math.max(leftEndY, doc.lastAutoTable.finalY) + afterTableGap;
 
   y = drawRepeatabilityMetaFooter(
     doc,
@@ -552,8 +574,9 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     showBeforeAdjustment ? rightW : CW * 0.56,
     ctx.signatureUrls || {},
     m,
+    { relaxed: !showBeforeAdjustment },
   );
-  return y;
+  return y + (showBeforeAdjustment ? 0 : (m.singlePage ? 1 : 1.5));
 }
 
 function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
@@ -594,8 +617,10 @@ function drawObservationsSection(doc, model, y, ctx) {
       observationGap: 0.35,
     };
   }
+  const obsTopGap = model.adjustmentPerformed === false && m.singlePage ? 1.2 : 0.5;
   y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES", m);
-  y = drawNumberedObservations(doc, ML + 1, y + 0.5, model.observations, CW - 2, obsMetrics) + (m.singlePage ? 0.5 : 2);
+  y = drawNumberedObservations(doc, ML + 1, y + obsTopGap, model.observations, CW - 2, obsMetrics)
+    + (m.singlePage ? (model.adjustmentPerformed === false ? 1 : 0.5) : 2);
   if (model.conformityDeclaration) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(m.singlePage ? 7 : 8);
