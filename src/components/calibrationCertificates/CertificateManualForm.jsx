@@ -14,9 +14,12 @@ import EccentricityTestFields from "@/components/calibrationCertificates/Eccentr
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
 import ScaleIndicationRangesFields from "@/components/forms/ScaleIndicationRangesFields";
+import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
 import {
   coletaPointToPanelPoint,
   panelPointToColetaPoint,
+  syncColetaPontosFromRepeatability,
+  syncRepeatabilityFromPanelPoint,
 } from "@/lib/calibrationCertificates/certificatePointUtils";
 import { toast } from "sonner";
 import { FloppyDisk } from "@phosphor-icons/react";
@@ -123,8 +126,35 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
       const pontos = [...p.calibracao.pontos];
       const idx = pointNumber - 1;
       const current = coletaPointToPanelPoint(pontos[idx] || {}, pointNumber, p.balanca);
-      pontos[idx] = panelPointToColetaPoint({ ...current, ...fields }, p.balanca);
-      return { ...p, calibracao: { ...p.calibracao, pontos } };
+      const merged = { ...current, ...fields };
+      pontos[idx] = panelPointToColetaPoint(merged, p.balanca);
+
+      const touchesLoadBatch = fields.use_load_batch != null
+        || fields.load_batch_nominal != null
+        || fields.load_batch_formation != null
+        || fields.load_batch_material_preset != null;
+
+      let nextPayload = { ...p, calibracao: { ...p.calibracao, pontos } };
+      if (touchesLoadBatch && pointNumber >= 2) {
+        nextPayload = syncRepeatabilityFromPanelPoint(nextPayload, pointNumber, merged);
+      }
+      return nextPayload;
+    });
+  };
+
+  const onVersoChange = (nextPayload) => {
+    setPayload((p) => {
+      const merged = { ...p, ...nextPayload, verso: nextPayload.verso ?? p.verso };
+      const repSnap = merged.verso?.repetitividade;
+      const pontos = syncColetaPontosFromRepeatability(
+        merged.calibracao?.pontos ?? p.calibracao.pontos,
+        repSnap,
+        merged.balanca ?? p.balanca,
+      );
+      return {
+        ...merged,
+        calibracao: { ...(merged.calibracao || p.calibracao), pontos },
+      };
     });
   };
 
@@ -377,6 +407,19 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
             envCerts={envCerts}
             onAmbienteChange={(ambiente) => setPayload((p) => ({ ...p, ambiente }))}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <ColetaVersoForm
+            payload={payload}
+            onChange={onVersoChange}
+            defaultUnit={defaultUnit}
+          />
+          <p className="text-xs text-slate-500">
+            A linha <strong>L1 + P1</strong> no verso corresponde ao lote de carga do <strong>P2</strong> (formação <code className="text-xs">l1_p1</code>).
+          </p>
         </CardContent>
       </Card>
 

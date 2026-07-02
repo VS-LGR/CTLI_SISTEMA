@@ -83,6 +83,11 @@ function emptyCalPoint() {
     rep2: "",
     rep3: "",
     pesos_padrao_ids: [],
+    use_load_batch: false,
+    load_batch_formation: "",
+    load_batch_nominal: "",
+    load_batch_material_preset: "",
+    error_multiplier: "",
   };
 }
 

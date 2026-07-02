@@ -1,0 +1,1754 @@
+{
+  "path": "C:\\Users\\lukag\\Downloads\\Método de fazer cálculo -Manual.xls",
+  "sheets": [
+    "Planilha - Validação",
+    "Planilha - Estudo Lote P1",
+    "Planilha - Estudo Lote P2",
+    "Planilha2",
+    "Planilha - Estudo (2)",
+    "Planilha1"
+  ],
+  "hits": [
+    {
+      "sheet": "Planilha - Validação",
+      "row": 1,
+      "col": 1,
+      "value": "Dados:\nValor Convencional do Peso Padrão: atual = 100,0001 g\nIncerteza do Peso: 0,0003 g - k =2,00\nResolução da Balanças: 0,001 g\nPPM = 1 (AÇO)\nLeituras = 100,0001 - 100,0002 - 100,0001"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 2,
+      "col": 1,
+      "value": "Cálculo de Incerteza Expandida"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 4,
+      "col": 1,
+      "value": "L1"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 5,
+      "col": 1,
+      "value": "L2"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 6,
+      "col": 1,
+      "value": "L3"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 24,
+      "col": 2,
+      "value": "Soma das Incertezas dos pesos utilizados na calibração ="
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 34,
+      "col": 2,
+      "value": "Soma das incertezas dos pesos utilizados na calibração ="
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 53,
+      "col": 5,
+      "value": "uc = "
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 57,
+      "col": 2,
+      "value": "Incerteza combinada \nelevado a quarta = "
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 69,
+      "col": 3,
+      "value": "Incerteza Padronizada"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 69,
+      "col": 6,
+      "value": "Incerteza"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 71,
+      "col": 1,
+      "value": "Incerteza do padrão - up"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 73,
+      "col": 1,
+      "value": "Incerteza da Deriva - ud"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 74,
+      "col": 1,
+      "value": "Incerteza da Resolução - ur"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 75,
+      "col": 1,
+      "value": "Incerteza do Empuxo - ue"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 76,
+      "col": 1,
+      "value": "Incerteza Combinada - uc"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 77,
+      "col": 1,
+      "value": "Incerteza Expandida - Ue"
+    },
+    {
+      "sheet": "Planilha - Validação",
+      "row": 81,
+      "col": 2,
+      "value": "Incerteza Expandida ="
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 1,
+      "col": 1,
+      "value": "Dados:\nValor Convencional do Peso Padrão: atual = 100,0001 g\nIncerteza do Peso: 0,0003 g - k =2,00\nResolução da Balanças: 0,001 g\nPPM = 1 (AÇO)\nLeituras = 100,0001 - 100,0002 - 100,0001"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 2,
+      "col": 1,
+      "value": "Cálculo de Incerteza Expandida"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 4,
+      "col": 1,
+      "value": "L1"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 5,
+      "col": 1,
+      "value": "L2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 6,
+      "col": 1,
+      "value": "L3"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 24,
+      "col": 2,
+      "value": "Soma das Incertezas dos pesos utilizados na calibração ="
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 34,
+      "col": 2,
+      "value": "Soma das incertezas dos pesos utilizados na calibração ="
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 53,
+      "col": 5,
+      "value": "uc = "
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 57,
+      "col": 2,
+      "value": "Incerteza combinada \nelevado a quarta = "
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 69,
+      "col": 3,
+      "value": "Incerteza Padronizada"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 69,
+      "col": 6,
+      "value": "Incerteza"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 71,
+      "col": 1,
+      "value": "Incerteza do padrão - up"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 73,
+      "col": 1,
+      "value": "Incerteza da Deriva - ud"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 74,
+      "col": 1,
+      "value": "Incerteza da Resolução - ur"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 75,
+      "col": 1,
+      "value": "Incerteza do Empuxo - ue"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 76,
+      "col": 1,
+      "value": "Incerteza Combinada - uc"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 77,
+      "col": 1,
+      "value": "Incerteza Expandida - Ue"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P1",
+      "row": 81,
+      "col": 2,
+      "value": "Incerteza Expandida ="
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 1,
+      "col": 1,
+      "value": "Dados:\nValor Convencional do Peso Padrão: atual = 100,0001 g\nIncerteza do Peso: 0,0003 g - k =2,00\nResolução da Balanças: 0,001 g\nPPM = 1 (AÇO)\nLeituras = 100,0001 - 100,0002 - 100,0001"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 2,
+      "col": 1,
+      "value": "Cálculo de Incerteza Expandida"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 4,
+      "col": 1,
+      "value": "L1"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 5,
+      "col": 1,
+      "value": "L2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 6,
+      "col": 1,
+      "value": "L3"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 24,
+      "col": 2,
+      "value": "Soma das Incertezas dos pesos utilizados na calibração ="
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 34,
+      "col": 2,
+      "value": "Soma das incertezas dos pesos utilizados na calibração ="
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 53,
+      "col": 5,
+      "value": "uc = "
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 57,
+      "col": 2,
+      "value": "Incerteza combinada \nelevado a quarta = "
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 67,
+      "col": 5,
+      "value": "Sem lote de Carga"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 69,
+      "col": 3,
+      "value": "Incerteza Padronizada"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 69,
+      "col": 6,
+      "value": "Incerteza"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 71,
+      "col": 1,
+      "value": "Incerteza do padrão - up"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 73,
+      "col": 1,
+      "value": "Incerteza da Deriva - ud"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 74,
+      "col": 1,
+      "value": "Incerteza da Resolução - ur"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 75,
+      "col": 1,
+      "value": "Incerteza do Empuxo - ue"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 76,
+      "col": 1,
+      "value": "Incerteza Combinada - uc"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 77,
+      "col": 1,
+      "value": "Incerteza Expandida - Ue"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 81,
+      "col": 2,
+      "value": "Incerteza Expandida ="
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 85,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 89,
+      "col": 1,
+      "value": " uc P1 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 90,
+      "col": 1,
+      "value": "Uc P2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 91,
+      "col": 1,
+      "value": "Total Uc P2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 100,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P3"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 104,
+      "col": 1,
+      "value": "uc P2 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 105,
+      "col": 1,
+      "value": "Uc P3"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 106,
+      "col": 1,
+      "value": "Total Uc P3"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 117,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P4"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 121,
+      "col": 1,
+      "value": "uc P3 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 122,
+      "col": 1,
+      "value": "Uc P4"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 123,
+      "col": 1,
+      "value": "Total Uc P4"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 131,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P5"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 135,
+      "col": 1,
+      "value": "uc P4 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 136,
+      "col": 1,
+      "value": "Uc P5"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 137,
+      "col": 1,
+      "value": "Total Uc P5"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 145,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P6"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 149,
+      "col": 1,
+      "value": "uc P5 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 150,
+      "col": 1,
+      "value": "Uc P6"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 151,
+      "col": 1,
+      "value": "Total Uc P6"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 159,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P7"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 163,
+      "col": 1,
+      "value": "uc P6 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 164,
+      "col": 1,
+      "value": "Uc P7"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 165,
+      "col": 1,
+      "value": "Total Uc P7"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 173,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P8"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 177,
+      "col": 1,
+      "value": "uc P7 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 178,
+      "col": 1,
+      "value": "Uc P8"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 179,
+      "col": 1,
+      "value": "Total Uc P8"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 187,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P9"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 191,
+      "col": 1,
+      "value": "uc P8 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 192,
+      "col": 1,
+      "value": "Uc P9"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 193,
+      "col": 1,
+      "value": "Total Uc P9"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 201,
+      "col": 1,
+      "value": "SOMA LOTE DE CARGA P10"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 205,
+      "col": 1,
+      "value": "uc P9 elevado a 2"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 206,
+      "col": 1,
+      "value": "Uc P10"
+    },
+    {
+      "sheet": "Planilha - Estudo Lote P2",
+      "row": 207,
+      "col": 1,
+      "value": "Total Uc P10"
+    },
+    {
+      "sheet": "Planilha2",
+      "row": 8,
+      "col": 7,
+      "value": "uc = "
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 1,
+      "col": 1,
+      "value": "Dados:\nValor Convencional do Peso Padrão: atual = 100,0001 g\nIncerteza do Peso: 0,0003 g - k =2,00\nResolução da Balanças: 0,001 g\nPPM = 1 (AÇO)\nLeituras = 100,0001 - 100,0002 - 100,0001"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 2,
+      "col": 1,
+      "value": "Cálculo de Incerteza Expandida"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 4,
+      "col": 1,
+      "value": "L1"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 5,
+      "col": 1,
+      "value": "L2"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 6,
+      "col": 1,
+      "value": "L3"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 24,
+      "col": 2,
+      "value": "Soma das Incertezas dos pesos utilizados na calibração ="
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 34,
+      "col": 2,
+      "value": "Soma das incertezas dos pesos utilizados na calibração ="
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 53,
+      "col": 5,
+      "value": "uc = "
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 57,
+      "col": 2,
+      "value": "Incerteza combinada \nelevado a quarta = "
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 69,
+      "col": 3,
+      "value": "Incerteza Padronizada"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 69,
+      "col": 6,
+      "value": "Incerteza"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 71,
+      "col": 1,
+      "value": "Incerteza do padrão - up"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 73,
+      "col": 1,
+      "value": "Incerteza da Deriva - ud"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 74,
+      "col": 1,
+      "value": "Incerteza da Resolução - ur"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 75,
+      "col": 1,
+      "value": "Incerteza do Empuxo - ue"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 76,
+      "col": 1,
+      "value": "Incerteza Combinada - uc"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 77,
+      "col": 1,
+      "value": "Incerteza Expandida - Ue"
+    },
+    {
+      "sheet": "Planilha - Estudo (2)",
+      "row": 81,
+      "col": 2,
+      "value": "Incerteza Expandida ="
+    },
+    {
+      "sheet": "Planilha1",
+      "row": 11,
+      "col": 3,
+      "value": "L1"
+    },
+    {
+      "sheet": "Planilha1",
+      "row": 11,
+      "col": 5,
+      "value": "L2"
+    },
+    {
+      "sheet": "Planilha1",
+      "row": 11,
+      "col": 6,
+      "value": "L3"
+    }
+  ],
+  "hit_count": 113,
+  "preview": {
+    "Planilha - Validação": [
+      {
+        "r": 1,
+        "cells": [
+          "Dados:\nValor Convencional do Peso Padrão: atual = 100,0001 g\nIncerteza do Peso: 0,0003 g - k =2,00\nResolução da Balanças: 0,001 g\nPPM = 1 (AÇO)\nLeitur"
+        ]
+      },
+      {
+        "r": 2,
+        "cells": [
+          "Cálculo de Incerteza Expandida"
+        ]
+      },
+      {
+        "r": 3,
+        "cells": [
+          "Leituras\nXi",
+          "Média das Leituras\nẊ",
+          "Leitura - Média\n",
+          "(Leitura - Média) 2\n(Xi - Ẋ)²\n"
+        ]
+      },
+      {
+        "r": 4,
+        "cells": [
+          "L1",
+          "210.0001",
+          "210.0001",
+          "0.0",
+          "0.0"
+        ]
+      },
+      {
+        "r": 5,
+        "cells": [
+          "L2",
+          "210.0001",
+          "210.0001",
+          "0.0",
+          "0.0"
+        ]
+      },
+      {
+        "r": 6,
+        "cells": [
+          "L3",
+          "210.0001",
+          "210.0001",
+          "0.0",
+          "0.0"
+        ]
+      },
+      {
+        "r": 7,
+        "cells": [
+          "Soma dos valores",
+          "0.0"
+        ]
+      },
+      {
+        "r": 8,
+        "cells": [
+          "0.0"
+        ]
+      },
+      {
+        "r": 9,
+        "cells": [
+          "S =",
+          "0.0",
+          "\nS =",
+          "0.0"
+        ]
+      },
+      {
+        "r": 11,
+        "cells": [
+          "2.0"
+        ]
+      },
+      {
+        "r": 19,
+        "cells": [
+          "Valor de \"S\" =",
+          "0.0",
+          "ua = ",
+          "0.0"
+        ]
+      },
+      {
+        "r": 20,
+        "cells": [
+          "Valor de raiz de \"n\"=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 24,
+        "cells": [
+          "Soma das Incertezas dos pesos utilizados na calibração =",
+          "0.0004",
+          "up = ",
+          "0.0002"
+        ]
+      },
+      {
+        "r": 25,
+        "cells": [
+          "Valor de\"k\" do Certificado de Calibração do peso=",
+          "2.0"
+        ]
+      },
+      {
+        "r": 28,
+        "cells": [
+          "Resolução da balança dividido por 2 =",
+          "5e-05",
+          "ur = ",
+          "2.8867526918968852e-05"
+        ]
+      },
+      {
+        "r": 29,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 34,
+        "cells": [
+          "Soma das incertezas dos pesos utilizados na calibração =",
+          "0.0004",
+          "ud = ",
+          "0.00023094021535175082"
+        ]
+      },
+      {
+        "r": 35,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 39,
+        "cells": [
+          "Soma dos pesos dividido \npor 1000.000 vezes ppp =",
+          "0.00021000010000000002",
+          "ue = ",
+          "0.00012124367079472302"
+        ]
+      },
+      {
+        "r": 40,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 42,
+        "cells": [
+          "= Soma dos valores convencionais dos pesos padrão utilizados na calibração"
+        ]
+      },
+      {
+        "r": 44,
+        "cells": [
+          "PPM = Aço = 1    Ferro  = 2     Latão = 3"
+        ]
+      },
+      {
+        "r": 47,
+        "cells": [
+          "ua2",
+          "Þ",
+          "0.0",
+          "+"
+        ]
+      },
+      {
+        "r": 48,
+        "cells": [
+          "up2",
+          "Þ",
+          "4e-08"
+        ]
+      },
+      {
+        "r": 49,
+        "cells": [
+          "ur2",
+          "Þ",
+          "8.333341104173913e-10"
+        ]
+      },
+      {
+        "r": 50,
+        "cells": [
+          "ud2",
+          "Þ",
+          "5.333338306671304e-08"
+        ]
+      }
+    ],
+    "Planilha - Estudo Lote P1": [
+      {
+        "r": 1,
+        "cells": [
+          "Dados:\nValor Convencional do Peso Padrão: atual = 100,0001 g\nIncerteza do Peso: 0,0003 g - k =2,00\nResolução da Balanças: 0,001 g\nPPM = 1 (AÇO)\nLeitur"
+        ]
+      },
+      {
+        "r": 2,
+        "cells": [
+          "Cálculo de Incerteza Expandida"
+        ]
+      },
+      {
+        "r": 3,
+        "cells": [
+          "Leituras\nXi",
+          "Média das Leituras\nẊ",
+          "Leitura - Média\n",
+          "(Leitura - Média) 2\n(Xi - Ẋ)²\n"
+        ]
+      },
+      {
+        "r": 4,
+        "cells": [
+          "L1",
+          "1000.0",
+          "1000.0",
+          "0.0",
+          "0.0"
+        ]
+      },
+      {
+        "r": 5,
+        "cells": [
+          "L2",
+          "1000.0",
+          "1000.0",
+          "0.0",
+          "0.0"
+        ]
+      },
+      {
+        "r": 6,
+        "cells": [
+          "L3",
+          "1000.0",
+          "1000.0",
+          "0.0",
+          "0.0",
+          "1 kg"
+        ]
+      },
+      {
+        "r": 7,
+        "cells": [
+          "Soma dos valores",
+          "0.0"
+        ]
+      },
+      {
+        "r": 8,
+        "cells": [
+          "0.0"
+        ]
+      },
+      {
+        "r": 9,
+        "cells": [
+          "S =",
+          "0.0",
+          "\nS =",
+          "0.0"
+        ]
+      },
+      {
+        "r": 11,
+        "cells": [
+          "2.0"
+        ]
+      },
+      {
+        "r": 19,
+        "cells": [
+          "Valor de \"S\" =",
+          "0.0",
+          "ua = ",
+          "0.0"
+        ]
+      },
+      {
+        "r": 20,
+        "cells": [
+          "Valor de raiz de \"n\"=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 24,
+        "cells": [
+          "Soma das Incertezas dos pesos utilizados na calibração =",
+          "0.02",
+          "up = ",
+          "0.01"
+        ]
+      },
+      {
+        "r": 25,
+        "cells": [
+          "Valor de\"k\" do Certificado de Calibração do peso=",
+          "2.0"
+        ]
+      },
+      {
+        "r": 28,
+        "cells": [
+          "Resolução da balança dividido por 2 =",
+          "0.5",
+          "ur = ",
+          "0.2886752691896885"
+        ]
+      },
+      {
+        "r": 29,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 34,
+        "cells": [
+          "Soma das incertezas dos pesos utilizados na calibração =",
+          "0.02",
+          "ud = ",
+          "0.01154701076758754"
+        ]
+      },
+      {
+        "r": 35,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 39,
+        "cells": [
+          "Soma dos pesos dividido \npor 1000.000 vezes ppp =",
+          "0.00200014",
+          "ue = ",
+          "0.0011547819058341272"
+        ]
+      },
+      {
+        "r": 40,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 42,
+        "cells": [
+          "= Soma dos valores convencionais dos pesos padrão utilizados na calibração"
+        ]
+      },
+      {
+        "r": 44,
+        "cells": [
+          "PPM = Aço = 1    Ferro  = 2     Latão = 3"
+        ]
+      },
+      {
+        "r": 47,
+        "cells": [
+          "ua2",
+          "Þ",
+          "0.0",
+          "+"
+        ]
+      },
+      {
+        "r": 48,
+        "cells": [
+          "up2",
+          "Þ",
+          "0.0001"
+        ]
+      },
+      {
+        "r": 49,
+        "cells": [
+          "ur2",
+          "Þ",
+          "0.08333341104173912"
+        ]
+      },
+      {
+        "r": 50,
+        "cells": [
+          "ud2",
+          "Þ",
+          "0.0001333334576667826"
+        ]
+      }
+    ],
+    "Planilha - Estudo Lote P2": [
+      {
+        "r": 1,
+        "cells": [
+          "Dados:\nValor Convencional do Peso Padrão: atual = 100,0001 g\nIncerteza do Peso: 0,0003 g - k =2,00\nResolução da Balanças: 0,001 g\nPPM = 1 (AÇO)\nLeitur"
+        ]
+      },
+      {
+        "r": 2,
+        "cells": [
+          "Cálculo de Incerteza Expandida"
+        ]
+      },
+      {
+        "r": 3,
+        "cells": [
+          "Leituras\nXi",
+          "Média das Leituras\nẊ",
+          "Leitura - Média\n",
+          "(Leitura - Média) 2\n(Xi - Ẋ)²\n"
+        ]
+      },
+      {
+        "r": 4,
+        "cells": [
+          "L1",
+          "2000.0",
+          "2000.0",
+          "0.0",
+          "0.0"
+        ]
+      },
+      {
+        "r": 5,
+        "cells": [
+          "L2",
+          "2000.0",
+          "2000.0",
+          "0.0",
+          "0.0"
+        ]
+      },
+      {
+        "r": 6,
+        "cells": [
+          "L3",
+          "2000.0",
+          "2000.0",
+          "0.0",
+          "0.0",
+          "1 kg"
+        ]
+      },
+      {
+        "r": 7,
+        "cells": [
+          "Soma dos valores",
+          "0.0"
+        ]
+      },
+      {
+        "r": 8,
+        "cells": [
+          "0.0"
+        ]
+      },
+      {
+        "r": 9,
+        "cells": [
+          "S =",
+          "0.0",
+          "\nS =",
+          "0.0"
+        ]
+      },
+      {
+        "r": 11,
+        "cells": [
+          "2.0"
+        ]
+      },
+      {
+        "r": 19,
+        "cells": [
+          "Valor de \"S\" =",
+          "0.0",
+          "ua = ",
+          "0.0"
+        ]
+      },
+      {
+        "r": 20,
+        "cells": [
+          "Valor de raiz de \"n\"=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 24,
+        "cells": [
+          "Soma das Incertezas dos pesos utilizados na calibração =",
+          "0.04",
+          "up = ",
+          "0.02"
+        ]
+      },
+      {
+        "r": 25,
+        "cells": [
+          "Valor de\"k\" do Certificado de Calibração do peso=",
+          "2.0"
+        ]
+      },
+      {
+        "r": 28,
+        "cells": [
+          "Resolução da balança dividido por 2 =",
+          "0.5",
+          "ur = ",
+          "0.2886752691896885"
+        ]
+      },
+      {
+        "r": 29,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 34,
+        "cells": [
+          "Soma das incertezas dos pesos utilizados na calibração =",
+          "0.04",
+          "ud = ",
+          "0.02309402153517508"
+        ]
+      },
+      {
+        "r": 35,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 39,
+        "cells": [
+          "Soma dos pesos dividido \npor 1000.000 vezes ppp =",
+          "0.00400014",
+          "ue = ",
+          "0.002309482982592881"
+        ]
+      },
+      {
+        "r": 40,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 42,
+        "cells": [
+          "= Soma dos valores convencionais dos pesos padrão utilizados na calibração"
+        ]
+      },
+      {
+        "r": 44,
+        "cells": [
+          "PPM = Aço = 1    Ferro  = 2     Latão = 3"
+        ]
+      },
+      {
+        "r": 47,
+        "cells": [
+          "ua2",
+          "Þ",
+          "0.0",
+          "+"
+        ]
+      },
+      {
+        "r": 48,
+        "cells": [
+          "up2",
+          "Þ",
+          "0.0004"
+        ]
+      },
+      {
+        "r": 49,
+        "cells": [
+          "ur2",
+          "Þ",
+          "0.08333341104173912"
+        ]
+      },
+      {
+        "r": 50,
+        "cells": [
+          "ud2",
+          "Þ",
+          "0.0005333338306671304"
+        ]
+      }
+    ],
+    "Planilha2": [
+      {
+        "r": 2,
+        "cells": [
+          "P1",
+          "ua2",
+          "Þ",
+          "0.0"
+        ]
+      },
+      {
+        "r": 3,
+        "cells": [
+          "up2",
+          "Þ",
+          "0.0004"
+        ]
+      },
+      {
+        "r": 4,
+        "cells": [
+          "ur2",
+          "Þ",
+          "0.08333341104173912",
+          "+"
+        ]
+      },
+      {
+        "r": 5,
+        "cells": [
+          "ud2",
+          "Þ",
+          "0.0005333338306671304"
+        ]
+      },
+      {
+        "r": 6,
+        "cells": [
+          "ue2",
+          "Þ",
+          "5.3337116468861095e-06"
+        ]
+      },
+      {
+        "r": 8,
+        "cells": [
+          "uc = ",
+          "0.08427207858405314"
+        ]
+      },
+      {
+        "r": 9,
+        "cells": [
+          "0.29029653560463503"
+        ]
+      }
+    ],
+    "Planilha - Estudo (2)": [
+      {
+        "r": 1,
+        "cells": [
+          "Dados:\nValor Convencional do Peso Padrão: atual = 100,0001 g\nIncerteza do Peso: 0,0003 g - k =2,00\nResolução da Balanças: 0,001 g\nPPM = 1 (AÇO)\nLeitur"
+        ]
+      },
+      {
+        "r": 2,
+        "cells": [
+          "Cálculo de Incerteza Expandida"
+        ]
+      },
+      {
+        "r": 3,
+        "cells": [
+          "Leituras\nXi",
+          "Média das Leituras\nẊ",
+          "Leitura - Média\n",
+          "(Leitura - Média) 2\n(Xi - Ẋ)²\n"
+        ]
+      },
+      {
+        "r": 4,
+        "cells": [
+          "L1",
+          "20.0",
+          "10.0",
+          "10.0",
+          "100.0"
+        ]
+      },
+      {
+        "r": 5,
+        "cells": [
+          "L2",
+          "5.0",
+          "10.0",
+          "-5.0",
+          "25.0"
+        ]
+      },
+      {
+        "r": 6,
+        "cells": [
+          "L3",
+          "5.0",
+          "10.0",
+          "-5.0",
+          "25.0"
+        ]
+      },
+      {
+        "r": 7,
+        "cells": [
+          "Soma dos valores",
+          "150.0"
+        ]
+      },
+      {
+        "r": 8,
+        "cells": [
+          "75.0"
+        ]
+      },
+      {
+        "r": 9,
+        "cells": [
+          "S =",
+          "150.0",
+          "\nS =",
+          "8.660254037844387"
+        ]
+      },
+      {
+        "r": 11,
+        "cells": [
+          "2.0"
+        ]
+      },
+      {
+        "r": 19,
+        "cells": [
+          "Valor de \"S\" =",
+          "9.0",
+          "ua = ",
+          "5.196154845414393"
+        ]
+      },
+      {
+        "r": 20,
+        "cells": [
+          "Valor de raiz de \"n\"=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 24,
+        "cells": [
+          "Soma das Incertezas dos pesos utilizados na calibração =",
+          "0.0004",
+          "up = ",
+          "0.0002"
+        ]
+      },
+      {
+        "r": 25,
+        "cells": [
+          "Valor de\"k\" do Certificado de Calibração do peso=",
+          "2.0"
+        ]
+      },
+      {
+        "r": 28,
+        "cells": [
+          "Resolução da balança dividido por 2 =",
+          "5e-05",
+          "ur = ",
+          "2.8867526918968852e-05"
+        ]
+      },
+      {
+        "r": 29,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 34,
+        "cells": [
+          "Soma das incertezas dos pesos utilizados na calibração =",
+          "0.0004",
+          "ud = ",
+          "0.00023094021535175082"
+        ]
+      },
+      {
+        "r": 35,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 39,
+        "cells": [
+          "Soma dos pesos dividido \npor 1000.000 vezes ppp =",
+          "0.00021000010000000002",
+          "ue = ",
+          "0.00012124367079472302"
+        ]
+      },
+      {
+        "r": 40,
+        "cells": [
+          "Valor de raiz de 3=",
+          "1.73205"
+        ]
+      },
+      {
+        "r": 42,
+        "cells": [
+          "= Soma dos valores convencionais dos pesos padrão utilizados na calibração"
+        ]
+      },
+      {
+        "r": 44,
+        "cells": [
+          "PPM = Aço = 1    Ferro  = 2     Latão = 3"
+        ]
+      },
+      {
+        "r": 47,
+        "cells": [
+          "ua2",
+          "Þ",
+          "27.000025177523472",
+          "+"
+        ]
+      },
+      {
+        "r": 48,
+        "cells": [
+          "up2",
+          "Þ",
+          "4e-08"
+        ]
+      },
+      {
+        "r": 49,
+        "cells": [
+          "ur2",
+          "Þ",
+          "8.333341104173913e-10"
+        ]
+      },
+      {
+        "r": 50,
+        "cells": [
+          "ud2",
+          "Þ",
+          "5.333338306671304e-08"
+        ]
+      }
+    ],
+    "Planilha1": [
+      {
+        "r": 4,
+        "cells": [
+          "100.0",
+          "20.0",
+          "0.3",
+          "20000.1",
+          "100000.6"
+        ]
+      },
+      {
+        "r": 5,
+        "cells": [
+          "20.0",
+          "0.3",
+          "20000.3"
+        ]
+      },
+      {
+        "r": 6,
+        "cells": [
+          "20.0",
+          "0.3",
+          "19999.9"
+        ]
+      },
+      {
+        "r": 7,
+        "cells": [
+          "20.0",
+          "0.3",
+          "20000.2"
+        ]
+      },
+      {
+        "r": 8,
+        "cells": [
+          "20.0",
+          "0.3",
+          "20000.1"
+        ]
+      },
+      {
+        "r": 10,
+        "cells": [
+          "d = 0,5 kg"
+        ]
+      },
+      {
+        "r": 11,
+        "cells": [
+          "Pontos de Calibração",
+          "L1",
+          "L2",
+          "L3",
+          "Ue"
+        ]
+      },
+      {
+        "r": 12,
+        "cells": [
+          "50.0",
+          "50.0",
+          "50.5",
+          "50.5",
+          "X",
+          "2 Pesos de 20 kg e 1 peso 10 kg"
+        ]
+      },
+      {
+        "r": 13,
+        "cells": [
+          "100.0",
+          "100.1",
+          "100.5",
+          "101.0",
+          "0,5 kg",
+          "5 Pesos de 20 kg"
+        ]
+      },
+      {
+        "r": 14,
+        "cells": [
+          "200.0"
+        ]
+      },
+      {
+        "r": 15,
+        "cells": [
+          "500.0"
+        ]
+      },
+      {
+        "r": 17,
+        "cells": [
+          "Padrões Utilizados"
+        ]
+      },
+      {
+        "r": 18,
+        "cells": [
+          "V.N",
+          "V.C",
+          "U"
+        ]
+      },
+      {
+        "r": 19,
+        "cells": [
+          "Ferro Fundido",
+          "20.0",
+          "20000.1",
+          "0.3",
+          "g",
+          "2.0"
+        ]
+      },
+      {
+        "r": 20,
+        "cells": [
+          "2.0",
+          "20.0",
+          "20000.2",
+          "0.3",
+          "g",
+          "2.0"
+        ]
+      },
+      {
+        "r": 21,
+        "cells": [
+          "20.0",
+          "20000.1",
+          "0.3",
+          "g",
+          "2.0"
+        ]
+      },
+      {
+        "r": 22,
+        "cells": [
+          "20.0",
+          "20000.1",
+          "0.3",
+          "g",
+          "2.0"
+        ]
+      },
+      {
+        "r": 23,
+        "cells": [
+          "20.0",
+          "20000.2",
+          "0.3",
+          "g",
+          "2.0"
+        ]
+      },
+      {
+        "r": 24,
+        "cells": [
+          "100000.7",
+          "1.5",
+          "g",
+          "2.0"
+        ]
+      },
+      {
+        "r": 26,
+        "cells": [
+          "100.0007",
+          "0.0015",
+          "kg"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "source": "Método de fazer cálculo -Manual.xls",
+  "sheet": "Planilha - Estudo Lote P2",
+  "ucWithoutLoadBatch": 0.08427207858405314,
+  "loadBatchBlocks": [
+    {
+      "point": 2,
+      "label": "SOMA LOTE DE CARGA P2",
+      "upLcSourceLabel": "uc P1 elevado a 2",
+      "upLcSourceValue": 0.08356807802065595,
+      "ueWithLoadBatch": 0.819365990518789,
+      "totalUcWithLoadBatch": 0.4096829952593945
+    },
+    {
+      "point": 3,
+      "label": "SOMA LOTE DE CARGA P3",
+      "upLcSourceLabel": "uc P2 elevado a 2",
+      "upLcSourceValue": 0.16784015660470905,
+      "ueWithLoadBatch": 1.0042155847999217,
+      "totalUcWithLoadBatch": 0.5021077923999608
+    },
+    {
+      "point": 4,
+      "label": "SOMA LOTE DE CARGA P4",
+      "upLcSourceLabel": "uc P3 elevado a 2",
+      "upLcSourceValue": 0.2521122351887622,
+      "ueWithLoadBatch": 1.1599729544654311,
+      "totalUcWithLoadBatch": 0.5799864772327156
+    },
+    {
+      "point": 5,
+      "label": "SOMA LOTE DE CARGA P5",
+      "upLcSourceLabel": "uc P4 elevado a 2",
+      "upLcSourceValue": 0.3363843137728153,
+      "ueWithLoadBatch": 1.2971605796613903,
+      "totalUcWithLoadBatch": 0.6485802898306952
+    },
+    {
+      "point": 6,
+      "label": "SOMA LOTE DE CARGA P6",
+      "upLcSourceLabel": "uc P5 elevado a 2",
+      "upLcSourceValue": 0.4206563923568685,
+      "ueWithLoadBatch": 1.42116638145,
+      "totalUcWithLoadBatch": 0.710583190725
+    },
+    {
+      "point": 7,
+      "label": "SOMA LOTE DE CARGA P7",
+      "upLcSourceLabel": "uc P6 elevado a 2",
+      "upLcSourceValue": 0.5049284709409217,
+      "ueWithLoadBatch": 1.5351880008975773,
+      "totalUcWithLoadBatch": 0.7675940004487887
+    },
+    {
+      "point": 8,
+      "label": "SOMA LOTE DE CARGA P8",
+      "upLcSourceLabel": "uc P7 elevado a 2",
+      "upLcSourceValue": 0.589200549524975,
+      "ueWithLoadBatch": 1.6413075618043416,
+      "totalUcWithLoadBatch": 0.8206537809021708
+    },
+    {
+      "point": 9,
+      "label": "SOMA LOTE DE CARGA P9",
+      "upLcSourceLabel": "uc P8 elevado a 2",
+      "upLcSourceValue": 0.6734726281090281,
+      "ueWithLoadBatch": 1.7409706564937633,
+      "totalUcWithLoadBatch": 0.8704853282468816
+    },
+    {
+      "point": 10,
+      "label": "SOMA LOTE DE CARGA P10",
+      "upLcSourceLabel": "uc P9 elevado a 2",
+      "upLcSourceValue": 0.7577447066930812,
+      "ueWithLoadBatch": 1.8352294518965573,
+      "totalUcWithLoadBatch": 0.9176147259482786
+    }
+  ],
+  "notes": [
+    "upLC = uc do passo anterior (rótulo 'elevado a 2' na planilha didática)",
+    "totalUcWithLoadBatch ≈ Ue/2 (k=2) no exemplo fixo"
+  ]
+}

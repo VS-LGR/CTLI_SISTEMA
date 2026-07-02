@@ -1,5 +1,98 @@
 import { parseImportNumeric, toDbNumeric } from "@/lib/certificateCalculations/parseNumber";
 import { resolveResolutionForNominal } from "@/lib/certificateCalculations/pointCalculations";
+import {
+  applyLoadBatchFromColeta,
+  formationKeyForPoint,
+} from "@/lib/certificateCalculations/loadBatchCalculations";
+import { emptySubstituicaoLinhas } from "@/lib/coletaSchema";
+
+/** Campos de lote de carga (coleta ou painel) → formato do painel. */
+export function loadBatchFieldsToPanel(point) {
+  const pt = point || {};
+  return {
+    use_load_batch: Boolean(pt.use_load_batch ?? pt.com_lote_carga),
+    load_batch_formation: pt.load_batch_formation || pt.formacao_lote || "",
+    load_batch_nominal: pt.load_batch_nominal != null && String(pt.load_batch_nominal).trim() !== ""
+      ? String(pt.load_batch_nominal)
+      : "",
+    load_batch_material_preset: pt.load_batch_material_preset || "",
+    error_multiplier: pt.error_multiplier != null && String(pt.error_multiplier).trim() !== ""
+      ? String(pt.error_multiplier)
+      : "",
+  };
+}
+
+/** Campos de lote do painel → persistência no ponto da coleta. */
+export function loadBatchFieldsToColeta(panelFields) {
+  return {
+    use_load_batch: Boolean(panelFields?.use_load_batch),
+    load_batch_formation: panelFields?.load_batch_formation || "",
+    load_batch_nominal: panelFields?.load_batch_nominal ?? "",
+    load_batch_material_preset: panelFields?.load_batch_material_preset || "",
+    error_multiplier: panelFields?.error_multiplier ?? "",
+  };
+}
+
+function coletaPointHasExplicitLoadBatch(pt) {
+  if (!pt) return false;
+  if (pt.use_load_batch === true || pt.com_lote_carga === true) return true;
+  if (pt.load_batch_nominal != null && String(pt.load_batch_nominal).trim() !== "") return true;
+  if (pt.load_batch_formation && String(pt.load_batch_formation).trim() !== "") return true;
+  return false;
+}
+
+/** Sincroniza pontos da coleta a partir do verso de repetitividade (L1+P1 → P2, …). */
+export function syncColetaPontosFromRepeatability(pontos = [], repeatabilitySnapshot = {}, balance = {}) {
+  return (pontos || []).map((pt, i) => {
+    const pointNumber = i + 1;
+    if (pointNumber < 2) return pt;
+    if (coletaPointHasExplicitLoadBatch(pt)) return pt;
+    const batch = applyLoadBatchFromColeta(pointNumber, repeatabilitySnapshot);
+    if (!batch.use_load_batch) return pt;
+    const panel = coletaPointToPanelPoint(pt, pointNumber, balance);
+    return panelPointToColetaPoint({
+      ...panel,
+      use_load_batch: batch.use_load_batch,
+      load_batch_formation: batch.load_batch_formation,
+      load_batch_nominal: batch.load_batch_nominal != null ? String(batch.load_batch_nominal) : "",
+      load_batch_material_preset: batch.load_batch_material_preset || "",
+      error_multiplier: batch.error_multiplier != null ? String(batch.error_multiplier) : "",
+    }, balance);
+  });
+}
+
+/** Pré-preenche linha do verso quando lote é marcado no painel P2+. */
+export function syncRepeatabilityFromPanelPoint(payload, pointNumber, panelPt) {
+  if (pointNumber < 2 || !panelPt?.use_load_batch) return payload;
+  const formation = panelPt.load_batch_formation || formationKeyForPoint(pointNumber, true);
+  if (!formation) return payload;
+
+  const verso = payload.verso || {};
+  const rep = verso.repetitividade || {};
+  const linhas = rep.linhas?.length ? [...rep.linhas] : emptySubstituicaoLinhas();
+  const idx = linhas.findIndex((l) => l.key === formation);
+  const existing = idx >= 0 ? linhas[idx] : { key: formation };
+  const updated = {
+    ...existing,
+    valor_nominal: panelPt.load_batch_nominal ?? existing.valor_nominal ?? "",
+    material_preset: panelPt.load_batch_material_preset || existing.material_preset || rep.material_preset || "aco",
+  };
+  if (idx >= 0) linhas[idx] = updated;
+  else linhas.push(updated);
+
+  return {
+    ...payload,
+    verso: {
+      ...verso,
+      repetitividade: {
+        ...rep,
+        aplicavel: rep.aplicavel !== false,
+        material_preset: panelPt.load_batch_material_preset || rep.material_preset || "aco",
+        linhas,
+      },
+    },
+  };
+}
 
 /** Leituras depois do ajuste a partir de ponto (DB ou painel). */
 export function readingsAfterFromPoint(point) {
@@ -124,6 +217,7 @@ export function coletaPointToPanelPoint(pt, pointNumber, balance = {}) {
     buoyancy_ppm: pt?.ppm_empuxo || "",
     material_density: pt?.densidade_material || "",
     material_preset: pt?.material_preset || "",
+    ...loadBatchFieldsToPanel(pt),
   };
   const withInstrument = applyBalanceInstrumentToPoint(panel, balance);
   return {
@@ -155,6 +249,7 @@ export function panelPointToColetaPoint(panelPt, balance = {}) {
     densidade_material: panelPt.material_density || "",
     material_preset: panelPt.material_preset || "",
     point_enabled: isCertificatePointFilled(panelPt),
+    ...loadBatchFieldsToColeta(panelPt),
   };
 }
 

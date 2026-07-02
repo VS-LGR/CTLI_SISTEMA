@@ -1,7 +1,11 @@
 import { parseImportNumeric, toDbNumeric } from "@/lib/certificateCalculations/parseNumber";
 import { veffForDbStorage } from "@/lib/certificateCalculations/pointCalculations";
 import { calculateAirDensityFromEnvironmental } from "@/lib/certificateCalculations/environmentalCalculations";
-import { applyLoadBatchFromColeta } from "@/lib/certificateCalculations/loadBatchCalculations";
+import {
+  applyLoadBatchFromColeta,
+  errorMultiplierForFormation,
+  formationKeyForPoint,
+} from "@/lib/certificateCalculations/loadBatchCalculations";
 import { syncLegacyReadingColumns, readingsAfterFromPoint, readingsBeforeFromPoint, isCertificatePointFilled } from "./certificatePointUtils";
 
 const POINT_NUMERIC_FIELDS = [
@@ -34,6 +38,39 @@ const COLETA_POINT_SOURCE = {
   reading2: "rep2",
   reading3: "rep3",
 };
+
+function coletaPointHasExplicitLoadBatch(pt) {
+  if (!pt) return false;
+  if (pt.use_load_batch === true || pt.com_lote_carga === true) return true;
+  if (pt.load_batch_nominal != null && String(pt.load_batch_nominal).trim() !== "") return true;
+  if (pt.load_batch_formation && String(pt.load_batch_formation).trim() !== "") return true;
+  return false;
+}
+
+/** Prioriza flags explícitos no ponto da coleta; senão deriva do verso. */
+export function resolveLoadBatchForImport(pt, pointNumber, repeatabilitySnapshot = {}) {
+  if (pointNumber < 2) {
+    return applyLoadBatchFromColeta(pointNumber, repeatabilitySnapshot);
+  }
+  if (!coletaPointHasExplicitLoadBatch(pt)) {
+    return applyLoadBatchFromColeta(pointNumber, repeatabilitySnapshot);
+  }
+
+  const formation = pt.load_batch_formation
+    || formationKeyForPoint(pointNumber, true)
+    || "";
+  const useLoadBatch = pt.use_load_batch !== false;
+
+  return {
+    use_load_batch: useLoadBatch,
+    load_batch_formation: useLoadBatch ? formation : "",
+    load_batch_nominal: pt.load_batch_nominal ?? null,
+    load_batch_material_preset: pt.load_batch_material_preset || pt.material_preset || "aco",
+    error_multiplier: pt.error_multiplier != null && String(pt.error_multiplier).trim() !== ""
+      ? Number(pt.error_multiplier)
+      : errorMultiplierForFormation(formation),
+  };
+}
 
 export function mapColetaPointForDb(pt, pointNumber, warnings = [], repeatabilitySnapshot = {}) {
   const afterRaw = [pt?.rep1, pt?.rep2, pt?.rep3, pt?.rep4, pt?.rep5, pt?.rep6]
@@ -86,7 +123,7 @@ export function mapColetaPointForDb(pt, pointNumber, warnings = [], repeatabilit
     result.resolution = res.valid ? res.value : null;
   }
 
-  const loadBatch = applyLoadBatchFromColeta(pointNumber, repeatabilitySnapshot);
+  const loadBatch = resolveLoadBatchForImport(pt, pointNumber, repeatabilitySnapshot);
   result.use_load_batch = loadBatch.use_load_batch;
   result.load_batch_formation = loadBatch.load_batch_formation;
   result.load_batch_nominal = loadBatch.load_batch_nominal != null
