@@ -10,6 +10,7 @@ import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/s
 import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
 import { calculateAirDensityFromEnvironmental, formatAirDensityDisplay } from "@/lib/certificateCalculations/environmentalCalculations";
 import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
+import EccentricityTestFields from "@/components/calibrationCertificates/EccentricityTestFields";
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
 import ScaleIndicationRangesFields from "@/components/forms/ScaleIndicationRangesFields";
@@ -92,7 +93,9 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
 
   const setAmbiente = (k, v) => setPayload((p) => ({ ...p, ambiente: { ...p.ambiente, [k]: v } }));
   const setBalanca = (k, v) => setPayload((p) => ({ ...p, balanca: { ...p.balanca, [k]: v } }));
+  const setExcentricidade = (excentricidade) => setPayload((p) => ({ ...p, excentricidade }));
 
+  const defaultUnit = payload.balanca.unidade || "g";
   const isManualBalance = !scaleId;
 
   const calculatedAirDensity = calculateAirDensityFromEnvironmental({
@@ -378,6 +381,19 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
       </Card>
 
       <Card>
+        <CardContent className="p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Ensaio de excentricidade</h3>
+          <EccentricityTestFields
+            excentricidade={payload.excentricidade}
+            tipoPlataforma={payload.balanca.tipo_plataforma || ""}
+            defaultUnit={defaultUnit}
+            onChange={setExcentricidade}
+            disabled={submitting}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="p-4">
           <PointRegistrationPanel
             points={panelPoints}
@@ -386,7 +402,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
             legalMetrologyApplicable={legalMetrology}
             onLegalMetrologyChange={setLegalMetrology}
             onPointChange={onPointChange}
-            unit={payload.balanca.unidade || "g"}
+            unit={defaultUnit}
           />
         </CardContent>
       </Card>
