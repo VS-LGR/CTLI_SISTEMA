@@ -12,6 +12,11 @@ import {
 } from "@/lib/documentsApi";
 import { getAllDocumentAlerts } from "@/lib/masterDocuments/masterDocumentAlerts";
 import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
+import {
+  DASHBOARD_CERTIFICATE_STATUSES,
+  buildEquipmentExpiryAlerts,
+  countFromSupabaseHead,
+} from "@/lib/dashboardPortalMetrics";
 
 const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").trim();
 const hasLegacyDashboardApi = Boolean(BACKEND_URL) && !isMockApiMode;
@@ -130,35 +135,19 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function addDaysIso(isoDate, days) {
-  const d = new Date(`${isoDate}T12:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function classifyExpiry(expiryDate, today) {
-  if (!expiryDate) return null;
-  const exp = String(expiryDate).slice(0, 10);
-  if (exp < today) return "expired";
-  const warnUntil = addDaysIso(today, EXPIRY_WARNING_DAYS);
-  if (exp <= warnUntil) return "warning";
-  return null;
-}
-
 async function fetchPortalMetrics(tenantId) {
   if (!supabase || !tenantId) {
     return { certificates_issued_count: 0, proposals_issued_count: 0, equipment_expiry_alerts: [] };
   }
 
   const today = todayIsoDate();
-  const alerts = [];
 
   const [certRes, propRes, weightRes, envRes] = await Promise.all([
     supabase
       .from("calibration_certificates")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenantId)
-      .eq("status", "emitido"),
+      .in("status", DASHBOARD_CERTIFICATE_STATUSES),
     supabase
       .from("commercial_proposals")
       .select("id", { count: "exact", head: true })
@@ -173,36 +162,23 @@ async function fetchPortalMetrics(tenantId) {
       .eq("tenant_id", tenantId),
   ]);
 
-  (weightRes.data || []).forEach((row) => {
-    const status = classifyExpiry(row.expiry_date, today);
-    if (!status) return;
-    alerts.push({
-      id: row.id,
-      kind: "Peso padrão",
-      label: row.set_name || row.certificate_number || "Certificado",
-      expiry_date: row.expiry_date,
-      status,
-    });
-  });
+  const certificates_issued_count = countFromSupabaseHead(certRes);
+  const proposals_issued_count = countFromSupabaseHead(propRes);
 
-  (envRes.data || []).forEach((row) => {
-    const status = classifyExpiry(row.expiry_date, today);
-    if (!status) return;
-    alerts.push({
-      id: row.id,
-      kind: "Termo-baro",
-      label: row.equipment_name || row.certificate_number || "Equipamento",
-      expiry_date: row.expiry_date,
-      status,
-    });
-  });
+  if (weightRes.error) throw weightRes.error;
+  if (envRes.error) throw envRes.error;
 
-  alerts.sort((a, b) => String(a.expiry_date).localeCompare(String(b.expiry_date)));
+  const equipment_expiry_alerts = buildEquipmentExpiryAlerts(
+    weightRes.data || [],
+    envRes.data || [],
+    today,
+    EXPIRY_WARNING_DAYS,
+  );
 
   return {
-    certificates_issued_count: certRes.count || 0,
-    proposals_issued_count: propRes.count || 0,
-    equipment_expiry_alerts: alerts,
+    certificates_issued_count,
+    proposals_issued_count,
+    equipment_expiry_alerts,
   };
 }
 
@@ -214,7 +190,9 @@ async function enrichDashboardPayload(tenantId, base) {
   } catch { /* optional */ }
   try {
     portal = await fetchPortalMetrics(tenantId);
-  } catch { /* optional */ }
+  } catch (err) {
+    console.warn("[dashboard] métricas operacionais indisponíveis:", err?.message || err);
+  }
   return {
     ...base,
     certificate_pending_approval,

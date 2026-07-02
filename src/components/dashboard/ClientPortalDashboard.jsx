@@ -4,13 +4,11 @@ import { useAuth } from "@/context/AuthContext";
 import { getVisibleDashboardShortcuts } from "@/lib/dashboardShortcuts";
 import { canManageDashboardReminders, canApproveCalibrationCertificate } from "@/lib/roles";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { SealCheck, FileText, Scroll, ChartPieSlice } from "@phosphor-icons/react";
+import { SealCheck } from "@phosphor-icons/react";
 import DashboardShortcutCard from "@/components/dashboard/DashboardShortcutCard";
 import DashboardReminders from "@/components/dashboard/DashboardReminders";
-import EquipmentExpiryAlerts from "@/components/dashboard/EquipmentExpiryAlerts";
-import ProposalsCertificatesChart from "@/components/dashboard/ProposalsCertificatesChart";
+import DashboardOperationalOverview from "@/components/dashboard/DashboardOperationalOverview";
 
 export default function ClientPortalDashboard({
   currentTenant,
@@ -39,52 +37,12 @@ export default function ClientPortalDashboard({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Card className="border-slate-200">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-blue-50 p-2.5">
-              <Scroll size={24} className="text-blue-600" weight="duotone" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Certificados emitidos</p>
-              <p className="text-2xl font-display font-bold text-slate-900">
-                {loading ? "—" : certificatesCount}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-slate-200">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-50 p-2.5">
-              <FileText size={24} className="text-emerald-600" weight="duotone" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Propostas geradas</p>
-              <p className="text-2xl font-display font-bold text-slate-900">
-                {loading ? "—" : proposalsCount}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-slate-200 min-w-0">
-        <CardHeader className="pb-2">
-          <CardTitle className="font-display text-lg flex items-center gap-2">
-            <ChartPieSlice size={20} className="text-blue-600" />
-            Propostas e certificados
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0 min-w-0 overflow-hidden">
-          <ProposalsCertificatesChart
-            certificatesCount={certificatesCount}
-            proposalsCount={proposalsCount}
-            loading={loading}
-          />
-        </CardContent>
-      </Card>
-
-      <EquipmentExpiryAlerts alerts={data?.equipment_expiry_alerts} loading={loading} />
+      <DashboardOperationalOverview
+        certificatesCount={certificatesCount}
+        proposalsCount={proposalsCount}
+        expiryAlerts={data?.equipment_expiry_alerts}
+        loading={loading}
+      />
 
       {showApprovalQueue && (
         <Alert className="border-orange-300 bg-orange-50">
@@ -119,7 +77,7 @@ export default function ClientPortalDashboard({
             tenantId={currentTenant?.id}
             reminders={reminders}
             userId={user?.id}
-              isAdmin={user?.role === "admin" || user?.role === "client" || user?.role === "signatario"}
+            isAdmin={user?.role === "admin" || user?.role === "client" || user?.role === "signatario"}
             onChange={onRemindersChange}
           />
         )}

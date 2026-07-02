@@ -17,6 +17,7 @@ import DashboardRecentDocs from "@/components/dashboard/DashboardRecentDocs";
 import DashboardReminders from "@/components/dashboard/DashboardReminders";
 import DashboardPinnedDocs from "@/components/dashboard/DashboardPinnedDocs";
 import DashboardShortcutCard from "@/components/dashboard/DashboardShortcutCard";
+import DashboardOperationalOverview from "@/components/dashboard/DashboardOperationalOverview";
 
 const DocumentDistributionPie = lazy(
   () => import("@/components/dashboard/DocumentDistributionPie"),
@@ -95,6 +96,8 @@ const Dashboard = () => {
   const pendingApprovals = data?.certificate_pending_approval || 0;
   const showApprovalQueue = canApproveCalibrationCertificate(user?.role) && pendingApprovals > 0;
   const portalMode = isEffectiveClientPortal(currentTenant, user?.role);
+  const certificatesCount = data?.certificates_issued_count ?? 0;
+  const proposalsCount = data?.proposals_issued_count ?? 0;
 
   if (portalMode) {
     return (
@@ -163,6 +166,14 @@ const Dashboard = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      <DashboardOperationalOverview
+        certificatesCount={certificatesCount}
+        proposalsCount={proposalsCount}
+        expiryAlerts={data?.equipment_expiry_alerts}
+        loading={false}
+        compact
+      />
 
       {alertCount > 0 && listaMestraPath && (
         <Alert className="border-amber-300 bg-amber-50">

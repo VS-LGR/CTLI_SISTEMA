@@ -15,7 +15,7 @@ function supabasePublicKey() {
 function deployHint(functionName) {
   return (
     `A função "${functionName}" não está publicada ou não responde ao browser (CORS). ` +
-    "Publique-a: .\\scripts\\deploy-edge-functions.ps1 (ou npx supabase functions deploy send-calibration-certificate). " +
+    "Publique-a: .\\scripts\\deploy-edge-functions.ps1 (ou npx supabase functions deploy tenant-manage-user). " +
     "Confirme supabase/config.toml com verify_jwt = false para esta função. " +
     "Depois, em Edge Functions → Secrets: CTLI_SERVICE_ROLE_KEY, RESEND_API_KEY e RESEND_FROM_EMAIL."
   );

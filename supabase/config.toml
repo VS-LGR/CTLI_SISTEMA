@@ -10,6 +10,9 @@ enabled = true
 [functions.tenant-manage-technician]
 verify_jwt = false
 
+[functions.tenant-manage-user]
+verify_jwt = false
+
 [functions.admin-create-user]
 verify_jwt = false
 

@@ -16,6 +16,7 @@ $functions = @(
   "admin-update-user",
   "admin-delete-user",
   "tenant-manage-technician",
+  "tenant-manage-user",
   "tenant-backup",
   "send-calibration-certificate"
 )
