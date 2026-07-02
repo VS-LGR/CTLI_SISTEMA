@@ -1,30 +1,67 @@
 import React from "react";
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-} from "recharts";
-import { ChartContainer } from "@/components/ui/chart-container";
+import { FileText, Scroll } from "@phosphor-icons/react";
 
-const COLORS = {
-  certificados: "#2563EB",
-  propostas: "#10B981",
-};
+const SERIES = [
+  {
+    key: "certificados",
+    label: "Certificados",
+    subtitle: "Aprovados, emitidos ou enviados",
+    color: "#2563EB",
+    trackColor: "#DBEAFE",
+    Icon: Scroll,
+  },
+  {
+    key: "propostas",
+    label: "Propostas",
+    subtitle: "Propostas comerciais geradas",
+    color: "#059669",
+    trackColor: "#D1FAE5",
+    Icon: FileText,
+  },
+];
 
-function CustomTooltip({ active, payload }) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0];
-  return (
-    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
-      <div className="font-medium text-slate-800">{p.name}</div>
-      <div className="text-slate-600">{p.value} registo(s)</div>
-    </div>
-  );
+function pct(value, total) {
+  if (!total) return 0;
+  return Math.round((value / total) * 100);
 }
 
-function pieRadii(width, height) {
-  const base = Math.min(width, height);
-  const outerRadius = Math.max(40, Math.floor(base * 0.38));
-  const innerRadius = Math.max(24, Math.floor(outerRadius * 0.65));
-  return { innerRadius, outerRadius };
+function MetricRow({ item, value, total, maxValue }) {
+  const share = pct(value, total);
+  const barWidth = maxValue > 0 ? Math.max(value > 0 ? 8 : 0, (value / maxValue) * 100) : 0;
+  const { label, subtitle, color, trackColor, Icon } = item;
+
+  return (
+    <div className="space-y-2 min-w-0" data-testid={`chart-row-${item.key}`}>
+      <div className="flex items-start justify-between gap-3 min-w-0">
+        <div className="flex items-start gap-2.5 min-w-0">
+          <div
+            className="rounded-lg p-2 shrink-0"
+            style={{ backgroundColor: trackColor }}
+          >
+            <Icon size={18} weight="duotone" style={{ color }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-800">{label}</p>
+            <p className="text-xs text-slate-500 truncate">{subtitle}</p>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-xl font-display font-bold text-slate-900 tabular-nums">{value}</p>
+          <p className="text-[11px] text-slate-500 tabular-nums">{share}% do total</p>
+        </div>
+      </div>
+      <div
+        className="h-2.5 w-full rounded-full overflow-hidden"
+        style={{ backgroundColor: trackColor }}
+        role="presentation"
+      >
+        <div
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${barWidth}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function ProposalsCertificatesChart({
@@ -32,16 +69,16 @@ export default function ProposalsCertificatesChart({
   proposalsCount = 0,
   loading = false,
 }) {
-  const pieData = [
-    { name: "Certificados emitidos", value: certificatesCount, key: "certificados" },
-    { name: "Propostas geradas", value: proposalsCount, key: "propostas" },
-  ].filter((d) => d.value > 0);
-
+  const values = {
+    certificados: certificatesCount,
+    propostas: proposalsCount,
+  };
   const total = certificatesCount + proposalsCount;
+  const maxValue = Math.max(certificatesCount, proposalsCount, 1);
 
   if (loading) {
     return (
-      <div className="h-[200px] sm:h-[220px] flex items-center justify-center text-sm text-slate-500">
+      <div className="py-10 flex items-center justify-center text-sm text-slate-500">
         A carregar gráfico…
       </div>
     );
@@ -49,73 +86,30 @@ export default function ProposalsCertificatesChart({
 
   if (total === 0) {
     return (
-      <div className="h-[200px] sm:h-[220px] flex items-center justify-center text-sm text-slate-500">
-        Ainda não há propostas nem certificados registados neste ambiente.
+      <div className="py-10 flex flex-col items-center justify-center text-center px-4">
+        <p className="text-sm text-slate-600">Ainda não há propostas nem certificados neste ambiente.</p>
+        <p className="text-xs text-slate-400 mt-1">Os registos aparecerão aqui assim que forem criados.</p>
       </div>
     );
   }
 
   return (
-    <div
-      className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0 w-full"
-      data-testid="proposals-certificates-chart"
-    >
-      <ChartContainer
-        heightClass="h-[200px] sm:h-[220px]"
-        className="mx-auto w-full max-w-full sm:flex-1"
-      >
-        {({ width, height }) => {
-          const { innerRadius, outerRadius } = pieRadii(width, height);
-          return (
-            <>
-              <ResponsiveContainer width={width} height={height}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx={width / 2}
-                    cy={height / 2}
-                    innerRadius={innerRadius}
-                    outerRadius={outerRadius}
-                    paddingAngle={3}
-                    stroke="#fff"
-                    strokeWidth={2}
-                  >
-                    {pieData.map((entry) => (
-                      <Cell key={entry.key} fill={COLORS[entry.key]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div
-                className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-4"
-                aria-hidden
-              >
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">Total</span>
-                <span className="text-2xl sm:text-3xl font-display font-bold text-slate-900">{total}</span>
-              </div>
-            </>
-          );
-        }}
-      </ChartContainer>
-      <ul className="flex flex-wrap sm:flex-col gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0 sm:max-w-[12rem] text-xs min-w-0">
-        <li className="flex items-center gap-2 min-w-0">
-          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS.certificados }} />
-          <span className="text-slate-700">
-            Certificados
-            <span className="text-slate-500 ml-1">({certificatesCount})</span>
-          </span>
-        </li>
-        <li className="flex items-center gap-2 min-w-0">
-          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS.propostas }} />
-          <span className="text-slate-700">
-            Propostas
-            <span className="text-slate-500 ml-1">({proposalsCount})</span>
-          </span>
-        </li>
-      </ul>
+    <div className="space-y-5 min-w-0 w-full" data-testid="proposals-certificates-chart">
+      {SERIES.map((item) => (
+        <MetricRow
+          key={item.key}
+          item={item}
+          value={values[item.key]}
+          total={total}
+          maxValue={maxValue}
+        />
+      ))}
+      <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 text-xs text-slate-500">
+        <span>Total operacional</span>
+        <span className="font-medium text-slate-700 tabular-nums">
+          {total} registo{total === 1 ? "" : "s"}
+        </span>
+      </div>
     </div>
   );
 }

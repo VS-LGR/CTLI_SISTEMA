@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { fetchDashboard } from "@/lib/dashboardApi";
@@ -18,16 +18,6 @@ import DashboardReminders from "@/components/dashboard/DashboardReminders";
 import DashboardPinnedDocs from "@/components/dashboard/DashboardPinnedDocs";
 import DashboardShortcutCard from "@/components/dashboard/DashboardShortcutCard";
 import DashboardOperationalOverview from "@/components/dashboard/DashboardOperationalOverview";
-
-const DocumentDistributionPie = lazy(
-  () => import("@/components/dashboard/DocumentDistributionPie"),
-);
-
-const pieChartFallback = (
-  <div className="h-[240px] sm:h-[280px] flex items-center justify-center text-sm text-slate-500">
-    A carregar gráfico…
-  </div>
-);
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -188,50 +178,18 @@ const Dashboard = () => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0 items-start">
-        <Card className="lg:col-span-2 border-slate-200 min-w-0 self-start">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-display text-lg">Distribuição por requisito</CardTitle>
-          </CardHeader>
-          <CardContent className="min-w-0 overflow-hidden pt-0 pb-4">
-            <Suspense fallback={pieChartFallback}>
-              <DocumentDistributionPie byRequirement={data?.by_requirement || {}} />
-            </Suspense>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 items-start">
         <Card className="border-slate-200 min-w-0">
           <CardHeader className="pb-2">
-            <CardTitle className="font-display text-lg">Mix de documentos</CardTitle>
+            <CardTitle className="font-display text-lg">Documentos recentes</CardTitle>
             <p className="text-xs text-slate-500 font-normal mt-1">Criados ou atualizados recentemente</p>
           </CardHeader>
           <CardContent className="min-w-0">
             <DashboardRecentDocs documents={recent} />
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
-        {showReminders && (
-          <Card className="border-slate-200 min-w-0">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
-                <NotePencil size={18} /> Lembretes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="min-w-0">
-              <DashboardReminders
-                tenantId={currentTenantId}
-                reminders={reminders}
-                userId={user?.id}
-                isAdmin={isCtliAdmin(user?.role)}
-                onChange={load}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className={`border-slate-200 min-w-0 ${!showReminders ? "lg:col-span-2" : ""}`}>
+        <Card className="border-slate-200 min-w-0">
           <CardHeader className="pb-2">
             <CardTitle className="font-display text-lg flex items-center gap-2">
               <PushPin size={18} weight="fill" /> Documentos marcados
@@ -242,6 +200,25 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {showReminders && (
+        <Card className="border-slate-200 min-w-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-lg flex items-center gap-2">
+              <NotePencil size={18} /> Lembretes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="min-w-0">
+            <DashboardReminders
+              tenantId={currentTenantId}
+              reminders={reminders}
+              userId={user?.id}
+              isAdmin={isCtliAdmin(user?.role)}
+              onChange={load}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
