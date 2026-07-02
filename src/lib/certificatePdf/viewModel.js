@@ -360,12 +360,7 @@ function resolveRepeatability(cert) {
   };
 }
 
-function conformityDeclaration(cert) {
-  const conf = cert.conformity || {};
-  if (!conf.legal_metrology_applicable) return "";
-  const result = conf.general_conformity_result;
-  if (result === "conforme") return "CERTIFICADO: CONFORME";
-  if (result === "nao_conforme") return "CERTIFICADO: NÃO CONFORME";
+function conformityDeclaration() {
   return "";
 }
 

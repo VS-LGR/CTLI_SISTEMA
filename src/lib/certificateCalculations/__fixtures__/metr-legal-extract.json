@@ -1,0 +1,339 @@
+{
+  "source": "RE-7.2B Certificado de Calibração Rev. 00 Matriz (3).xlsm",
+  "headers": {
+    "2": "Informações do Instrumento",
+    "9": "Determinação da Classe do Instrumento",
+    "20": "Conformidade P1",
+    "29": "Conformidade P2",
+    "38": "Conformidade P3",
+    "47": "Conformidade P4",
+    "56": "Conformidade P5",
+    "65": "Conformidade P6",
+    "74": "Conformidade P7",
+    "83": "Conformidade P8",
+    "92": "Conformidade P9",
+    "101": "Conformidade P10",
+    "110": "Resultado Parcial",
+    "111": "Ensaio de Excentricidade",
+    "123": "Resultado Final"
+  },
+  "certificates": [
+    {
+      "row": 3,
+      "name": "Cert.",
+      "data": {
+        "divisao_verificacao": "Divisão de Verificação",
+        "faixa_indicacao": "Faixa de Indicação",
+        "resultado_p1": "P1-erro",
+        "p1_erro": "Ajuste média",
+        "ajuste_media_p1": "Tolerâcia Negativa",
+        "cliente_erro_p1": "Portaria 236",
+        "cliente_eu_p1": "Cliente - Erro",
+        "tol_pos_p1": "Cliente - Erro+Incerteza P1",
+        "tol_neg_p1": "Tolerância Positiva",
+        "portaria236_p1": "e P1",
+        "resultado_final": null,
+        "resultado_parcial": "Ajuste média",
+        "formulas_p1": {
+          "e_p1": "Resultado",
+          "portaria": "e P1",
+          "cliente_erro": "Portaria 236",
+          "cliente_eu": "Cliente - Erro",
+          "tol_pos": "Cliente - Erro+Incerteza P1",
+          "tol_neg": "Tolerância Positiva",
+          "ajuste": "Tolerâcia Negativa",
+          "erro": "Ajuste média",
+          "resultado": "P1-erro"
+        },
+        "formulas_classe": {
+          "classe_iii": "Classe III",
+          "classe_ii": "Classe II",
+          "classe_i": "Classe I",
+          "parcial": null,
+          "resultado_classe": "Parcial"
+        },
+        "formulas_final": null
+      }
+    },
+    {
+      "row": 4,
+      "name": "Validação 2025",
+      "data": {
+        "divisao_verificacao": 0,
+        "faixa_indicacao": 210,
+        "resultado_p1": 0,
+        "p1_erro": 210.0001,
+        "ajuste_media_p1": 0,
+        "cliente_erro_p1": 0,
+        "cliente_eu_p1": 0,
+        "tol_pos_p1": 0,
+        "tol_neg_p1": 0,
+        "portaria236_p1": 0,
+        "resultado_final": "CONFORME",
+        "resultado_parcial": 210.0001,
+        "formulas_p1": {
+          "e_p1": "=IF(R4=K4,R4,IF(R4=N4,R4,IF(Q4=R4,R4,\"IIII\")))",
+          "portaria": "=VLOOKUP(A4,'P1'!1:9690,43,FALSE)",
+          "cliente_erro": "=(VLOOKUP(A4,'P1'!1:9690,40,FALSE)*T4)",
+          "cliente_eu": "=(VLOOKUP(A4,'P1'!1:9690,41,FALSE))",
+          "tol_pos": "=IF(VLOOKUP(A4,'P1'!1:9691,41,FALSE)=\"\",0,ROUND(VLOOKUP(A4,'P1'!1:9690,41,FALSE)+MROUND(VLOOKUP(A4,'P1'!1:99690,37,FALSE)+((VLOOKUP(A4,'P1'!1:690,42,FALSE)/10)*4.4),VLOOKUP(A4,'P1'!1:690,42,FALSE)),VLOOKUP(B4,BALANÇAS!$2:$9869,28,FALSE)))",
+          "tol_neg": "=ROUND(IF(VLOOKUP(A4,'P1'!1:9690,39,FALSE)=\"Portaria 236\",U4,IF(VLOOKUP(A4,'P1'!1:9690,39,FALSE)=\"Cliente - Erro\",V4,W4)),VLOOKUP(B4,BALANÇAS!$2:$9869,28,FALSE))",
+          "ajuste": "=-X4",
+          "erro": "=MROUND(VLOOKUP(A4,'P1'!$1:$65226,28,FALSE),VLOOKUP(A4,'P1'!1:9690,42,FALSE))",
+          "resultado": "=IF(VLOOKUP(A4,'P1'!1:9691,28,FALSE)=0,0,ROUND(Z4-(VLOOKUP(A4,'P1'!1:9690,8,FALSE)),VLOOKUP(B4,BALANÇAS!$2:$9869,28,FALSE)))"
+        },
+        "formulas_classe": {
+          "classe_iii": "=IF(AND(D4>0.0999999,D4<2.000001,H4>99.999999,H4<10000.000001),\"III\")",
+          "classe_ii": "=IF(AND(C4>0.0009999999,C4<0.05000001,H4>99.9999999,H4<100000.000001),\"II\")",
+          "classe_i": "=IF(OR(C4<0.001000001,H4>49999.999999),\"I\")",
+          "parcial": "=IF(OR(O4=\"I\",P4=\"I\"),\"I\")",
+          "resultado_classe": "=IF(H4<10000.000001,\"III\",IF(AND(H4>10000,H4<100000.000001),\"II\",IF(H4>100000,\"I\")))"
+        },
+        "formulas_final": "=IF(AND(DF4=\"CONFORME\",DJ4=\"CONFORME\",DL4=\"CONFORME\",DN4=\"CONFORME\",DP4=\"CONFORME\",DR4=\"CONFORME\"),\"CONFORME\",\"NÃO-CONFORME\")"
+      }
+    },
+    {
+      "row": 5,
+      "name": "001/2025",
+      "data": {
+        "divisao_verificacao": 0,
+        "faixa_indicacao": 500,
+        "resultado_p1": 0,
+        "p1_erro": 50,
+        "ajuste_media_p1": 0,
+        "cliente_erro_p1": 0,
+        "cliente_eu_p1": 0,
+        "tol_pos_p1": 0,
+        "tol_neg_p1": 0,
+        "portaria236_p1": 0,
+        "resultado_final": "NÃO-CONFORME",
+        "resultado_parcial": 0,
+        "formulas_p1": {
+          "e_p1": "=IF(R5=K5,R5,IF(R5=N5,R5,IF(Q5=R5,R5,\"IIII\")))",
+          "portaria": "=VLOOKUP(A5,'P1'!2:9691,43,FALSE)",
+          "cliente_erro": "=(VLOOKUP(A5,'P1'!2:9691,40,FALSE)*T5)",
+          "cliente_eu": "=(VLOOKUP(A5,'P1'!2:9691,41,FALSE))",
+          "tol_pos": "=IF(VLOOKUP(A5,'P1'!2:9692,41,FALSE)=\"\",0,ROUND(VLOOKUP(A5,'P1'!2:9691,41,FALSE)+MROUND(VLOOKUP(A5,'P1'!2:99691,37,FALSE)+((VLOOKUP(A5,'P1'!2:691,42,FALSE)/10)*4.4),VLOOKUP(A5,'P1'!2:691,42,FALSE)),VLOOKUP(B5,BALANÇAS!$2:$9869,28,FALSE)))",
+          "tol_neg": "=ROUND(IF(VLOOKUP(A5,'P1'!2:9691,39,FALSE)=\"Portaria 236\",U5,IF(VLOOKUP(A5,'P1'!2:9691,39,FALSE)=\"Cliente - Erro\",V5,W5)),VLOOKUP(B5,BALANÇAS!$2:$9869,28,FALSE))",
+          "ajuste": "=-X5",
+          "erro": "=MROUND(VLOOKUP(A5,'P1'!$1:$65226,28,FALSE),VLOOKUP(A5,'P1'!2:9691,42,FALSE))",
+          "resultado": "=IF(VLOOKUP(A5,'P1'!2:9692,28,FALSE)=0,0,ROUND(Z5-(VLOOKUP(A5,'P1'!2:9691,8,FALSE)),VLOOKUP(B5,BALANÇAS!$2:$9869,28,FALSE)))"
+        },
+        "formulas_classe": {
+          "classe_iii": "=IF(AND(D5>0.0999999,D5<2.000001,H5>99.999999,H5<10000.000001),\"III\")",
+          "classe_ii": "=IF(AND(C5>0.0009999999,C5<0.05000001,H5>99.9999999,H5<100000.000001),\"II\")",
+          "classe_i": "=IF(OR(C5<0.001000001,H5>49999.999999),\"I\")",
+          "parcial": "=IF(OR(O5=\"I\",P5=\"I\"),\"I\")",
+          "resultado_classe": "=IF(H5<10000.000001,\"III\",IF(AND(H5>10000,H5<100000.000001),\"II\",IF(H5>100000,\"I\")))"
+        },
+        "formulas_final": "=IF(AND(DF5=\"CONFORME\",DJ5=\"CONFORME\",DL5=\"CONFORME\",DN5=\"CONFORME\",DP5=\"CONFORME\",DR5=\"CONFORME\"),\"CONFORME\",\"NÃO-CONFORME\")"
+      }
+    },
+    {
+      "row": 6,
+      "name": "002/2025",
+      "data": {
+        "divisao_verificacao": 0,
+        "faixa_indicacao": 220,
+        "resultado_p1": 0,
+        "p1_erro": 0.5002,
+        "ajuste_media_p1": 0,
+        "cliente_erro_p1": 0,
+        "cliente_eu_p1": 0,
+        "tol_pos_p1": 0,
+        "tol_neg_p1": 0,
+        "portaria236_p1": 0,
+        "resultado_final": "NÃO-CONFORME",
+        "resultado_parcial": 0,
+        "formulas_p1": {
+          "e_p1": "=IF(R6=K6,R6,IF(R6=N6,R6,IF(Q6=R6,R6,\"IIII\")))",
+          "portaria": "=VLOOKUP(A6,'P1'!3:9692,43,FALSE)",
+          "cliente_erro": "=(VLOOKUP(A6,'P1'!3:9692,40,FALSE)*T6)",
+          "cliente_eu": "=(VLOOKUP(A6,'P1'!3:9692,41,FALSE))",
+          "tol_pos": "=IF(VLOOKUP(A6,'P1'!3:9693,41,FALSE)=\"\",0,ROUND(VLOOKUP(A6,'P1'!3:9692,41,FALSE)+MROUND(VLOOKUP(A6,'P1'!3:99692,37,FALSE)+((VLOOKUP(A6,'P1'!3:692,42,FALSE)/10)*4.4),VLOOKUP(A6,'P1'!3:692,42,FALSE)),VLOOKUP(B6,BALANÇAS!$2:$9869,28,FALSE)))",
+          "tol_neg": "=ROUND(IF(VLOOKUP(A6,'P1'!3:9692,39,FALSE)=\"Portaria 236\",U6,IF(VLOOKUP(A6,'P1'!3:9692,39,FALSE)=\"Cliente - Erro\",V6,W6)),VLOOKUP(B6,BALANÇAS!$2:$9869,28,FALSE))",
+          "ajuste": "=-X6",
+          "erro": "=MROUND(VLOOKUP(A6,'P1'!$1:$65226,28,FALSE),VLOOKUP(A6,'P1'!3:9692,42,FALSE))",
+          "resultado": "=IF(VLOOKUP(A6,'P1'!3:9693,28,FALSE)=0,0,ROUND(Z6-(VLOOKUP(A6,'P1'!3:9692,8,FALSE)),VLOOKUP(B6,BALANÇAS!$2:$9869,28,FALSE)))"
+        },
+        "formulas_classe": {
+          "classe_iii": "=IF(AND(D6>0.0999999,D6<2.000001,H6>99.999999,H6<10000.000001),\"III\")",
+          "classe_ii": "=IF(AND(C6>0.0009999999,C6<0.05000001,H6>99.9999999,H6<100000.000001),\"II\")",
+          "classe_i": "=IF(OR(C6<0.001000001,H6>49999.999999),\"I\")",
+          "parcial": "=IF(OR(O6=\"I\",P6=\"I\"),\"I\")",
+          "resultado_classe": "=IF(H6<10000.000001,\"III\",IF(AND(H6>10000,H6<100000.000001),\"II\",IF(H6>100000,\"I\")))"
+        },
+        "formulas_final": "=IF(AND(DF6=\"CONFORME\",DJ6=\"CONFORME\",DL6=\"CONFORME\",DN6=\"CONFORME\",DP6=\"CONFORME\",DR6=\"CONFORME\"),\"CONFORME\",\"NÃO-CONFORME\")"
+      }
+    },
+    {
+      "row": 7,
+      "name": "003/2025",
+      "data": {
+        "divisao_verificacao": 0,
+        "faixa_indicacao": 4100,
+        "resultado_p1": -39500.8,
+        "p1_erro": 500,
+        "ajuste_media_p1": 0,
+        "cliente_erro_p1": 0,
+        "cliente_eu_p1": 0,
+        "tol_pos_p1": 0,
+        "tol_neg_p1": 0,
+        "portaria236_p1": 0,
+        "resultado_final": "NÃO-CONFORME",
+        "resultado_parcial": 0,
+        "formulas_p1": {
+          "e_p1": "=IF(R7=K7,R7,IF(R7=N7,R7,IF(Q7=R7,R7,\"IIII\")))",
+          "portaria": "=VLOOKUP(A7,'P1'!4:9693,43,FALSE)",
+          "cliente_erro": "=(VLOOKUP(A7,'P1'!4:9693,40,FALSE)*T7)",
+          "cliente_eu": "=(VLOOKUP(A7,'P1'!4:9693,41,FALSE))",
+          "tol_pos": "=IF(VLOOKUP(A7,'P1'!4:9694,41,FALSE)=\"\",0,ROUND(VLOOKUP(A7,'P1'!4:9693,41,FALSE)+MROUND(VLOOKUP(A7,'P1'!4:99693,37,FALSE)+((VLOOKUP(A7,'P1'!4:693,42,FALSE)/10)*4.4),VLOOKUP(A7,'P1'!4:693,42,FALSE)),VLOOKUP(B7,BALANÇAS!$2:$9869,28,FALSE)))",
+          "tol_neg": "=ROUND(IF(VLOOKUP(A7,'P1'!4:9693,39,FALSE)=\"Portaria 236\",U7,IF(VLOOKUP(A7,'P1'!4:9693,39,FALSE)=\"Cliente - Erro\",V7,W7)),VLOOKUP(B7,BALANÇAS!$2:$9869,28,FALSE))",
+          "ajuste": "=-X7",
+          "erro": "=MROUND(VLOOKUP(A7,'P1'!$1:$65226,28,FALSE),VLOOKUP(A7,'P1'!4:9693,42,FALSE))",
+          "resultado": "=IF(VLOOKUP(A7,'P1'!4:9694,28,FALSE)=0,0,ROUND(Z7-(VLOOKUP(A7,'P1'!4:9693,8,FALSE)),VLOOKUP(B7,BALANÇAS!$2:$9869,28,FALSE)))"
+        },
+        "formulas_classe": {
+          "classe_iii": "=IF(AND(D7>0.0999999,D7<2.000001,H7>99.999999,H7<10000.000001),\"III\")",
+          "classe_ii": "=IF(AND(C7>0.0009999999,C7<0.05000001,H7>99.9999999,H7<100000.000001),\"II\")",
+          "classe_i": "=IF(OR(C7<0.001000001,H7>49999.999999),\"I\")",
+          "parcial": "=IF(OR(O7=\"I\",P7=\"I\"),\"I\")",
+          "resultado_classe": "=IF(H7<10000.000001,\"III\",IF(AND(H7>10000,H7<100000.000001),\"II\",IF(H7>100000,\"I\")))"
+        },
+        "formulas_final": "=IF(AND(DF7=\"CONFORME\",DJ7=\"CONFORME\",DL7=\"CONFORME\",DN7=\"CONFORME\",DP7=\"CONFORME\",DR7=\"CONFORME\"),\"CONFORME\",\"NÃO-CONFORME\")"
+      }
+    },
+    {
+      "row": 8,
+      "name": "Validação 2026",
+      "data": {
+        "divisao_verificacao": 0,
+        "faixa_indicacao": 210,
+        "resultado_p1": 0,
+        "p1_erro": 210.0001,
+        "ajuste_media_p1": 0,
+        "cliente_erro_p1": 0,
+        "cliente_eu_p1": 0,
+        "tol_pos_p1": 0,
+        "tol_neg_p1": 0,
+        "portaria236_p1": 0,
+        "resultado_final": "CONFORME",
+        "resultado_parcial": 210.0001,
+        "formulas_p1": {
+          "e_p1": "=IF(R8=K8,R8,IF(R8=N8,R8,IF(Q8=R8,R8,\"IIII\")))",
+          "portaria": "=VLOOKUP(A8,'P1'!5:9694,43,FALSE)",
+          "cliente_erro": "=(VLOOKUP(A8,'P1'!5:9694,40,FALSE)*T8)",
+          "cliente_eu": "=(VLOOKUP(A8,'P1'!5:9694,41,FALSE))",
+          "tol_pos": "=IF(VLOOKUP(A8,'P1'!5:9695,41,FALSE)=\"\",0,ROUND(VLOOKUP(A8,'P1'!5:9694,41,FALSE)+MROUND(VLOOKUP(A8,'P1'!5:99694,37,FALSE)+((VLOOKUP(A8,'P1'!5:694,42,FALSE)/10)*4.4),VLOOKUP(A8,'P1'!5:694,42,FALSE)),VLOOKUP(B8,BALANÇAS!$2:$9869,28,FALSE)))",
+          "tol_neg": "=ROUND(IF(VLOOKUP(A8,'P1'!5:9694,39,FALSE)=\"Portaria 236\",U8,IF(VLOOKUP(A8,'P1'!5:9694,39,FALSE)=\"Cliente - Erro\",V8,W8)),VLOOKUP(B8,BALANÇAS!$2:$9869,28,FALSE))",
+          "ajuste": "=-X8",
+          "erro": "=MROUND(VLOOKUP(A8,'P1'!$1:$65226,28,FALSE),VLOOKUP(A8,'P1'!5:9694,42,FALSE))",
+          "resultado": "=IF(VLOOKUP(A8,'P1'!5:9695,28,FALSE)=0,0,ROUND(Z8-(VLOOKUP(A8,'P1'!5:9694,8,FALSE)),VLOOKUP(B8,BALANÇAS!$2:$9869,28,FALSE)))"
+        },
+        "formulas_classe": {
+          "classe_iii": "=IF(AND(D8>0.0999999,D8<2.000001,H8>99.999999,H8<10000.000001),\"III\")",
+          "classe_ii": "=IF(AND(C8>0.0009999999,C8<0.05000001,H8>99.9999999,H8<100000.000001),\"II\")",
+          "classe_i": "=IF(OR(C8<0.001000001,H8>49999.999999),\"I\")",
+          "parcial": "=IF(OR(O8=\"I\",P8=\"I\"),\"I\")",
+          "resultado_classe": "=IF(H8<10000.000001,\"III\",IF(AND(H8>10000,H8<100000.000001),\"II\",IF(H8>100000,\"I\")))"
+        },
+        "formulas_final": "=IF(AND(DF8=\"CONFORME\",DJ8=\"CONFORME\",DL8=\"CONFORME\",DN8=\"CONFORME\",DP8=\"CONFORME\",DR8=\"CONFORME\"),\"CONFORME\",\"NÃO-CONFORME\")"
+      }
+    }
+  ],
+  "p1_column_map": {
+    "Conformidade P1": 20
+  },
+  "template_row": 3,
+  "template_sample": {
+    "Informações do Instrumento": {
+      "col": 2,
+      "value": "Série Balança",
+      "formula": null
+    },
+    "Determinação da Classe do Instrumento": {
+      "col": 9,
+      "value": "Classe III",
+      "formula": null
+    },
+    "Conformidade P1": {
+      "col": 20,
+      "value": "e P1",
+      "formula": null
+    },
+    "Conformidade P2": {
+      "col": 29,
+      "value": "e P2",
+      "formula": null
+    },
+    "Conformidade P3": {
+      "col": 38,
+      "value": "e P3",
+      "formula": null
+    },
+    "Conformidade P4": {
+      "col": 47,
+      "value": "e P4",
+      "formula": null
+    },
+    "Conformidade P5": {
+      "col": 56,
+      "value": "e P5",
+      "formula": null
+    },
+    "Conformidade P6": {
+      "col": 65,
+      "value": "e P6",
+      "formula": null
+    },
+    "Conformidade P7": {
+      "col": 74,
+      "value": "e P7",
+      "formula": null
+    },
+    "Conformidade P8": {
+      "col": 83,
+      "value": "e P8",
+      "formula": null
+    },
+    "Conformidade P9": {
+      "col": 92,
+      "value": "e P9",
+      "formula": null
+    },
+    "Conformidade P10": {
+      "col": 101,
+      "value": "e P10",
+      "formula": null
+    },
+    "Ensaio de Excentricidade": {
+      "col": 111,
+      "value": "Tolerancia Postiva",
+      "formula": null
+    }
+  },
+  "class_formulas": {
+    "Determinação da Classe do Instrumento": {
+      "col": 9,
+      "value": "Classe III",
+      "formula": null
+    }
+  },
+  "resultado_final": {
+    "col": 123,
+    "value": null,
+    "formula": null
+  },
+  "excentricidade": {
+    "Resultado Parcial": {
+      "col": 110,
+      "value": null,
+      "formula": null
+    },
+    "Ensaio de Excentricidade": {
+      "col": 111,
+      "value": "Tolerancia Postiva",
+      "formula": null
+    }
+  }
+}

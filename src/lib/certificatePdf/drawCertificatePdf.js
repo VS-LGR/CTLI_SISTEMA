@@ -661,12 +661,6 @@ function drawObservationsSection(doc, model, y, ctx) {
   y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES", m);
   y = drawNumberedObservations(doc, ML + 1, y + obsTopGap, model.observations, CW - 2, obsMetrics)
     + (m.singlePage ? 0.8 : 2);
-  if (model.conformityDeclaration) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(m.singlePage ? 7 : 8);
-    doc.text(model.conformityDeclaration, ML, y);
-    y += m.singlePage ? 4 : 6;
-  }
   return y;
 }
 

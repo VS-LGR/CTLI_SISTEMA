@@ -75,7 +75,7 @@ function buildConformity(balance, control = {}) {
     instrument_class: classResult.instrumentClass || balance.classe || "",
     applicable_ordinance: balance.portaria_inmetro || "",
     customer_criterion: control.pontos_solicitados || "",
-    decision_rule: "simples",
+    decision_rule: legalApplicable && balance.portaria_inmetro ? "portaria_236" : "simples",
     declaration_of_conformity: "",
     general_conformity_result: "nao_avaliado",
     notes: "",

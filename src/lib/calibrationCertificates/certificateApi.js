@@ -331,6 +331,9 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
     points: calculated,
     conformity: full.conformity,
     decisionRule: full.conformity?.decision_rule,
+    pointMaxTolerances: scaleReg?.point_max_tolerances || full.balance_snapshot?.point_max_tolerances || [],
+    weightItems: items,
+    eccentricitySnapshot: full.eccentricity_snapshot || null,
   });
 
   const confByPoint = Object.fromEntries(

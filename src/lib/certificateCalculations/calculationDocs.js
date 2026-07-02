@@ -105,26 +105,32 @@ export const conformityFormulas = [
   {
     id: "classe",
     result: "Classe do instrumento",
-    formula: "I, II ou III conforme capacidade, resolução e razão C/R",
-    source: "Portaria 236",
+    formula: "Regras Metr. Legal: faixa, divisão de verificação (e) e nº de divisões H",
+    source: "Aba Metr. Legal — Portaria 236",
   },
   {
-    id: "tolerancia",
-    result: "Tolerância OIML",
-    formula: "Classe I: ±0,1% · Classe II: ±0,2% · Classe III: ±0,5% do valor nominal",
-    source: "Valor nominal do ponto",
+    id: "tolerancia_portaria",
+    result: "Tolerância Portaria 236",
+    formula: "n × e — n conforme OIML R 76-1 (faixas por classe)",
+    source: "decision_rule = portaria_236",
   },
   {
-    id: "decisao_simples",
-    result: "Regra simples",
-    formula: "Conforme se E está dentro da tolerância positiva e negativa",
+    id: "tolerancia_cliente",
+    result: "Erro tolerado pelo cliente",
+    formula: "Tolerância cadastrada por pesagem (point_max_tolerances)",
     source: "decision_rule = simples",
   },
   {
     id: "decisao_eu",
-    result: "Erro + incerteza",
-    formula: "Conforme se (E + U) está dentro da tolerância",
+    result: "Erro + incerteza na tolerância",
+    formula: "Limite = erro tolerado cliente + Ue exibida (MROUND)",
     source: "decision_rule = erro_mais_incerteza",
+  },
+  {
+    id: "resultado_ponto",
+    result: "Resultado Pn",
+    formula: "CONFORME se Pn-erro ≤ tol+ e Pn-erro ≥ tol−",
+    source: "Aba Metr. Legal",
   },
 ];
 
@@ -140,8 +146,7 @@ export const dataRequirements = [
 ];
 
 export const notYetImplemented = [
-  "Erro de excentricidade no resultado do certificado",
-  "Todas as regras detalhadas da aba Metrologia Legal",
+  "Tolerância de excentricidade configurável no cadastro (PREENCHER col 27)",
 ];
 
 /** Checklist de conformidade RE-7.2B Matriz (2) — verificado em testes automatizados. */
