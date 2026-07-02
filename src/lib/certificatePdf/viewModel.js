@@ -1,6 +1,6 @@
 import { formatCertificateNumber, certificateTypeLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
-import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter, buildCertificatePointDisplay, enrichCertificatePointsForDisplay, resolvePointVeff } from "@/lib/certificateCalculations";
+import { formatCalcDisplay, decimalPlacesFromResolution, resolveResolutionForNominal, resolveReadingsAfter, resolveReadingsBefore, buildCertificatePointDisplay, enrichCertificatePointsForDisplay, resolvePointVeff } from "@/lib/certificateCalculations";
 import { parseCalibrationNumber } from "@/lib/certificateCalculations/parseNumber";
 import { decimalPlacesForPoint } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import {
@@ -64,9 +64,30 @@ const ECCENTRICITY_EMPTY_CELL = "---";
 export function parseBalanceAdjustmentPerformed(balanceAdjusted) {
   const v = String(balanceAdjusted ?? "").trim().toLowerCase();
   if (!v) return null;
-  if (v === "sim" || v === "s" || v === "yes") return true;
-  if (v === "nao" || v === "não" || v === "n" || v === "nao." || v === "não.") return false;
+  if (v === "sim" || v === "s" || v === "yes" || v === "true" || v === "1") return true;
+  if (v === "nao" || v === "não" || v === "n" || v === "nao." || v === "não." || v === "false" || v === "0") return false;
   return null;
+}
+
+export function hasBeforeAdjustmentPointData(points = []) {
+  return (points || []).some((p) => {
+    if (p?.reading_before_adjustment != null && String(p.reading_before_adjustment).trim() !== "") return true;
+    if (p?.error_before_adjustment != null && String(p.error_before_adjustment).trim() !== "") return true;
+    return resolveReadingsBefore(p).some((r) => r != null && String(r).trim() !== "");
+  });
+}
+
+/** PDF / tabela — sim explícito ou leituras antes do ajuste preenchidas (exceto quando marcado "não"). */
+export function resolveShowBeforeAdjustmentTable(adjustmentPerformed, points = []) {
+  if (adjustmentPerformed === false) return false;
+  if (adjustmentPerformed === true) return true;
+  return hasBeforeAdjustmentPointData(points);
+}
+
+export function resolveShowEccentricityBeforeAfter(adjustmentPerformed, rawPoints = []) {
+  if (adjustmentPerformed === false) return false;
+  if (adjustmentPerformed === true) return true;
+  return (rawPoints || []).some((p) => hasFilledEccentricityValue(p.antes ?? p.leitura_antes ?? p.before));
 }
 
 function dashMeasure(unit) {
@@ -268,7 +289,7 @@ export function resolveEccentricity(cert, balance = {}, adjustmentPerformed = nu
     || points.some((p) => hasFilledEccentricityValue(p.before) || hasFilledEccentricityValue(p.after));
 
   const decimalPlaces = decimalPlacesFromResolution(balance.resolucao) ?? decimalPlacesForPoint(balance, 1);
-  const showBeforeAfterColumns = adjustmentPerformed === true;
+  const showBeforeAfterColumns = resolveShowEccentricityBeforeAfter(adjustmentPerformed, rawPoints);
   const showResultValues = hasEccentricityData;
 
   const resolveResultValue = (p) => (
@@ -364,6 +385,7 @@ export function buildCertificatePdfViewModel(cert, {
   env.popReference = tenant?.pop_calibration_code || "POP-CAL-02";
 
   const adjustmentPerformed = parseBalanceAdjustmentPerformed(env.balanceAdjusted);
+  const showBeforeAdjustmentTable = resolveShowBeforeAdjustmentTable(adjustmentPerformed, points);
   const eccentricity = resolveEccentricity(enriched, balance, adjustmentPerformed, unit);
   const repeatability = resolveRepeatability(enriched);
   const validityDate = enriched.validity_date || defaultValidityDate(enriched.calibration_date);
@@ -482,6 +504,7 @@ export function buildCertificatePdfViewModel(cert, {
     substitutionRepeatability: repeatability,
     repeatability,
     adjustmentPerformed,
+    showBeforeAdjustmentTable,
     adjustmentNote: adjustmentPerformed === false ? ADJUSTMENT_NOT_PERFORMED_NOTE : "",
     calibratedPointsCount: points.length,
     readingsPerPoint: resolveReadingsPerPoint(enriched),

@@ -440,7 +440,7 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   const m = ctx.metrics;
   const rows = repeatabilityRowsForPdfLayout(allRows, m);
   const unitLabel = model.unit || model.balance?.unidade || "kg";
-  const showBeforeAdjustment = model.adjustmentPerformed === true;
+  const showBeforeAdjustment = model.showBeforeAdjustmentTable === true;
   const leftW = showBeforeAdjustment ? CW * 0.42 : 0;
   const rightW = showBeforeAdjustment ? CW * 0.56 : CW;
   const gap = showBeforeAdjustment ? CW * 0.02 : 0;

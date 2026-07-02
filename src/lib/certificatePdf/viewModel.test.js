@@ -164,10 +164,26 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
     });
     expect(model.adjustmentSubtitle).toContain("Não foi realizado o ajuste");
     expect(model.adjustmentPerformed).toBe(false);
+    expect(model.showBeforeAdjustmentTable).toBe(false);
     expect(model.repeatabilityRows[0].reference.value).toBeTruthy();
     expect(model.repeatabilityRows[0].beforeReading.value).toBe("--");
     expect(model.repeatabilityRows[0].beforeError.value).toBe("--");
     expect(model.repeatabilityRows[0].average.value).toBeTruthy();
+  });
+
+  test("leituras antes do ajuste sem flag sim — exibe tabela Antes do Ajuste no PDF", () => {
+    const model = buildCertificatePdfViewModel({
+      ...EMISSAO_TESTE_CERT,
+      points: [{
+        ...EMISSAO_TESTE_CERT.points[0],
+        reading_before_adjustment: "100.05",
+        error_before_adjustment: 0.05,
+      }],
+    });
+    expect(model.adjustmentPerformed).toBeNull();
+    expect(model.showBeforeAdjustmentTable).toBe(true);
+    expect(model.repeatabilityRows[0].beforeReading.value).toBeTruthy();
+    expect(model.repeatabilityRows[0].beforeError.value).toBeTruthy();
   });
 });
 
@@ -234,6 +250,13 @@ describe("buildCertificatePdfViewModel — excentricidade", () => {
     expect(model.eccentricity.points[1].beforeDisplay).toBe("150,0000 g");
     expect(model.eccentricity.points[1].afterDisplay).toBe("201,0000 g");
     expect(model.eccentricity.points[2].beforeDisplay).toBe("201,0001 g");
+  });
+
+  test("excentricidade com leituras antes sem flag sim — colunas Antes/Após", () => {
+    const model = buildCertificatePdfViewModel(ECCENTRICITY_CERT_BASE);
+    expect(model.adjustmentPerformed).toBeNull();
+    expect(model.eccentricity.showBeforeAfterColumns).toBe(true);
+    expect(model.eccentricity.points[1].beforeDisplay).toBe("150,0000 g");
   });
 
   test("tipo_plataforma excentricidade_na — oculta seção", () => {

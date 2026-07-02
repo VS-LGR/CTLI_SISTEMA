@@ -147,8 +147,8 @@ function resolveBuoyancyPpm(point) {
 function parseBalanceAdjustmentPerformed(value) {
   const v = String(value ?? "").trim().toLowerCase();
   if (!v) return null;
-  if (v === "sim" || v === "s" || v === "yes") return true;
-  if (v === "nao" || v === "não" || v === "n" || v === "nao." || v === "não.") return false;
+  if (v === "sim" || v === "s" || v === "yes" || v === "true" || v === "1") return true;
+  if (v === "nao" || v === "não" || v === "n" || v === "nao." || v === "não." || v === "false" || v === "0") return false;
   return null;
 }
 
