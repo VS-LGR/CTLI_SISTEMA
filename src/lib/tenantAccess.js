@@ -9,7 +9,9 @@ import {
   canAccessPurchaseOrders,
   canManageTechnicians,
   canManageTenantUsers,
+  isClientPortalOperationsRole,
 } from "@/lib/roles";
+import { TECNICO_FIELD_CADASTRO_SECTIONS } from "@/lib/roleNav";
 
 export const DEPLOYMENT_MODELS = {
   FULL: "full",
@@ -37,7 +39,6 @@ export const CLIENT_PORTAL_CADASTRO_SECTIONS = new Set([
   "pesos",
   "balancas",
   "thermo",
-  "config-coleta",
   "config-proposta",
   "tecnicos",
   "usuarios",
@@ -110,6 +111,19 @@ export function canAccessModule({ tenant, role, module }) {
   }
 
   if (portal) {
+    if (module === "tenant_users") return canManageTenantUsers(role);
+    if (module === "pedidos_compra" || module === "solicitacao_orcamento") return false;
+    if (module === "backup" || module === "admin_clients" || module === "req4" || module === "req8") return false;
+    if (isClientPortalOperationsRole(role) || role === "client") {
+      if (module === "coleta") return canAccessColeta(role);
+      if (module === "propostas") return canAccessCommercialProposals(role);
+      if (module === "certificados") return canAccessCalibrationCertificates(role);
+      if (module === "pessoal") return canAccessPersonnel(role);
+      if (module === "lista_mestra") return canAccessMasterDocuments(role);
+      if (module === "thermo" || module === "pesos" || module === "balancas") return true;
+      if (module === "req5" || module === "req6" || module === "req7" || module === "cadastros") return true;
+      return CLIENT_PORTAL_MODULES.has(module);
+    }
     if (module === "coleta") return canAccessColeta(role);
     if (module === "propostas") return canAccessCommercialProposals(role);
     if (module === "certificados") return canAccessCalibrationCertificates(role);
@@ -153,6 +167,9 @@ export function canAccessRequirementFolder({ tenant, role, requirementId, folder
 
 export function canAccessCadastroSection({ tenant, role, sectionId }) {
   if (isCtliAdmin(role)) return true;
+  if (role === "tecnico_campo" && !isEffectiveClientPortal(tenant, role)) {
+    return TECNICO_FIELD_CADASTRO_SECTIONS.has(sectionId);
+  }
   if (!isEffectiveClientPortal(tenant, role)) return true;
   if (sectionId === "usuarios") return canManageTenantUsers(role);
   if (sectionId === "tecnicos") return canManageTechnicians(role);

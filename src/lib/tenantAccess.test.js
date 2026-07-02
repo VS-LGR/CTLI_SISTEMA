@@ -36,6 +36,7 @@ describe("tenantAccess", () => {
   test("client_portal permite coleta e certificados", () => {
     expect(canAccessModule({ tenant: portalTenant, role: "client", module: "coleta" })).toBe(true);
     expect(canAccessModule({ tenant: portalTenant, role: "client", module: "certificados" })).toBe(true);
+    expect(canAccessModule({ tenant: portalTenant, role: "gerente_qualidade", module: "coleta" })).toBe(true);
   });
 
   test("requisitos visíveis no portal", () => {
@@ -65,10 +66,18 @@ describe("tenantAccess", () => {
     expect(sections).toContain("usuarios");
   });
 
-  test("dashboard shortcuts portal — 6 atalhos ativos", () => {
-    const shortcuts = getVisibleDashboardShortcuts("client", portalTenant);
-    expect(shortcuts.length).toBe(CLIENT_PORTAL_SHORTCUTS.length);
-    expect(shortcuts.every((s) => s.active)).toBe(true);
+  test("dashboard shortcuts portal — 6 atalhos ativos para operações", () => {
+    for (const role of ["client", "signatario", "diretor", "gerente_qualidade", "tecnico_campo"]) {
+      const shortcuts = getVisibleDashboardShortcuts(role, portalTenant);
+      expect(shortcuts.length).toBe(CLIENT_PORTAL_SHORTCUTS.length);
+      expect(shortcuts.every((s) => s.active)).toBe(true);
+    }
+  });
+
+  test("tecnico portal acede cadastros pesos e balancas", () => {
+    expect(canAccessCadastroSection({ tenant: portalTenant, role: "tecnico_campo", sectionId: "pesos" })).toBe(true);
+    expect(canAccessCadastroSection({ tenant: portalTenant, role: "tecnico_campo", sectionId: "balancas" })).toBe(true);
+    expect(canAccessCadastroSection({ tenant: portalTenant, role: "tecnico_campo", sectionId: "usuarios" })).toBe(false);
   });
 
   test("roles provisionáveis por admin vs client", () => {

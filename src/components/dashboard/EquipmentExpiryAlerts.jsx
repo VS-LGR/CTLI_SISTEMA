@@ -40,8 +40,11 @@ export default function EquipmentExpiryAlerts({ alerts = [], loading = false }) 
       <CardHeader className="pb-2">
         <CardTitle className="font-display text-base flex items-center gap-2">
           <CalendarBlank size={18} className="text-amber-600" />
-          Vencimentos — pesos e termo
+          Avisos de vencimento
         </CardTitle>
+        <p className="text-xs text-slate-500 font-normal mt-1">
+          Pesos padrão e termo-baro-higrômetro vencidos ou a vencer nos próximos 60 dias
+        </p>
       </CardHeader>
       <CardContent className="pt-0">
         {loading && <p className="text-sm text-slate-500">A carregar…</p>}

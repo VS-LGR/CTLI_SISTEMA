@@ -11,8 +11,8 @@ export const CADASTRO_SECTIONS = [
   { id: "pesos", label: "Pesos padrão (identificação)" },
   { id: "balancas", label: "Balanças" },
   { id: "thermo", label: "Termo-baro-higrômetro" },
-  { id: "config-coleta", label: "Config. RE-7.2A", roles: ["admin", "client"] },
-  { id: "config-proposta", label: "Config. RE-7.1A", roles: ["admin", "client"] },
+  { id: "config-coleta", label: "Config. RE-7.2A", roles: ["admin", "client", "diretor", "gerente_qualidade", "gerente_tecnico", "signatario", "tecnico_campo"] },
+  { id: "config-proposta", label: "Config. RE-7.1A", roles: ["admin", "client", "diretor", "gerente_qualidade", "gerente_tecnico", "signatario"] },
   { id: "tecnicos", label: "Técnicos de campo", techniciansOnly: true },
   { id: "usuarios", label: "Usuários do ambiente", tenantAdminOnly: true },
 ];

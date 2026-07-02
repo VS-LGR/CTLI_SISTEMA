@@ -46,7 +46,13 @@ export const DASHBOARD_SHORTCUTS = [
     enabled: true,
     cadastroSectionId: "pesos",
   },
-  { id: "ensaio-proficiencia", label: "Ensaio de Proficiência", enabled: false },
+  {
+    id: "certificados",
+    label: "Certificados",
+    to: CERTIFICATE_LIST_PATH,
+    enabled: true,
+    requiresCalibrationCertificates: true,
+  },
   {
     id: "lista-mestra",
     label: "Lista Mestra",

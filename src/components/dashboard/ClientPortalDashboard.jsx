@@ -4,12 +4,13 @@ import { useAuth } from "@/context/AuthContext";
 import { getVisibleDashboardShortcuts } from "@/lib/dashboardShortcuts";
 import { canManageDashboardReminders, canApproveCalibrationCertificate } from "@/lib/roles";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { SealCheck, FileText, Scroll } from "@phosphor-icons/react";
+import { SealCheck, FileText, Scroll, ChartPieSlice } from "@phosphor-icons/react";
 import DashboardShortcutCard from "@/components/dashboard/DashboardShortcutCard";
 import DashboardReminders from "@/components/dashboard/DashboardReminders";
 import EquipmentExpiryAlerts from "@/components/dashboard/EquipmentExpiryAlerts";
+import ProposalsCertificatesChart from "@/components/dashboard/ProposalsCertificatesChart";
 
 export default function ClientPortalDashboard({
   currentTenant,
@@ -23,6 +24,8 @@ export default function ClientPortalDashboard({
   const showApprovalQueue = canApproveCalibrationCertificate(user?.role) && pendingApprovals > 0;
   const showReminders = canManageDashboardReminders(user?.role);
   const reminders = data?.reminders || [];
+  const certificatesCount = data?.certificates_issued_count ?? 0;
+  const proposalsCount = data?.proposals_issued_count ?? 0;
 
   return (
     <div className="space-y-6 min-w-0" data-testid="client-portal-dashboard">
@@ -45,7 +48,7 @@ export default function ClientPortalDashboard({
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wide">Certificados emitidos</p>
               <p className="text-2xl font-display font-bold text-slate-900">
-                {loading ? "—" : (data?.certificates_issued_count ?? 0)}
+                {loading ? "—" : certificatesCount}
               </p>
             </div>
           </CardContent>
@@ -56,14 +59,32 @@ export default function ClientPortalDashboard({
               <FileText size={24} className="text-emerald-600" weight="duotone" />
             </div>
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Propostas emitidas</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Propostas geradas</p>
               <p className="text-2xl font-display font-bold text-slate-900">
-                {loading ? "—" : (data?.proposals_issued_count ?? 0)}
+                {loading ? "—" : proposalsCount}
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-slate-200 min-w-0">
+        <CardHeader className="pb-2">
+          <CardTitle className="font-display text-lg flex items-center gap-2">
+            <ChartPieSlice size={20} className="text-blue-600" />
+            Propostas e certificados
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 min-w-0 overflow-hidden">
+          <ProposalsCertificatesChart
+            certificatesCount={certificatesCount}
+            proposalsCount={proposalsCount}
+            loading={loading}
+          />
+        </CardContent>
+      </Card>
+
+      <EquipmentExpiryAlerts alerts={data?.equipment_expiry_alerts} loading={loading} />
 
       {showApprovalQueue && (
         <Alert className="border-orange-300 bg-orange-50">
@@ -79,31 +100,29 @@ export default function ClientPortalDashboard({
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {shortcuts.map((s) => (
-              <DashboardShortcutCard
-                key={s.id}
-                id={s.id}
-                label={s.label}
-                to={s.to}
-                active={s.active}
-                disabledReason={s.disabledReason}
-              />
-            ))}
-          </div>
-          {showReminders && (
-            <DashboardReminders
-              tenantId={currentTenant?.id}
-              reminders={reminders}
-              userId={user?.id}
-              isAdmin={user?.role === "admin" || user?.role === "client"}
-              onChange={onRemindersChange}
+      <div className="space-y-4">
+        <h2 className="font-display text-lg font-semibold text-slate-900">Atalhos</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {shortcuts.map((s) => (
+            <DashboardShortcutCard
+              key={s.id}
+              id={s.id}
+              label={s.label}
+              to={s.to}
+              active={s.active}
+              disabledReason={s.disabledReason}
             />
-          )}
+          ))}
         </div>
-        <EquipmentExpiryAlerts alerts={data?.equipment_expiry_alerts} loading={loading} />
+        {showReminders && (
+          <DashboardReminders
+            tenantId={currentTenant?.id}
+            reminders={reminders}
+            userId={user?.id}
+              isAdmin={user?.role === "admin" || user?.role === "client" || user?.role === "signatario"}
+            onChange={onRemindersChange}
+          />
+        )}
       </div>
     </div>
   );

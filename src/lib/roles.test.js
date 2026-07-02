@@ -11,6 +11,7 @@ describe("certificate email roles", () => {
     expect(canSendCertificateEmail("signatario")).toBe(true);
     expect(canEditCalibrationCertificate("signatario")).toBe(false);
     expect(isSignatoryOnlyNav("signatario")).toBe(true);
+    expect(isSignatoryOnlyNav("signatario", { deployment_model: "client_portal" })).toBe(false);
   });
 
   test("tecnico_campo cannot approve or send certificates", () => {

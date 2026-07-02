@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Buildings, UserPlus, Trash, Users, IdentificationCard, PencilSimple } from "@phosphor-icons/react";
+import { Plus, Buildings, UserPlus, Trash, Users, PencilSimple } from "@phosphor-icons/react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ROLES, RESPONSIBLE_ROLES, roleShort } from "@/lib/roles";
 import { DEPLOYMENT_MODEL_OPTIONS, deploymentModelLabel } from "@/lib/tenantAccess";
@@ -20,6 +21,25 @@ import {
 } from "@/lib/coletaDocMeta";
 import { invokeSupabaseEdgeFunction, toastSupabaseAccessError } from "@/lib/supabaseFunctions";
 
+const isDocumentResponsibleRole = (role) =>
+  RESPONSIBLE_ROLES.some((r) => r.value === role);
+
+function getTenantPeople(tenantId, users, resps) {
+  const userList = users[tenantId] || [];
+  const respList = resps[tenantId] || [];
+  const userEmails = new Set(
+    userList.map((u) => u.email?.trim().toLowerCase()).filter(Boolean),
+  );
+  const items = userList.map((u) => ({ kind: "user", data: u }));
+  respList.forEach((r) => {
+    const email = r.email?.trim().toLowerCase();
+    if (!email || !userEmails.has(email)) {
+      items.push({ kind: "resp", data: r });
+    }
+  });
+  return items;
+}
+
 const AdminClients = () => {
   const { isAdmin, reloadTenants, currentTenantId, selectTenant, requestAdminTenantSwitch } = useOutletContext();
   const [tenants, setTenants] = useState([]);
@@ -28,7 +48,6 @@ const AdminClients = () => {
   const [resps, setResps] = useState({});
   const [openTenant, setOpenTenant] = useState(false);
   const [openUser, setOpenUser] = useState(false);
-  const [openResp, setOpenResp] = useState(false);
 
   const [editingTenantId, setEditingTenantId] = useState(null);
   const [editingUserId, setEditingUserId] = useState(null);
@@ -62,12 +81,8 @@ const AdminClients = () => {
   const [uPassword, setUPassword] = useState("");
   const [uRole, setURole] = useState("gerente_qualidade");
   const [uEmployeeId, setUEmployeeId] = useState("");
+  const [uPortalAccess, setUPortalAccess] = useState(true);
   const [tenantSignatories, setTenantSignatories] = useState([]);
-
-  const [rTenant, setRTenant] = useState("");
-  const [rName, setRName] = useState("");
-  const [rRole, setRRole] = useState("gerente_qualidade");
-  const [rEmail, setREmail] = useState("");
 
   const resetTenantForm = () => {
     setEditingTenantId(null);
@@ -110,20 +125,14 @@ const AdminClients = () => {
 
   const resetUserForm = () => {
     setEditingUserId(null);
+    setEditingRespId(null);
     setUTenant("");
     setUName("");
     setUEmail("");
     setUPassword("");
     setURole("gerente_qualidade");
     setUEmployeeId("");
-  };
-
-  const resetRespForm = () => {
-    setEditingRespId(null);
-    setRTenant("");
-    setRName("");
-    setRRole("gerente_qualidade");
-    setREmail("");
+    setUPortalAccess(true);
   };
 
   const loadSupabase = async () => {
@@ -349,68 +358,149 @@ const AdminClients = () => {
     }
   };
 
-  const createOrUpdateUser = async () => {
-    if (!uEmail || !uName.trim()) return toast.error("Preencha nome e e-mail");
-    if (!editingUserId && !uPassword) return toast.error("Informe a senha para novo utilizador");
-    if (uRole !== "admin" && !uTenant) return toast.error("Selecione o ambiente (cliente) para este utilizador");
-
-    if (uRole === "signatario" && !uEmployeeId) {
-      return toast.error("Selecione o colaborador signatário vinculado a este login");
-    }
-
-    try {
-      if (isSupabaseAuthMode) {
-        if (editingUserId) {
-          await invokeSupabaseEdgeFunction("admin-update-user", {
-            user_id: editingUserId,
-            full_name: uName.trim(),
-            role: uRole,
-            tenant_id: uRole === "admin" ? null : uTenant,
-            email: uEmail.trim(),
-            employee_registration_id: uRole === "signatario" ? uEmployeeId : null,
-          });
-          toast.success("Utilizador atualizado");
-        } else {
-          await invokeSupabaseEdgeFunction("admin-create-user", {
-            email: uEmail.trim(),
-            password: uPassword,
-            full_name: uName.trim(),
-            role: uRole,
-            tenant_id: uRole === "admin" ? null : uTenant,
-            employee_registration_id: uRole === "signatario" ? uEmployeeId : undefined,
-          });
-          toast.success("Utilizador criado");
-        }
-      } else {
-        if (editingUserId) {
-          toast.error("Edição de utilizador não disponível neste modo");
+  const syncResponsibleRecord = async ({ tenantId, name, email, role, responsibleId }) => {
+    if (!tenantId || !isDocumentResponsibleRole(role)) return;
+    const payload = { name: name.trim(), role, email: email?.trim() || "" };
+    if (isSupabaseAuthMode) {
+      if (responsibleId) {
+        const { error } = await supabase.from("responsibles").update(payload).eq("id", responsibleId);
+        if (error) throw error;
+        return;
+      }
+      const trimmedEmail = email?.trim() || "";
+      if (trimmedEmail) {
+        const { data: existing } = await supabase
+          .from("responsibles")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .ilike("email", trimmedEmail)
+          .maybeSingle();
+        if (existing?.id) {
+          const { error } = await supabase.from("responsibles").update(payload).eq("id", existing.id);
+          if (error) throw error;
           return;
         }
-        await api.post("/auth/register", {
+      }
+      const { error } = await supabase.from("responsibles").insert({ tenant_id: tenantId, ...payload });
+      if (error) throw error;
+      return;
+    }
+    if (responsibleId) {
+      toast.error("Edição de responsável não disponível neste modo");
+      return;
+    }
+    await api.post(`/tenants/${tenantId}/responsibles`, payload);
+  };
+
+  const createOrUpdatePerson = async () => {
+    if (!uName.trim()) return toast.error("Informe o nome");
+    if (!uTenant && uRole !== "admin") return toast.error("Selecione o ambiente (cliente)");
+
+    if (uPortalAccess) {
+      if (!uEmail.trim()) return toast.error("Informe o e-mail");
+      if (!editingUserId && !uPassword) return toast.error("Informe a senha para novo utilizador");
+      if (uRole !== "admin" && !uTenant) return toast.error("Selecione o ambiente (cliente) para este utilizador");
+      if (uRole === "signatario" && !uEmployeeId) {
+        return toast.error("Selecione o colaborador signatário vinculado a este login");
+      }
+
+      try {
+        if (isSupabaseAuthMode) {
+          if (editingUserId) {
+            await invokeSupabaseEdgeFunction("admin-update-user", {
+              user_id: editingUserId,
+              full_name: uName.trim(),
+              role: uRole,
+              tenant_id: uRole === "admin" ? null : uTenant,
+              email: uEmail.trim(),
+              employee_registration_id: uRole === "signatario" ? uEmployeeId : null,
+            });
+            toast.success("Utilizador atualizado");
+          } else {
+            await invokeSupabaseEdgeFunction("admin-create-user", {
+              email: uEmail.trim(),
+              password: uPassword,
+              full_name: uName.trim(),
+              role: uRole,
+              tenant_id: uRole === "admin" ? null : uTenant,
+              employee_registration_id: uRole === "signatario" ? uEmployeeId : undefined,
+            });
+            toast.success("Utilizador criado");
+          }
+          if (uRole !== "admin" && uTenant) {
+            await syncResponsibleRecord({
+              tenantId: uTenant,
+              name: uName,
+              email: uEmail,
+              role: uRole,
+            });
+          }
+        } else {
+          if (editingUserId) {
+            toast.error("Edição de utilizador não disponível neste modo");
+            return;
+          }
+          await api.post("/auth/register", {
+            name: uName,
+            email: uEmail,
+            password: uPassword,
+            role: uRole,
+            tenant_id: uRole === "admin" ? null : uTenant,
+          });
+          toast.success("Usuário criado");
+          if (uRole !== "admin" && uTenant) {
+            await syncResponsibleRecord({
+              tenantId: uTenant,
+              name: uName,
+              email: uEmail,
+              role: uRole,
+            });
+          }
+        }
+      } catch (e) {
+        toastSupabaseAccessError(e, "Falha");
+        return;
+      }
+    } else {
+      if (!isDocumentResponsibleRole(uRole)) {
+        return toast.error("Este cargo só está disponível com acesso ao portal");
+      }
+      try {
+        await syncResponsibleRecord({
+          tenantId: uTenant,
           name: uName,
           email: uEmail,
-          password: uPassword,
           role: uRole,
-          tenant_id: uRole === "admin" ? null : uTenant,
+          responsibleId: editingRespId,
         });
-        toast.success("Usuário criado");
+        toast.success(editingRespId ? "Responsável atualizado" : "Responsável cadastrado");
+      } catch (e) {
+        toastSupabaseAccessError(e, "Falha");
+        return;
       }
-      setOpenUser(false);
-      resetUserForm();
-      await load();
-    } catch (e) {
-      toastSupabaseAccessError(e, "Falha");
     }
+
+    setOpenUser(false);
+    resetUserForm();
+    await load();
+  };
+
+  const openCreatePerson = (tenantId = "") => {
+    resetUserForm();
+    if (tenantId) setUTenant(tenantId);
+    setOpenUser(true);
   };
 
   const openEditUser = (u, tenantIdForScope) => {
     setEditingUserId(u.id);
+    setEditingRespId(null);
     setUName(u.name);
     setUEmail(u.email);
     setUPassword("");
     setURole(u.role);
     setUTenant(u.role === "admin" ? "" : tenantIdForScope || u.tenant_id || "");
     setUEmployeeId(u.employee_registration_id || "");
+    setUPortalAccess(true);
     setOpenUser(true);
   };
 
@@ -426,50 +516,17 @@ const AdminClients = () => {
     }
   };
 
-  const createOrUpdateResp = async () => {
-    if (!rTenant || !rName.trim()) return toast.error("Selecione o ambiente e informe o nome");
-    try {
-      if (isSupabaseAuthMode) {
-        if (editingRespId) {
-          const { error } = await supabase
-            .from("responsibles")
-            .update({ name: rName.trim(), role: rRole, email: rEmail || "" })
-            .eq("id", editingRespId);
-          if (error) throw error;
-          toast.success("Responsável atualizado");
-        } else {
-          const { error } = await supabase
-            .from("responsibles")
-            .insert({ tenant_id: rTenant, name: rName.trim(), role: rRole, email: rEmail || "" });
-          if (error) throw error;
-          toast.success("Responsável cadastrado");
-        }
-      } else if (editingRespId) {
-        toast.error("Edição de responsável não disponível neste modo");
-        return;
-      } else {
-        await api.post(`/tenants/${rTenant}/responsibles`, {
-          name: rName.trim(),
-          role: rRole,
-          email: rEmail,
-        });
-        toast.success("Responsável cadastrado");
-      }
-      setOpenResp(false);
-      resetRespForm();
-      await load();
-    } catch (e) {
-      toastSupabaseAccessError(e, "Falha");
-    }
-  };
-
   const openEditResp = (r, tenantId) => {
+    setEditingUserId(null);
     setEditingRespId(r.id);
-    setRTenant(tenantId);
-    setRName(r.name);
-    setRRole(r.role);
-    setREmail(r.email || "");
-    setOpenResp(true);
+    setUTenant(tenantId);
+    setUName(r.name);
+    setURole(r.role);
+    setUEmail(r.email || "");
+    setUPassword("");
+    setUEmployeeId("");
+    setUPortalAccess(false);
+    setOpenUser(true);
   };
 
   const removeResp = async (tenantId, rid) => {
@@ -494,82 +551,11 @@ const AdminClients = () => {
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Administração CTLI</div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Ambientes (clientes)</h1>
           <p className="text-sm text-slate-600 mt-1">
-            Cada ambiente corresponde a um cliente: documentos, responsáveis e utilizadores do portal ficam isolados.
-            A CTLI cria ambientes e as contas de acesso (incluindo &quot;Conta cliente&quot;) para o cliente entrar só no seu espaço.
+            Cada ambiente corresponde a um cliente: documentos e utilizadores ficam isolados.
+            Cadastre pessoas com acesso ao portal ou apenas como responsáveis em documentos, num único fluxo.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Dialog
-            open={openResp}
-            onOpenChange={(o) => {
-              setOpenResp(o);
-              if (!o) resetRespForm();
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button variant="outline" data-testid="open-create-resp">
-                <IdentificationCard size={16} className="mr-1.5" /> Novo responsável
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="font-display">
-                  {editingRespId ? "Editar responsável" : "Novo responsável"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label>Ambiente (cliente)</Label>
-                  <select
-                    value={rTenant}
-                    onChange={(e) => setRTenant(e.target.value)}
-                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
-                    data-testid="resp-tenant-select"
-                    disabled={Boolean(editingRespId)}
-                  >
-                    <option value="">Selecione…</option>
-                    {tenants.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <Label>Nome *</Label>
-                  <Input value={rName} onChange={(e) => setRName(e.target.value)} data-testid="resp-name-input" />
-                </div>
-                <div>
-                  <Label>Cargo</Label>
-                  <select
-                    value={rRole}
-                    onChange={(e) => setRRole(e.target.value)}
-                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
-                    data-testid="resp-role-select"
-                  >
-                    {RESPONSIBLE_ROLES.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <Label>E-mail (opcional)</Label>
-                  <Input type="email" value={rEmail} onChange={(e) => setREmail(e.target.value)} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpenResp(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={createOrUpdateResp} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-resp">
-                  {editingRespId ? "Guardar" : "Cadastrar"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
           <Dialog
             open={openUser}
             onOpenChange={(o) => {
@@ -578,25 +564,33 @@ const AdminClients = () => {
             }}
           >
             <DialogTrigger asChild>
-              <Button variant="outline" data-testid="open-create-user">
+              <Button variant="outline" data-testid="open-create-user" onClick={() => openCreatePerson()}>
                 <UserPlus size={16} className="mr-1.5" /> Novo usuário
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="font-display">{editingUserId ? "Editar usuário" : "Novo usuário"}</DialogTitle>
+                <DialogTitle className="font-display">
+                  {editingRespId
+                    ? "Editar responsável"
+                    : editingUserId
+                      ? "Editar usuário"
+                      : "Novo usuário"}
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-3">
                 <div>
                   <Label>
-                    Ambiente (cliente) {uRole === "admin" && <span className="text-xs text-slate-500">(não aplicável a CTLI)</span>}
+                    Ambiente (cliente) {uRole === "admin" && uPortalAccess && (
+                      <span className="text-xs text-slate-500">(não aplicável a CTLI)</span>
+                    )}
                   </Label>
                   <select
                     value={uTenant}
                     onChange={(e) => setUTenant(e.target.value)}
                     className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
                     data-testid="user-tenant-select"
-                    disabled={uRole === "admin"}
+                    disabled={uRole === "admin" && uPortalAccess || Boolean(editingUserId || editingRespId)}
                   >
                     <option value="">Selecione…</option>
                     {tenants.map((t) => (
@@ -606,6 +600,35 @@ const AdminClients = () => {
                     ))}
                   </select>
                 </div>
+
+                <div className="flex items-start gap-3 rounded-md border border-slate-200 p-3">
+                  <Checkbox
+                    id="portal-access"
+                    checked={uPortalAccess}
+                    disabled={Boolean(editingUserId || editingRespId)}
+                    onCheckedChange={(checked) => {
+                      const enabled = checked === true;
+                      setUPortalAccess(enabled);
+                      if (!enabled && !isDocumentResponsibleRole(uRole)) {
+                        setURole(RESPONSIBLE_ROLES[0]?.value || "gerente_qualidade");
+                      }
+                      if (enabled && !ROLES.some((r) => r.value === uRole)) {
+                        setURole("gerente_qualidade");
+                      }
+                      if (!enabled) setUEmployeeId("");
+                    }}
+                    data-testid="user-portal-access"
+                  />
+                  <div className="space-y-0.5">
+                    <Label htmlFor="portal-access" className="cursor-pointer font-medium">
+                      Acesso ao portal (login)
+                    </Label>
+                    <p className="text-xs text-slate-500">
+                      Desmarque para cadastrar apenas como responsável em documentos, sem conta de acesso.
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <Label>Nível de acesso</Label>
                   <select
@@ -617,14 +640,14 @@ const AdminClients = () => {
                     className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
                     data-testid="user-role-select"
                   >
-                    {ROLES.map((r) => (
+                    {(uPortalAccess ? ROLES : RESPONSIBLE_ROLES).map((r) => (
                       <option key={r.value} value={r.value}>
                         {r.label}
                       </option>
                     ))}
                   </select>
                 </div>
-                {uRole === "signatario" && (
+                {uPortalAccess && uRole === "signatario" && (
                   <div>
                     <Label>Colaborador signatário *</Label>
                     <select
@@ -656,22 +679,27 @@ const AdminClients = () => {
                   <Input value={uName} onChange={(e) => setUName(e.target.value)} data-testid="user-name-input" />
                 </div>
                 <div>
-                  <Label>E-mail *</Label>
+                  <Label>E-mail {uPortalAccess ? "*" : "(opcional)"}</Label>
                   <Input type="email" value={uEmail} onChange={(e) => setUEmail(e.target.value)} data-testid="user-email-input" />
                 </div>
-                {!editingUserId && (
+                {uPortalAccess && !editingUserId && (
                   <div>
                     <Label>Senha *</Label>
                     <Input type="password" value={uPassword} onChange={(e) => setUPassword(e.target.value)} data-testid="user-password-input" />
                   </div>
+                )}
+                {uPortalAccess && isDocumentResponsibleRole(uRole) && uRole !== "admin" && (
+                  <p className="text-xs text-slate-500">
+                    Também será registado como responsável em documentos (lista mestra, revisões, etc.).
+                  </p>
                 )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpenUser(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={createOrUpdateUser} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-user">
-                  {editingUserId ? "Guardar" : "Criar"}
+                <Button onClick={createOrUpdatePerson} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-user">
+                  {editingUserId || editingRespId ? "Guardar" : "Cadastrar"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -902,92 +930,108 @@ const AdminClients = () => {
             <CardContent>
               {t.description && <p className="text-sm text-slate-600 mb-3">{t.description}</p>}
 
-              <Tabs defaultValue="resp">
-                <TabsList className="w-full grid grid-cols-2 bg-slate-100">
-                  <TabsTrigger value="resp" data-testid={`tab-resp-${t.id}`}>
-                    Responsáveis ({(resps[t.id] || []).length})
-                  </TabsTrigger>
-                  <TabsTrigger value="users" data-testid={`tab-users-${t.id}`}>
-                    Usuários ({(users[t.id] || []).length})
+              <Tabs defaultValue="people">
+                <TabsList className="w-full bg-slate-100">
+                  <TabsTrigger value="people" data-testid={`tab-people-${t.id}`}>
+                    Usuários ({getTenantPeople(t.id, users, resps).length})
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="resp" className="mt-3 space-y-1 max-h-44 overflow-y-auto">
-                  {(resps[t.id] || []).length === 0 && (
-                    <div className="text-xs text-slate-500 italic">Sem responsáveis. Use &quot;Novo responsável&quot;.</div>
+                <TabsContent value="people" className="mt-3 space-y-1 max-h-44 overflow-y-auto">
+                  {getTenantPeople(t.id, users, resps).length === 0 && (
+                    <div className="text-xs text-slate-500 italic">Sem usuários. Use &quot;Novo usuário&quot;.</div>
                   )}
-                  {(resps[t.id] || []).map((r) => (
-                    <div key={r.id} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium text-slate-700 truncate">{r.name}</div>
-                        <div className="text-slate-500 truncate">
-                          {roleShort(r.role)}
-                          {r.email ? ` • ${r.email}` : ""}
+                  {getTenantPeople(t.id, users, resps).map((item) => {
+                    if (item.kind === "user") {
+                      const u = item.data;
+                      return (
+                        <div key={`user-${u.id}`} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium text-slate-700 truncate flex items-center gap-1.5">
+                              <span className="truncate">{u.name}</span>
+                              <span className="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">Portal</span>
+                            </div>
+                            <div className="text-slate-500 truncate">
+                              {u.email} • {roleShort(u.role)}
+                            </div>
+                          </div>
+                          {isSupabaseAuthMode && (
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => openEditUser(u, t.id)}
+                                className="text-slate-500 hover:text-blue-600 p-1"
+                                title="Editar"
+                              >
+                                <PencilSimple size={12} />
+                              </button>
+                              <button type="button" onClick={() => removeUser(u.id)} className="text-red-500 hover:text-red-700 p-1" title="Excluir">
+                                <Trash size={12} />
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        {isSupabaseAuthMode && (
-                          <button
-                            type="button"
-                            onClick={() => openEditResp(r, t.id)}
-                            className="text-slate-500 hover:text-blue-600 p-1"
-                            title="Editar"
-                          >
-                            <PencilSimple size={12} />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeResp(t.id, r.id)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                          title="Excluir"
-                        >
-                          <Trash size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="users" className="mt-3 space-y-1 max-h-44 overflow-y-auto">
-                  {(users[t.id] || []).length === 0 && <div className="text-xs text-slate-500 italic">Sem usuários.</div>}
-                  {(users[t.id] || []).map((u) => (
-                    <div key={u.id} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium text-slate-700 truncate">{u.name}</div>
-                        <div className="text-slate-500 truncate">
-                          {u.email} • {roleShort(u.role)}
+                      );
+                    }
+                    const r = item.data;
+                    return (
+                      <div key={`resp-${r.id}`} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2">
+                        <div className="min-w-0">
+                          <div className="font-medium text-slate-700 truncate flex items-center gap-1.5">
+                            <span className="truncate">{r.name}</span>
+                            <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">Só documentos</span>
+                          </div>
+                          <div className="text-slate-500 truncate">
+                            {roleShort(r.role)}
+                            {r.email ? ` • ${r.email}` : ""}
+                          </div>
                         </div>
-                      </div>
-                      {isSupabaseAuthMode && (
                         <div className="flex items-center gap-0.5 shrink-0">
+                          {isSupabaseAuthMode && (
+                            <button
+                              type="button"
+                              onClick={() => openEditResp(r, t.id)}
+                              className="text-slate-500 hover:text-blue-600 p-1"
+                              title="Editar"
+                            >
+                              <PencilSimple size={12} />
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={() => openEditUser(u, t.id)}
-                            className="text-slate-500 hover:text-blue-600 p-1"
-                            title="Editar"
+                            onClick={() => removeResp(t.id, r.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                            title="Excluir"
                           >
-                            <PencilSimple size={12} />
-                          </button>
-                          <button type="button" onClick={() => removeUser(u.id)} className="text-red-500 hover:text-red-700 p-1" title="Excluir">
                             <Trash size={12} />
                           </button>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </TabsContent>
               </Tabs>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mt-4"
-                onClick={() => (requestAdminTenantSwitch || selectTenant)(t.id)}
-                data-testid={`enter-tenant-${t.id}`}
-              >
-                Entrar no ambiente
-              </Button>
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => openCreatePerson(t.id)}
+                  data-testid={`add-person-${t.id}`}
+                >
+                  <UserPlus size={14} className="mr-1" /> Novo usuário
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => (requestAdminTenantSwitch || selectTenant)(t.id)}
+                  data-testid={`enter-tenant-${t.id}`}
+                >
+                  Entrar no ambiente
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}

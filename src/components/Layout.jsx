@@ -15,8 +15,9 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, canApproveCalibrationCertificate } from "@/lib/roles";
 import { canAccessModule } from "@/lib/tenantAccess";
+import RoleRouteGuard from "@/components/tenant/RoleRouteGuard";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 import {
   getVisibleReqMenuItems,
@@ -112,9 +113,10 @@ const Layout = () => {
 
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";
-  const technicianNav = isTechnicianOnlyNav(user?.role);
-  const signatoryNav = isSignatoryOnlyNav(user?.role);
+  const technicianNav = isTechnicianOnlyNav(user?.role, currentTenant);
+  const signatoryNav = isSignatoryOnlyNav(user?.role, currentTenant);
   const restrictedNav = technicianNav || signatoryNav;
+  const showApprovalNav = canApproveCalibrationCertificate(user?.role) && !restrictedNav;
 
   const {
     confirmOpen: tenantConfirmOpen,
@@ -182,6 +184,12 @@ const Layout = () => {
       {!restrictedNav && (
         <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard" onClick={onNavigate}>
           <House size={18} weight="duotone" /> Dashboard
+        </NavLink>
+      )}
+
+      {showApprovalNav && (
+        <NavLink to={CERTIFICATE_PENDING_APPROVAL_PATH} className={navLinkClass} data-testid="nav-certificates-approval" onClick={onNavigate}>
+          <ClipboardText size={18} weight="duotone" /> Certificados — aprovação
         </NavLink>
       )}
 
@@ -518,8 +526,9 @@ const Layout = () => {
               <span className="text-sm text-slate-600">A mudar de ambiente…</span>
             </div>
           )}
-          <Outlet
-            context={{
+          <RoleRouteGuard
+            currentTenant={currentTenant}
+            outletContext={{
               tenants,
               currentTenant,
               currentTenantId,

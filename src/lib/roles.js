@@ -1,4 +1,13 @@
 // Cargos / Níveis do sistema (valores alinhados ao CHECK em `profiles` no Supabase)
+import {
+  CLIENT_PORTAL_OPERATIONS_ROLES,
+  isTechnicianOnlyNav,
+  isSignatoryOnlyNav,
+  isClientPortalOperationsRole,
+} from "@/lib/roleNav";
+
+export { CLIENT_PORTAL_OPERATIONS_ROLES, isTechnicianOnlyNav, isSignatoryOnlyNav, isClientPortalOperationsRole };
+
 export const ROLES = [
   { value: "admin", label: "Administrador CTLI", short: "CTLI" },
   { value: "client", label: "Conta cliente (portal)", short: "Cliente" },
@@ -17,8 +26,9 @@ export const RESPONSIBLE_ROLES = ROLES.filter(
 
 export const isCtliAdmin = (role) => role === "admin";
 
-export const canAccessColeta = (role) =>
-  ["admin", "client", "tecnico_campo"].includes(role);
+const OPERATIONS_AND_CLIENT = ["admin", "client", ...CLIENT_PORTAL_OPERATIONS_ROLES];
+
+export const canAccessColeta = (role) => OPERATIONS_AND_CLIENT.includes(role);
 
 const CERTIFICATE_INTERNAL_ROLES = [
   "admin",
@@ -58,9 +68,6 @@ export const canAccessCalibrationCertificates = (role) =>
     "administrativo_vendas",
   ].includes(role);
 
-/** Signatário: acesso restrito à fila de aprovação/envio (sem edição técnica completa). */
-export const isSignatoryOnlyNav = (role) => role === "signatario";
-
 /** Edição técnica de certificados — exclui signatário e técnico de campo. */
 export const canEditCalibrationCertificate = (role) =>
   [
@@ -85,19 +92,20 @@ export const canAccessPurchaseOrders = (role) =>
 /** Solicitações de orçamento — mesmos papéis que pedidos de compra. */
 export const canAccessQuotationRequests = canAccessPurchaseOrders;
 
-/** Propostas comerciais RE-7.1A — mesmos papéis que pedidos de compra. */
-export const canAccessCommercialProposals = canAccessPurchaseOrders;
+/** Propostas comerciais RE-7.1A — operações do portal + adm/vendas. */
+export const canAccessCommercialProposals = (role) =>
+  [...OPERATIONS_AND_CLIENT, "administrativo_vendas"].includes(role);
 
-/** Módulo 6.2 Pessoal — mesmos papéis que pedidos de compra. */
-export const canAccessPersonnel = canAccessPurchaseOrders;
+/** Módulo 6.2 Pessoal — operações do portal + adm/vendas. */
+export const canAccessPersonnel = canAccessCommercialProposals;
 
 /** Edição de listas padrão do módulo Pessoal. */
 export const canEditPersonnelStandardOptions = (role) =>
-  ["admin", "client", "gerente_qualidade", "diretor"].includes(role);
+  ["admin", "client", "gerente_qualidade", "gerente_tecnico", "diretor", "signatario"].includes(role);
 
 /** Lista Mestra de Documentos (PR-8.3). */
 export const canAccessMasterDocuments = (role) =>
-  ["admin", "client", "diretor", "gerente_qualidade", "gerente_tecnico"].includes(role);
+  ["admin", "client", ...CLIENT_PORTAL_OPERATIONS_ROLES].includes(role);
 
 export const canManageTechnicians = (role) =>
   role === "admin" || role === "client";
@@ -106,11 +114,9 @@ export const canManageTechnicians = (role) =>
 export const canManageTenantUsers = (role) =>
   role === "admin" || role === "client";
 
-/** Lembretes na dashboard: criar, ler e excluir (admin CTLI + conta cliente). */
+/** Lembretes na dashboard: admin CTLI, conta cliente e signatário (notificações). */
 export const canManageDashboardReminders = (role) =>
-  role === "admin" || role === "client";
-
-export const isTechnicianOnlyNav = (role) => role === "tecnico_campo";
+  role === "admin" || role === "client" || role === "signatario";
 
 export const roleLabel = (value) => ROLES.find((r) => r.value === value)?.label || value || "—";
 export const roleShort = (value) => ROLES.find((r) => r.value === value)?.short || value || "—";
