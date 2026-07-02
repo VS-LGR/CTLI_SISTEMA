@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartBar } from "@phosphor-icons/react";
+import { ChartPieSlice } from "@phosphor-icons/react";
 import ProposalsCertificatesChart from "@/components/dashboard/ProposalsCertificatesChart";
 import EquipmentExpiryAlerts from "@/components/dashboard/EquipmentExpiryAlerts";
 
@@ -16,7 +16,7 @@ export default function DashboardOperationalOverview({
       <Card className="border-slate-200 min-w-0">
         <CardHeader className="pb-2">
           <CardTitle className="font-display text-lg flex items-center gap-2">
-            <ChartBar size={20} className="text-blue-600" weight="duotone" />
+            <ChartPieSlice size={20} className="text-blue-600" weight="duotone" />
             Propostas e certificados
           </CardTitle>
           <p className="text-xs text-slate-500 font-normal mt-1">
