@@ -3,6 +3,8 @@ import { useOutletContext, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { fetchDashboard } from "@/lib/dashboardApi";
 import { canManageDashboardReminders, isCtliAdmin, canApproveCalibrationCertificate } from "@/lib/roles";
+import { isEffectiveClientPortal } from "@/lib/tenantAccess";
+import ClientPortalDashboard from "@/components/dashboard/ClientPortalDashboard";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 import { getVisibleDashboardShortcuts } from "@/lib/dashboardShortcuts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,9 +91,21 @@ const Dashboard = () => {
   const listaMestraPath = data?.lista_mestra_path;
   const alertCount = documentAlerts?.totalCount || 0;
   const showReminders = canManageDashboardReminders(user?.role);
-  const shortcuts = getVisibleDashboardShortcuts(user?.role);
+  const shortcuts = getVisibleDashboardShortcuts(user?.role, currentTenant);
   const pendingApprovals = data?.certificate_pending_approval || 0;
   const showApprovalQueue = canApproveCalibrationCertificate(user?.role) && pendingApprovals > 0;
+  const portalMode = isEffectiveClientPortal(currentTenant, user?.role);
+
+  if (portalMode) {
+    return (
+      <ClientPortalDashboard
+        currentTenant={currentTenant}
+        data={data}
+        loading={loading}
+        onRemindersChange={load}
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 min-w-0" data-testid="dashboard">

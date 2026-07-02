@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, Navigate, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
+import TenantUsersPanel from "@/components/cadastros/TenantUsersPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
 import ScaleRegistrationSection from "@/components/cadastros/ScaleRegistrationSection";
 import ColetaTenantConfig from "@/components/cadastros/ColetaTenantConfig";
@@ -178,11 +179,12 @@ const CadastrosPage = () => {
     );
   }
 
-  const visibleSections = getVisibleCadastroSections(user?.role);
-  const activeSection = section || "fornecedores";
-  if (!section) return <Navigate to={cadastroSectionPath("fornecedores")} replace />;
+  const visibleSections = getVisibleCadastroSections(user?.role, currentTenant);
+  const defaultSectionId = visibleSections[0]?.id || "fornecedores";
+  const activeSection = section || defaultSectionId;
+  if (!section) return <Navigate to={cadastroSectionPath(defaultSectionId)} replace />;
   if (!visibleSections.some((s) => s.id === activeSection)) {
-    return <Navigate to={cadastroSectionPath(visibleSections[0]?.id || "fornecedores")} replace />;
+    return <Navigate to={cadastroSectionPath(visibleSections[0]?.id || defaultSectionId)} replace />;
   }
   const sectionTitle = getCadastroSectionLabel(activeSection);
 
@@ -232,6 +234,9 @@ const CadastrosPage = () => {
           <CommercialProposalTenantConfig tenantId={currentTenantId} tenant={currentTenant} onSaved={() => reloadTenants?.()} />
         )}
         {activeSection === "tecnicos" && <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />}
+        {activeSection === "usuarios" && (
+          <TenantUsersPanel tenantId={currentTenantId} isAdmin={isAdmin} />
+        )}
       </div>
     </div>
   );

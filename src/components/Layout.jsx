@@ -16,9 +16,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals } from "@/lib/roles";
+import { canAccessModule } from "@/lib/tenantAccess";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 import {
-  REQ_MENU_ITEMS,
+  getVisibleReqMenuItems,
   getFoldersForRequirement,
   buildFolderSidebarNav,
   folderHasSidebarNav,
@@ -168,7 +169,9 @@ const Layout = () => {
   };
 
   const isCadastrosActive = location.pathname.startsWith("/cadastros");
-  const cadastroSections = getVisibleCadastroSections(user?.role);
+  const cadastroSections = getVisibleCadastroSections(user?.role, currentTenant);
+  const reqMenuItems = getVisibleReqMenuItems(currentTenant, user?.role);
+  const showBackupNav = canAccessModule({ tenant: currentTenant, role: user?.role, module: "backup" });
 
   useEffect(() => {
     if (isCadastrosActive) setCadastrosExpanded(true);
@@ -228,7 +231,7 @@ const Layout = () => {
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Requisitos
           </div>
-          {REQ_MENU_ITEMS.map((r) => {
+          {reqMenuItems.map((r) => {
             const Icon = REQ_ICONS[r.id] || ListChecks;
             if (!requiresFolderNav(r.id)) {
               return (
@@ -247,7 +250,7 @@ const Layout = () => {
                 </NavLink>
               );
             }
-            const folders = getFoldersForRequirement(r.id);
+            const folders = getFoldersForRequirement(r.id, currentTenant, user?.role);
             return (
               <Collapsible key={r.id} defaultOpen={isReqGroupActive(r.id)}>
                 <CollapsibleTrigger
@@ -346,9 +349,11 @@ const Layout = () => {
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Sistema
           </div>
+          {showBackupNav && (
           <NavLink to="/backup" className={navLinkClass} data-testid="nav-backup" onClick={onNavigate}>
             <Database size={18} weight="duotone" /> Backup
           </NavLink>
+          )}
         </>
       )}
     </nav>

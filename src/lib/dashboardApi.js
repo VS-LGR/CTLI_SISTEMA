@@ -124,14 +124,107 @@ async function countPendingApprovalCertificates(tenantId) {
   return count || 0;
 }
 
+const EXPIRY_WARNING_DAYS = 60;
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysIso(isoDate, days) {
+  const d = new Date(`${isoDate}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function classifyExpiry(expiryDate, today) {
+  if (!expiryDate) return null;
+  const exp = String(expiryDate).slice(0, 10);
+  if (exp < today) return "expired";
+  const warnUntil = addDaysIso(today, EXPIRY_WARNING_DAYS);
+  if (exp <= warnUntil) return "warning";
+  return null;
+}
+
+async function fetchPortalMetrics(tenantId) {
+  if (!supabase || !tenantId) {
+    return { certificates_issued_count: 0, proposals_issued_count: 0, equipment_expiry_alerts: [] };
+  }
+
+  const today = todayIsoDate();
+  const alerts = [];
+
+  const [certRes, propRes, weightRes, envRes] = await Promise.all([
+    supabase
+      .from("calibration_certificates")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("status", "emitido"),
+    supabase
+      .from("commercial_proposals")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId),
+    supabase
+      .from("weight_standard_certificates")
+      .select("id, set_name, certificate_number, expiry_date")
+      .eq("tenant_id", tenantId),
+    supabase
+      .from("environment_sensor_certificates")
+      .select("id, equipment_name, certificate_number, expiry_date")
+      .eq("tenant_id", tenantId),
+  ]);
+
+  (weightRes.data || []).forEach((row) => {
+    const status = classifyExpiry(row.expiry_date, today);
+    if (!status) return;
+    alerts.push({
+      id: row.id,
+      kind: "Peso padrão",
+      label: row.set_name || row.certificate_number || "Certificado",
+      expiry_date: row.expiry_date,
+      status,
+    });
+  });
+
+  (envRes.data || []).forEach((row) => {
+    const status = classifyExpiry(row.expiry_date, today);
+    if (!status) return;
+    alerts.push({
+      id: row.id,
+      kind: "Termo-baro",
+      label: row.equipment_name || row.certificate_number || "Equipamento",
+      expiry_date: row.expiry_date,
+      status,
+    });
+  });
+
+  alerts.sort((a, b) => String(a.expiry_date).localeCompare(String(b.expiry_date)));
+
+  return {
+    certificates_issued_count: certRes.count || 0,
+    proposals_issued_count: propRes.count || 0,
+    equipment_expiry_alerts: alerts,
+  };
+}
+
+async function enrichDashboardPayload(tenantId, base) {
+  let certificate_pending_approval = 0;
+  let portal = { certificates_issued_count: 0, proposals_issued_count: 0, equipment_expiry_alerts: [] };
+  try {
+    certificate_pending_approval = await countPendingApprovalCertificates(tenantId);
+  } catch { /* optional */ }
+  try {
+    portal = await fetchPortalMetrics(tenantId);
+  } catch { /* optional */ }
+  return {
+    ...base,
+    certificate_pending_approval,
+    ...portal,
+  };
+}
+
 export function fetchDashboard(tenantId) {
   if (isSupabaseAuthMode) {
     return listRemindersSupabase(tenantId).then(async (reminders) => {
-      let certificate_pending_approval = 0;
-      try {
-        certificate_pending_approval = await countPendingApprovalCertificates(tenantId);
-      } catch { /* optional */ }
-
       if (isSupabaseDocumentsEnabled()) {
         try {
           const docs = await fetchDocumentStatsSupabase(tenantId);
@@ -139,25 +232,28 @@ export function fetchDashboard(tenantId) {
           try {
             documentAlerts = await getAllDocumentAlerts(tenantId);
           } catch { /* optional */ }
-          return {
-            data: {
-              ...buildDashboardFromDocs(docs, reminders, documentAlerts),
-              certificate_pending_approval,
-            },
-          };
+          const data = await enrichDashboardPayload(
+            tenantId,
+            buildDashboardFromDocs(docs, reminders, documentAlerts),
+          );
+          return { data };
         } catch {
-          return { data: { ...emptyDashboardPayload(reminders), certificate_pending_approval } };
+          const data = await enrichDashboardPayload(tenantId, emptyDashboardPayload(reminders));
+          return { data };
         }
       }
       if (hasLegacyDashboardApi) {
         try {
           const r = await api.get("/dashboard", { params: { tenant_id: tenantId } });
-          return { data: { ...r.data, reminders, certificate_pending_approval } };
+          const data = await enrichDashboardPayload(tenantId, { ...r.data, reminders });
+          return { data };
         } catch {
-          return { data: { ...emptyDashboardPayload(reminders), certificate_pending_approval } };
+          const data = await enrichDashboardPayload(tenantId, emptyDashboardPayload(reminders));
+          return { data };
         }
       }
-      return { data: { ...emptyDashboardPayload(reminders), certificate_pending_approval } };
+      const data = await enrichDashboardPayload(tenantId, emptyDashboardPayload(reminders));
+      return { data };
     });
   }
   return api.get("/dashboard", { params: { tenant_id: tenantId } });

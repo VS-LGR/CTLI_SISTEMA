@@ -1,4 +1,5 @@
-import { canManageTechnicians } from "@/lib/roles";
+import { canManageTechnicians, canManageTenantUsers, isCtliAdmin } from "@/lib/roles";
+import { canAccessCadastroSection } from "@/lib/tenantAccess";
 
 /** Secções do menu Cadastros (submenu lateral) */
 
@@ -13,6 +14,7 @@ export const CADASTRO_SECTIONS = [
   { id: "config-coleta", label: "Config. RE-7.2A", roles: ["admin", "client"] },
   { id: "config-proposta", label: "Config. RE-7.1A", roles: ["admin", "client"] },
   { id: "tecnicos", label: "Técnicos de campo", techniciansOnly: true },
+  { id: "usuarios", label: "Usuários do ambiente", tenantAdminOnly: true },
 ];
 
 export function cadastroSectionPath(id) {
@@ -23,10 +25,12 @@ export function getCadastroSectionLabel(id) {
   return CADASTRO_SECTIONS.find((s) => s.id === id)?.label || "Cadastros";
 }
 
-export function getVisibleCadastroSections(role) {
+export function getVisibleCadastroSections(role, tenant = null) {
   return CADASTRO_SECTIONS.filter((s) => {
     if (s.techniciansOnly && !canManageTechnicians(role)) return false;
-    if (s.roles?.length && !s.roles.includes(role)) return false;
+    if (s.tenantAdminOnly && !canManageTenantUsers(role)) return false;
+    if (s.roles?.length && !s.roles.includes(role) && !isCtliAdmin(role)) return false;
+    if (tenant && !canAccessCadastroSection({ tenant, role, sectionId: s.id })) return false;
     return true;
   });
 }

@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Buildings, UserPlus, Trash, Users, IdentificationCard, PencilSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { ROLES, RESPONSIBLE_ROLES, roleShort } from "@/lib/roles";
+import { DEPLOYMENT_MODEL_OPTIONS, deploymentModelLabel } from "@/lib/tenantAccess";
 import { TENANT_BRANDING_BUCKET, tenantLogoStoragePath } from "@/lib/tenantBranding";
 import {
   DEFAULT_COLETA_FORM_CODE,
@@ -36,6 +37,7 @@ const AdminClients = () => {
   const [tName, setTName] = useState("");
   const [tCode, setTCode] = useState("");
   const [tDesc, setTDesc] = useState("");
+  const [tDeploymentModel, setTDeploymentModel] = useState("full");
   const [tLogoFile, setTLogoFile] = useState(null);
   const [tLogoPreview, setTLogoPreview] = useState("");
   const [tLogoPath, setTLogoPath] = useState("");
@@ -72,6 +74,7 @@ const AdminClients = () => {
     setTName("");
     setTCode("");
     setTDesc("");
+    setTDeploymentModel("full");
     setTLogoFile(null);
     setTLogoPreview("");
     setTLogoPath("");
@@ -242,6 +245,7 @@ const AdminClients = () => {
             coleta_form_code: tColetaCode.trim() || DEFAULT_COLETA_FORM_CODE,
             coleta_form_title: tColetaTitle.trim() || DEFAULT_COLETA_FORM_TITLE,
             coleta_form_revision: tColetaRev.trim() || DEFAULT_COLETA_FORM_REVISION,
+            deployment_model: tDeploymentModel,
             ...billingPatch(),
           };
           if (logoPath) patch.logo_storage_path = logoPath;
@@ -258,6 +262,7 @@ const AdminClients = () => {
               coleta_form_code: tColetaCode.trim() || DEFAULT_COLETA_FORM_CODE,
               coleta_form_title: tColetaTitle.trim() || DEFAULT_COLETA_FORM_TITLE,
               coleta_form_revision: tColetaRev.trim() || DEFAULT_COLETA_FORM_REVISION,
+              deployment_model: tDeploymentModel,
               ...billingPatch(),
             })
             .select("id")
@@ -290,6 +295,7 @@ const AdminClients = () => {
     setTName(t.name);
     setTCode(t.code || "");
     setTDesc(t.description || "");
+    setTDeploymentModel(t.deployment_model || "full");
     setTLogoFile(null);
     setTLogoPath(t.logo_storage_path || "");
     setTColetaCode(t.coleta_form_code || DEFAULT_COLETA_FORM_CODE);
@@ -705,6 +711,19 @@ const AdminClients = () => {
                   <Input value={tDesc} onChange={(e) => setTDesc(e.target.value)} />
                 </div>
                 <div>
+                  <Label>Modelo do ambiente</Label>
+                  <select
+                    value={tDeploymentModel}
+                    onChange={(e) => setTDeploymentModel(e.target.value)}
+                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                    data-testid="tenant-deployment-model"
+                  >
+                    {DEPLOYMENT_MODEL_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <Label className="text-slate-700 font-medium">Formulário RE-7.2A</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                     <div className="min-w-0">
@@ -867,6 +886,7 @@ const AdminClients = () => {
               <div className="min-w-0">
                 <CardTitle className="font-display text-lg truncate">{t.name}</CardTitle>
                 {t.code && <div className="text-xs font-mono text-slate-500 mt-0.5">{t.code}</div>}
+                <div className="text-xs text-slate-500 mt-1">{deploymentModelLabel(t.deployment_model)}</div>
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
                 {isSupabaseAuthMode && (

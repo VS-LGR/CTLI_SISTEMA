@@ -55,6 +55,7 @@ const seedDb = () => ({
       name: "Cliente demonstração",
       code: "DEMO-001",
       description: "Ambiente local — dados fictícios",
+      deployment_model: "full",
     },
   ],
   users: {

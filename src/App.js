@@ -15,6 +15,7 @@ import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
+import TenantModuleGate, { RequirementAccessGate, CadastroSectionGate } from "@/components/tenant/TenantModuleGate";
 import "@/App.css";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -193,9 +194,11 @@ const App = () => (
               path={PEDIDOS_LIST_PATH}
               element={(
                 <Protected purchaseOrdersOnly>
-                  <Suspense fallback={pageSuspenseFallback}>
-                    <PedidosCompraPage />
-                  </Suspense>
+                  <TenantModuleGate module="pedidos_compra">
+                    <Suspense fallback={pageSuspenseFallback}>
+                      <PedidosCompraPage />
+                    </Suspense>
+                  </TenantModuleGate>
                 </Protected>
               )}
             />
@@ -203,9 +206,11 @@ const App = () => (
               path={`${PEDIDOS_LIST_PATH}/:id`}
               element={(
                 <Protected purchaseOrdersOnly>
-                  <Suspense fallback={pageSuspenseFallback}>
-                    <PedidoCompraEditorPage />
-                  </Suspense>
+                  <TenantModuleGate module="pedidos_compra">
+                    <Suspense fallback={pageSuspenseFallback}>
+                      <PedidoCompraEditorPage />
+                    </Suspense>
+                  </TenantModuleGate>
                 </Protected>
               )}
             />
@@ -213,9 +218,11 @@ const App = () => (
               path={QUOTATION_LIST_PATH}
               element={(
                 <Protected quotationRequestsOnly>
-                  <Suspense fallback={pageSuspenseFallback}>
-                    <QuotationRequestsPage />
-                  </Suspense>
+                  <TenantModuleGate module="solicitacao_orcamento">
+                    <Suspense fallback={pageSuspenseFallback}>
+                      <QuotationRequestsPage />
+                    </Suspense>
+                  </TenantModuleGate>
                 </Protected>
               )}
             />
@@ -223,9 +230,11 @@ const App = () => (
               path={`${QUOTATION_LIST_PATH}/:id`}
               element={(
                 <Protected quotationRequestsOnly>
-                  <Suspense fallback={pageSuspenseFallback}>
-                    <QuotationRequestEditorPage />
-                  </Suspense>
+                  <TenantModuleGate module="solicitacao_orcamento">
+                    <Suspense fallback={pageSuspenseFallback}>
+                      <QuotationRequestEditorPage />
+                    </Suspense>
+                  </TenantModuleGate>
                 </Protected>
               )}
             />
@@ -252,17 +261,21 @@ const App = () => (
             <Route
               path="/requirement/:id/:folderKey"
               element={(
-                <Suspense fallback={pageSuspenseFallback}>
-                  <RequirementView />
-                </Suspense>
+                <RequirementAccessGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <RequirementView />
+                  </Suspense>
+                </RequirementAccessGate>
               )}
             />
             <Route
               path="/requirement/:id"
               element={(
-                <Suspense fallback={pageSuspenseFallback}>
-                  <RequirementView />
-                </Suspense>
+                <RequirementAccessGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <RequirementView />
+                  </Suspense>
+                </RequirementAccessGate>
               )}
             />
             <Route
@@ -278,18 +291,22 @@ const App = () => (
             <Route
               path="/backup"
               element={(
-                <Suspense fallback={pageSuspenseFallback}>
-                  <BackupView />
-                </Suspense>
+                <TenantModuleGate module="backup">
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <BackupView />
+                  </Suspense>
+                </TenantModuleGate>
               )}
             />
             <Route path="/cadastros" element={<Navigate to="/cadastros/fornecedores" replace />} />
             <Route
               path="/cadastros/:section"
               element={(
-                <Suspense fallback={pageSuspenseFallback}>
-                  <CadastrosPage />
-                </Suspense>
+                <CadastroSectionGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <CadastrosPage />
+                  </Suspense>
+                </CadastroSectionGate>
               )}
             />
             <Route path={PERSONNEL_BASE_PATH} element={<Navigate to={PERSONNEL_DASHBOARD_PATH} replace />} />

@@ -9,6 +9,8 @@ import { PROPOSAL_LIST_PATH } from "./commercialProposals/commercialProposalRout
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 import { LISTA_MESTRA_PATH } from "./masterDocuments/masterDocumentRoutes";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
+import { canAccessRequirement, canAccessRequirementFolder } from "./tenantAccess";
+import { isCtliAdmin } from "./roles";
 
 export const REQ_NAMES = {
   "4": "Requisitos Gerais",
@@ -122,8 +124,21 @@ export function requiresFolderNav(requirementId) {
   return Object.prototype.hasOwnProperty.call(FOLDERS, String(requirementId));
 }
 
-export function getFoldersForRequirement(requirementId) {
-  return FOLDERS[String(requirementId)] || [];
+export function getFoldersForRequirement(requirementId, tenant = null, role = null) {
+  const all = FOLDERS[String(requirementId)] || [];
+  if (!tenant || !role || isCtliAdmin(role)) return all;
+  return all.filter((f) => canAccessRequirementFolder({
+    tenant,
+    role,
+    requirementId,
+    folderKey: f.folderKey,
+  }));
+}
+
+/** Itens de menu principal (sidebar) filtrados por modelo de ambiente. */
+export function getVisibleReqMenuItems(tenant = null, role = null) {
+  if (!tenant || !role) return REQ_MENU_ITEMS;
+  return REQ_MENU_ITEMS.filter((r) => canAccessRequirement({ tenant, role, requirementId: r.id }));
 }
 
 /** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2, listas em PR-6.2). */
@@ -166,20 +181,20 @@ export function folderHasSidebarNav(requirementId, folder) {
   return buildFolderSidebarNav(requirementId, folder).length > 0;
 }
 
-export function getFolderLabel(requirementId, folderKey) {
+export function getFolderLabel(requirementId, folderKey, tenant = null, role = null) {
   if (!folderKey) return null;
-  const row = getFoldersForRequirement(requirementId).find((f) => f.folderKey === folderKey);
+  const row = getFoldersForRequirement(requirementId, tenant, role).find((f) => f.folderKey === folderKey);
   return row ? row.label : null;
 }
 
-export function getFirstFolderKey(requirementId) {
-  const list = getFoldersForRequirement(requirementId);
+export function getFirstFolderKey(requirementId, tenant = null, role = null) {
+  const list = getFoldersForRequirement(requirementId, tenant, role);
   return list.length ? list[0].folderKey : null;
 }
 
-export function isValidFolderKey(requirementId, folderKey) {
+export function isValidFolderKey(requirementId, folderKey, tenant = null, role = null) {
   if (!folderKey) return false;
-  return getFoldersForRequirement(requirementId).some((f) => f.folderKey === folderKey);
+  return getFoldersForRequirement(requirementId, tenant, role).some((f) => f.folderKey === folderKey);
 }
 
 /** Rota de listagem de documentos para um requisito (com subsessão quando aplicável). */

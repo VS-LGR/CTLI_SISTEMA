@@ -466,7 +466,7 @@ const RequirementView = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const first = getFirstFolderKey(id);
+  const first = getFirstFolderKey(id, currentTenant, user?.role);
 
   const load = useCallback(async () => {
     if (!currentTenantId) { setLoading(false); return; }
@@ -504,7 +504,7 @@ const RequirementView = () => {
   if (requiresFolderNav(id) && !folderKey && first) {
     return <Navigate to={`/requirement/${id}/${first}`} replace />;
   }
-  if (requiresFolderNav(id) && folderKey && !isValidFolderKey(id, folderKey) && first) {
+  if (requiresFolderNav(id) && folderKey && !isValidFolderKey(id, folderKey, currentTenant, user?.role) && first) {
     return <Navigate to={`/requirement/${id}/${first}`} replace />;
   }
   if (!requiresFolderNav(id) && folderKey) {
@@ -514,7 +514,7 @@ const RequirementView = () => {
     return <div className="text-slate-600">Selecione um ambiente no topo.</div>;
   }
 
-  const folderLabel = folderKey ? getFolderLabel(id, folderKey) : null;
+  const folderLabel = folderKey ? getFolderLabel(id, folderKey, currentTenant, user?.role) : null;
   const reqTitle = REQ_NAMES[String(id)];
   const isColetaRegistro =
     String(id) === COLETA_REQ_ID && folderKey === COLETA_FOLDER_KEY && section === "registro" && canAccessColeta(user?.role);
