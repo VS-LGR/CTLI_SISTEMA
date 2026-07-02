@@ -383,6 +383,51 @@ function cellPair(m) {
   return [s(m?.value ?? "--"), s(m?.unit ?? "")];
 }
 
+/** Estilos de tabela de repetibilidade — mais folga quando há duas tabelas lado a lado. */
+function repeatabilityTableStyles(m, dualLayout) {
+  const pad = dualLayout && m.singlePage
+    ? { top: 0.55, bottom: 0.55, left: 0.35, right: 0.35 }
+    : m.compactTablePadding;
+  return {
+    fontSize: dualLayout && m.singlePage ? 4.35 : m.compactTableFontSize,
+    cellPadding: pad,
+    halign: "center",
+    valign: "middle",
+    lineWidth: 0.1,
+    minCellHeight: dualLayout && m.singlePage ? 4.1 : undefined,
+  };
+}
+
+function repeatabilityHeadStyles(doc, m, dualLayout) {
+  const pad = dualLayout && m.singlePage
+    ? { top: 0.65, bottom: 0.65, left: 0.3, right: 0.3 }
+    : m.compactTablePadding;
+  return {
+    ...tableHeadStyles(doc),
+    fontSize: dualLayout && m.singlePage ? 4.1 : m.compactTableHeadFontSize,
+    halign: "center",
+    valign: "middle",
+    cellPadding: pad,
+    minCellHeight: dualLayout && m.singlePage ? 5.2 : undefined,
+  };
+}
+
+function repeatabilityColumnHeaders(unitLabel, dualCompact) {
+  if (!dualCompact) {
+    return {
+      before: ["Valor de Referência", unitLabel, "Leitura 01", unitLabel, "Erro de Indicação", unitLabel],
+      after: [
+        "Valor de Referência", unitLabel, "Média das Leituras", unitLabel,
+        "Erro de Indicação", unitLabel, "Incerteza Expandida", "", "Veff", "k",
+      ],
+    };
+  }
+  return {
+    before: ["V. Ref.", unitLabel, "Leitura", unitLabel, "Erro", unitLabel],
+    after: ["V. Ref.", unitLabel, "Média", unitLabel, "Erro", unitLabel, "Ue", unitLabel, "Veff", "k"],
+  };
+}
+
 function drawRepeatabilityMetaFooter(doc, model, y, leftW, rightX, rightW, signatureUrls = {}, metrics = null, { relaxed = false } = {}) {
   const m = metrics || getCertificateLayoutMetrics(false);
   const lineH = relaxed ? (m.singlePage ? 3.5 : 4.2) : m.metaLineH;
@@ -438,23 +483,28 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   if (!allRows.some((r) => !r.empty) && !model.points?.length) return y;
 
   const m = ctx.metrics;
-  const rows = repeatabilityRowsForPdfLayout(allRows, m);
-  const unitLabel = model.unit || model.balance?.unidade || "kg";
   const showBeforeAdjustment = model.showBeforeAdjustmentTable === true;
-  const leftW = showBeforeAdjustment ? CW * 0.42 : 0;
-  const rightW = showBeforeAdjustment ? CW * 0.56 : CW;
-  const gap = showBeforeAdjustment ? CW * 0.02 : 0;
+  const dualLayout = showBeforeAdjustment && m.singlePage;
+  const rows = repeatabilityRowsForPdfLayout(allRows, {
+    ...m,
+    repeatabilityMinRows: dualLayout ? 3 : m.repeatabilityMinRows,
+  });
+  const unitLabel = model.unit || model.balance?.unidade || "kg";
+  const leftW = showBeforeAdjustment ? CW * 0.38 : 0;
+  const gap = showBeforeAdjustment ? CW * 0.04 : 0;
+  const rightW = showBeforeAdjustment ? CW - leftW - gap : CW;
   const rightX = showBeforeAdjustment ? ML + leftW + gap : ML;
 
   ({ y } = ensureSpace(doc, y, m.singlePage ? 58 : 72, ctx));
   y = drawSectionBar(doc, ML, y, CW, "ENSAIO DE REPETIBILIDADE", m);
 
   if (showBeforeAdjustment) {
+    y += m.singlePage ? 0.6 : 0.8;
     y = drawDualSubsectionTitles(
       doc,
       ML,
       y,
-      "Resultados Obtidos Antes do Ajuste",
+      m.singlePage ? "Resultados Obtidos Antes do Ajuste" : "Resultados Obtidos Antes do Ajuste",
       "Resultados Obtidos",
       leftW,
       rightW,
@@ -471,18 +521,8 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     }
   }
 
-  const rightHead = [
-    "Valor de Referência",
-    unitLabel,
-    "Média das Leituras",
-    unitLabel,
-    "Erro de Indicação",
-    unitLabel,
-    "Incerteza Expandida",
-    "",
-    "Veff",
-    "k",
-  ];
+  const colHeaders = repeatabilityColumnHeaders(unitLabel, dualLayout);
+  const rightHead = colHeaders.after;
 
   const rightBody = rows.map((r) => [
     ...cellPair(r.reference),
@@ -494,27 +534,19 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     s(r.k),
   ]);
 
-  const sharedStyles = {
-    fontSize: m.compactTableFontSize,
-    cellPadding: m.compactTablePadding,
-    halign: "center",
-    valign: "middle",
-    lineWidth: 0.1,
-  };
+  const sharedStyles = repeatabilityTableStyles(m, dualLayout);
+  const headStyles = repeatabilityHeadStyles(doc, m, dualLayout);
 
-  const unitColStyle = { cellWidth: m.singlePage ? 6 : 7, fontSize: m.singlePage ? 4.5 : 5, halign: "center" };
+  const unitColStyle = {
+    cellWidth: dualLayout ? 5.5 : (m.singlePage ? 6 : 7),
+    fontSize: dualLayout ? 4 : (m.singlePage ? 4.5 : 5),
+    halign: "center",
+  };
 
   let leftEndY = y;
 
   if (showBeforeAdjustment) {
-    const tableHead = [
-      "Valor de Referência",
-      unitLabel,
-      "Leitura 01",
-      unitLabel,
-      "Erro de Indicação",
-      unitLabel,
-    ];
+    const tableHead = colHeaders.before;
     const leftBody = rows.map((r) => [
       ...cellPair(r.reference),
       ...cellPair(r.beforeReading),
@@ -527,7 +559,7 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
       head: [tableHead],
       body: leftBody,
       styles: sharedStyles,
-      headStyles: { ...tableHeadStyles(doc), fontSize: m.compactTableHeadFontSize, halign: "center" },
+      headStyles,
       columnStyles: {
         1: unitColStyle,
         3: unitColStyle,
@@ -548,20 +580,20 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     head: [rightHead],
     body: rightBody,
     styles: sharedStyles,
-    headStyles: { ...tableHeadStyles(doc), fontSize: m.compactTableHeadFontSize, halign: "center" },
+    headStyles,
     columnStyles: {
       1: unitColStyle,
       3: unitColStyle,
       5: unitColStyle,
       7: unitColStyle,
-      8: { cellWidth: m.singlePage ? 9 : 10 },
-      9: { cellWidth: m.singlePage ? 7 : 8 },
+      8: { cellWidth: dualLayout ? 8 : (m.singlePage ? 9 : 10) },
+      9: { cellWidth: dualLayout ? 6.5 : (m.singlePage ? 7 : 8) },
     },
     theme: "grid",
     ...singlePageTableBreakOpts(ctx),
   });
   const afterTableGap = showBeforeAdjustment
-    ? (m.singlePage ? 1 : 2)
+    ? (dualLayout ? 2.2 : (m.singlePage ? 1.5 : 2))
     : (m.singlePage ? 2.8 : 3.5);
   y = Math.max(leftEndY, doc.lastAutoTable.finalY) + afterTableGap;
 
@@ -574,9 +606,9 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     showBeforeAdjustment ? rightW : CW * 0.56,
     ctx.signatureUrls || {},
     m,
-    { relaxed: !showBeforeAdjustment },
+    { relaxed: m.singlePage },
   );
-  return y + (showBeforeAdjustment ? 0 : (m.singlePage ? 1 : 1.5));
+  return y + (m.singlePage ? 0.8 : 1);
 }
 
 function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
@@ -616,11 +648,19 @@ function drawObservationsSection(doc, model, y, ctx) {
       observationLineH: 2.1,
       observationGap: 0.35,
     };
+  } else if (m.singlePage && model.showBeforeAdjustmentTable) {
+    obsMetrics = {
+      ...m,
+      observationLineH: 2.35,
+      observationGap: 0.55,
+    };
   }
-  const obsTopGap = model.adjustmentPerformed === false && m.singlePage ? 1.2 : 0.5;
+  const obsTopGap = m.singlePage && (model.adjustmentPerformed === false || model.showBeforeAdjustmentTable)
+    ? 1
+    : 0.5;
   y = drawSectionBar(doc, ML, y, CW, "OBSERVAÇÕES", m);
   y = drawNumberedObservations(doc, ML + 1, y + obsTopGap, model.observations, CW - 2, obsMetrics)
-    + (m.singlePage ? (model.adjustmentPerformed === false ? 1 : 0.5) : 2);
+    + (m.singlePage ? 0.8 : 2);
   if (model.conformityDeclaration) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(m.singlePage ? 7 : 8);

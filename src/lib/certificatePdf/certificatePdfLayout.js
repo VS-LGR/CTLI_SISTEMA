@@ -309,20 +309,29 @@ export function drawCompactMeasureRow(doc, x, y, totalW, cells, metrics = null) 
 export function drawDualSubsectionTitles(doc, x, y, leftText, rightText, leftW, rightW, gap = 2, leftSubtitle = "", metrics = null) {
   const m = metrics || getCertificateLayoutMetrics(false);
   const compact = m.singlePage;
+  const titleFont = compact ? 5.8 : 6.5;
+  const lineH = compact ? 2.7 : 3.1;
+
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(compact ? 6 : 6.5);
+  doc.setFontSize(titleFont);
   doc.setTextColor(...FORM_COLORS.text);
-  doc.text(leftText, x, y);
-  doc.text(rightText, x + leftW + gap, y);
-  let nextY = y + (compact ? 3.5 : 4);
+
+  const leftLines = doc.splitTextToSize(leftText, Math.max(leftW - 0.5, 20));
+  const rightLines = doc.splitTextToSize(rightText, Math.max(rightW - 0.5, 20));
+  doc.text(leftLines, x, y);
+  doc.text(rightLines, x + leftW + gap, y);
+
+  let nextY = y + Math.max(leftLines.length, rightLines.length) * lineH + (compact ? 1.2 : 1.5);
+
   if (leftSubtitle) {
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(compact ? 5.5 : 6);
-    const lines = doc.splitTextToSize(leftSubtitle, leftW);
-    doc.text(lines, x, nextY + 0.5);
-    nextY += lines.length * (compact ? 2.8 : 3.2) + (compact ? 1.2 : 1.5);
+    doc.setFontSize(compact ? 5.4 : 6);
+    const subLines = doc.splitTextToSize(leftSubtitle, leftW);
+    doc.text(subLines, x, nextY + 0.4);
+    nextY += subLines.length * (compact ? 2.7 : 3.1) + (compact ? 1.4 : 1.6);
   }
-  return nextY;
+
+  return nextY + (compact ? 0.6 : 0.8);
 }
 
 /** Rodapé documental em todas as páginas (Código, Ref, Emissão, Página). */
