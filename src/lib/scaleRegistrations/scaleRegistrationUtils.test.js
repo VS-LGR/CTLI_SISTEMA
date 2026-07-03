@@ -88,6 +88,27 @@ describe("buildScaleRegistrationFromBalance", () => {
     expect(countScaleRanges(scale)).toBe(3);
     expect(formatScaleRangesSummary(snap)).toContain("até 10 kg");
   });
+
+  it("preserva unidade mg no cadastro e snapshot", () => {
+    const scale = buildScaleRegistrationFromBalance({
+      tenantId: "t1",
+      endCustomerId: "c1",
+      balanca: {
+        serie: "MG-1",
+        capacidade: "500",
+        resolucao: "0,1",
+        unidade: "mg",
+        point_max_tolerances: [
+          { nominal_value: "200", max_tolerance: "0,3" },
+        ],
+      },
+    });
+    expect(scale.unit).toBe("mg");
+    expect(scale.point_max_tolerances[0].unit).toBe("mg");
+    const snap = balanceSnapshotFromScaleRegistration(scale);
+    expect(snap.unidade).toBe("mg");
+    expect(formatScaleRangesSummary(snap)).toContain("até 500 mg");
+  });
 });
 
 describe("loadMaxTolerancesFromForm", () => {

@@ -1,4 +1,5 @@
 import {
+  convertMassValue,
   formatMassDisplay,
   parseLegacyMassString,
   sanitizeMassNumericInput,
@@ -28,5 +29,13 @@ describe("formatMassDisplay", () => {
 
   it("returns fallback when empty", () => {
     expect(formatMassDisplay("", "g")).toBe("—");
+  });
+});
+
+describe("convertMassValue", () => {
+  it("converts between g, kg and mg", () => {
+    expect(convertMassValue("1000", "g", "kg")).toBeCloseTo(1, 10);
+    expect(convertMassValue("1,5", "kg", "g")).toBeCloseTo(1500, 10);
+    expect(convertMassValue("250", "mg", "g")).toBeCloseTo(0.25, 10);
   });
 });

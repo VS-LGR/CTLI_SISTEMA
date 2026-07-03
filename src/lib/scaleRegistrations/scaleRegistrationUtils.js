@@ -67,6 +67,10 @@ export function formValuesFromPointMaxTolerances(raw) {
 
 export function balanceSnapshotFromScaleRegistration(scale) {
   if (!scale) return {};
+  const unit = normalizeMassUnit(scale.unit, "g");
+  const pointMaxTolerances = Array.isArray(scale.point_max_tolerances)
+    ? scale.point_max_tolerances.map((entry) => ({ ...entry, unit: entry?.unit || unit }))
+    : scale.point_max_tolerances;
   return {
     tag: scale.tag || scale.identification_code || "",
     codigo: scale.identification_code || "",
@@ -89,7 +93,7 @@ export function balanceSnapshotFromScaleRegistration(scale) {
     divisao_verificacao_3: scale.verification_division_3 || "",
     classe: scale.instrument_class || "",
     ponto_trabalho: scale.working_point || "",
-    unidade: scale.unit || "g",
+    unidade: unit,
     tipo_plataforma: scale.platform_type || "quadrada",
     decimal_places: {
       p1: scale.decimal_places_p1 ?? 2,
@@ -103,7 +107,7 @@ export function balanceSnapshotFromScaleRegistration(scale) {
       p9: scale.decimal_places_p9 ?? 2,
       p10: scale.decimal_places_p10 ?? 2,
     },
-    point_max_tolerances: normalizePointMaxTolerances(scale.point_max_tolerances),
+    point_max_tolerances: normalizePointMaxTolerances(pointMaxTolerances),
   };
 }
 
@@ -120,7 +124,11 @@ export function buildScaleRegistrationFromBalance({
     return Number.isFinite(Number(fromBalance)) ? Number(fromBalance) : defaultDecimals;
   };
 
+  const unit = normalizeMassUnit(balanca.unidade, "g");
   const divisao = balanca.divisao_verificacao || balanca.resolucao || "";
+  const pointMaxTolerances = Array.isArray(balanca.point_max_tolerances)
+    ? balanca.point_max_tolerances.map((entry) => ({ ...entry, unit: entry?.unit || unit }))
+    : balanca.point_max_tolerances;
 
   return {
     tenant_id: tenantId,
@@ -148,7 +156,7 @@ export function buildScaleRegistrationFromBalance({
     verification_division_3: String(balanca.divisao_verificacao_3 || "").trim(),
     instrument_class: String(balanca.classe || "").trim(),
     working_point: String(balanca.ponto_trabalho || "").trim(),
-    unit: balanca.unidade || "g",
+    unit,
     platform_type: balanca.tipo_plataforma || "quadrada",
     decimal_places_p1: pointDecimals(1),
     decimal_places_p2: pointDecimals(2),
@@ -160,7 +168,7 @@ export function buildScaleRegistrationFromBalance({
     decimal_places_p8: pointDecimals(8),
     decimal_places_p9: pointDecimals(9),
     decimal_places_p10: pointDecimals(10),
-    point_max_tolerances: normalizePointMaxTolerances(balanca.point_max_tolerances),
+    point_max_tolerances: normalizePointMaxTolerances(pointMaxTolerances),
     active: true,
   };
 }

@@ -224,8 +224,19 @@ function PointTabContent({
                       return;
                     }
                     const item = weightItems.find((w) => w.id === id);
-                    const fields = loadBatchFieldsFromItem(item);
-                    if (fields) setField(fields);
+                    const fields = loadBatchFieldsFromItem(item, unit);
+                    if (fields) {
+                      const vvc = sumConventionalFromWeightIds(point.standard_weight_ids, weightItems, unit);
+                      let nominal = point.nominal_value;
+                      if (vvc.valid) {
+                        const formation = point.load_batch_formation || formationKeyForPoint(point.point_number, true);
+                        const multiplier = point.error_multiplier ?? errorMultiplierForFormation(formation);
+                        const lotValue = fields.load_batch_conventional_value || fields.load_batch_nominal;
+                        const withBatch = referenceWithLoadBatch(vvc.value, lotValue, unit, multiplier);
+                        if (withBatch.valid) nominal = String(withBatch.value);
+                      }
+                      setField({ ...fields, nominal_value: nominal });
+                    }
                   }}
                   disabled={disabled}
                   unit={unit}

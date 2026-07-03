@@ -78,6 +78,16 @@ export function massToGrams(value, unit) {
   return n;
 }
 
+/** Converte massa entre mg, g e kg preservando valores inválidos como null. */
+export function convertMassValue(value, fromUnit, toUnit) {
+  const grams = massToGrams(value, fromUnit);
+  if (grams == null) return null;
+  const target = normalizeMassUnit(toUnit, "g");
+  if (target === "mg") return grams * 1000;
+  if (target === "kg") return grams / 1000;
+  return grams;
+}
+
 /** Chave estável para mapa pesagem → tolerância. */
 export function massLoadKey(value, unit) {
   const grams = massToGrams(value, unit);

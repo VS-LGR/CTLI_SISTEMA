@@ -26,4 +26,21 @@ describe("standardWeightItemUtils", () => {
     });
     expect(loadBatchFieldsFromItem({ is_load_batch: false })).toBeNull();
   });
+
+  test("loadBatchFieldsFromItem converte lote cadastrado para unidade alvo", () => {
+    const item = {
+      id: "lot-kg",
+      is_load_batch: true,
+      nominal_value: "1000",
+      conventional_value: "1000,2",
+      expanded_uncertainty: "0,4",
+      unit: "g",
+    };
+    expect(loadBatchFieldsFromItem(item, "kg")).toEqual({
+      load_batch_weight_id: "lot-kg",
+      load_batch_nominal: "1",
+      load_batch_conventional_value: "1.0002",
+      load_batch_expanded_uncertainty: "0.0004",
+    });
+  });
 });

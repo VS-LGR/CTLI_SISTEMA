@@ -12,7 +12,7 @@ import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
 import { PLATFORM_TYPE_OPTIONS, formRowsFromPointMaxTolerances, loadMaxTolerancesFromForm, omitPointMaxToleranceFormKeys } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
 import ScaleIndicationRangesFields from "@/components/forms/ScaleIndicationRangesFields";
-import { TIPO_BALANCA_OPTIONS } from "@/lib/coletaSchema";
+import { TIPO_BALANCA_OPTIONS, UNIDADE_OPTIONS } from "@/lib/coletaSchema";
 import { countScaleRanges } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 
 const emptyForm = () => ({
@@ -274,10 +274,9 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
                 <Input value={form.local_instalacao} onChange={(e) => setF("local_instalacao", e.target.value)} />
               </div>
               <div>
-                <FieldLabel title="Unidade de massa" hint="Unidade principal das faixas C, d e e (g ou kg)." />
+                <FieldLabel title="Unidade de massa" hint="Unidade principal das faixas C, d e e (mg, g ou kg)." />
                 <select value={form.unit} onChange={(e) => setF("unit", e.target.value)} className="w-full border rounded-md h-9 px-2 text-sm">
-                  <option value="g">g (gramas)</option>
-                  <option value="kg">kg (quilogramas)</option>
+                  {UNIDADE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
