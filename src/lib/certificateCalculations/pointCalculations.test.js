@@ -69,6 +69,46 @@ describe("certificateCalculations", () => {
     expect(calc.results.calculation_memory.up).toBe(0.0002);
   });
 
+  test("uc com lote usa upLC linear, sem elevar uc anterior ao quadrado novamente", () => {
+    const delta = 0.004 * Math.sqrt(3);
+    const calc = calculateCalibrationPoint(
+      {
+        nominal_value: "2000",
+        readings_after: [String(2000 - delta), "2000", String(2000 + delta)],
+      },
+      {
+        resolution: "1",
+        unit: "kg",
+        referenceValue: 2000,
+        up: 0.017,
+        ud: 0.019630,
+        ue: 0.000434,
+        upLC: 0.289848,
+      },
+    );
+    const expected = Math.sqrt(
+      0.004 ** 2
+      + 0.017 ** 2
+      + 0.019630 ** 2
+      + 0.000434 ** 2
+      + (1 / (2 * Math.sqrt(3))) ** 2
+      + 0.289848,
+    );
+    const oldSquaredUpLc = Math.sqrt(
+      0.004 ** 2
+      + 0.017 ** 2
+      + 0.019630 ** 2
+      + 0.000434 ** 2
+      + (1 / (2 * Math.sqrt(3))) ** 2
+      + 0.289848 ** 2,
+    );
+
+    expect(calc.calcStatus).toBe("calculado");
+    expect(calc.results.calculation_memory.ua).toBeCloseTo(0.004, 12);
+    expect(calc.results.standard_uncertainty).toBeCloseTo(expected, 12);
+    expect(calc.results.standard_uncertainty).not.toBeCloseTo(oldSquaredUpLc, 8);
+  });
+
   test("sem ajuste — não calcula erro antes do ajuste (planilha P1 bloco vazio)", () => {
     const calc = calculateCalibrationPoint(
       {

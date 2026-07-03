@@ -1,7 +1,6 @@
 import { parseCalibrationNumber, decimalPlacesFromResolution } from "./parseNumber";
 import {
   resolveResolutionForNominal,
-  welchSatterthwaiteNuEff,
   truncateVeff,
   veffForDbStorage,
 } from "./pointCalculations";
@@ -197,14 +196,12 @@ export function resolvePointVeffRaw(point) {
   const ur = Number(mem.ur) || 0;
   const upLc = Number(mem.upLC) || 0;
 
-  const nuRaw = welchSatterthwaiteNuEff([
-    { type: "ua", u: ua, nu: nuRep },
-    { type: "up", u: upVal, nu: Infinity },
-    { type: "ud", u: udVal, nu: Infinity },
-    { type: "ue", u: ueVal, nu: Infinity },
-    { type: "ur", u: ur, nu: Infinity },
-    { type: "upLC", u: upLc, nu: Infinity },
-  ]);
+  const storedCombined = Number(mem.combinedUncertainty ?? point.standard_uncertainty);
+  const combined = Number.isFinite(storedCombined) && storedCombined > 0
+    ? storedCombined
+    : Math.sqrt((ua ** 2) + (upVal ** 2) + (udVal ** 2) + (ueVal ** 2) + (ur ** 2) + Math.max(0, upLc));
+  const denominator = nuRep > 0 ? (ua ** 4) / nuRep : 0;
+  const nuRaw = denominator > 0 ? (combined ** 4) / denominator : Infinity;
   return truncateVeff(nuRaw);
 }
 

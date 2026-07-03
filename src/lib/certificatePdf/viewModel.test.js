@@ -185,6 +185,42 @@ describe("buildCertificatePdfViewModel — EmissãoTeste", () => {
     expect(model.repeatabilityRows[0].beforeReading.value).toBeTruthy();
     expect(model.repeatabilityRows[0].beforeError.value).toBeTruthy();
   });
+
+  test("não expõe repetitividade de lote de carga no certificado", () => {
+    const model = buildCertificatePdfViewModel({
+      ...EMISSAO_TESTE_CERT,
+      repeatability_snapshot: {
+        aplicavel: true,
+        linhas: [
+          { key: "p1", label: "P1", leitura1: "1000", leitura2: "1000", leitura3: "1000" },
+          { key: "l1_p1", label: "L1 + P1", valor_nominal: "1000", leitura1: "2000" },
+        ],
+      },
+      points: [
+        EMISSAO_TESTE_CERT.points[0],
+        {
+          point_number: 2,
+          nominal_value: 2000,
+          reading1: 2000,
+          reading2: 2000,
+          reading3: 2000,
+          average_reading: 2000,
+          indication_error: 0,
+          expanded_uncertainty: 2,
+          coverage_factor: 2,
+          degrees_of_freedom: 100,
+          use_load_batch: true,
+          load_batch_formation: "l1_p1",
+          load_batch_nominal: "1000",
+        },
+      ],
+    });
+
+    expect(model.substitutionRepeatability.applicable).toBe(false);
+    expect(model.substitutionRepeatability.rows).toEqual([]);
+    expect(model.repeatability.applicable).toBe(false);
+    expect(model.repeatabilityRows[1].reference.value).toBeTruthy();
+  });
 });
 
 const ECCENTRICITY_CERT_BASE = {

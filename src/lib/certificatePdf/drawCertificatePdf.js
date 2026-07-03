@@ -646,32 +646,6 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   return y + (m.singlePage ? 0.8 : 1);
 }
 
-function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
-  if (!model.substitutionRepeatability?.applicable || !model.substitutionRepeatability.rows?.length) return y;
-  const m = ctx.metrics;
-  ({ y } = ensureSpace(doc, y, m.singlePage ? 16 : 22, ctx));
-  y = drawSectionBar(doc, ML, y, CW, "REPETIBILIDADE COM LOTE DE CARGA", m);
-  autoTable(doc, {
-    startY: y,
-    margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
-    head: [["Linha", "Valor nominal", "Leitura 1", "Leitura 2", "Leitura 3"]],
-    body: model.substitutionRepeatability.rows.map((r) => [
-      s(r.label), s(r.nominal), s(r.reading1), s(r.reading2), s(r.reading3),
-    ]),
-    styles: { fontSize: m.tableFontSize, cellPadding: m.tableCellPadding },
-    headStyles: tableHeadStyles(doc),
-    theme: "grid",
-    ...singlePageTableBreakOpts(ctx),
-  });
-  y = doc.lastAutoTable.finalY + (m.singlePage ? 1 : 2);
-  if (model.substitutionRepeatability.observations) {
-    doc.setFontSize(m.metaFontSize);
-    doc.text(`Observações: ${model.substitutionRepeatability.observations}`, ML, y, { maxWidth: CW });
-    y += m.singlePage ? 3.5 : 5;
-  }
-  return y + (m.singlePage ? 0.3 : 1);
-}
-
 function drawApprovalChoice(doc, x, y, label, selected, metrics) {
   const m = metrics;
   doc.setFont("helvetica", "bold");
@@ -775,7 +749,6 @@ function drawCertificatePdfContent(doc, model, opts = {}) {
   y = drawEnvironmentalSection(doc, model, y, ctx);
   y = drawEccentricitySection(doc, model, y, ctx);
   y = drawRepeatabilityCalibrationSection(doc, model, y, ctx);
-  y = drawSubstitutionRepeatabilitySection(doc, model, y, ctx);
   y = drawApprovalBlock(doc, model, y, ctx, opts.signatureUrls);
   y = drawLegalMetrologySection(doc, model, y, ctx);
   drawObservationsSection(doc, model, y, ctx);

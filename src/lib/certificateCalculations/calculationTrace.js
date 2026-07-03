@@ -281,13 +281,18 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
   }
 
   if (mem.combinedUncertainty != null) {
-    const parts = ["ua", "up", "ud", "ue", "ur", "upLC"]
+    const squaredParts = ["ua", "up", "ud", "ue", "ur"]
       .filter((k) => mem[k] != null && Number(mem[k]) !== 0)
       .map((k) => `${fmt(mem[k])}²`);
+    const parts = mem.upLC != null && Number(mem.upLC) !== 0
+      ? [...squaredParts, `${fmt(mem.upLC)}`]
+      : squaredParts;
     steps.push({
       id: "uc",
       label: "Incerteza combinada (uc)",
-      formula: "uc = √(Σ uᵢ²)",
+      formula: mem.upLC != null && Number(mem.upLC) !== 0
+        ? "uc = √(ua² + up² + ud² + ue² + ur² + upLC)"
+        : "uc = √(Σ uᵢ²)",
       expression: `√(${parts.join(" + ")}) = ${fmt(mem.combinedUncertainty)}`,
       result: mem.combinedUncertainty,
       unit,

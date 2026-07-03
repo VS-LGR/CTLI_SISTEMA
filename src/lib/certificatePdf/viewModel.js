@@ -322,44 +322,6 @@ export function resolveEccentricity(cert, balance = {}, adjustmentPerformed = nu
   };
 }
 
-import { SUBSTITUICAO_LINHA_DEFS } from "@/lib/coletaSchema";
-
-function resolveRepeatability(cert) {
-  const rep = cert.repeatability_snapshot || cert.collection_snapshot?.payload?.verso?.repetitividade || {};
-  if (rep.aplicavel === false) return { applicable: false, rows: [], observations: "" };
-
-  const labelByKey = Object.fromEntries(
-    SUBSTITUICAO_LINHA_DEFS.map((d) => [d.key, d.label]),
-  );
-
-  const linhas = rep.linhas || [];
-  const rows = linhas
-    .filter((l) => l.leitura1 || l.leitura2 || l.leitura3 || l.valor_nominal)
-    .map((l) => ({
-      label: l.label || labelByKey[l.key] || l.key || "",
-      nominal: l.valor_nominal || "",
-      reading1: l.leitura1 || "",
-      reading2: l.leitura2 || "",
-      reading3: l.leitura3 || "",
-    }));
-
-  if (!rows.length && rep.p1_valor_balanca) {
-    rows.push({
-      label: "P1",
-      nominal: "",
-      reading1: rep.p1_valor_balanca,
-      reading2: "",
-      reading3: "",
-    });
-  }
-
-  return {
-    applicable: rows.length > 0 || rep.aplicavel !== false,
-    rows,
-    observations: rep.observacoes || "",
-  };
-}
-
 function conformityDeclaration() {
   return "";
 }
@@ -405,7 +367,6 @@ export function buildCertificatePdfViewModel(cert, {
   const adjustmentPerformed = parseBalanceAdjustmentPerformed(env.balanceAdjusted);
   const showBeforeAdjustmentTable = resolveShowBeforeAdjustmentTable(adjustmentPerformed, points);
   const eccentricity = resolveEccentricity(enriched, balance, adjustmentPerformed, unit);
-  const repeatability = resolveRepeatability(enriched);
   const validityDate = enriched.validity_date || defaultValidityDate(enriched.calibration_date);
 
   const weightStandards = (enriched.standards || [])
@@ -519,8 +480,8 @@ export function buildCertificatePdfViewModel(cert, {
     };
     }),
     eccentricity,
-    substitutionRepeatability: repeatability,
-    repeatability,
+    substitutionRepeatability: { applicable: false, rows: [], observations: "" },
+    repeatability: { applicable: false, rows: [], observations: "" },
     adjustmentPerformed,
     showBeforeAdjustmentTable,
     adjustmentNote: adjustmentPerformed === false ? ADJUSTMENT_NOT_PERFORMED_NOTE : "",

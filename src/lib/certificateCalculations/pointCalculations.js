@@ -323,6 +323,24 @@ export function calculateExpandedUncertainty(components) {
   return { combined, valid: true, reason: "" };
 }
 
+function calculateCombinedUncertaintyWithLoadBatch(baseComponents, upLC = 0) {
+  const valid = baseComponents.filter((c) => c != null && Number.isFinite(c));
+  const upLcVal = Number.isFinite(upLC) && upLC > 0 ? upLC : 0;
+  if (!valid.length && upLcVal === 0) {
+    return { combined: null, valid: false, reason: "Sem componentes" };
+  }
+  const baseSq = valid.reduce((s, c) => s + c * c, 0);
+  return { combined: Math.sqrt(baseSq + upLcVal), valid: true, reason: "" };
+}
+
+function welchSatterthwaiteNuEffFromCombined(combined, ua, nuUa) {
+  if (!Number.isFinite(combined) || combined === 0) return Infinity;
+  if (!Number.isFinite(ua) || ua === 0 || !Number.isFinite(nuUa) || nuUa <= 0) return Infinity;
+  const denominator = (ua ** 4) / nuUa;
+  if (denominator === 0) return Infinity;
+  return (combined ** 4) / denominator;
+}
+
 export function calculateEccentricityError(reading, reference) {
   const r = parseCalibrationNumber(reading);
   const ref = parseCalibrationNumber(reference);
@@ -393,19 +411,12 @@ export function calculateCalibrationPoint(point, {
   const ueVal = Number.isFinite(ue) ? ue : 0;
   const upLcVal = Number.isFinite(upLC) ? upLC : 0;
 
-  const components = [ua, upVal, udVal, ueVal, ur, upLcVal].filter((c) => Number.isFinite(c));
-  const combinedRes = calculateExpandedUncertainty(components);
+  const components = [ua, upVal, udVal, ueVal, ur].filter((c) => Number.isFinite(c));
+  const combinedRes = calculateCombinedUncertaintyWithLoadBatch(components, upLcVal);
 
   const nReadings = repeatability.n || readings.length;
   const nuRep = nReadings >= 2 ? nReadings - 1 : 0;
-  const nuRaw = welchSatterthwaiteNuEff([
-    { type: "ua", u: ua, nu: nuRep },
-    { type: "up", u: upVal, nu: Infinity },
-    { type: "ud", u: udVal, nu: Infinity },
-    { type: "ue", u: ueVal, nu: Infinity },
-    { type: "ur", u: ur, nu: Infinity },
-    { type: "upLC", u: upLcVal, nu: Infinity },
-  ]);
+  const nuRaw = welchSatterthwaiteNuEffFromCombined(combinedRes.combined, ua, nuRep);
   const nu = truncateVeff(nuRaw);
 
   const k = coverageFactorFromNu(nu);

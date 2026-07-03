@@ -60,7 +60,7 @@ export const perPointFormulas = [
   {
     id: "uc",
     result: "Incerteza combinada (uc)",
-    formula: "uc = √(ua² + up² + ud² + ue² + ur² + upLC²); upLC=0 sem lote",
+    formula: "Sem lote: uc = √(ua² + up² + ud² + ue² + ur²); com lote: uc = √(ua² + up² + ud² + ue² + ur² + upLC)",
     source: "PR-7.6 §5.3",
   },
   {

@@ -59,6 +59,24 @@ describe("buildPointCalculationTrace", () => {
     expect(vcc.formula).toMatch(/V\.C ×/);
   });
 
+  test("uc com lote mostra upLC sem elevar ao quadrado", () => {
+    const { steps } = buildPointCalculationTrace({
+      calculation_memory: {
+        ua: 0.004,
+        up: 0.017,
+        ud: 0.01963,
+        ue: 0.000434,
+        ur: 0.288675,
+        upLC: 0.289848,
+        combinedUncertainty: 0.611305,
+      },
+    }, {}, "kg");
+    const uc = steps.find((s) => s.id === "uc");
+    expect(uc.formula).toContain("+ upLC");
+    expect(uc.expression).toContain("0.289848");
+    expect(uc.expression).not.toContain("0.289848²");
+  });
+
   test("EMP Validação 2026 — rastreio mostra X+Y e Urel sem mascarar zeros", () => {
     const empX = 6.5048e-14;
     const empY = 1.522e-14;

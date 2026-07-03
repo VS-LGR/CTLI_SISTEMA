@@ -32,7 +32,7 @@
       "description": "L6 + P1 → uc(L5+P1)"
     }
   ],
-  "ucFormula": "uc = sqrt(ua^2 + up^2 + ud^2 + ue^2 + ur^2 + upLC^2)",
+  "ucFormula": "uc = sqrt(ua^2 + up^2 + ud^2 + ue^2 + ur^2 + upLC)",
   "vrWithLoadBatch": "V.R. efetivo = Vc_base × M (PR-7.6 §5.4.2)",
   "empuxo": "somar ao vc_i a quantidade de lote utilizada no ponto (PR-7.6 §5.3.5)",
   "errorMultiplierM": "P1=1, L1=1, L1+P1=2, L2=2, L2+P1=3, ...",
