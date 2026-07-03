@@ -364,6 +364,29 @@ function conformityDeclaration() {
   return "";
 }
 
+export const LEGAL_METROLOGY_PDF_SUBTITLE =
+  "Laudo da Manutenção - Metrologia Legal - Aprovação do Equipamento - Portaria INMETRO 157.";
+
+export function resolveLegalMetrologyPdf(cert, balance = {}, conformity = {}) {
+  const isRastreavel = cert.certificate_type === "rastreavel";
+  const applicable = Boolean(conformity?.legal_metrology_applicable);
+  const showSection = isRastreavel && applicable;
+
+  let equipmentApproved = null;
+  const result = conformity?.general_conformity_result;
+  if (result === "conforme") equipmentApproved = "sim";
+  else if (result === "nao_conforme") equipmentApproved = "nao";
+
+  return {
+    showSection,
+    subtitle: LEGAL_METROLOGY_PDF_SUBTITLE,
+    maintenanceDate: fmtDmy(cert.calibration_date),
+    technicianName: cert.executor_name || cert.technical_snapshot?.executorSnapshot?.full_name || "",
+    equipmentApproved,
+    ipemRegistration: balance.etiqueta_ipem || "",
+  };
+}
+
 export function buildCertificatePdfViewModel(cert, {
   documentMeta = null,
   tenantName = "",
@@ -512,5 +535,6 @@ export function buildCertificatePdfViewModel(cert, {
     approvalDate: fmtDmy(enriched.approval_date),
     observations: resolveCertificateObservations(enriched.certificate_type, meta),
     unit,
+    legalMetrology: resolveLegalMetrologyPdf(enriched, balance, enriched.conformity || {}),
   };
 }

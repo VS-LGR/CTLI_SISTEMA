@@ -27,6 +27,26 @@ describe("pesoPadraoPickerUtils", () => {
     expect(filtered[0].id).toBe("2");
   });
 
+  test("filtra apenas lotes de carga", () => {
+    const withLots = [
+      ...items,
+      { id: "4", identification: "L-190", nominal_value: "190", unit: "g", is_load_batch: true, load_batch_material_preset: "aco" },
+    ];
+    const lots = filterAndSortWeightItems(withLots, { kind: "load_batches" });
+    expect(lots).toHaveLength(1);
+    expect(lots[0].id).toBe("4");
+  });
+
+  test("exclui lotes no filtro de pesos padrão", () => {
+    const mixed = [
+      items[0],
+      { id: "4", identification: "L-190", nominal_value: "190", unit: "g", is_load_batch: true },
+    ];
+    const weights = filterAndSortWeightItems(mixed, { kind: "weights" });
+    expect(weights.every((i) => !i.is_load_batch)).toBe(true);
+    expect(weights).toHaveLength(1);
+  });
+
   test("nominalSortGrams converte unidades", () => {
     expect(nominalSortGrams({ nominal_value: "1", unit: "kg" })).toBe(1000);
     expect(nominalSortGrams({ nominal_value: "500", unit: "mg" })).toBe(0.5);

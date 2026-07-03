@@ -135,7 +135,7 @@ export function buildScaleRegistrationFromBalance({
     local_instalacao: String(balanca.local || "").trim(),
     etiqueta_ipem: String(balanca.etiqueta_ipem || "").trim(),
     portaria_inmetro: legalMetrology
-      ? String(balanca.portaria_inmetro || "aplicável").trim()
+      ? String(balanca.portaria_inmetro || "Portaria INMETRO nº 157/2022").trim()
       : String(balanca.portaria_inmetro || "").trim(),
     capacity_1: String(balanca.capacidade || "").trim(),
     capacity_2: String(balanca.capacidade_2 || "").trim(),

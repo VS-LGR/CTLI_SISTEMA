@@ -3,13 +3,20 @@ import {
   computeLegalIndicationError,
   determineInstrumentClassFromLegalMetrology,
   evaluatePointConformity,
+  lookupPortaria157VerificationDivisions,
   lookupPortaria236ToleranceDivisions,
 } from "./conformityCalculations";
 
 const LEGAL_BASE = { legal_metrology_applicable: true, decision_rule: "simples" };
 
 describe("conformityCalculations — Metr. Legal (RE-7.2B Matriz 3)", () => {
-  test("lookupPortaria236ToleranceDivisions — classe III", () => {
+  test("lookupPortaria157VerificationDivisions — classe III (Tabela 5 Verificação)", () => {
+    expect(lookupPortaria157VerificationDivisions("III", 100)).toBe(1.0);
+    expect(lookupPortaria157VerificationDivisions("III", 1000)).toBe(2.0);
+    expect(lookupPortaria157VerificationDivisions("III", 5000)).toBe(2.0);
+  });
+
+  test("lookupPortaria236ToleranceDivisions — classe III (modelo legado)", () => {
     expect(lookupPortaria236ToleranceDivisions("III", 100)).toBe(0.5);
     expect(lookupPortaria236ToleranceDivisions("III", 1000)).toBe(1.0);
     expect(lookupPortaria236ToleranceDivisions("III", 5000)).toBe(1.5);

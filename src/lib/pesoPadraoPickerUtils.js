@@ -1,6 +1,10 @@
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
 import { massToGrams } from "@/lib/massValueUtils";
 import { parseCalibrationNumber } from "@/lib/certificateCalculations/parseNumber";
+import {
+  isLoadBatchItem,
+  loadBatchMaterialLabel,
+} from "@/lib/standardWeightItemUtils";
 
 export const WEIGHT_PICKER_SORT_OPTIONS = [
   { value: "nominal_asc", label: "Peso nominal (menor → maior)" },
@@ -8,7 +12,23 @@ export const WEIGHT_PICKER_SORT_OPTIONS = [
   { value: "identification_asc", label: "Identificação (A–Z)" },
 ];
 
+export const WEIGHT_PICKER_KIND_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "weights", label: "Pesos padrão" },
+  { value: "load_batches", label: "Lotes de carga" },
+];
+
+export { isLoadBatchItem };
+
+export function filterWeightItemsByKind(items, kind = "all") {
+  const list = items || [];
+  if (kind === "weights") return list.filter((i) => !isLoadBatchItem(i));
+  if (kind === "load_batches") return list.filter((i) => isLoadBatchItem(i));
+  return list;
+}
+
 export function weightItemSearchHaystack(item) {
+  const materialLabel = loadBatchMaterialLabel(item?.load_batch_material_preset);
   return [
     item?.identification,
     item?.nominal_value,
@@ -16,6 +36,8 @@ export function weightItemSearchHaystack(item) {
     item?.conventional_value,
     item?.certificate_number,
     item?.expanded_uncertainty,
+    materialLabel,
+    isLoadBatchItem(item) ? "lote de carga" : "",
   ];
 }
 
@@ -44,7 +66,11 @@ export function sortWeightItems(items, sortKey = "nominal_asc") {
   return list;
 }
 
-export function filterAndSortWeightItems(items, { query = "", sortKey = "nominal_asc" } = {}) {
-  const filtered = filterCadastroByQuery(items, query, weightItemSearchHaystack);
+export function filterAndSortWeightItems(
+  items,
+  { query = "", sortKey = "nominal_asc", kind = "all" } = {},
+) {
+  const byKind = filterWeightItemsByKind(items, kind);
+  const filtered = filterCadastroByQuery(byKind, query, weightItemSearchHaystack);
   return sortWeightItems(filtered, sortKey);
 }

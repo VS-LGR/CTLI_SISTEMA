@@ -8,8 +8,11 @@ import { weightItemCertStatus } from "@/lib/cadastroListUtils";
 import { describeWeightComposition } from "@/lib/certificateCalculations/pointCalculations";
 import {
   WEIGHT_PICKER_SORT_OPTIONS,
+  WEIGHT_PICKER_KIND_OPTIONS,
   filterAndSortWeightItems,
+  isLoadBatchItem,
 } from "@/lib/pesoPadraoPickerUtils";
+import { loadBatchMaterialLabel } from "@/lib/standardWeightItemUtils";
 
 function WeightPickerCard({
   item,
@@ -22,12 +25,16 @@ function WeightPickerCard({
   const nominal = item.nominal_value
     ? `${item.nominal_value} ${item.unit || "g"}`.trim()
     : "—";
+  const isLot = isLoadBatchItem(item);
+  const materialLabel = isLot ? loadBatchMaterialLabel(item.load_batch_material_preset) : "";
 
   return (
     <label
       className={`flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer transition-colors min-w-0 ${
         checked
-          ? "border-blue-300 bg-blue-50/60"
+          ? isLot
+            ? "border-amber-300 bg-amber-50/70"
+            : "border-blue-300 bg-blue-50/60"
           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80"
       } ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
     >
@@ -42,21 +49,34 @@ function WeightPickerCard({
           <p className="font-mono text-sm font-medium text-slate-900 truncate" title={item.identification}>
             {item.identification || "—"}
           </p>
-          {st.vigente != null && (
-            <Badge
-              className={`shrink-0 font-normal text-[10px] ${
-                st.vigente
-                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-                  : "bg-red-100 text-red-800 hover:bg-red-100"
-              }`}
-            >
-              {st.vigente ? "OK" : "Venc."}
-            </Badge>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {isLot && (
+              <Badge className="font-normal text-[10px] bg-amber-100 text-amber-900 hover:bg-amber-100">
+                Lote
+              </Badge>
+            )}
+            {!isLot && st.vigente != null && (
+              <Badge
+                className={`font-normal text-[10px] ${
+                  st.vigente
+                    ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                    : "bg-red-100 text-red-800 hover:bg-red-100"
+                }`}
+              >
+                {st.vigente ? "OK" : "Venc."}
+              </Badge>
+            )}
+          </div>
         </div>
         <p className="text-xs text-slate-600">
-          V.N. <span className="font-mono font-medium text-slate-800">{nominal}</span>
+          {isLot ? "Vc" : "V.N."}{" "}
+          <span className="font-mono font-medium text-slate-800">{nominal}</span>
         </p>
+        {materialLabel && (
+          <p className="text-[10px] text-slate-500 truncate" title={materialLabel}>
+            Material: {materialLabel}
+          </p>
+        )}
       </div>
     </label>
   );
@@ -74,14 +94,25 @@ export default function StandardWeightPickerPanel({
   unit = "g",
   compact = false,
   emptyMessage = "Cadastre pesos padrão em Cadastros → Pesos padrão (identificação).",
+  /** "all" | "weights" | "load_batches" — quando fixo, oculta seletor de tipo */
+  itemKind = "weights",
+  allowKindFilter = false,
+  singleSelect = false,
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState("nominal_asc");
+  const [kindFilter, setKindFilter] = useState(itemKind === "all" ? "all" : itemKind);
+  const effectiveKind = allowKindFilter ? kindFilter : itemKind;
   const selected = useMemo(() => value || [], [value]);
 
+  const poolItems = useMemo(
+    () => filterAndSortWeightItems(weightItems, { query: "", sortKey: "nominal_asc", kind: effectiveKind }),
+    [weightItems, effectiveKind],
+  );
+
   const visibleItems = useMemo(
-    () => filterAndSortWeightItems(weightItems, { query, sortKey }),
-    [weightItems, query, sortKey],
+    () => filterAndSortWeightItems(weightItems, { query, sortKey, kind: effectiveKind }),
+    [weightItems, query, sortKey, effectiveKind],
   );
 
   const composition = useMemo(
@@ -91,6 +122,10 @@ export default function StandardWeightPickerPanel({
 
   const toggle = (id) => {
     if (disabled) return;
+    if (singleSelect) {
+      onChange(selected.includes(id) ? [] : [id]);
+      return;
+    }
     const next = selected.includes(id)
       ? selected.filter((x) => x !== id)
       : [...selected, id];
@@ -102,10 +137,19 @@ export default function StandardWeightPickerPanel({
     onChange([]);
   };
 
-  if (!weightItems.length) {
+  if (!poolItems.length && !weightItems.length) {
     return (
       <p className="text-sm text-slate-500 p-3 border rounded-md bg-slate-50">
         {emptyMessage}
+      </p>
+    );
+  }
+
+  if (!poolItems.length) {
+    const kindLabel = effectiveKind === "load_batches" ? "lotes de carga" : "pesos padrão";
+    return (
+      <p className="text-sm text-slate-500 p-3 border rounded-md bg-slate-50">
+        Nenhum {kindLabel} cadastrado. Cadastre em Cadastros → Pesos padrão.
       </p>
     );
   }
@@ -138,11 +182,25 @@ export default function StandardWeightPickerPanel({
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+        {allowKindFilter && (
+          <select
+            value={kindFilter}
+            onChange={(e) => setKindFilter(e.target.value)}
+            disabled={disabled}
+            className="h-9 w-full sm:w-[10.5rem] shrink-0 rounded-md border border-input bg-white px-2 text-xs shadow-sm"
+            aria-label="Filtrar tipo"
+          >
+            {WEIGHT_PICKER_KIND_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <span>
-          {visibleItems.length} de {weightItems.length} peso(s)
+          {visibleItems.length} de {poolItems.length}{" "}
+          {effectiveKind === "load_batches" ? "lote(s)" : "peso(s)"}
           {selected.length > 0 && (
             <span className="text-slate-700 font-medium"> · {selected.length} selecionado(s)</span>
           )}
@@ -177,7 +235,7 @@ export default function StandardWeightPickerPanel({
         </div>
       )}
 
-      {composition.valid && selected.length > 0 && (
+      {composition.valid && selected.length > 0 && effectiveKind !== "load_batches" && (
         <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 space-y-1">
           {composition.parts.length > 1 && (
             <p>

@@ -10,6 +10,8 @@ import PesoPadraoPointTable from "@/components/calibrationCertificates/PesoPadra
 import { sumConventionalFromWeightIds } from "@/lib/certificateCalculations/environmentalCalculations";
 import { MATERIAL_PRESETS, densityFromPresetId } from "@/lib/certificateCalculations/materialConstants";
 import { formationKeyForPoint, errorMultiplierForFormation } from "@/lib/certificateCalculations/loadBatchCalculations";
+import { loadBatchFieldsFromItem } from "@/lib/standardWeightItemUtils";
+import StandardWeightPickerPanel from "@/components/shared/StandardWeightPickerPanel";
 import { isCertificatePointFilled } from "@/lib/calibrationCertificates/certificatePointUtils";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 import { MaxTolerancePointLabel } from "@/components/calibrationCertificates/MaxTolerancePointFlag";
@@ -202,12 +204,39 @@ function PointTabContent({
                   className="h-9 mt-1 bg-white"
                 />
               </div>
+              <div className="sm:col-span-2 lg:col-span-2">
+                <Label className="text-xs mb-2 block">Selecionar lote cadastrado</Label>
+                <StandardWeightPickerPanel
+                  weightItems={weightItems}
+                  weightCerts={weightCerts}
+                  value={point.load_batch_weight_id ? [point.load_batch_weight_id] : []}
+                  onChange={(ids) => {
+                    const id = ids[0];
+                    if (!id) {
+                      setField({ load_batch_weight_id: null });
+                      return;
+                    }
+                    const item = weightItems.find((w) => w.id === id);
+                    const fields = loadBatchFieldsFromItem(item);
+                    if (fields) setField(fields);
+                  }}
+                  disabled={disabled}
+                  unit={unit}
+                  compact
+                  itemKind="load_batches"
+                  singleSelect
+                  emptyMessage="Cadastre lotes de carga em Cadastros → Pesos padrão."
+                />
+              </div>
               <div>
                 <Label className="text-xs">Nominal do lote (Vc)</Label>
                 <Input
                   value={point.load_batch_nominal ?? ""}
                   disabled={disabled}
-                  onChange={(e) => setField({ load_batch_nominal: e.target.value })}
+                  onChange={(e) => setField({
+                    load_batch_nominal: e.target.value,
+                    load_batch_weight_id: null,
+                  })}
                   className="h-9 mt-1"
                   placeholder="Ex.: 190"
                 />
@@ -218,7 +247,10 @@ function PointTabContent({
                   className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   disabled={disabled}
                   value={point.load_batch_material_preset ?? "aco"}
-                  onChange={(e) => setField({ load_batch_material_preset: e.target.value })}
+                  onChange={(e) => setField({
+                    load_batch_material_preset: e.target.value,
+                    load_batch_weight_id: null,
+                  })}
                 >
                   {MATERIAL_PRESETS.map((m) => (
                     <option key={m.id} value={m.id}>{m.label}</option>
@@ -253,6 +285,7 @@ export default function PointRegistrationPanel({
   disabled = false,
   legalMetrologyApplicable = false,
   onLegalMetrologyChange,
+  showLegalMetrologyToggle = true,
   onPointChange,
   unit = "g",
   maxToleranceAlertPoints = null,
@@ -280,7 +313,7 @@ export default function PointRegistrationPanel({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-slate-800">Cadastro de Pontos</p>
-        {onLegalMetrologyChange && (
+        {showLegalMetrologyToggle && onLegalMetrologyChange && (
           <Button
             type="button"
             variant={legalMetrologyApplicable ? "default" : "outline"}

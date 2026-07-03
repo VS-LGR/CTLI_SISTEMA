@@ -18,6 +18,7 @@ export default function PesoPadraoPointTable({
       disabled={disabled}
       unit={unit}
       compact={false}
+      itemKind="weights"
     />
   );
 }

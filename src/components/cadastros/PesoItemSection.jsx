@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,10 @@ import {
   oimlNominalHint,
   oimlNominalOptionsForUnit,
 } from "@/lib/oimlR111NominalValues";
+import { MATERIAL_PRESETS } from "@/lib/certificateCalculations/materialConstants";
+import { WEIGHT_PICKER_KIND_OPTIONS, filterWeightItemsByKind } from "@/lib/pesoPadraoPickerUtils";
+import { isLoadBatchItem, loadBatchMaterialLabel } from "@/lib/standardWeightItemUtils";
+import { cadastroFilterFieldClass } from "@/components/cadastros/CadastroListFilterBar";
 
 const WEIGHT_STATUS_OPTIONS = [
   { value: "", label: "—" },
@@ -41,6 +46,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [query, setQuery] = useState("");
+  const [kindFilter, setKindFilter] = useState("all");
+  const [isLoadBatch, setIsLoadBatch] = useState(false);
+  const [loadBatchMaterialPreset, setLoadBatchMaterialPreset] = useState("aco");
   const [identification, setIdentification] = useState("");
   const [nominalValue, setNominalValue] = useState("");
   const [unit, setUnit] = useState("g");
@@ -64,18 +72,22 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const oimlNominalOptions = useMemo(() => oimlNominalOptionsForUnit(unit), [unit]);
   const oimlHint = useMemo(() => oimlNominalHint(nominalValue, unit), [nominalValue, unit]);
 
-  const filtered = useMemo(
-    () => filterCadastroByQuery(rows, query, (r) => [
+  const filtered = useMemo(() => {
+    const byKind = filterWeightItemsByKind(rows, kindFilter);
+    return filterCadastroByQuery(byKind, query, (r) => [
       r.identification,
       r.nominal_value,
       r.certificate_number,
       weightItemCertNumber(r, weightCerts),
-    ]),
-    [rows, query, weightCerts],
-  );
+      loadBatchMaterialLabel(r.load_batch_material_preset),
+      isLoadBatchItem(r) ? "lote de carga" : "",
+    ]);
+  }, [rows, query, kindFilter, weightCerts]);
 
   const reset = () => {
     setEditing(null);
+    setIsLoadBatch(false);
+    setLoadBatchMaterialPreset("aco");
     setIdentification("");
     setNominalValue("");
     setConventionalValue("");
@@ -101,35 +113,61 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
 
   const save = async () => {
     if (!tenantId) return toast.error("Selecione um ambiente válido no topo da página");
-    if (!identification.trim()) return toast.error("Informe a identificação do peso");
-
-    const drift = calculateStandardDrift({
-      weightStatus,
-      expandedUncertainty,
-      conventionalValue,
-      previousConventionalValue,
-    });
-
-    if (weightStatus && !drift.valid) {
-      return toast.error(drift.reason || "Não foi possível calcular a deriva do padrão");
+    if (!identification.trim()) {
+      return toast.error(isLoadBatch ? "Informe a identificação do lote" : "Informe a identificação do peso");
+    }
+    if (isLoadBatch && !nominalValue.trim()) {
+      return toast.error("Informe o valor nominal (Vc) do lote de carga");
     }
 
-    const driftStr = drift.valid ? String(drift.value) : "";
+    let driftStr = "";
+    if (!isLoadBatch) {
+      const drift = calculateStandardDrift({
+        weightStatus,
+        expandedUncertainty,
+        conventionalValue,
+        previousConventionalValue,
+      });
 
-    const base = {
-      tenant_id: tenantId,
-      identification: identification.trim(),
-      nominal_value: nominalValue.trim(),
-      conventional_value: conventionalValue.trim(),
-      previous_conventional_value: previousConventionalValue.trim(),
-      standard_drift: driftStr,
-      weight_status: weightStatus.trim(),
-      expanded_uncertainty: expandedUncertainty.trim(),
-      unit: unit || "g",
-      active: true,
-      certificate_number: certificateNumber.trim(),
-      weight_certificate_id: weightCertificateId || null,
-    };
+      if (weightStatus && !drift.valid) {
+        return toast.error(drift.reason || "Não foi possível calcular a deriva do padrão");
+      }
+      driftStr = drift.valid ? String(drift.value) : "";
+    }
+
+    const base = isLoadBatch
+      ? {
+        tenant_id: tenantId,
+        identification: identification.trim(),
+        nominal_value: nominalValue.trim(),
+        unit: unit || "g",
+        is_load_batch: true,
+        load_batch_material_preset: loadBatchMaterialPreset || "aco",
+        conventional_value: "",
+        previous_conventional_value: "",
+        standard_drift: "",
+        weight_status: "",
+        expanded_uncertainty: "",
+        active: true,
+        certificate_number: "",
+        weight_certificate_id: null,
+      }
+      : {
+        tenant_id: tenantId,
+        identification: identification.trim(),
+        nominal_value: nominalValue.trim(),
+        conventional_value: conventionalValue.trim(),
+        previous_conventional_value: previousConventionalValue.trim(),
+        standard_drift: driftStr,
+        weight_status: weightStatus.trim(),
+        expanded_uncertainty: expandedUncertainty.trim(),
+        unit: unit || "g",
+        is_load_batch: false,
+        load_batch_material_preset: "",
+        active: true,
+        certificate_number: certificateNumber.trim(),
+        weight_certificate_id: weightCertificateId || null,
+      };
     try {
       if (editing) {
         const { error } = await supabase.from("standard_weight_items").update(base).eq("id", editing.id);
@@ -160,6 +198,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
 
   const openEdit = (r) => {
     setEditing(r);
+    setIsLoadBatch(isLoadBatchItem(r));
+    setLoadBatchMaterialPreset(r.load_batch_material_preset || "aco");
     setIdentification(r.identification);
     setNominalValue(r.nominal_value);
     setConventionalValue(r.conventional_value || "");
@@ -172,38 +212,67 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setOpen(true);
   };
 
-  const openNew = () => {
+  const openNew = (asLoadBatch = false) => {
     reset();
-    setWeightStatus("1");
+    setIsLoadBatch(asLoadBatch);
+    if (!asLoadBatch) setWeightStatus("1");
     setOpen(true);
+  };
+
+  const clearFilters = () => {
+    setQuery("");
+    setKindFilter("all");
   };
 
   return (
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-between gap-2">
-          <p className="text-sm text-slate-600">Pesos padrão individuais (aba CAD PESOS-PADRÃO).</p>
-          <Button size="sm" className="bg-blue-600 text-white" onClick={openNew}>
-            <Plus size={16} className="mr-1" /> Novo peso
-          </Button>
+          <p className="text-sm text-slate-600">
+            Pesos padrão individuais e lotes de carga (aba CAD PESOS-PADRÃO).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => openNew(true)}>
+              <Plus size={16} className="mr-1" /> Novo lote
+            </Button>
+            <Button size="sm" className="bg-blue-600 text-white" onClick={() => openNew(false)}>
+              <Plus size={16} className="mr-1" /> Novo peso
+            </Button>
+          </div>
         </div>
 
-        <CadastroListFilterBar
-          query={query}
-          onQueryChange={setQuery}
-          placeholder="Buscar por identificação, valor nominal ou certificado…"
-          filteredCount={filtered.length}
-          totalCount={rows.length}
-          onClear={() => setQuery("")}
-          testIdPrefix="peso-item"
-        />
+        <div className="space-y-3">
+          <CadastroListFilterBar
+            query={query}
+            onQueryChange={setQuery}
+            placeholder="Buscar por identificação, valor nominal, material ou certificado…"
+            filteredCount={filtered.length}
+            totalCount={rows.length}
+            onClear={clearFilters}
+            testIdPrefix="peso-item"
+          />
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            <Label className="text-xs text-slate-500 shrink-0">Tipo</Label>
+            <select
+              value={kindFilter}
+              onChange={(e) => setKindFilter(e.target.value)}
+              className={`${cadastroFilterFieldClass} w-full sm:w-[11rem] px-2`}
+              data-testid="peso-item-filter-kind"
+            >
+              {WEIGHT_PICKER_KIND_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-600">
               <tr>
                 <th className="p-2">ID</th>
-                <th className="p-2">V.N</th>
+                <th className="p-2">Tipo</th>
+                <th className="p-2">V.N / Vc</th>
                 <th className="p-2">V.V.C</th>
                 <th className="p-2">Ue</th>
                 <th className="p-2">Nº certificado</th>
@@ -216,14 +285,31 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={10} className="p-4 text-center text-slate-500">Nenhum peso encontrado.</td></tr>
+                <tr><td colSpan={11} className="p-4 text-center text-slate-500">Nenhum registro encontrado.</td></tr>
               )}
               {filtered.map((r) => {
                 const st = weightItemCertStatus(r, weightCerts);
+                const lot = isLoadBatchItem(r);
                 return (
                   <tr key={r.id} className="border-t border-slate-100">
                     <td className="p-2 font-mono">{r.identification}</td>
-                    <td className="p-2">{r.nominal_value} {r.unit}</td>
+                    <td className="p-2">
+                      {lot ? (
+                        <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 font-normal text-[10px]">
+                          Lote
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="font-normal text-[10px]">Peso</Badge>
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {r.nominal_value} {r.unit}
+                      {lot && r.load_batch_material_preset && (
+                        <span className="block text-[10px] text-slate-500">
+                          {loadBatchMaterialLabel(r.load_batch_material_preset)}
+                        </span>
+                      )}
+                    </td>
                     <td className="p-2">{r.conventional_value || "—"} {r.conventional_value ? r.unit : ""}</td>
                     <td className="p-2">{r.expanded_uncertainty || "—"} {r.expanded_uncertainty ? r.unit : ""}</td>
                     <td className="p-2">{weightItemCertNumber(r, weightCerts)}</td>
@@ -257,12 +343,65 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editing ? "Editar peso" : "Novo peso padrão"}</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>
+                {editing
+                  ? (isLoadBatch ? "Editar lote de carga" : "Editar peso")
+                  : (isLoadBatch ? "Novo lote de carga" : "Novo peso padrão")}
+              </DialogTitle>
+            </DialogHeader>
             <div className="space-y-3">
               <div>
                 <Label>Identificação *</Label>
-                <Input value={identification} onChange={(e) => setIdentification(e.target.value)} placeholder="Ex.: P-22" />
+                <Input
+                  value={identification}
+                  onChange={(e) => setIdentification(e.target.value)}
+                  placeholder={isLoadBatch ? "Ex.: L-190-Aço" : "Ex.: P-22"}
+                />
               </div>
+              {isLoadBatch ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Vc (valor nominal do lote)</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={nominalValue}
+                        onChange={(e) => setNominalValue(sanitizeMassNumericInput(e.target.value))}
+                        placeholder="Ex.: 190"
+                      />
+                    </div>
+                    <div>
+                      <Label>Unidade</Label>
+                      <select
+                        value={unit}
+                        onChange={(e) => setUnit(e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                      >
+                        {WEIGHT_ITEM_UNITS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Material do lote (PPM empuxo)</Label>
+                    <select
+                      value={loadBatchMaterialPreset}
+                      onChange={(e) => setLoadBatchMaterialPreset(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                    >
+                      {MATERIAL_PRESETS.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Lotes de carga são usados nos pontos P2+ com substituição (PR-7.6). O Vc soma-se aos pesos padrão na referência.
+                  </p>
+                </>
+              ) : (
+                <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>V.N (valor nominal)</Label>
@@ -371,6 +510,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   placeholder="Se não vincular conjunto acima"
                 />
               </div>
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>

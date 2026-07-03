@@ -289,7 +289,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
 
               <SectionHeading
                 title="Metrologia legal"
-                description="Campos usados na conformidade OIML / Portaria INMETRO (quando aplicável)."
+                description="Campos usados na metrologia legal — Portaria INMETRO nº 157/2022 (quando aplicável)."
               />
               <div>
                 <FieldLabel title="Etiqueta IPEM" hint="Número da etiqueta de verificação ou selo legal." />

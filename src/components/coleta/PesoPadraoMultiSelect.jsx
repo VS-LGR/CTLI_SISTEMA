@@ -48,6 +48,7 @@ export default function PesoPadraoMultiSelect({
           onChange={onChange}
           unit={unit}
           compact
+          itemKind="weights"
         />
       </PopoverContent>
     </Popover>

@@ -326,15 +326,23 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
     { repeatabilitySnapshot: full.repeatability_snapshot || {} },
   );
 
-  const confResult = calculateConformityForCertificate({
-    balance: full.balance_snapshot,
-    points: calculated,
-    conformity: full.conformity,
-    decisionRule: full.conformity?.decision_rule,
-    pointMaxTolerances: scaleReg?.point_max_tolerances || full.balance_snapshot?.point_max_tolerances || [],
-    weightItems: items,
-    eccentricitySnapshot: full.eccentricity_snapshot || null,
-  });
+  const confResult = full.certificate_type === "rbc"
+    ? {
+      general: "nao_aplicavel",
+      partialResult: "nao_aplicavel",
+      pointResults: [],
+      eccentricityResults: [],
+      instrumentClass: "",
+    }
+    : calculateConformityForCertificate({
+      balance: full.balance_snapshot,
+      points: calculated,
+      conformity: full.conformity,
+      decisionRule: full.conformity?.decision_rule,
+      pointMaxTolerances: scaleReg?.point_max_tolerances || full.balance_snapshot?.point_max_tolerances || [],
+      weightItems: items,
+      eccentricitySnapshot: full.eccentricity_snapshot || null,
+    });
 
   const confByPoint = Object.fromEntries(
     (confResult.pointResults || []).map((pr) => [pr.pointNumber, pr]),

@@ -61,6 +61,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CriticalAnalysisDialog from "@/components/calibrationCertificates/CriticalAnalysisDialog";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
+import CertificateBalanceSection from "@/components/calibrationCertificates/CertificateBalanceSection";
 import PointCalculationMemory from "@/components/calibrationCertificates/PointCalculationMemory";
 import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
 import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
@@ -72,7 +73,6 @@ import { balanceSnapshotFromScaleRegistration, loadMaxTolerancesFromForm } from 
 import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import { buildEnvironmentalSnapshotPatch, hydrateEnvironmentalTbh } from "@/lib/tbhCorrection/tbhCorrectionCalculations";
-import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields";
 import {
   hasAnyConfiguredTolerance,
   formatMaxTolerancePointLabel,
@@ -690,10 +690,13 @@ export default function CertificateEditorPage() {
       <Tabs defaultValue="dados">
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="dados">Dados</TabsTrigger>
+          <TabsTrigger value="balanca">Balança</TabsTrigger>
           <TabsTrigger value="pontos">Pontos e Cálculos</TabsTrigger>
           <TabsTrigger value="padroes">Padrões</TabsTrigger>
           <TabsTrigger value="ambiente">Ambiente</TabsTrigger>
-          <TabsTrigger value="conformidade">Conformidade</TabsTrigger>
+          {cert.certificate_type === "rastreavel" && (
+            <TabsTrigger value="metrologia-legal">Metrologia Legal</TabsTrigger>
+          )}
           <TabsTrigger value="aprovacao">Aprovação</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
@@ -703,7 +706,24 @@ export default function CertificateEditorPage() {
             <CardContent className="p-6 grid gap-4 sm:grid-cols-2">
               <div>
                 <Label>Tipo</Label>
-                <Select value={cert.certificate_type} onValueChange={(v) => patch({ certificate_type: v })} disabled={!editable}>
+                <Select
+                  value={cert.certificate_type}
+                  onValueChange={(v) => {
+                    if (v === "rbc") {
+                      patch({
+                        certificate_type: v,
+                        conformity: {
+                          ...(cert.conformity || {}),
+                          legal_metrology_applicable: false,
+                          general_conformity_result: "nao_aplicavel",
+                        },
+                      });
+                    } else {
+                      patch({ certificate_type: v });
+                    }
+                  }}
+                  disabled={!editable}
+                >
                   <SelectTrigger className="h-10 mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CERTIFICATE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
@@ -755,78 +775,6 @@ export default function CertificateEditorPage() {
                   onChange={(e) => patch({ scale_serial: e.target.value })}
                 />
               </div>
-              {isStandalone && editable && (
-                <div className="sm:col-span-2">
-                  <Label>Balança (cadastro)</Label>
-                  <Select
-                    value={cert.scale_registration_id || "__manual__"}
-                    onValueChange={(scaleRegId) => {
-                      if (scaleRegId === "__manual__") {
-                        patch({ scale_registration_id: null });
-                        return;
-                      }
-                      const scale = scales.find((s) => s.id === scaleRegId);
-                      if (!scale) return;
-                      const snap = balanceSnapshotFromScaleRegistration(scale);
-                      patch({
-                        scale_registration_id: scaleRegId,
-                        scale_serial: scale.serial_number || cert.scale_serial,
-                        balance_snapshot: { ...(cert.balance_snapshot || {}), ...snap },
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="h-10 mt-1">
-                      <SelectValue placeholder="Selecionar balança cadastrada" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__manual__">— Preencher manualmente —</SelectItem>
-                      {(cert.end_customer_id
-                        ? scales.filter((s) => s.end_customer_id === cert.end_customer_id || !s.end_customer_id)
-                        : scales
-                      ).map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.serial_number || s.tag || "Sem série"} — {s.manufacturer} {s.model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {!scales.length && (
-                    <p className="text-xs text-amber-700 mt-1">Cadastre balanças em Cadastros → Balanças para selecionar aqui.</p>
-                  )}
-                  {!cert.scale_registration_id && (
-                    <div className="mt-2 space-y-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={savingScale}
-                        onClick={registerManualScale}
-                      >
-                        <FloppyDisk size={16} className="mr-1.5" />
-                        {savingScale ? "A cadastrar…" : "Cadastrar balança no cliente"}
-                      </Button>
-                      {!cert.end_customer_id && (
-                        <p className="text-xs text-amber-700">Selecione o cliente do ambiente para cadastrar a balança.</p>
-                      )}
-                      <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                        <p className="text-xs font-semibold text-slate-700 mb-2">
-                          Tolerância máxima por valor de pesagem
-                        </p>
-                        <PointMaxToleranceFields
-                          tolerances={cert.balance_snapshot?.point_max_tolerances || []}
-                          unit={cert.balance_snapshot?.unidade || "g"}
-                          onChange={(next) => patch({
-                            balance_snapshot: {
-                              ...(cert.balance_snapshot || {}),
-                              point_max_tolerances: next,
-                            },
-                          })}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
               <div>
                 <Label>Data calibração</Label>
                 <Input
@@ -896,6 +844,40 @@ export default function CertificateEditorPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="balanca" className="mt-4">
+          <Card>
+            <CardContent className="p-6">
+              <CertificateBalanceSection
+                balance={cert.balance_snapshot || {}}
+                scaleSerial={cert.scale_serial || ""}
+                onScaleSerialChange={(v) => patch({ scale_serial: v })}
+                scaleRegistrationId={cert.scale_registration_id}
+                onScaleRegistrationChange={(scaleRegId) => {
+                  if (scaleRegId === "__manual__") {
+                    patch({ scale_registration_id: null });
+                    return;
+                  }
+                  const scale = scales.find((s) => s.id === scaleRegId);
+                  if (!scale) return;
+                  const snap = balanceSnapshotFromScaleRegistration(scale);
+                  patch({
+                    scale_registration_id: scaleRegId,
+                    scale_serial: scale.serial_number || cert.scale_serial,
+                    balance_snapshot: { ...(cert.balance_snapshot || {}), ...snap },
+                  });
+                }}
+                scales={scales}
+                endCustomerId={cert.end_customer_id}
+                onChange={(nextSnap) => patch({ balance_snapshot: nextSnap })}
+                disabled={!editable}
+                readOnly={!isStandalone}
+                onRegisterScale={registerManualScale}
+                savingScale={savingScale}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="pontos" className="mt-4 space-y-4">
           {isStandalone && editable && (
             <Card>
@@ -906,6 +888,7 @@ export default function CertificateEditorPage() {
                   weightCerts={weightCerts}
                   disabled={!editable}
                   legalMetrologyApplicable={Boolean(cert.conformity?.legal_metrology_applicable)}
+                  showLegalMetrologyToggle={cert.certificate_type === "rastreavel"}
                   onLegalMetrologyChange={(v) => setCert((c) => ({
                     ...c,
                     conformity: { ...(c.conformity || {}), legal_metrology_applicable: v },
@@ -1220,7 +1203,7 @@ export default function CertificateEditorPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="conformidade" className="mt-4">
+        <TabsContent value="metrologia-legal" className="mt-4">
           <Card>
             <CardContent className="p-6 space-y-4 text-sm">
               {cert.conformity ? (
@@ -1245,7 +1228,14 @@ export default function CertificateEditorPage() {
                     <div>Metrologia legal: {cert.conformity.legal_metrology_applicable ? "Sim" : "Não"}</div>
                     <div>Classe: {cert.conformity.instrument_class || "—"}</div>
                     <div>Portaria: {cert.conformity.applicable_ordinance || "—"}</div>
-                    <div>Regra de decisão: {cert.conformity.decision_rule === "erro_mais_incerteza" ? "Erro + incerteza" : "Simples (só erro)"}</div>
+                    <div>Regra de decisão: {
+                      cert.conformity.decision_rule === "erro_mais_incerteza"
+                        ? "Erro + incerteza"
+                        : cert.conformity.decision_rule === "portaria_157"
+                          || cert.conformity.decision_rule === "portaria_236"
+                          ? "Portaria INMETRO 157"
+                          : "Simples (só erro)"
+                    }</div>
                   </div>
                   {cert.conformity.legal_metrology_applicable && (cert.conformity.point_results || []).length > 0 ? (
                     <div className="overflow-x-auto -mx-2 px-2">
@@ -1377,7 +1367,7 @@ export default function CertificateEditorPage() {
                   </div>
                 </>
               ) : (
-                <p className="text-slate-500">Conformidade não avaliada.</p>
+                <p className="text-slate-500">Metrologia legal não avaliada.</p>
               )}
             </CardContent>
           </Card>

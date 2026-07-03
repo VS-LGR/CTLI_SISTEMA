@@ -19,6 +19,7 @@ import {
   drawNumberedObservations,
   tableHeadStyles,
   getCertificateLayoutMetrics,
+  underlineField,
 } from "./certificatePdfLayout";
 
 function s(v) {
@@ -384,36 +385,42 @@ function cellPair(m) {
 }
 
 /** Estilos de tabela de repetibilidade — mais folga quando há duas tabelas lado a lado. */
-function repeatabilityTableStyles(m, dualLayout) {
-  const pad = dualLayout && m.singlePage
+function repeatabilityTableStyles(m, { dualLayout, singlePageCompact }) {
+  const pad = dualLayout
     ? { top: 0.55, bottom: 0.55, left: 0.35, right: 0.35 }
-    : m.compactTablePadding;
+    : singlePageCompact
+      ? { top: 0.45, bottom: 0.45, left: 0.4, right: 0.4 }
+      : m.compactTablePadding;
   return {
-    fontSize: dualLayout && m.singlePage ? 4.35 : m.compactTableFontSize,
+    fontSize: dualLayout ? 4.35 : m.compactTableFontSize,
     cellPadding: pad,
     halign: "center",
     valign: "middle",
     lineWidth: 0.1,
-    minCellHeight: dualLayout && m.singlePage ? 4.1 : undefined,
+    overflow: "linebreak",
+    minCellHeight: singlePageCompact ? 4.1 : undefined,
   };
 }
 
-function repeatabilityHeadStyles(doc, m, dualLayout) {
-  const pad = dualLayout && m.singlePage
+function repeatabilityHeadStyles(doc, m, { dualLayout, singlePageCompact }) {
+  const pad = dualLayout
     ? { top: 0.65, bottom: 0.65, left: 0.3, right: 0.3 }
-    : m.compactTablePadding;
+    : singlePageCompact
+      ? { top: 0.55, bottom: 0.55, left: 0.35, right: 0.35 }
+      : m.compactTablePadding;
   return {
     ...tableHeadStyles(doc),
-    fontSize: dualLayout && m.singlePage ? 4.1 : m.compactTableHeadFontSize,
+    fontSize: dualLayout ? 4.1 : m.compactTableHeadFontSize,
     halign: "center",
     valign: "middle",
     cellPadding: pad,
-    minCellHeight: dualLayout && m.singlePage ? 5.2 : undefined,
+    overflow: "linebreak",
+    minCellHeight: singlePageCompact ? 5.2 : undefined,
   };
 }
 
-function repeatabilityColumnHeaders(unitLabel, dualCompact) {
-  if (!dualCompact) {
+function repeatabilityColumnHeaders(unitLabel, compactHeaders) {
+  if (!compactHeaders) {
     return {
       before: ["Valor de Referência", unitLabel, "Leitura 01", unitLabel, "Erro de Indicação", unitLabel],
       after: [
@@ -425,6 +432,44 @@ function repeatabilityColumnHeaders(unitLabel, dualCompact) {
   return {
     before: ["V. Ref.", unitLabel, "Leitura", unitLabel, "Erro", unitLabel],
     after: ["V. Ref.", unitLabel, "Média", unitLabel, "Erro", unitLabel, "Ue", unitLabel, "Veff", "k"],
+  };
+}
+
+/** Larguras fixas para a tabela de resultados (10 colunas) em página única. */
+function repeatabilityResultColumnStyles(m, { dualLayout, fullWidth }) {
+  const unitColStyle = {
+    cellWidth: dualLayout ? 5.5 : (m.singlePage ? 6 : 7),
+    fontSize: dualLayout ? 4 : (m.singlePage ? 4.5 : 5),
+    halign: "center",
+  };
+
+  if (!fullWidth) {
+    return {
+      1: unitColStyle,
+      3: unitColStyle,
+      5: unitColStyle,
+      7: unitColStyle,
+      8: { cellWidth: dualLayout ? 8 : (m.singlePage ? 9 : 10) },
+      9: { cellWidth: dualLayout ? 6.5 : (m.singlePage ? 7 : 8) },
+    };
+  }
+
+  const unitW = 6;
+  const veffW = 10;
+  const kW = 8;
+  const valueW = (CW - unitW * 4 - veffW - kW) / 5;
+
+  return {
+    0: { cellWidth: valueW },
+    1: unitColStyle,
+    2: { cellWidth: valueW },
+    3: unitColStyle,
+    4: { cellWidth: valueW },
+    5: unitColStyle,
+    6: { cellWidth: valueW },
+    7: unitColStyle,
+    8: { cellWidth: veffW },
+    9: { cellWidth: kW },
   };
 }
 
@@ -485,9 +530,11 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
   const m = ctx.metrics;
   const showBeforeAdjustment = model.showBeforeAdjustmentTable === true;
   const dualLayout = showBeforeAdjustment && m.singlePage;
+  const singlePageCompact = m.singlePage;
+  const layoutOpts = { dualLayout, singlePageCompact };
   const rows = repeatabilityRowsForPdfLayout(allRows, {
     ...m,
-    repeatabilityMinRows: dualLayout ? 3 : m.repeatabilityMinRows,
+    repeatabilityMinRows: dualLayout ? 3 : (m.singlePage ? 4 : m.repeatabilityMinRows),
   });
   const unitLabel = model.unit || model.balance?.unidade || "kg";
   const leftW = showBeforeAdjustment ? CW * 0.38 : 0;
@@ -521,7 +568,7 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     }
   }
 
-  const colHeaders = repeatabilityColumnHeaders(unitLabel, dualLayout);
+  const colHeaders = repeatabilityColumnHeaders(unitLabel, false);
   const rightHead = colHeaders.after;
 
   const rightBody = rows.map((r) => [
@@ -534,14 +581,12 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
     s(r.k),
   ]);
 
-  const sharedStyles = repeatabilityTableStyles(m, dualLayout);
-  const headStyles = repeatabilityHeadStyles(doc, m, dualLayout);
-
-  const unitColStyle = {
-    cellWidth: dualLayout ? 5.5 : (m.singlePage ? 6 : 7),
-    fontSize: dualLayout ? 4 : (m.singlePage ? 4.5 : 5),
-    halign: "center",
-  };
+  const sharedStyles = repeatabilityTableStyles(m, layoutOpts);
+  const headStyles = repeatabilityHeadStyles(doc, m, layoutOpts);
+  const resultColumnStyles = repeatabilityResultColumnStyles(m, {
+    dualLayout,
+    fullWidth: singlePageCompact && !showBeforeAdjustment,
+  });
 
   let leftEndY = y;
 
@@ -560,11 +605,7 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
       body: leftBody,
       styles: sharedStyles,
       headStyles,
-      columnStyles: {
-        1: unitColStyle,
-        3: unitColStyle,
-        5: unitColStyle,
-      },
+      columnStyles: repeatabilityResultColumnStyles(m, { dualLayout, fullWidth: false }),
       theme: "grid",
       ...singlePageTableBreakOpts(ctx),
     });
@@ -577,18 +618,12 @@ function drawRepeatabilityCalibrationSection(doc, model, y, ctx) {
       left: rightX,
       right: showBeforeAdjustment ? ML : PAGE_W - MR,
     }),
+    tableWidth: singlePageCompact && !showBeforeAdjustment ? CW : undefined,
     head: [rightHead],
     body: rightBody,
     styles: sharedStyles,
     headStyles,
-    columnStyles: {
-      1: unitColStyle,
-      3: unitColStyle,
-      5: unitColStyle,
-      7: unitColStyle,
-      8: { cellWidth: dualLayout ? 8 : (m.singlePage ? 9 : 10) },
-      9: { cellWidth: dualLayout ? 6.5 : (m.singlePage ? 7 : 8) },
-    },
+    columnStyles: resultColumnStyles,
     theme: "grid",
     ...singlePageTableBreakOpts(ctx),
   });
@@ -635,6 +670,54 @@ function drawSubstitutionRepeatabilitySection(doc, model, y, ctx) {
     y += m.singlePage ? 3.5 : 5;
   }
   return y + (m.singlePage ? 0.3 : 1);
+}
+
+function drawApprovalChoice(doc, x, y, label, selected, metrics) {
+  const m = metrics;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(m.singlePage ? 5.5 : 6.5);
+  doc.text(label, x, y);
+  const optX = x + doc.getTextWidth(`${label} `) + 2;
+  ["Sim", "Não"].forEach((opt, i) => {
+    const ox = optX + i * 18;
+    doc.setFont("helvetica", "normal");
+    doc.text(opt, ox + 4, y);
+    if ((opt === "Sim" && selected === "sim") || (opt === "Não" && selected === "nao")) {
+      doc.setFont("helvetica", "bold");
+      doc.text("X", ox, y);
+    }
+  });
+  return y + (m.singlePage ? 4.5 : 5.5);
+}
+
+function drawLegalMetrologySection(doc, model, y, ctx) {
+  const legal = model.legalMetrology;
+  if (!legal?.showSection) return y;
+
+  const m = ctx.metrics;
+  ({ y } = ensureSpace(doc, y, m.singlePage ? 28 : 34, ctx));
+  y = drawSectionBar(doc, ML, y, CW, "METROLOGIA LEGAL", m);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(m.singlePage ? 5.3 : 6);
+  doc.setTextColor(...FORM_COLORS.text);
+  const subtitleLines = doc.splitTextToSize(legal.subtitle || "", CW - 4);
+  doc.text(subtitleLines, ML + CW / 2, y + 1.5, { align: "center" });
+  y += subtitleLines.length * (m.singlePage ? 2.8 : 3.2) + (m.singlePage ? 2 : 2.5);
+
+  const colW = (CW - 6) / 2;
+  const leftX = ML;
+  const rightX = ML + colW + 6;
+  const row1Y = y;
+  underlineField(doc, leftX, row1Y, "Data de Realização da Manutenção", legal.maintenanceDate, colW);
+  const apprEndY = drawApprovalChoice(
+    doc, rightX, row1Y, "Equipamento Aprovado:", legal.equipmentApproved, m,
+  );
+  const row2Y = Math.max(row1Y + (m.singlePage ? 6 : 7), apprEndY);
+  underlineField(doc, leftX, row2Y, "Técnico Responsável", legal.technicianName, colW);
+  underlineField(doc, rightX, row2Y, "Número Registro IPEM", legal.ipemRegistration, colW);
+
+  return row2Y + (m.singlePage ? 8 : 10);
 }
 
 function drawObservationsSection(doc, model, y, ctx) {
@@ -694,6 +777,7 @@ function drawCertificatePdfContent(doc, model, opts = {}) {
   y = drawRepeatabilityCalibrationSection(doc, model, y, ctx);
   y = drawSubstitutionRepeatabilitySection(doc, model, y, ctx);
   y = drawApprovalBlock(doc, model, y, ctx, opts.signatureUrls);
+  y = drawLegalMetrologySection(doc, model, y, ctx);
   drawObservationsSection(doc, model, y, ctx);
 
   drawCertificateDocumentFooters(doc, model);

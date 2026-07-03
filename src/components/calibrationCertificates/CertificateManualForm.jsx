@@ -161,7 +161,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
   const persistManualScale = async () => {
     const balanca = {
       ...payload.balanca,
-      portaria_inmetro: legalMetrology ? (payload.balanca.portaria_inmetro || "aplicável") : payload.balanca.portaria_inmetro,
+      portaria_inmetro: legalMetrology ? (payload.balanca.portaria_inmetro || "Portaria INMETRO nº 157/2022") : payload.balanca.portaria_inmetro,
     };
     setSavingScale(true);
     try {
@@ -189,7 +189,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
     const executor = employees.find((e) => e.id === executorId);
     const balanca = {
       ...payload.balanca,
-      portaria_inmetro: legalMetrology ? (payload.balanca.portaria_inmetro || "aplicável") : payload.balanca.portaria_inmetro,
+      portaria_inmetro: legalMetrology ? (payload.balanca.portaria_inmetro || "Portaria INMETRO nº 157/2022") : payload.balanca.portaria_inmetro,
     };
 
     let registrationId = scaleId || null;

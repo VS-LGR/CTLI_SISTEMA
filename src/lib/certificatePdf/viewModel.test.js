@@ -270,3 +270,50 @@ describe("buildCertificatePdfViewModel — excentricidade", () => {
     expect(model.eccentricity.showSection).toBe(false);
   });
 });
+
+describe("buildCertificatePdfViewModel — metrologia legal PDF", () => {
+  const RASTREAVEL_LEGAL = {
+    ...EMISSAO_TESTE_CERT,
+    certificate_type: "rastreavel",
+    calibration_date: "2026-07-02",
+    executor_name: "Ricardo",
+    balance_snapshot: {
+      ...EMISSAO_TESTE_CERT.balance_snapshot,
+      etiqueta_ipem: "123456-7",
+      portaria_inmetro: "Portaria INMETRO nº 157/2022",
+    },
+    conformity: {
+      legal_metrology_applicable: true,
+      general_conformity_result: "conforme",
+    },
+  };
+
+  test("rastreável com metrologia legal — exibe seção no model", () => {
+    const model = buildCertificatePdfViewModel(RASTREAVEL_LEGAL);
+    expect(model.legalMetrology.showSection).toBe(true);
+    expect(model.legalMetrology.subtitle).toContain("Portaria INMETRO 157");
+    expect(model.legalMetrology.maintenanceDate).toBe("02/07/2026");
+    expect(model.legalMetrology.technicianName).toBe("Ricardo");
+    expect(model.legalMetrology.equipmentApproved).toBe("sim");
+    expect(model.legalMetrology.ipemRegistration).toBe("123456-7");
+  });
+
+  test("RBC — não exibe metrologia legal no model", () => {
+    const model = buildCertificatePdfViewModel({
+      ...RASTREAVEL_LEGAL,
+      certificate_type: "rbc",
+    });
+    expect(model.legalMetrology.showSection).toBe(false);
+  });
+
+  test("não conforme — equipamento aprovado Não", () => {
+    const model = buildCertificatePdfViewModel({
+      ...RASTREAVEL_LEGAL,
+      conformity: {
+        legal_metrology_applicable: true,
+        general_conformity_result: "nao_conforme",
+      },
+    });
+    expect(model.legalMetrology.equipmentApproved).toBe("nao");
+  });
+});

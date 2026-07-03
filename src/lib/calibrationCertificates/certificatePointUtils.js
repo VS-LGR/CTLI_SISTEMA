@@ -16,6 +16,7 @@ export function loadBatchFieldsToPanel(point) {
       ? String(pt.load_batch_nominal)
       : "",
     load_batch_material_preset: pt.load_batch_material_preset || "",
+    load_batch_weight_id: pt.load_batch_weight_id || null,
     error_multiplier: pt.error_multiplier != null && String(pt.error_multiplier).trim() !== ""
       ? String(pt.error_multiplier)
       : "",
@@ -29,6 +30,7 @@ export function loadBatchFieldsToColeta(panelFields) {
     load_batch_formation: panelFields?.load_batch_formation || "",
     load_batch_nominal: panelFields?.load_batch_nominal ?? "",
     load_batch_material_preset: panelFields?.load_batch_material_preset || "",
+    load_batch_weight_id: panelFields?.load_batch_weight_id || null,
     error_multiplier: panelFields?.error_multiplier ?? "",
   };
 }
@@ -278,6 +280,7 @@ export function certificatePointToPanelPoint(pt, balance = {}) {
       ? String(withInstrument.load_batch_nominal)
       : "",
     load_batch_material_preset: withInstrument.load_batch_material_preset || "",
+    load_batch_weight_id: withInstrument.load_batch_weight_id || null,
     error_multiplier: withInstrument.error_multiplier != null && withInstrument.error_multiplier !== ""
       ? String(withInstrument.error_multiplier)
       : "",
@@ -334,6 +337,7 @@ export function pointToDbPatch(point, balance = {}, unit = "g") {
       ? toDbNumeric(synced.load_batch_nominal)
       : null,
     load_batch_material_preset: synced.load_batch_material_preset || "",
+    load_batch_weight_id: synced.load_batch_weight_id || null,
     error_multiplier: synced.error_multiplier != null && String(synced.error_multiplier).trim()
       ? toDbNumeric(synced.error_multiplier)
       : null,

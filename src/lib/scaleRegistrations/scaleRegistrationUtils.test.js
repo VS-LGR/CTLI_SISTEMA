@@ -35,7 +35,7 @@ describe("buildScaleRegistrationFromBalance", () => {
     expect(payload.tag).toBe("AP-2000");
     expect(payload.resolution_1).toBe("0,0001");
     expect(payload.decimal_places_p1).toBe(4);
-    expect(payload.portaria_inmetro).toBe("aplicável");
+    expect(payload.portaria_inmetro).toBe("Portaria INMETRO nº 157/2022");
   });
 
   it("roundtrip com balanceSnapshotFromScaleRegistration", () => {

@@ -64,7 +64,21 @@ function buildStandardsFromPoints(points, weightItems, weightCerts, envCerts, en
   return standards;
 }
 
-function buildConformity(balance, control = {}) {
+function buildConformity(balance, control = {}, certificateType = "rastreavel") {
+  if (certificateType === "rbc") {
+    return {
+      legal_metrology_applicable: false,
+      instrument_class: "",
+      applicable_ordinance: "",
+      customer_criterion: control.pontos_solicitados || "",
+      decision_rule: "simples",
+      declaration_of_conformity: "",
+      general_conformity_result: "nao_aplicavel",
+      notes: "",
+      point_results: [],
+    };
+  }
+
   const legalApplicable = Boolean(balance.portaria_inmetro || balance.etiqueta_ipem);
   const classResult = legalApplicable
     ? determineInstrumentClass(balance.capacidade, balance.resolucao, balance.unidade)
@@ -75,7 +89,7 @@ function buildConformity(balance, control = {}) {
     instrument_class: classResult.instrumentClass || balance.classe || "",
     applicable_ordinance: balance.portaria_inmetro || "",
     customer_criterion: control.pontos_solicitados || "",
-    decision_rule: legalApplicable && balance.portaria_inmetro ? "portaria_236" : "simples",
+    decision_rule: legalApplicable && balance.portaria_inmetro ? "portaria_157" : "simples",
     declaration_of_conformity: "",
     general_conformity_result: "nao_avaliado",
     notes: "",
@@ -182,7 +196,7 @@ export function buildCertificateFromPayload({
     points,
     standards,
     environmental,
-    conformity: buildConformity(balance, payload.controle),
+    conformity: buildConformity(balance, payload.controle, certificateType),
     endCustomer,
     importWarnings,
   };

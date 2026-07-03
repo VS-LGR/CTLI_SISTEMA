@@ -106,13 +106,13 @@ export const conformityFormulas = [
     id: "classe",
     result: "Classe do instrumento",
     formula: "Regras Metr. Legal: faixa, divisão de verificação (e) e nº de divisões H",
-    source: "Aba Metr. Legal — Portaria 236",
+    source: "Aba Metr. Legal — Portaria INMETRO 157/2022",
   },
   {
     id: "tolerancia_portaria",
-    result: "Tolerância Portaria 236",
-    formula: "n × e — n conforme OIML R 76-1 (faixas por classe)",
-    source: "decision_rule = portaria_236",
+    result: "Tolerância Portaria 157 (Verificação)",
+    formula: "n × e — Tabela 5, coluna Verificação",
+    source: "decision_rule = portaria_157",
   },
   {
     id: "tolerancia_cliente",

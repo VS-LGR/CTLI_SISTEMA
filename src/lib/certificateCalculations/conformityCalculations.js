@@ -11,7 +11,80 @@ import {
 } from "./pointMaxToleranceVerification";
 import { resolveDefaultVerificationDivision } from "@/lib/calibrationCertificates/certificatePointUtils";
 
-/** @typedef {'portaria_236'|'simples'|'erro_mais_incerteza'} LegalDecisionRule */
+/** @typedef {'portaria_157'|'portaria_236'|'simples'|'erro_mais_incerteza'} LegalDecisionRule */
+
+const PORTARIA_RULES = new Set(["portaria_157", "portaria_236", "simples", "erro_mais_incerteza"]);
+
+/** Portaria INMETRO 157/2022 — Tabela 5, coluna Verificação (faixas m em divisões e). */
+function portaria157VerificationBands(className) {
+  const cls = String(className || "III").toUpperCase();
+  if (cls === "I") {
+    return [[0, 50_000, 1.0], [50_000, 200_000, 2.0], [200_000, Infinity, 2.0]];
+  }
+  if (cls === "II") {
+    return [[0, 5_000, 1.0], [5_000, 20_000, 2.0], [20_000, 100_000, 2.0], [100_000, Infinity, 2.0]];
+  }
+  if (cls === "IIII") {
+    return [[0, 50, 1.0], [50, 200, 2.0], [200, 1_000, 2.0], [1_000, Infinity, 2.0]];
+  }
+  return [[0, 500, 1.0], [500, 2_000, 2.0], [2_000, 10_000, 2.0], [10_000, Infinity, 2.0]];
+}
+
+function lookupToleranceDivisionsFromBands(bands, loadInVerificationDivisions) {
+  const m = loadInVerificationDivisions;
+  if (!Number.isFinite(m) || m < 0) return 0;
+  for (const [lo, hi, n] of bands) {
+    if (m > lo && m <= hi) return n;
+    if (m === 0 && lo === 0) return n;
+  }
+  return bands[bands.length - 1][2];
+}
+
+/** Portaria INMETRO 157/2022 — Tabela 5, coluna Verificação. */
+export function lookupPortaria157VerificationDivisions(className, loadInVerificationDivisions) {
+  return lookupToleranceDivisionsFromBands(
+    portaria157VerificationBands(className),
+    loadInVerificationDivisions,
+  );
+}
+
+/** @deprecated Portaria 236 — Aprovação de modelo; preferir lookupPortaria157VerificationDivisions. */
+export function lookupPortaria236ToleranceDivisions(className, loadInVerificationDivisions) {
+  const m = loadInVerificationDivisions;
+  if (!Number.isFinite(m) || m < 0) return 0;
+
+  const bands = className === "I"
+    ? [[0, 500, 0.05], [500, 2000, 0.1], [2000, 10000, 0.15], [10000, Infinity, 0.2]]
+    : className === "II"
+      ? [[0, 500, 0.2], [500, 2000, 0.4], [2000, 10000, 0.6], [10000, Infinity, 0.8]]
+      : [[0, 500, 0.5], [500, 2000, 1.0], [2000, 10000, 1.5], [10000, Infinity, 2.0]];
+
+  for (const [lo, hi, n] of bands) {
+    if (m > lo && m <= hi) return n;
+    if (m === 0 && lo === 0) return n;
+  }
+  return bands[0][2];
+}
+
+/** Portaria INMETRO 157/2022 — tolerância positiva = n × e (Tabela 5, Verificação). */
+export function calculatePortaria157Tolerance(className, nominal, verificationDivision, unit = "g") {
+  const nom = parseCalibrationNumber(nominal);
+  const e = parseCalibrationNumber(verificationDivision);
+  if (!nom.valid || !e.valid || e.value <= 0) {
+    return { positive: 0, negative: 0, valid: false };
+  }
+
+  let load = nom.value;
+  let eVal = e.value;
+  if (unit === "kg") {
+    load *= 1000;
+    eVal *= 1000;
+  }
+  const loadInE = eVal > 0 ? load / eVal : 0;
+  const nDiv = lookupPortaria157VerificationDivisions(className, loadInE);
+  const positive = nDiv * eVal;
+  return { positive, negative: -positive, valid: true, nDivisions: nDiv };
+}
 
 function roundToDecimals(value, decimals) {
   if (!Number.isFinite(value)) return null;
@@ -135,25 +208,7 @@ export function determineInstrumentClass(capacity, resolution, unit = "g") {
   return { instrumentClass: "III", valid: true };
 }
 
-/** OIML R 76-1 — nº de divisões de tolerância (MPE em múltiplos de e). */
-export function lookupPortaria236ToleranceDivisions(className, loadInVerificationDivisions) {
-  const m = loadInVerificationDivisions;
-  if (!Number.isFinite(m) || m < 0) return 0;
-
-  const bands = className === "I"
-    ? [[0, 500, 0.05], [500, 2000, 0.1], [2000, 10000, 0.15], [10000, Infinity, 0.2]]
-    : className === "II"
-      ? [[0, 500, 0.2], [500, 2000, 0.4], [2000, 10000, 0.6], [10000, Infinity, 0.8]]
-      : [[0, 500, 0.5], [500, 2000, 1.0], [2000, 10000, 1.5], [10000, Infinity, 2.0]];
-
-  for (const [lo, hi, n] of bands) {
-    if (m > lo && m <= hi) return n;
-    if (m === 0 && lo === 0) return n;
-  }
-  return bands[0][2];
-}
-
-/** Portaria 236 — tolerância positiva = n × e (Metr. Legal col Portaria 236). */
+/** @deprecated — Aprovação de modelo (Portaria 236); preferir calculatePortaria157Tolerance. */
 export function calculatePortaria236Tolerance(className, nominal, verificationDivision, unit = "g") {
   const nom = parseCalibrationNumber(nominal);
   const e = parseCalibrationNumber(verificationDivision);
@@ -188,8 +243,9 @@ export function calculateToleranceOiml(className, nominal, unit = "g") {
 
 function resolveLegalDecisionRule(conformity = {}, balance = {}) {
   const rule = conformity.decision_rule;
-  if (rule === "portaria_236" || rule === "simples" || rule === "erro_mais_incerteza") return rule;
-  if (balance.portaria_inmetro) return "portaria_236";
+  if (rule === "portaria_236") return "portaria_157";
+  if (PORTARIA_RULES.has(rule)) return rule;
+  if (balance.portaria_inmetro) return "portaria_157";
   return "simples";
 }
 
@@ -238,7 +294,7 @@ export function resolveLegalTolerancePositive({
   clientTolerance = 0,
   clientTolerancePlusUe = 0,
 }) {
-  if (decisionRule === "portaria_236") return portariaTolerance;
+  if (decisionRule === "portaria_157" || decisionRule === "portaria_236") return portariaTolerance;
   if (decisionRule === "erro_mais_incerteza") return clientTolerancePlusUe;
   return clientTolerance;
 }
@@ -322,7 +378,7 @@ export function calculateConformityForCertificate({
     const verificationE = resolveDefaultVerificationDivision(pt.nominal_value, balance, unit);
     const legalError = computeLegalIndicationError(pt, balance, unit);
 
-    const portariaTol = calculatePortaria236Tolerance(cls, pt.nominal_value, verificationE, unit);
+    const portariaTol = calculatePortaria157Tolerance(cls, pt.nominal_value, verificationE, unit);
     const clientTol = resolveClientToleranceForPoint(pt, pointMaxTolerances, weightItems, unit);
 
     const displayUe = roundExpandedUncertainty(
