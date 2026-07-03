@@ -13,6 +13,7 @@ export {
   maxStandardUncertaintyPpm,
   standardUncertaintyAbsFromWeightIds,
   standardUncertaintyUpFromWeightIds,
+  standardUncertaintyUpWithLoadBatch,
   driftUncertaintyUdFromWeightIds,
   resolveResolutionForNominal,
   resolveReadingsAfter,
@@ -92,7 +93,7 @@ import {
   sumNominalFromWeightIds,
   describeWeightComposition,
   calculateCalibrationPoint,
-  standardUncertaintyUpFromWeightIds,
+  standardUncertaintyUpWithLoadBatch,
   driftUncertaintyUdFromWeightIds,
   resolveResolutionForNominal,
   resolveReadingsAfter,
@@ -155,9 +156,23 @@ function parseBalanceAdjustmentPerformed(value) {
   return null;
 }
 
-function resolveUeForPoint(point, conventionalMassGrams, environmental, unit) {
+function toGramsFromUnit(value, unit = "g") {
+  if (!Number.isFinite(value)) return null;
+  if (unit === "kg") return value * 1000;
+  if (unit === "mg") return value / 1000;
+  return value;
+}
+
+function fromGramsToUnit(value, unit = "g") {
+  if (!Number.isFinite(value)) return null;
+  if (unit === "kg") return value / 1000;
+  if (unit === "mg") return value * 1000;
+  return value;
+}
+
+function resolveUeForPoint(point, conventionalMass, environmental, unit) {
   const matDensity = resolveMaterialDensity(point);
-  const vcGrams = unit === "kg" ? conventionalMassGrams * 1000 : conventionalMassGrams;
+  const vcGrams = toGramsFromUnit(conventionalMass, unit);
 
   const emp = calculateBuoyancyUncertainty({
     conventionalMass: vcGrams,
@@ -168,7 +183,7 @@ function resolveUeForPoint(point, conventionalMassGrams, environmental, unit) {
 
   if (emp.valid && emp.ue != null) {
     return {
-      ue: unit === "kg" ? emp.ue / 1000 : emp.ue,
+      ue: fromGramsToUnit(emp.ue, unit),
       method: emp.method,
       urel: emp.urel,
       empMemory: emp.memory || {},
@@ -181,7 +196,7 @@ function resolveUeForPoint(point, conventionalMassGrams, environmental, unit) {
   const ppmRes = calculateBuoyancyUncertaintyFromPpm(vcGrams, ppm);
   if (ppmRes.valid && ppmRes.ue != null) {
     return {
-      ue: unit === "kg" ? ppmRes.ue / 1000 : ppmRes.ue,
+      ue: fromGramsToUnit(ppmRes.ue, unit),
       method: "ppm",
       urel: ppmRes.urel,
       empMemory: null,
@@ -202,10 +217,10 @@ function buildWeightContributions(weightIds, weightItems, unit) {
     const k = parseCalibrationNumber(item.coverage_factor);
     const kVal = k.valid && k.value > 0 ? k.value : 2;
     const drift = driftFromWeightItem(item);
-    let uFromUe = ue.valid ? ue.value / kVal : null;
-    let uFromDrift = drift.valid ? Math.abs(drift.value) / SQRT3 : null;
-    if (unit === "kg" && uFromUe != null) uFromUe /= 1000;
-    if (unit === "kg" && uFromDrift != null) uFromDrift /= 1000;
+    const ueG = ue.valid ? toGramsFromUnit(ue.value, item.unit || unit) : null;
+    const driftG = drift.valid ? toGramsFromUnit(Math.abs(drift.value), item.unit || unit) : null;
+    const uFromUe = ueG != null ? fromGramsToUnit(ueG / kVal, unit) : null;
+    const uFromDrift = driftG != null ? fromGramsToUnit(driftG / SQRT3, unit) : null;
     return {
       identification: item.identification,
       nominal: item.nominal_value,
@@ -238,6 +253,7 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
     const matDensity = resolveMaterialDensity(pt);
     const useLoadBatch = Boolean(pt.use_load_batch);
     const formationKey = pt.load_batch_formation || formationKeyForPoint(pt.point_number, useLoadBatch);
+    const errorMult = pt.error_multiplier ?? errorMultiplierForFormation(formationKey);
 
     let vcWeightsSum = null;
     if (pt.standard_weight_ids?.length) {
@@ -245,28 +261,37 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       if (vvc.valid) vcWeightsSum = vvc.value;
     }
 
-    let vcUncorrected = vcWeightsSum;
-    if (vcUncorrected == null) {
-      const nom = parseCalibrationNumber(pt.nominal_value);
-      if (nom.valid) vcUncorrected = nom.value;
-    }
+    let vcBase = vcWeightsSum;
+    const nominalPoint = parseCalibrationNumber(pt.nominal_value);
+    const lotConventional = parseCalibrationNumber(pt.load_batch_conventional_value);
+    const lotNominal = parseCalibrationNumber(pt.load_batch_nominal);
 
-    if (useLoadBatch && pt.load_batch_nominal != null && !pt.standard_weight_ids?.length) {
-      const lot = parseCalibrationNumber(pt.load_batch_nominal);
-      const nom = parseCalibrationNumber(vcUncorrected ?? pt.nominal_value);
-      if (lot.valid && nom.valid && nom.value >= lot.value) {
-        vcUncorrected = nom.value - lot.value;
-        vcWeightsSum = vcUncorrected;
+    if (vcBase == null) {
+      if (useLoadBatch && nominalPoint.valid && Number(errorMult) > 1) {
+        vcBase = nominalPoint.value / Number(errorMult);
+      } else if (useLoadBatch && nominalPoint.valid && lotConventional.valid) {
+        vcBase = nominalPoint.value - lotConventional.value;
+      } else if (useLoadBatch && nominalPoint.valid && lotNominal.valid) {
+        vcBase = nominalPoint.value - lotNominal.value;
+      } else if (nominalPoint.valid) {
+        vcBase = nominalPoint.value;
       }
     }
 
-    const weightReference = vcWeightsSum ?? vcUncorrected;
-
-    if (useLoadBatch && pt.load_batch_nominal != null) {
-      const baseForLot = vcWeightsSum ?? vcUncorrected ?? 0;
-      const refWithLot = referenceWithLoadBatch(baseForLot, pt.load_batch_nominal, unit);
-      if (refWithLot.valid) vcUncorrected = refWithLot.value;
+    let vcUncorrected = vcBase;
+    let loadBatchQuantity = null;
+    let loadBatchReferenceMethod = "none";
+    if (useLoadBatch && vcBase != null) {
+      const lotValue = lotConventional.valid ? lotConventional.value : (lotNominal.valid ? lotNominal.value : null);
+      const refWithLot = referenceWithLoadBatch(vcBase, lotValue, unit, errorMult);
+      if (refWithLot.valid) {
+        vcUncorrected = refWithLot.value;
+        loadBatchQuantity = vcUncorrected - vcBase;
+        loadBatchReferenceMethod = refWithLot.method;
+      }
     }
+
+    const weightReference = vcBase;
 
     const vccRes = resolveReferenceFromConventionalMass({
       vcUncorrected,
@@ -283,7 +308,7 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       { preferMemory: false },
     );
 
-    const upRes = standardUncertaintyUpFromWeightIds(pt.standard_weight_ids, weightItems, unit);
+    const upRes = standardUncertaintyUpWithLoadBatch(pt.standard_weight_ids, weightItems, pt, unit);
     const udRes = driftUncertaintyUdFromWeightIds(pt.standard_weight_ids, weightItems, unit);
     if (!upRes.valid && upRes.reason) {
       calculated.push({
@@ -315,8 +340,6 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       ? upLcFromTable01(formationKey, formationChain, calculated)
       : { value: 0, source: "" };
 
-    const errorMult = pt.error_multiplier ?? errorMultiplierForFormation(formationKey);
-
     const calc = calculateCalibrationPoint(
       { ...pt, nominal_value: reference },
       {
@@ -327,7 +350,7 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
         ud: udRes.valid ? udRes.value : 0,
         ue: ueRes.ue,
         upLC: upLcRes.value,
-        errorMultiplier: errorMult,
+        errorMultiplier: 1,
         adjustmentPerformed,
       },
     );
@@ -375,6 +398,11 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       use_load_batch: useLoadBatch,
       load_batch_formation: formationKey || "",
       load_batch_nominal: pt.load_batch_nominal ?? null,
+      load_batch_conventional_value: pt.load_batch_conventional_value ?? null,
+      load_batch_expanded_uncertainty: pt.load_batch_expanded_uncertainty ?? null,
+      loadBatchQuantity,
+      loadBatchReferenceMethod,
+      vc_base: vcBase,
       weightReference,
       resolution: resolutionStr,
       ppmEffective,

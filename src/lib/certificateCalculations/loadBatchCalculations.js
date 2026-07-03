@@ -62,22 +62,27 @@ export function upLcFromSpreadsheetFormula({ ua = 0, ur = 0, up = 0, upP1 = 0, n
   return Math.sqrt(term1 + term2);
 }
 
-/** Multiplicador M — PR-7.6 Tabela 01 formação da carga (simplificado: 1 para Ln+P1). */
+/** Multiplicador M — PR-7.6 §5.4.2 Tabela 01 (P1=1, L1+P1=2, L2+P1=3, ...). */
 export function errorMultiplierForFormation(formationKey) {
   if (!formationKey || formationKey === "p1") return 1;
+  const withP1 = String(formationKey).match(/^l(\d+)_p1$/i);
+  if (withP1) return Number(withP1[1]) + 1;
+  const lotOnly = String(formationKey).match(/^l(\d+)$/i);
+  if (lotOnly) return Number(lotOnly[1]);
   return 1;
 }
 
-/** V.R. com lote: soma VVC dos pesos + nominal do lote. */
-export function referenceWithLoadBatch(weightReference, loadBatchNominal, unit = "g") {
+/** V.R. efetivo com lote: PR-7.6 §5.4.2 — Vc × M; fallback legado soma lote quando M=1. */
+export function referenceWithLoadBatch(weightReference, loadBatchValue, unit = "g", multiplier = 1) {
   const base = parseCalibrationNumber(weightReference);
-  const lot = parseCalibrationNumber(loadBatchNominal);
+  const lot = parseCalibrationNumber(loadBatchValue);
   if (!base.valid) return { value: null, valid: false };
-  let lotVal = lot.valid ? lot.value : 0;
-  if (unit === "kg" && lotVal > 0) {
-    // nominal lote já na unidade do ponto
+  const m = Number(multiplier);
+  if (Number.isFinite(m) && m > 1) {
+    return { value: base.value * m, valid: true, multiplier: m, method: "multiplier" };
   }
-  return { value: base.value + lotVal, valid: true };
+  const lotVal = lot.valid ? lot.value : 0;
+  return { value: base.value + lotVal, valid: true, multiplier: 1, method: "sum" };
 }
 
 /** PPM empuxo: pesos + lote (PR-7.6 — somar ppm do lote ao vci). */

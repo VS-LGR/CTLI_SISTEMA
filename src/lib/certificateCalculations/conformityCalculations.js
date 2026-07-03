@@ -74,15 +74,12 @@ export function calculatePortaria157Tolerance(className, nominal, verificationDi
     return { positive: 0, negative: 0, valid: false };
   }
 
-  let load = nom.value;
-  let eVal = e.value;
-  if (unit === "kg") {
-    load *= 1000;
-    eVal *= 1000;
-  }
+  const load = toGrams(nom.value, unit);
+  const eVal = toGrams(e.value, unit);
   const loadInE = eVal > 0 ? load / eVal : 0;
   const nDiv = lookupPortaria157VerificationDivisions(className, loadInE);
-  const positive = nDiv * eVal;
+  const positiveGrams = nDiv * eVal;
+  const positive = fromGrams(positiveGrams, unit);
   return { positive, negative: -positive, valid: true, nDivisions: nDiv };
 }
 
@@ -95,12 +92,22 @@ function roundToDecimals(value, decimals) {
 function toGrams(value, unit = "g") {
   const parsed = parseCalibrationNumber(value);
   if (!parsed.valid) return null;
-  return unit === "kg" ? parsed.value * 1000 : parsed.value;
+  if (unit === "kg") return parsed.value * 1000;
+  if (unit === "mg") return parsed.value / 1000;
+  return parsed.value;
+}
+
+function fromGrams(value, unit = "g") {
+  if (!Number.isFinite(value)) return null;
+  if (unit === "kg") return value / 1000;
+  if (unit === "mg") return value * 1000;
+  return value;
 }
 
 function balanceUnit(balance = {}) {
   const u = String(balance.unidade || balance.unit || "g").trim().toLowerCase();
-  return u === "kg" ? "kg" : "g";
+  if (u === "kg" || u === "mg") return u;
+  return "g";
 }
 
 function verificationDivisionNative(balance = {}) {
@@ -125,9 +132,10 @@ export function computeNumberOfDivisions(balance = {}) {
   const cap = capacityNative(balance);
   const eNative = verificationDivisionNative(balance);
   if (cap == null || eNative <= 0) return { value: null, valid: false };
-  const eInCapUnit = unit === "kg" ? eNative / 1000 : eNative;
-  if (eInCapUnit <= 0) return { value: null, valid: false };
-  return { value: cap / eInCapUnit, valid: true };
+  const capGrams = toGrams(cap, unit);
+  const eGrams = toGrams(eNative, unit);
+  if (capGrams == null || eGrams == null || eGrams <= 0) return { value: null, valid: false };
+  return { value: capGrams / eGrams, valid: true };
 }
 
 /**
@@ -136,7 +144,7 @@ export function computeNumberOfDivisions(balance = {}) {
 export function determineInstrumentClassFromLegalMetrology(balance = {}) {
   const unit = balanceUnit(balance);
   const eNative = verificationDivisionNative(balance);
-  const eGrams = unit === "kg" ? eNative * 1000 : eNative;
+  const eGrams = toGrams(eNative, unit) ?? 0;
   const capGrams = toGrams(balance.capacidade || balance.capacity_1, unit);
   const numDiv = computeNumberOfDivisions(balance);
 
@@ -193,11 +201,10 @@ export function determineInstrumentClass(capacity, resolution, unit = "g") {
     return { instrumentClass: "", valid: false, reason: "Capacidade ou resolução inválida" };
   }
 
-  let c = cap.value;
-  let r = res.value;
-  if (unit === "kg") {
-    c *= 1000;
-    r *= 1000;
+  const c = toGrams(cap.value, unit);
+  const r = toGrams(res.value, unit);
+  if (c == null || r == null || r === 0) {
+    return { instrumentClass: "", valid: false, reason: "Capacidade ou resolução inválida" };
   }
   const ratio = c / r;
   if (c > 0.001 && c < 0.05 && ratio > 100 && ratio < 100000) return { instrumentClass: "II", valid: true };
@@ -216,15 +223,11 @@ export function calculatePortaria236Tolerance(className, nominal, verificationDi
     return { positive: 0, negative: 0, valid: false };
   }
 
-  let load = nom.value;
-  let eVal = e.value;
-  if (unit === "kg") {
-    load *= 1000;
-    eVal *= 1000;
-  }
+  const load = toGrams(nom.value, unit);
+  const eVal = toGrams(e.value, unit);
   const loadInE = eVal > 0 ? load / eVal : 0;
   const nDiv = lookupPortaria236ToleranceDivisions(className, loadInE);
-  const positive = nDiv * eVal;
+  const positive = fromGrams(nDiv * eVal, unit);
   return { positive, negative: -positive, valid: true, nDivisions: nDiv };
 }
 
@@ -235,10 +238,10 @@ export function calculateToleranceOiml(className, nominal, unit = "g") {
 
   const n = parseCalibrationNumber(nominal);
   if (!n.valid) return { positive: null, negative: null, valid: false };
-  let val = n.value;
-  if (unit === "kg") val *= 1000;
+  const val = toGrams(n.value, unit);
   const e = className === "I" ? val * 0.001 : className === "II" ? val * 0.002 : val * 0.005;
-  return { positive: e, negative: -e, valid: true };
+  const positive = fromGrams(e, unit);
+  return { positive, negative: -positive, valid: true };
 }
 
 function resolveLegalDecisionRule(conformity = {}, balance = {}) {

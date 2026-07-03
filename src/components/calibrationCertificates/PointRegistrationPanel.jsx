@@ -9,7 +9,7 @@ import { Plus, Minus } from "@phosphor-icons/react";
 import PesoPadraoPointTable from "@/components/calibrationCertificates/PesoPadraoPointTable";
 import { sumConventionalFromWeightIds } from "@/lib/certificateCalculations/environmentalCalculations";
 import { MATERIAL_PRESETS, densityFromPresetId } from "@/lib/certificateCalculations/materialConstants";
-import { formationKeyForPoint, errorMultiplierForFormation } from "@/lib/certificateCalculations/loadBatchCalculations";
+import { formationKeyForPoint, errorMultiplierForFormation, referenceWithLoadBatch } from "@/lib/certificateCalculations/loadBatchCalculations";
 import { loadBatchFieldsFromItem } from "@/lib/standardWeightItemUtils";
 import StandardWeightPickerPanel from "@/components/shared/StandardWeightPickerPanel";
 import { isCertificatePointFilled } from "@/lib/calibrationCertificates/certificatePointUtils";
@@ -86,7 +86,14 @@ function PointTabContent({
 
   const handlePesos = (ids) => {
     const vvc = sumConventionalFromWeightIds(ids, weightItems, unit);
-    const nominal = vvc.valid ? String(vvc.value) : point.nominal_value;
+    let nominal = vvc.valid ? String(vvc.value) : point.nominal_value;
+    if (vvc.valid && point.use_load_batch) {
+      const formation = point.load_batch_formation || formationKeyForPoint(point.point_number, true);
+      const multiplier = point.error_multiplier ?? errorMultiplierForFormation(formation);
+      const lotValue = point.load_batch_conventional_value ?? point.load_batch_nominal;
+      const withBatch = referenceWithLoadBatch(vvc.value, lotValue, unit, multiplier);
+      if (withBatch.valid) nominal = String(withBatch.value);
+    }
     setField({
       standard_weight_ids: ids,
       nominal_value: nominal,

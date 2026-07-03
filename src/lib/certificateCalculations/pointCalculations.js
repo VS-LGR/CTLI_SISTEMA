@@ -21,6 +21,13 @@ function toGrams(value, unit) {
   return value;
 }
 
+function fromGrams(value, unit) {
+  if (!Number.isFinite(value)) return null;
+  if (unit === "kg") return value / 1000;
+  if (unit === "mg") return value * 1000;
+  return value;
+}
+
 function inverseNormalCdf(p) {
   if (p <= 0) return -Infinity;
   if (p >= 1) return Infinity;
@@ -181,8 +188,41 @@ export function standardUncertaintyUpFromWeightIds(weightIds, weightItems = [], 
 
   if (!valid) return { value: null, valid: false, reason: "" };
   const combinedG = Math.sqrt(sumSq);
-  if (targetUnit === "kg") return { value: combinedG / 1000, valid: true, reason: "" };
-  return { value: combinedG, valid: true, reason: "" };
+  return { value: fromGrams(combinedG, targetUnit), valid: true, reason: "" };
+}
+
+export function standardUncertaintyUpWithLoadBatch(
+  weightIds,
+  weightItems = [],
+  point = {},
+  targetUnit = "g",
+  kDefault = DEFAULT_STANDARD_K,
+) {
+  let sumSqG = 0;
+  let valid = false;
+
+  const weights = standardUncertaintyUpFromWeightIds(weightIds, weightItems, "g", kDefault);
+  if (weights.valid && Number.isFinite(weights.value)) {
+    sumSqG += weights.value * weights.value;
+    valid = true;
+  }
+
+  if (point?.use_load_batch) {
+    const lotUe = parseCalibrationNumber(point.load_batch_expanded_uncertainty);
+    if (lotUe.valid) {
+      const kParsed = parseCalibrationNumber(point.load_batch_coverage_factor);
+      const k = kParsed.valid && kParsed.value > 0 ? kParsed.value : kDefault;
+      const lotUeG = toGrams(lotUe.value, targetUnit);
+      if (lotUeG != null) {
+        const lotU = lotUeG / k;
+        sumSqG += lotU * lotU;
+        valid = true;
+      }
+    }
+  }
+
+  if (!valid) return { value: null, valid: false, reason: "" };
+  return { value: fromGrams(Math.sqrt(sumSqG), targetUnit), valid: true, reason: "" };
 }
 
 /** ud = √Σ(|derivaᵢ|/√3)² (PR-7.6). */
@@ -215,8 +255,7 @@ export function driftUncertaintyUdFromWeightIds(weightIds, weightItems = [], tar
   }
   if (!valid) return { value: 0, valid: true, reason: "" };
   const combinedG = Math.sqrt(sumSq);
-  if (targetUnit === "kg") return { value: combinedG / 1000, valid: true, reason: "" };
-  return { value: combinedG, valid: true, reason: "" };
+  return { value: fromGrams(combinedG, targetUnit), valid: true, reason: "" };
 }
 
 /** @deprecated Use standardUncertaintyUpFromWeightIds + driftUncertaintyUdFromWeightIds */
@@ -237,12 +276,14 @@ export function resolveResolutionForNominal(nominalValue, balance = {}, unit = "
 
   let nomVal = nom.value;
   if (unit === "kg") nomVal *= 1000;
+  if (unit === "mg") nomVal /= 1000;
 
   for (const range of ranges) {
     const cap = parseCalibrationNumber(range.cap);
     if (!cap.valid || !range.res) continue;
     let capVal = cap.value;
     if (unit === "kg") capVal *= 1000;
+    if (unit === "mg") capVal /= 1000;
     if (nomVal <= capVal) return range.res;
   }
 
@@ -444,9 +485,7 @@ export function sumNominalFromWeightIds(weightIds, weightItems = [], targetUnit 
     valid = true;
   }
   if (!valid) return { value: null, valid: false, reason: "Pesos não encontrados" };
-  if (targetUnit === "kg") return { value: sumG / 1000, valid: true, reason: "" };
-  if (targetUnit === "mg") return { value: sumG * 1000, valid: true, reason: "" };
-  return { value: sumG, valid: true, reason: "" };
+  return { value: fromGrams(sumG, targetUnit), valid: true, reason: "" };
 }
 
 /**

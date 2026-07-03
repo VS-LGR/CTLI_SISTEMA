@@ -1,4 +1,5 @@
 import golden from "./__fixtures__/manual-load-batch-golden.json";
+import { calculateCertificatePoints } from "./index";
 import { upLcFromTable01 } from "./loadBatchCalculations";
 
 describe("Manual.xls — regressão lote de carga (Estudo Lote P2)", () => {
@@ -31,5 +32,61 @@ describe("Manual.xls — regressão lote de carga (Estudo Lote P2)", () => {
     const res = upLcFromTable01("l2_p1", {}, calculated);
     expect(res.value).toBeCloseTo(ucP2, 8);
     expect(res.source).toBe("point_2");
+  });
+
+  test("integração PR-7.6 — P2 L1+P1 usa M=2 e upLC=uc(P1)", () => {
+    const weights = [{
+      id: "p1",
+      identification: "P1",
+      nominal_value: "100",
+      conventional_value: "100",
+      expanded_uncertainty: "0.0004",
+      coverage_factor: "2",
+      unit: "g",
+    }];
+    const points = [
+      {
+        point_number: 1,
+        nominal_value: "100",
+        standard_weight_ids: ["p1"],
+        material_preset: "aco",
+        resolution: "0.0001",
+        reading1: "100.0001",
+        reading2: "100.0001",
+        reading3: "100.0001",
+      },
+      {
+        point_number: 2,
+        nominal_value: "200",
+        standard_weight_ids: ["p1"],
+        use_load_batch: true,
+        load_batch_formation: "l1_p1",
+        load_batch_nominal: "100",
+        load_batch_conventional_value: "100",
+        load_batch_expanded_uncertainty: "0.0004",
+        material_preset: "aco",
+        resolution: "0.0001",
+        reading1: "200.0001",
+        reading2: "200.0001",
+        reading3: "200.0001",
+      },
+    ];
+
+    const calculated = calculateCertificatePoints(
+      points,
+      { unidade: "g", capacidade: "220", resolucao: "0.0001" },
+      weights,
+      [],
+      {},
+    );
+
+    const p1 = calculated[0];
+    const p2 = calculated[1];
+    expect(p2.calc_status).toBe("calculado");
+    expect(p2.nominal_value).toBeCloseTo(200, 10);
+    expect(p2.indication_error).toBeCloseTo(0.0001, 10);
+    expect(p2.calculation_memory.errorMultiplier).toBe(2);
+    expect(p2.calculation_memory.upLC).toBeCloseTo(p1.calculation_memory.combinedUncertainty, 10);
+    expect(p2.calculation_memory.up).toBeGreaterThan(p1.calculation_memory.up);
   });
 });

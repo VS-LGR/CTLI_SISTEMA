@@ -11,6 +11,13 @@ function toGrams(value, unit) {
   return value;
 }
 
+function fromGrams(value, unit) {
+  if (!Number.isFinite(value)) return null;
+  if (unit === "kg") return value / 1000;
+  if (unit === "mg") return value * 1000;
+  return value;
+}
+
 /** Soma VVC (valor convencional) dos pesos; opcional correção VCC (PR-7.2 §6.6). */
 export function sumConventionalFromWeightIds(weightIds, weightItems = [], targetUnit = "g", options = {}) {
   const { airDensity = null, materialDensity = null, vccCorrection = true } = options;
@@ -37,10 +44,7 @@ export function sumConventionalFromWeightIds(weightIds, weightItems = [], target
     valid = true;
   }
   if (!valid) return { value: null, valid: false, reason: "Pesos não encontrados", vcc_correction_applied: false };
-  if (targetUnit === "kg") {
-    return { value: sumG / 1000, valid: true, reason: "", vcc_correction_applied: vccCorrectionApplied };
-  }
-  return { value: sumG, valid: true, reason: "", vcc_correction_applied: vccCorrectionApplied };
+  return { value: fromGrams(sumG, targetUnit), valid: true, reason: "", vcc_correction_applied: vccCorrectionApplied };
 }
 
 /** Incerteza expandida combinada dos pesos (RSS) em gramas → unidade alvo. */
@@ -58,8 +62,7 @@ export function combinedExpandedUncertaintyFromWeightIds(weightIds, weightItems 
   }
   if (!valid) return { value: null, valid: false, reason: "" };
   const combinedG = Math.sqrt(sumSq);
-  if (targetUnit === "kg") return { value: combinedG / 1000, valid: true, reason: "" };
-  return { value: combinedG, valid: true, reason: "" };
+  return { value: fromGrams(combinedG, targetUnit), valid: true, reason: "" };
 }
 
 export function environmentalAverage(initial, final) {

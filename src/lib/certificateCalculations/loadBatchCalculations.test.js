@@ -35,8 +35,15 @@ describe("loadBatchCalculations", () => {
     expect(res.source).toBe("point_1");
   });
 
-  test("referenceWithLoadBatch soma pesos + lote", () => {
-    const res = referenceWithLoadBatch(20, 190, "g");
+  test("referenceWithLoadBatch aplica multiplicador M da PR-7.6", () => {
+    const res = referenceWithLoadBatch(100, null, "g", 2);
+    expect(res.valid).toBe(true);
+    expect(res.value).toBe(200);
+    expect(res.method).toBe("multiplier");
+  });
+
+  test("referenceWithLoadBatch mantém soma legado quando M=1", () => {
+    const res = referenceWithLoadBatch(20, 190, "g", 1);
     expect(res.valid).toBe(true);
     expect(res.value).toBe(210);
   });
@@ -47,7 +54,9 @@ describe("loadBatchCalculations", () => {
   });
 
   test("errorMultiplierForFormation", () => {
-    expect(errorMultiplierForFormation("l1_p1")).toBe(1);
+    expect(errorMultiplierForFormation("l1_p1")).toBe(2);
+    expect(errorMultiplierForFormation("l2_p1")).toBe(3);
+    expect(errorMultiplierForFormation("l1")).toBe(1);
     expect(errorMultiplierForFormation(null)).toBe(1);
   });
 
@@ -93,32 +102,45 @@ describe("load batch integration — uc inclui upLC", () => {
   test("P2 com lote tem uc maior que sem lote", () => {
     const basePoint = {
       point_number: 1,
-      nominal_value: "20",
+      nominal_value: "100",
+      standard_weight_ids: ["w100"],
       material_preset: "aco",
-      reading1: "20.0001",
-      reading2: "20.0001",
-      reading3: "20.0001",
+      reading1: "100.0001",
+      reading2: "100.0001",
+      reading3: "100.0001",
       resolution: "0.0001",
     };
     const p2NoBatch = {
       point_number: 2,
-      nominal_value: "210",
+      nominal_value: "200",
+      standard_weight_ids: ["w100"],
       use_load_batch: false,
       material_preset: "aco",
-      reading1: "210.0001",
-      reading2: "210.0001",
-      reading3: "210.0001",
+      reading1: "200.0001",
+      reading2: "200.0001",
+      reading3: "200.0001",
       resolution: "0.0001",
     };
     const p2WithBatch = {
       ...p2NoBatch,
       use_load_batch: true,
       load_batch_formation: "l1_p1",
-      load_batch_nominal: 190,
+      load_batch_nominal: 100,
+      load_batch_conventional_value: "100",
+      load_batch_expanded_uncertainty: "0.0004",
       load_batch_material_preset: "aco",
     };
 
     const balance = { unidade: "g", capacidade: "220", resolucao: "0.0001" };
+    const weights = [{
+      id: "w100",
+      identification: "P100",
+      nominal_value: "100",
+      conventional_value: "100",
+      expanded_uncertainty: "0.0004",
+      coverage_factor: "2",
+      unit: "g",
+    }];
     const env = {
       initial_temperature: "24",
       final_temperature: "24",
@@ -128,14 +150,18 @@ describe("load batch integration — uc inclui upLC", () => {
       final_pressure: "935",
     };
 
-    const without = calculateCertificatePoints([basePoint, p2NoBatch], balance, [], [], env);
-    const withBatch = calculateCertificatePoints([basePoint, p2WithBatch], balance, [], [], env);
+    const without = calculateCertificatePoints([basePoint, p2NoBatch], balance, weights, [], env);
+    const withBatch = calculateCertificatePoints([basePoint, p2WithBatch], balance, weights, [], env);
 
     expect(without[1].calc_status).toBe("calculado");
     expect(withBatch[1].calc_status).toBe("calculado");
+    expect(withBatch[1].calculation_memory.errorMultiplier).toBe(2);
+    expect(withBatch[1].calculation_memory.vc_base).toBe(100);
+    expect(withBatch[1].calculation_memory.up).toBeCloseTo(Math.sqrt((0.0002 ** 2) + (0.0002 ** 2)), 10);
     expect(withBatch[1].calculation_memory.upLC).toBeGreaterThan(0);
     expect(withBatch[1].calculation_memory.combinedUncertainty)
       .toBeGreaterThan(without[1].calculation_memory.combinedUncertainty);
-    expect(Number(withBatch[1].nominal_value)).toBe(210);
+    expect(Number(withBatch[1].nominal_value)).toBe(200);
+    expect(withBatch[1].indication_error).toBeCloseTo(0.0001, 10);
   });
 });

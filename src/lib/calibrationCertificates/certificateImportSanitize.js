@@ -43,6 +43,7 @@ function coletaPointHasExplicitLoadBatch(pt) {
   if (!pt) return false;
   if (pt.use_load_batch === true || pt.com_lote_carga === true) return true;
   if (pt.load_batch_nominal != null && String(pt.load_batch_nominal).trim() !== "") return true;
+  if (pt.load_batch_conventional_value != null && String(pt.load_batch_conventional_value).trim() !== "") return true;
   if (pt.load_batch_formation && String(pt.load_batch_formation).trim() !== "") return true;
   return false;
 }
@@ -65,6 +66,8 @@ export function resolveLoadBatchForImport(pt, pointNumber, repeatabilitySnapshot
     use_load_batch: useLoadBatch,
     load_batch_formation: useLoadBatch ? formation : "",
     load_batch_nominal: pt.load_batch_nominal ?? null,
+    load_batch_conventional_value: pt.load_batch_conventional_value ?? null,
+    load_batch_expanded_uncertainty: pt.load_batch_expanded_uncertainty ?? null,
     load_batch_material_preset: pt.load_batch_material_preset || pt.material_preset || "aco",
     error_multiplier: pt.error_multiplier != null && String(pt.error_multiplier).trim() !== ""
       ? Number(pt.error_multiplier)
@@ -128,6 +131,12 @@ export function mapColetaPointForDb(pt, pointNumber, warnings = [], repeatabilit
   result.load_batch_formation = loadBatch.load_batch_formation;
   result.load_batch_nominal = loadBatch.load_batch_nominal != null
     ? toDbNumeric(loadBatch.load_batch_nominal)
+    : null;
+  result.load_batch_conventional_value = loadBatch.load_batch_conventional_value != null
+    ? toDbNumeric(loadBatch.load_batch_conventional_value)
+    : null;
+  result.load_batch_expanded_uncertainty = loadBatch.load_batch_expanded_uncertainty != null
+    ? toDbNumeric(loadBatch.load_batch_expanded_uncertainty)
     : null;
   result.load_batch_material_preset = loadBatch.load_batch_material_preset || "";
   result.error_multiplier = loadBatch.error_multiplier ?? null;

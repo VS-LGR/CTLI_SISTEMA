@@ -1,5 +1,6 @@
 import {
   calculateConformityForCertificate,
+  calculatePortaria157Tolerance,
   computeLegalIndicationError,
   determineInstrumentClassFromLegalMetrology,
   evaluatePointConformity,
@@ -20,6 +21,16 @@ describe("conformityCalculations — Metr. Legal (RE-7.2B Matriz 3)", () => {
     expect(lookupPortaria236ToleranceDivisions("III", 100)).toBe(0.5);
     expect(lookupPortaria236ToleranceDivisions("III", 1000)).toBe(1.0);
     expect(lookupPortaria236ToleranceDivisions("III", 5000)).toBe(1.5);
+  });
+
+  test("calculatePortaria157Tolerance retorna tolerância na unidade da balança", () => {
+    const kg = calculatePortaria157Tolerance("III", "150", "0.1", "kg");
+    expect(kg.valid).toBe(true);
+    expect(kg.positive).toBeCloseTo(0.2, 10);
+
+    const mg = calculatePortaria157Tolerance("I", "100", "1", "mg");
+    expect(mg.valid).toBe(true);
+    expect(mg.positive).toBeCloseTo(1, 10);
   });
 
   test("computeLegalIndicationError — Validação 210 g (erro exibido 0)", () => {

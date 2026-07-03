@@ -4,6 +4,7 @@ import {
   calculateCalibrationPoint,
   calculateResolutionContribution,
   standardUncertaintyUpFromWeightIds,
+  standardUncertaintyUpWithLoadBatch,
   driftUncertaintyUdFromWeightIds,
   resolveReadingsAfter,
   resolveResolutionForNominal,
@@ -145,6 +146,24 @@ describe("certificateCalculations", () => {
     const r = standardUncertaintyUpFromWeightIds(["w1"], items, "g");
     expect(r.valid).toBe(true);
     expect(r.value).toBeCloseTo(0.2, 4);
+  });
+
+  test("standardUncertaintyUpWithLoadBatch inclui Ue do lote e retorna em mg", () => {
+    const items = [{
+      id: "w1",
+      identification: "P-1",
+      expanded_uncertainty: "0.4",
+      coverage_factor: "2",
+      unit: "mg",
+    }];
+    const r = standardUncertaintyUpWithLoadBatch(
+      ["w1"],
+      items,
+      { use_load_batch: true, load_batch_expanded_uncertainty: "0.4" },
+      "mg",
+    );
+    expect(r.valid).toBe(true);
+    expect(r.value).toBeCloseTo(Math.sqrt(0.2 ** 2 + 0.2 ** 2), 8);
   });
 
   test("driftUncertaintyUd = |deriva|/sqrt(3)", () => {

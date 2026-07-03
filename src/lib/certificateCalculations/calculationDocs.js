@@ -18,8 +18,8 @@ export const perPointFormulas = [
   {
     id: "erro",
     result: "Erro de indicação (E) — cálculo",
-    formula: "E = Ib − V.R.",
-    source: "PR-7.6 §5.4",
+    formula: "Sem lote: E = Ib − V.R.; com lote: E = Ib − (Vc × M), M conforme formação da carga",
+    source: "PR-7.6 §5.4 / §5.4.2",
   },
   {
     id: "erro_display",
@@ -36,7 +36,7 @@ export const perPointFormulas = [
   {
     id: "up",
     result: "Padrão (up)",
-    formula: "up = √Σ(Ueᵢ/kᵢ)² por peso",
+    formula: "up = √Σ(Ueᵢ/kᵢ)² por peso; com lote cadastrado, inclui Ue_lote/k no RSS",
     source: "PR-7.6 §5.3.2",
   },
   {
@@ -48,7 +48,7 @@ export const perPointFormulas = [
   {
     id: "ue",
     result: "Empuxo (ue)",
-    formula: "ue = V.R. × Urel (aba EMP.P1); fallback PPM se ambientais incompletos",
+    formula: "ue = V.C efetivo × Urel; com lote, somar ao vc_i a quantidade de lote utilizada no ponto",
     source: "PR-7.6 §5.3.5 / RE-7.2B EMP.P1",
   },
   {
@@ -68,6 +68,12 @@ export const perPointFormulas = [
     result: "Lote de carga (upLC)",
     formula: "upLC = uc do passo anterior (Tabela 01: L1+P1→uc(P1), L2+P1→uc(L1+P1), …)",
     source: "PR-7.6 §5.3.2.1",
+  },
+  {
+    id: "m_lote",
+    result: "Multiplicador do lote (M)",
+    formula: "P1=1; L1=1; L1+P1=2; L2=2; L2+P1=3; L3+P1=4; E = Ib − (Vc×M)",
+    source: "PR-7.6 §5.4.2",
   },
   {
     id: "nueff",
@@ -159,6 +165,7 @@ export const conformityChecklist = [
   { id: "ue_min", item: "Ue exibida: MROUND(Ue + (d/10)×4,4, d); d = resolução balança/ponto", status: "ok", test: "certificateDisplayRounding / validacao-2025" },
   { id: "mround_erro", item: "E exibido = MROUND(Ib,d) − MROUND(V.R.,d)", status: "ok", test: "xlsmMatriz2DisplayAudit" },
   { id: "upLC", item: "upLC Tabela 01 quando AN=sim (P2+)", status: "ok", test: "load-batch-synthetic-p2" },
+  { id: "m_lote", item: "Erro com lote: E = Ib − (Vc×M), M conforme PR-7.6 §5.4.2", status: "ok", test: "load-batch-synthetic-p2" },
   { id: "upLC_sheet", item: "Fórmula planilha P2 col AI — referência debug only", status: "debug", test: "calculationTrace upLcSpreadsheet" },
 ];
 

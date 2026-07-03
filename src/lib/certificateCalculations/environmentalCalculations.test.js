@@ -20,6 +20,12 @@ describe("environmentalCalculations", () => {
     expect(sum.value).toBeCloseTo(150.0003, 4);
   });
 
+  test("sumConventionalFromWeightIds retorna na unidade alvo mg", () => {
+    const sum = sumConventionalFromWeightIds(["w1"], weights, "mg");
+    expect(sum.valid).toBe(true);
+    expect(sum.value).toBeCloseTo(100000.2, 4);
+  });
+
   test("sumConventionalFromWeightIds com vccCorrection=false não aplica VCC por peso", () => {
     const sum = sumConventionalFromWeightIds(
       ["w1"],
@@ -41,6 +47,12 @@ describe("environmentalCalculations", () => {
     const ue = combinedExpandedUncertaintyFromWeightIds(["w1", "w2"], weights, "g");
     expect(ue.valid).toBe(true);
     expect(ue.value).toBeCloseTo(Math.sqrt(0.0005 ** 2 + 0.0003 ** 2), 6);
+  });
+
+  test("combinedExpandedUncertaintyFromWeightIds retorna em mg", () => {
+    const ue = combinedExpandedUncertaintyFromWeightIds(["w1"], weights, "mg");
+    expect(ue.valid).toBe(true);
+    expect(ue.value).toBeCloseTo(0.5, 6);
   });
 
   test("environmentalAverage e incerteza conforme planilha PREENCHER", () => {

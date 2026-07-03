@@ -36,15 +36,22 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
   const resStr = dNum.valid ? fmt(dNum.value, 6) : String(d ?? "—");
 
   if (mem.weightReference != null || mem.referenceValue != null || mem.vc_uncorrected != null) {
-    const lot = mem.loadBatchNominal ?? mem.load_batch_nominal;
+    const lot = mem.load_batch_conventional_value ?? mem.loadBatchNominal ?? mem.load_batch_nominal;
     const vcAk = mem.vc_uncorrected ?? mem.referenceValue;
 
     if (mem.vc_uncorrected != null) {
+      const m = mem.errorMultiplier ?? 1;
+      const formula = mem.use_load_batch && m !== 1
+        ? "V.C = Vc_base × M (PR-7.6 §5.4.2)"
+        : "Σ V.V.C dos pesos-padrão (+ lote se aplicável)";
+      const expression = mem.use_load_batch && m !== 1 && mem.vc_base != null
+        ? `${fmt(mem.vc_base)} × ${fmt(m, 2)} = ${fmt(mem.vc_uncorrected)}`
+        : fmt(mem.vc_uncorrected);
       steps.push({
         id: "vc_uncorrected",
         label: "V.C Não Corrigido (AK49)",
-        formula: "Σ V.V.C dos pesos-padrão (+ lote se aplicável)",
-        expression: fmt(mem.vc_uncorrected),
+        formula,
+        expression,
         result: mem.vc_uncorrected,
         unit,
       });
@@ -74,8 +81,8 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
         steps.push({
           id: "vr",
           label: "Valor de referência (V.R.)",
-          formula: "V.R. = VVC_pesos + nominal_lote",
-          expression: `${fmt(mem.weightReference)} + ${fmt(lot)} = ${fmt(vcAk)}`,
+          formula: "V.R. = Vc_base × M",
+          expression: `${fmt(mem.weightReference)} × ${fmt(mem.errorMultiplier ?? 1, 2)} = ${fmt(vcAk)}`,
           result: mem.referenceValue,
           unit,
         });
@@ -106,11 +113,12 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
   if (mem.indicationError != null) {
     const m = mem.errorMultiplier ?? 1;
     if (m !== 1) {
+      const vcBase = mem.vc_base ?? mem.weightReference ?? (mem.referenceValue != null ? Number(mem.referenceValue) / Number(m) : null);
       steps.push({
         id: "erro",
         label: "Erro de indicação (E)",
-        formula: "E = Ib − V.R. × M",
-        expression: `${fmt(mem.average)} − ${fmt(mem.referenceValue)} × ${fmt(m, 2)} = ${fmt(mem.indicationError)}`,
+        formula: "E = Ib − (Vc × M)",
+        expression: `${fmt(mem.average)} − (${fmt(vcBase)} × ${fmt(m, 2)}) = ${fmt(mem.indicationError)}`,
         result: mem.indicationError,
         unit,
       });

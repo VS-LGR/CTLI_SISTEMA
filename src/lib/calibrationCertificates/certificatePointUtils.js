@@ -47,6 +47,7 @@ function coletaPointHasExplicitLoadBatch(pt) {
   if (!pt) return false;
   if (pt.use_load_batch === true || pt.com_lote_carga === true) return true;
   if (pt.load_batch_nominal != null && String(pt.load_batch_nominal).trim() !== "") return true;
+  if (pt.load_batch_conventional_value != null && String(pt.load_batch_conventional_value).trim() !== "") return true;
   if (pt.load_batch_formation && String(pt.load_batch_formation).trim() !== "") return true;
   return false;
 }
@@ -174,6 +175,7 @@ export function isCertificatePointFilled(point) {
   const synced = syncLegacyReadingColumns(point);
   if (Boolean(synced.use_load_batch)) return true;
   if (synced.load_batch_nominal != null && String(synced.load_batch_nominal).trim() !== "") return true;
+  if (synced.load_batch_conventional_value != null && String(synced.load_batch_conventional_value).trim() !== "") return true;
   if (synced.nominal_value != null && String(synced.nominal_value).trim() !== "") return true;
   if ((synced.standard_weight_ids || []).length > 0) return true;
   if ((synced.readings_after || []).some((r) => String(r).trim() !== "")) return true;
@@ -385,12 +387,14 @@ export function resolveDefaultVerificationDivision(nominalValue, balance = {}, u
 
   let nomVal = nom.value;
   if (unit === "kg") nomVal *= 1000;
+  if (unit === "mg") nomVal /= 1000;
 
   for (const range of ranges) {
     const cap = parseImportNumeric(range.cap);
     if (!cap.valid || !range.div) continue;
     let capVal = cap.value;
     if (unit === "kg") capVal *= 1000;
+    if (unit === "mg") capVal /= 1000;
     if (nomVal <= capVal) return range.div;
   }
   return ranges.map((r) => r.div).filter(Boolean).pop() || balance.divisao_verificacao || "";
