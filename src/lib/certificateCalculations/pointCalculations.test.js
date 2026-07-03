@@ -316,4 +316,33 @@ describe("buoyancyCalculations", () => {
     expect(ue / 200).toBeCloseTo(emp.urel, 10);
     expect(ue).toBeCloseTo(200 * emp.urel, 8);
   });
+
+  test("calculateCertificatePoints é idempotente ao recalcular ponto manual com VCC", () => {
+    const environmental = {
+      initial_temperature: "24",
+      final_temperature: "24",
+      initial_humidity: "65",
+      final_humidity: "58",
+      initial_pressure: "800",
+      final_pressure: "800",
+    };
+    const input = [{
+      point_number: 1,
+      nominal_value: "200",
+      material_density: "7900",
+      resolution: "0.0001",
+      reading1: "200",
+      reading2: "200",
+      reading3: "200",
+    }];
+    const balance = { unidade: "g", resolucao: "0.0001", decimal_places: { p1: 4 } };
+    const [first] = calculateCertificatePoints(input, balance, [], [], environmental);
+    const [second] = calculateCertificatePoints([first], balance, [], [], environmental);
+
+    expect(first.calculation_memory.vcc_correction_applied).toBe(true);
+    expect(second.nominal_value).toBeCloseTo(first.nominal_value, 12);
+    expect(second.indication_error).toBeCloseTo(first.indication_error, 12);
+    expect(second.standard_uncertainty).toBeCloseTo(first.standard_uncertainty, 12);
+    expect(second.resolution).toBe("0.0001");
+  });
 });

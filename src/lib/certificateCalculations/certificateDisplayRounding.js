@@ -46,6 +46,7 @@ function isVerificationDivisionMisstoredAsResolution(resStr, point, balanceResSt
   if (verif.valid && Math.abs(res.value - verif.value) < 1e-15) return true;
   const bal = parseCalibrationNumber(balanceResStr);
   if (bal.valid && bal.value > res.value && Math.abs(bal.value / res.value - 4) < 0.02) return true;
+  if (bal.valid && bal.value > res.value && Math.abs(bal.value / res.value - 2) < 0.02) return true;
   return false;
 }
 

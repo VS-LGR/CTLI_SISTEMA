@@ -156,6 +156,12 @@ function parseBalanceAdjustmentPerformed(value) {
   return null;
 }
 
+function nearlyEqual(a, b, epsilon = 1e-12) {
+  const nA = Number(a);
+  const nB = Number(b);
+  return Number.isFinite(nA) && Number.isFinite(nB) && Math.abs(nA - nB) <= epsilon;
+}
+
 function toGramsFromUnit(value, unit = "g") {
   if (!Number.isFinite(value)) return null;
   if (unit === "kg") return value * 1000;
@@ -265,9 +271,18 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
     const nominalPoint = parseCalibrationNumber(pt.nominal_value);
     const lotConventional = parseCalibrationNumber(pt.load_batch_conventional_value);
     const lotNominal = parseCalibrationNumber(pt.load_batch_nominal);
+    const previousMemory = pt.calculation_memory || {};
 
     if (vcBase == null) {
-      if (useLoadBatch && nominalPoint.valid && Number(errorMult) > 1) {
+      if (
+        !useLoadBatch
+        && nominalPoint.valid
+        && previousMemory.vcc_correction_applied
+        && previousMemory.vc_uncorrected != null
+        && nearlyEqual(nominalPoint.value, previousMemory.referenceValue)
+      ) {
+        vcBase = Number(previousMemory.vc_uncorrected);
+      } else if (useLoadBatch && nominalPoint.valid && Number(errorMult) > 1) {
         vcBase = nominalPoint.value / Number(errorMult);
       } else if (useLoadBatch && nominalPoint.valid && lotConventional.valid) {
         vcBase = nominalPoint.value - lotConventional.value;
@@ -363,6 +378,7 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       nominal_value: reference ?? pt.nominal_value,
       display_decimals: decimals,
       ...calc.results,
+      resolution: resolutionStr,
     };
     const display = buildCertificatePointDisplay(mergedPoint, balance, unit);
 

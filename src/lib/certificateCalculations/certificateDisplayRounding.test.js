@@ -49,6 +49,16 @@ describe("certificateDisplayRounding — RE-7.2B Certificado-RBC", () => {
     expect(resolveCertificateResolution(point, balance, "g", { preferMemory: false })).toBe("0.0001");
   });
 
+  test("resolveCertificateResolution — ignora meia resolução gravada por recálculo anterior", () => {
+    const balance = { unidade: "g", resolucao: "0.0001" };
+    const point = {
+      nominal_value: 210,
+      resolution: "0.00005",
+      calculation_memory: { resolution: "0.0001" },
+    };
+    expect(resolveCertificateResolution(point, balance, "g", { preferMemory: false })).toBe("0.0001");
+  });
+
   test("buildCertificatePointDisplay — usa resolução da balança quando ponto tem divisão de verificação", () => {
     const display = buildCertificatePointDisplay(
       {
