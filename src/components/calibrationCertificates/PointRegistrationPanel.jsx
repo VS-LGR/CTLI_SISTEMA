@@ -14,6 +14,7 @@ import { loadBatchFieldsFromItem } from "@/lib/standardWeightItemUtils";
 import StandardWeightPickerPanel from "@/components/shared/StandardWeightPickerPanel";
 import { isCertificatePointFilled } from "@/lib/calibrationCertificates/certificatePointUtils";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
+import { MaxTolerancePointLabel } from "@/components/calibrationCertificates/MaxTolerancePointFlag";
 import { cn } from "@/lib/utils";
 
 const MIN_READINGS_AFTER = 3;
