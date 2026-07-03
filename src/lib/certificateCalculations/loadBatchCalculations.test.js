@@ -48,8 +48,10 @@ describe("loadBatchCalculations", () => {
     expect(res.value).toBe(210);
   });
 
-  test("buoyancyPpmCombined soma ppm lote", () => {
-    expect(buoyancyPpmCombined(1, "ferro", 1)).toBe(3);
+  test("buoyancyPpmCombined usa ppm do lote sem somar novamente o V.C.", () => {
+    expect(buoyancyPpmCombined(1, "ferro", 1)).toBe(2);
+    expect(buoyancyPpmCombined(1, "aco", 1)).toBe(1);
+    expect(buoyancyPpmCombined(1, "ferro", 0)).toBe(1);
     expect(buoyancyPpmCombined(1, "", 1)).toBe(1);
   });
 
@@ -157,11 +159,98 @@ describe("load batch integration — uc inclui upLC", () => {
     expect(withBatch[1].calc_status).toBe("calculado");
     expect(withBatch[1].calculation_memory.errorMultiplier).toBe(2);
     expect(withBatch[1].calculation_memory.vc_base).toBe(100);
-    expect(withBatch[1].calculation_memory.up).toBeCloseTo(Math.sqrt((0.0002 ** 2) + (0.0002 ** 2)), 10);
+    expect(withBatch[1].calculation_memory.up).toBeCloseTo(0.0002, 10);
     expect(withBatch[1].calculation_memory.upLC).toBeGreaterThan(0);
     expect(withBatch[1].calculation_memory.combinedUncertainty)
       .toBeGreaterThan(without[1].calculation_memory.combinedUncertainty);
     expect(Number(withBatch[1].nominal_value)).toBe(200);
     expect(withBatch[1].indication_error).toBeCloseTo(0.0001, 10);
+  });
+
+  test("P2 com lote reutiliza up calculado de P1 quando o ponto não repete pesos", () => {
+    const points = [
+      {
+        point_number: 1,
+        nominal_value: "100",
+        material_preset: "aco",
+        reading1: "100.0001",
+        reading2: "100.0001",
+        reading3: "100.0001",
+        resolution: "0.0001",
+      },
+      {
+        point_number: 2,
+        nominal_value: "200",
+        use_load_batch: true,
+        load_batch_formation: "l1_p1",
+        load_batch_nominal: "100",
+        load_batch_expanded_uncertainty: "0.0004",
+        material_preset: "aco",
+        reading1: "200.0001",
+        reading2: "200.0001",
+        reading3: "200.0001",
+        resolution: "0.0001",
+      },
+    ];
+    const result = calculateCertificatePoints(
+      points,
+      { unidade: "g", capacidade: "220", resolucao: "0.0001" },
+      [],
+      [],
+      {},
+    );
+    expect(result[1].calc_status).toBe("calculado");
+    expect(result[1].calculation_memory.up).toBe(result[0].calculation_memory.up);
+    expect(result[1].calculation_memory.upLC).toBe(result[0].calculation_memory.combinedUncertainty);
+  });
+
+  test("P2 com lote calcula ue por PPM sobre V.C. efetivo sem duplicar ppm", () => {
+    const points = [
+      {
+        point_number: 1,
+        nominal_value: "100",
+        standard_weight_ids: ["w100"],
+        material_preset: "aco",
+        reading1: "100.0001",
+        reading2: "100.0001",
+        reading3: "100.0001",
+        resolution: "0.0001",
+      },
+      {
+        point_number: 2,
+        nominal_value: "200",
+        standard_weight_ids: ["w100"],
+        use_load_batch: true,
+        load_batch_formation: "l1_p1",
+        load_batch_nominal: "100",
+        material_preset: "aco",
+        load_batch_material_preset: "aco",
+        reading1: "200.0001",
+        reading2: "200.0001",
+        reading3: "200.0001",
+        resolution: "0.0001",
+      },
+    ];
+    const weights = [{
+      id: "w100",
+      identification: "P100",
+      nominal_value: "100",
+      conventional_value: "100",
+      expanded_uncertainty: "0.0004",
+      coverage_factor: "2",
+      unit: "g",
+    }];
+    const result = calculateCertificatePoints(
+      points,
+      { unidade: "g", capacidade: "220", resolucao: "0.0001" },
+      weights,
+      [],
+      {},
+    );
+
+    expect(result[1].calc_status).toBe("calculado");
+    expect(result[1].calculation_memory.buoyancy_method).toBe("ppm");
+    expect(result[1].calculation_memory.ppmEffective).toBe(1);
+    expect(result[1].calculation_memory.ue).toBeCloseTo(200 / 1_000_000 / Math.sqrt(3), 12);
   });
 });

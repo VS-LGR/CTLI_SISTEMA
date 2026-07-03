@@ -85,13 +85,13 @@ export function referenceWithLoadBatch(weightReference, loadBatchValue, unit = "
   return { value: base.value + lotVal, valid: true, multiplier: 1, method: "sum" };
 }
 
-/** PPM empuxo: pesos + lote (PR-7.6 — somar ppm do lote ao vci). */
+/** PPM empuxo: o V.C. efetivo já inclui a quantidade de lote aplicada no ponto. */
 export function buoyancyPpmCombined(weightPpm, loadBatchPresetId, extraLotCount = 0) {
   const w = parseCalibrationNumber(weightPpm);
   const basePpm = w.valid && w.value > 0 ? w.value : 0;
   const lotPpm = loadBatchPresetId ? (ppmFromPresetId(loadBatchPresetId) ?? 0) : 0;
   const extra = Number.isFinite(extraLotCount) ? extraLotCount : 0;
-  return basePpm + lotPpm * Math.max(0, extra);
+  return extra > 0 && lotPpm > 0 ? lotPpm : basePpm;
 }
 
 /** Registra uc calculado na cadeia de formação (coleta verso + pontos). */

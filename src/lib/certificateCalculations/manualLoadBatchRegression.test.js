@@ -88,7 +88,7 @@ describe("Manual.xls — regressão lote de carga (Estudo Lote P2)", () => {
     expect(p2.indication_error).toBeCloseTo(0.0001, 10);
     expect(p2.calculation_memory.errorMultiplier).toBe(2);
     expect(p2.calculation_memory.upLC).toBeCloseTo(p1.calculation_memory.combinedUncertainty, 10);
-    expect(p2.calculation_memory.up).toBeGreaterThan(p1.calculation_memory.up);
+    expect(p2.calculation_memory.up).toBeCloseTo(p1.calculation_memory.up, 10);
   });
 
   test("balança kg — lote cadastrado em g é convertido antes do cálculo", () => {
@@ -148,6 +148,6 @@ describe("Manual.xls — regressão lote de carga (Estudo Lote P2)", () => {
     expect(p2.indication_error).toBeCloseTo(0.0001, 10);
     expect(p2.calculation_memory.vc_base).toBeCloseTo(1, 10);
     expect(p2.calculation_memory.load_batch_conventional_value).toBe("1");
-    expect(p2.calculation_memory.up).toBeCloseTo(Math.sqrt((0.0000002 ** 2) * 2), 12);
+    expect(p2.calculation_memory.up).toBeCloseTo(0.0000002, 12);
   });
 });

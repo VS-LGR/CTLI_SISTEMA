@@ -51,6 +51,7 @@ describe("certificado manual — lote de carga integração", () => {
             use_load_batch: true,
             load_batch_formation: "l1_p1",
             load_batch_nominal: "190",
+            load_batch_expanded_uncertainty: "0.0004",
             load_batch_material_preset: "aco",
           },
           basePayload.calibracao.pontos[2],
@@ -84,6 +85,7 @@ describe("certificado manual — lote de carga integração", () => {
               use_load_batch: true,
               load_batch_formation: "l1_p1",
               load_batch_nominal: "190",
+              load_batch_expanded_uncertainty: "0.0004",
             };
           }
           if (n === 3) {
@@ -92,6 +94,7 @@ describe("certificado manual — lote de carga integração", () => {
               use_load_batch: true,
               load_batch_formation: "l2_p1",
               load_batch_nominal: "10",
+              load_batch_expanded_uncertainty: "0.0004",
             };
           }
           return pt;

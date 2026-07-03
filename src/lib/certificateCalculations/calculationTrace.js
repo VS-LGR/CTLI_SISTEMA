@@ -367,7 +367,7 @@ export function buildPointCalculationTrace(point, balance = {}, unit = "g") {
       steps.push({
         id: `weight_${i}`,
         label: `Peso ${w.identification || i + 1}`,
-        formula: "up: Ue/k; ud: |deriva|/√3",
+        formula: "up: Σ(Ue/k); ud: Σ|deriva|/√3",
         expression: `Ue/k=${fmt(w.uFromUe)}; ud=${fmt(w.uFromDrift)}`,
         result: w.vvc ?? w.nominal,
         unit: w.unit || unit,

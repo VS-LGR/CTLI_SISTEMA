@@ -134,21 +134,31 @@ describe("certificateCalculations", () => {
     expect(calc.calcStatus).toBe("erro");
   });
 
-  test("standardUncertaintyUp = RSS(Ue/k) sem /sqrt(3)", () => {
-    const items = [{
-      id: "w1",
-      identification: "P-22",
-      expanded_uncertainty: "0,4",
-      coverage_factor: "2",
-      weight_status: "1",
-      unit: "g",
-    }];
-    const r = standardUncertaintyUpFromWeightIds(["w1"], items, "g");
+  test("standardUncertaintyUp = Σ(Ue/k) sem /sqrt(3)", () => {
+    const items = [
+      {
+        id: "w1",
+        identification: "P-22",
+        expanded_uncertainty: "0,4",
+        coverage_factor: "2",
+        weight_status: "1",
+        unit: "g",
+      },
+      {
+        id: "w2",
+        identification: "P-23",
+        expanded_uncertainty: "0,2",
+        coverage_factor: "2",
+        weight_status: "1",
+        unit: "g",
+      },
+    ];
+    const r = standardUncertaintyUpFromWeightIds(["w1", "w2"], items, "g");
     expect(r.valid).toBe(true);
-    expect(r.value).toBeCloseTo(0.2, 4);
+    expect(r.value).toBeCloseTo(0.3, 4);
   });
 
-  test("standardUncertaintyUpWithLoadBatch inclui Ue do lote e retorna em mg", () => {
+  test("standardUncertaintyUpWithLoadBatch usa apenas pesos P1 no up e retorna em mg", () => {
     const items = [{
       id: "w1",
       identification: "P-1",
@@ -163,22 +173,64 @@ describe("certificateCalculations", () => {
       "mg",
     );
     expect(r.valid).toBe(true);
-    expect(r.value).toBeCloseTo(Math.sqrt(0.2 ** 2 + 0.2 ** 2), 8);
+    expect(r.value).toBeCloseTo(0.2, 8);
   });
 
-  test("driftUncertaintyUd = |deriva|/sqrt(3)", () => {
+  test("standardUncertaintyUpWithLoadBatch não soma Ue do lote no up", () => {
     const items = [{
       id: "w1",
-      identification: "P-23",
-      expanded_uncertainty: "0,2",
-      conventional_value: "5000",
-      previous_conventional_value: "5001",
-      weight_status: "2",
+      expanded_uncertainty: "0.4",
+      coverage_factor: "2",
       unit: "g",
     }];
-    const r = driftUncertaintyUdFromWeightIds(["w1"], items, "g");
+    const r = standardUncertaintyUpWithLoadBatch(
+      ["w1"],
+      items,
+      {
+        use_load_batch: true,
+        load_batch_expanded_uncertainty: "999",
+      },
+      "g",
+    );
     expect(r.valid).toBe(true);
-    expect(r.value).toBeCloseTo(1 / Math.sqrt(3), 4);
+    expect(r.value).toBeCloseTo(0.2, 8);
+  });
+
+  test("standardUncertaintyUpWithLoadBatch exige pesos P1 com Ue/k para lote ativo", () => {
+    const r = standardUncertaintyUpWithLoadBatch(
+      [],
+      [],
+      { use_load_batch: true, load_batch_expanded_uncertainty: "0.4" },
+      "g",
+    );
+    expect(r.valid).toBe(false);
+    expect(r.reason).toContain("P1");
+  });
+
+  test("driftUncertaintyUd = Σ|deriva|/sqrt(3)", () => {
+    const items = [
+      {
+        id: "w1",
+        identification: "P-23",
+        expanded_uncertainty: "0,2",
+        conventional_value: "5000",
+        previous_conventional_value: "5001",
+        weight_status: "2",
+        unit: "g",
+      },
+      {
+        id: "w2",
+        identification: "P-24",
+        expanded_uncertainty: "0,2",
+        conventional_value: "2000",
+        previous_conventional_value: "2000.5",
+        weight_status: "2",
+        unit: "g",
+      },
+    ];
+    const r = driftUncertaintyUdFromWeightIds(["w1", "w2"], items, "g");
+    expect(r.valid).toBe(true);
+    expect(r.value).toBeCloseTo(1.5 / Math.sqrt(3), 4);
   });
 
   test("Welch-Satterthwaite só considera ua", () => {

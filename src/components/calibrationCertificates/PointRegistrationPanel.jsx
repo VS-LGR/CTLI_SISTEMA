@@ -83,6 +83,7 @@ function PointTabContent({
   maxToleranceAlert = false,
 }) {
   const setField = (fields) => onChange(point.point_number, fields);
+  const unitLabel = unit || "g";
 
   const handlePesos = (ids) => {
     const vvc = sumConventionalFromWeightIds(ids, weightItems, unit);
@@ -247,7 +248,7 @@ function PointTabContent({
                 />
               </div>
               <div>
-                <Label className="text-xs">V.N. do lote</Label>
+                <Label className="text-xs">V.N. do lote ({unitLabel})</Label>
                 <Input
                   value={point.load_batch_nominal ?? ""}
                   disabled={disabled}
@@ -260,7 +261,7 @@ function PointTabContent({
                 />
               </div>
               <div>
-                <Label className="text-xs">V.V.C. do lote</Label>
+                <Label className="text-xs">V.V.C. do lote ({unitLabel})</Label>
                 <Input
                   value={point.load_batch_conventional_value ?? ""}
                   disabled={disabled}
@@ -272,7 +273,7 @@ function PointTabContent({
                 />
               </div>
               <div>
-                <Label className="text-xs">Ue do lote</Label>
+                <Label className="text-xs">Ue do lote ({unitLabel})</Label>
                 <Input
                   value={point.load_batch_expanded_uncertainty ?? ""}
                   disabled={disabled}
@@ -284,8 +285,8 @@ function PointTabContent({
                 />
               </div>
               <p className="sm:col-span-2 lg:col-span-3 text-xs text-amber-800/90">
-                Densidade do material e empuxo do lote usam o mesmo cadastro do ponto acima
-                (Material do peso padrão / densidade).
+                Valores manuais do lote devem estar na unidade do certificado ({unitLabel}).
+                O k do certificado é calculado por Veff; o lote contribui por upLC conforme Tabela 01.
               </p>
             </div>
           )}

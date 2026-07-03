@@ -89,7 +89,7 @@
     },
     {
       "id": "weights-vvc-ue",
-      "description": "V.R. por VVC e up por RSS(Ue/k)",
+      "description": "V.R. por VVC e up por Σ(Ue/k)",
       "balance": {
         "unidade": "g",
         "capacidade": "2000",

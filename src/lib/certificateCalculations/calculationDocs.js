@@ -36,19 +36,19 @@ export const perPointFormulas = [
   {
     id: "up",
     result: "Padrão (up)",
-    formula: "up = √Σ(Ueᵢ/kᵢ)² por peso; com lote cadastrado, inclui Ue_lote/k no RSS",
-    source: "PR-7.6 §5.3.2",
+    formula: "up = Σ(Ueᵢ/kcᵢ) dos pesos-padrão P1; com lote, a incerteza do lote entra separadamente como upLC",
+    source: "PR-7.6 §5.3.2 / Anexo 7.1",
   },
   {
     id: "ud",
     result: "Deriva (ud)",
-    formula: "ud = √Σ(|derivaᵢ|/√3)²; deriva: 1º=Ue, 2º+=VVC−VVC anterior",
-    source: "PR-7.6 §5.3.4 / Cad PESOS-PADRÃO",
+    formula: "ud = Σ|derivaᵢ|/√3; deriva: 1º=Ue, 2º+=VVC−VVC anterior",
+    source: "PR-7.6 §5.3.4 / Anexo 7.1 / Cad PESOS-PADRÃO",
   },
   {
     id: "ue",
     result: "Empuxo (ue)",
-    formula: "ue = V.C efetivo × Urel; com lote, somar ao vc_i a quantidade de lote utilizada no ponto",
+    formula: "ue = V.C efetivo × Urel; no fallback PPM: ue = (V.C efetivo × ppm)/10⁶/√3, sem somar ppm novamente",
     source: "PR-7.6 §5.3.5 / RE-7.2B EMP.P1",
   },
   {
@@ -84,8 +84,8 @@ export const perPointFormulas = [
   {
     id: "k",
     result: "Fator de abrangência (k)",
-    formula: "T.INV(0,97725; Veff truncado) — confiança 95,45%",
-    source: "EA-4/02",
+    formula: "T.INV(0,97725; Veff truncado); se ua=0 então Veff=∞ e k=2",
+    source: "PR-7.6 §5.3.6",
   },
   {
     id: "U",

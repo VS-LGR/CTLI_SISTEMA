@@ -323,7 +323,11 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
       { preferMemory: false },
     );
 
-    const upRes = standardUncertaintyUpWithLoadBatch(pt.standard_weight_ids, weightItems, pt, unit);
+    const p1Point = calculated.find((p) => p.point_number === 1);
+    let upRes = standardUncertaintyUpWithLoadBatch(pt.standard_weight_ids, weightItems, pt, unit);
+    if (!upRes.valid && upRes.reason && useLoadBatch && Number.isFinite(p1Point?.calculation_memory?.up)) {
+      upRes = { value: p1Point.calculation_memory.up, valid: true, reason: "", source: "p1" };
+    }
     const udRes = driftUncertaintyUdFromWeightIds(pt.standard_weight_ids, weightItems, unit);
     if (!upRes.valid && upRes.reason) {
       calculated.push({
@@ -382,7 +386,6 @@ export function calculateCertificatePoints(points, balance, weightItems = [], we
     };
     const display = buildCertificatePointDisplay(mergedPoint, balance, unit);
 
-    const p1Point = calculated.find((p) => p.point_number === 1);
     const upP1 = p1Point?.calculation_memory?.up ?? 0;
     const memUa = calc.results.calculation_memory?.ua ?? 0;
     const memUr = calc.results.calculation_memory?.ur ?? 0;

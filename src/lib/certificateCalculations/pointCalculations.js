@@ -167,9 +167,9 @@ export function resolveReadingsBefore(point) {
   return [];
 }
 
-/** up = √Σ(Ueᵢ/kᵢ)² — sem /√3 adicional (PR-7.6). */
+/** up = Σ(Ueᵢ/kᵢ) — PR-7.6 Anexo 7.1: soma U95_cert e divide pelo k do certificado do peso. */
 export function standardUncertaintyUpFromWeightIds(weightIds, weightItems = [], targetUnit = "g", kDefault = DEFAULT_STANDARD_K) {
-  let sumSq = 0;
+  let sumG = 0;
   let valid = false;
 
   for (const id of weightIds || []) {
@@ -182,13 +182,12 @@ export function standardUncertaintyUpFromWeightIds(weightIds, weightItems = [], 
     const ueG = toGrams(ue.value, item.unit || "g");
     if (ueG == null) continue;
     const uUe = ueG / k;
-    sumSq += uUe * uUe;
+    sumG += Math.abs(uUe);
     valid = true;
   }
 
   if (!valid) return { value: null, valid: false, reason: "" };
-  const combinedG = Math.sqrt(sumSq);
-  return { value: fromGrams(combinedG, targetUnit), valid: true, reason: "" };
+  return { value: fromGrams(sumG, targetUnit), valid: true, reason: "" };
 }
 
 export function standardUncertaintyUpWithLoadBatch(
@@ -198,36 +197,25 @@ export function standardUncertaintyUpWithLoadBatch(
   targetUnit = "g",
   kDefault = DEFAULT_STANDARD_K,
 ) {
-  let sumSqG = 0;
-  let valid = false;
-
   const weights = standardUncertaintyUpFromWeightIds(weightIds, weightItems, "g", kDefault);
   if (weights.valid && Number.isFinite(weights.value)) {
-    sumSqG += weights.value * weights.value;
-    valid = true;
+    return { value: fromGrams(weights.value, targetUnit), valid: true, reason: "" };
   }
 
   if (point?.use_load_batch) {
-    const lotUe = parseCalibrationNumber(point.load_batch_expanded_uncertainty);
-    if (lotUe.valid) {
-      const kParsed = parseCalibrationNumber(point.load_batch_coverage_factor);
-      const k = kParsed.valid && kParsed.value > 0 ? kParsed.value : kDefault;
-      const lotUeG = toGrams(lotUe.value, targetUnit);
-      if (lotUeG != null) {
-        const lotU = lotUeG / k;
-        sumSqG += lotU * lotU;
-        valid = true;
-      }
-    }
+    return {
+      value: null,
+      valid: false,
+      reason: "Informe pesos padrão P1 com Ue/k válidos para calcular up com lote de carga",
+    };
   }
 
-  if (!valid) return { value: null, valid: false, reason: "" };
-  return { value: fromGrams(Math.sqrt(sumSqG), targetUnit), valid: true, reason: "" };
+  return weights;
 }
 
-/** ud = √Σ(|derivaᵢ|/√3)² (PR-7.6). */
+/** ud = Σ|derivaᵢ|/√3 — PR-7.6 Anexo 7.1. */
 export function driftUncertaintyUdFromWeightIds(weightIds, weightItems = [], targetUnit = "g") {
-  let sumSq = 0;
+  let sumG = 0;
   let valid = false;
   const driftErrors = [];
 
@@ -245,8 +233,7 @@ export function driftUncertaintyUdFromWeightIds(weightIds, weightItems = [], tar
 
     const driftG = toGrams(Math.abs(drift.value), item.unit || "g");
     if (driftG == null) continue;
-    const uDrift = driftG / SQRT3;
-    sumSq += uDrift * uDrift;
+    sumG += driftG;
     valid = true;
   }
 
@@ -254,8 +241,7 @@ export function driftUncertaintyUdFromWeightIds(weightIds, weightItems = [], tar
     return { value: null, valid: false, reason: driftErrors.join("; "), driftErrors };
   }
   if (!valid) return { value: 0, valid: true, reason: "" };
-  const combinedG = Math.sqrt(sumSq);
-  return { value: fromGrams(combinedG, targetUnit), valid: true, reason: "" };
+  return { value: fromGrams(sumG / SQRT3, targetUnit), valid: true, reason: "" };
 }
 
 /** @deprecated Use standardUncertaintyUpFromWeightIds + driftUncertaintyUdFromWeightIds */
