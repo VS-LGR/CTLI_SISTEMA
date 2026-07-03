@@ -32,6 +32,7 @@ export default function ScaleIndicationRangesFields({
   unit = "g",
 }) {
   const ranges = RANGE_MAPS[variant] || RANGE_MAPS.balance;
+  const unitLabel = unit || "unidade selecionada";
   const set = (key, raw) => onChange(key, sanitizeMassNumericInput(raw));
 
   return (
@@ -39,7 +40,7 @@ export default function ScaleIndicationRangesFields({
       {ranges.length > 1 && (
         <p className="text-[11px] text-slate-500">
           Balanças multi-escala: informe cada faixa em ordem crescente de capacidade
-          {" "}(ex.: até 5 {unit} com d=0,005; até 10 {unit} com d=0,01; até 30 {unit} com d=0,1).
+          {" "}(ex.: até 5 {unitLabel} com d=0,005; até 10 {unitLabel} com d=0,01; até 30 {unitLabel} com d=0,1).
           Os cálculos do certificado usam a resolução da faixa correspondente a cada ponto.
         </p>
       )}
@@ -54,7 +55,7 @@ export default function ScaleIndicationRangesFields({
           <div className={`grid gap-3 ${includeVerificationDivision ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
             <div>
               <Label>Indicação máxima (C)</Label>
-              <FieldHint>Capacidade máxima desta faixa ({unit}).</FieldHint>
+              <FieldHint>Capacidade máxima desta faixa na unidade selecionada ({unitLabel}).</FieldHint>
               <Input
                 inputMode="decimal"
                 value={values[range.capacity] || ""}

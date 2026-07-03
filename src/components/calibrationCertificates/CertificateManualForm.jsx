@@ -290,13 +290,6 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                   </div>
                 ))}
               </div>
-              <ScaleIndicationRangesFields
-                variant="balance"
-                values={payload.balanca}
-                unit={payload.balanca.unidade || "g"}
-                includeVerificationDivision={false}
-                onChange={(key, value) => setBalanca(key, value)}
-              />
               <div className="max-w-[12rem]">
                 <Label className="text-xs">Unidade</Label>
                 <select
@@ -306,7 +299,17 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                 >
                   {UNIDADE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  As capacidades, resoluções e leituras serão tratadas nesta unidade no certificado.
+                </p>
               </div>
+              <ScaleIndicationRangesFields
+                variant="balance"
+                values={payload.balanca}
+                unit={payload.balanca.unidade || "g"}
+                includeVerificationDivision={false}
+                onChange={(key, value) => setBalanca(key, value)}
+              />
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Tipo de balança</Label>
