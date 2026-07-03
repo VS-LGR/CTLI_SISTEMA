@@ -86,6 +86,8 @@ function emptyCalPoint() {
     use_load_batch: false,
     load_batch_formation: "",
     load_batch_nominal: "",
+    load_batch_conventional_value: "",
+    load_batch_expanded_uncertainty: "",
     load_batch_material_preset: "",
     error_multiplier: "",
   };

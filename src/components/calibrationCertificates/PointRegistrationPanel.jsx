@@ -14,7 +14,6 @@ import { loadBatchFieldsFromItem } from "@/lib/standardWeightItemUtils";
 import StandardWeightPickerPanel from "@/components/shared/StandardWeightPickerPanel";
 import { isCertificatePointFilled } from "@/lib/calibrationCertificates/certificatePointUtils";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
-import { MaxTolerancePointLabel } from "@/components/calibrationCertificates/MaxTolerancePointFlag";
 import { cn } from "@/lib/utils";
 
 const MIN_READINGS_AFTER = 3;
@@ -229,12 +228,12 @@ function PointTabContent({
                 />
               </div>
               <div>
-                <Label className="text-xs">Nominal do lote (Vc)</Label>
+                <Label className="text-xs">V.N. do lote</Label>
                 <Input
                   value={point.load_batch_nominal ?? ""}
                   disabled={disabled}
                   onChange={(e) => setField({
-                    load_batch_nominal: e.target.value,
+                    load_batch_nominal: sanitizeMassNumericInput(e.target.value),
                     load_batch_weight_id: null,
                   })}
                   className="h-9 mt-1"
@@ -242,21 +241,33 @@ function PointTabContent({
                 />
               </div>
               <div>
-                <Label className="text-xs">Material do lote</Label>
-                <select
-                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                <Label className="text-xs">V.V.C. do lote</Label>
+                <Input
+                  value={point.load_batch_conventional_value ?? ""}
                   disabled={disabled}
-                  value={point.load_batch_material_preset ?? "aco"}
                   onChange={(e) => setField({
-                    load_batch_material_preset: e.target.value,
+                    load_batch_conventional_value: sanitizeMassNumericInput(e.target.value),
                     load_batch_weight_id: null,
                   })}
-                >
-                  {MATERIAL_PRESETS.map((m) => (
-                    <option key={m.id} value={m.id}>{m.label}</option>
-                  ))}
-                </select>
+                  className="h-9 mt-1"
+                />
               </div>
+              <div>
+                <Label className="text-xs">Ue do lote</Label>
+                <Input
+                  value={point.load_batch_expanded_uncertainty ?? ""}
+                  disabled={disabled}
+                  onChange={(e) => setField({
+                    load_batch_expanded_uncertainty: sanitizeMassNumericInput(e.target.value),
+                    load_batch_weight_id: null,
+                  })}
+                  className="h-9 mt-1"
+                />
+              </div>
+              <p className="sm:col-span-2 lg:col-span-3 text-xs text-amber-800/90">
+                Densidade do material e empuxo do lote usam o mesmo cadastro do ponto acima
+                (Material do peso padrão / densidade).
+              </p>
             </div>
           )}
         </div>

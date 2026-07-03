@@ -30,7 +30,7 @@ describe("pesoPadraoPickerUtils", () => {
   test("filtra apenas lotes de carga", () => {
     const withLots = [
       ...items,
-      { id: "4", identification: "L-190", nominal_value: "190", unit: "g", is_load_batch: true, load_batch_material_preset: "aco" },
+      { id: "4", identification: "L-190", nominal_value: "190", unit: "g", is_load_batch: true },
     ];
     const lots = filterAndSortWeightItems(withLots, { kind: "load_batches" });
     expect(lots).toHaveLength(1);

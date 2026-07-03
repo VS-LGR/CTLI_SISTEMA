@@ -25,9 +25,8 @@ import {
   oimlNominalHint,
   oimlNominalOptionsForUnit,
 } from "@/lib/oimlR111NominalValues";
-import { MATERIAL_PRESETS } from "@/lib/certificateCalculations/materialConstants";
 import { WEIGHT_PICKER_KIND_OPTIONS, filterWeightItemsByKind } from "@/lib/pesoPadraoPickerUtils";
-import { isLoadBatchItem, loadBatchMaterialLabel } from "@/lib/standardWeightItemUtils";
+import { isLoadBatchItem } from "@/lib/standardWeightItemUtils";
 import { cadastroFilterFieldClass } from "@/components/cadastros/CadastroListFilterBar";
 
 const WEIGHT_STATUS_OPTIONS = [
@@ -48,7 +47,6 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState("all");
   const [isLoadBatch, setIsLoadBatch] = useState(false);
-  const [loadBatchMaterialPreset, setLoadBatchMaterialPreset] = useState("aco");
   const [identification, setIdentification] = useState("");
   const [nominalValue, setNominalValue] = useState("");
   const [unit, setUnit] = useState("g");
@@ -77,9 +75,10 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     return filterCadastroByQuery(byKind, query, (r) => [
       r.identification,
       r.nominal_value,
+      r.conventional_value,
+      r.expanded_uncertainty,
       r.certificate_number,
       weightItemCertNumber(r, weightCerts),
-      loadBatchMaterialLabel(r.load_batch_material_preset),
       isLoadBatchItem(r) ? "lote de carga" : "",
     ]);
   }, [rows, query, kindFilter, weightCerts]);
@@ -87,7 +86,6 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const reset = () => {
     setEditing(null);
     setIsLoadBatch(false);
-    setLoadBatchMaterialPreset("aco");
     setIdentification("");
     setNominalValue("");
     setConventionalValue("");
@@ -117,7 +115,13 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
       return toast.error(isLoadBatch ? "Informe a identificação do lote" : "Informe a identificação do peso");
     }
     if (isLoadBatch && !nominalValue.trim()) {
-      return toast.error("Informe o valor nominal (Vc) do lote de carga");
+      return toast.error("Informe o valor nominal do lote de carga");
+    }
+    if (isLoadBatch && !conventionalValue.trim()) {
+      return toast.error("Informe o V.V.C do lote de carga");
+    }
+    if (isLoadBatch && !expandedUncertainty.trim()) {
+      return toast.error("Informe a incerteza expandida (Ue) do lote de carga");
     }
 
     let driftStr = "";
@@ -140,14 +144,13 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
         tenant_id: tenantId,
         identification: identification.trim(),
         nominal_value: nominalValue.trim(),
+        conventional_value: conventionalValue.trim(),
+        expanded_uncertainty: expandedUncertainty.trim(),
         unit: unit || "g",
         is_load_batch: true,
-        load_batch_material_preset: loadBatchMaterialPreset || "aco",
-        conventional_value: "",
         previous_conventional_value: "",
         standard_drift: "",
         weight_status: "",
-        expanded_uncertainty: "",
         active: true,
         certificate_number: "",
         weight_certificate_id: null,
@@ -163,7 +166,6 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
         expanded_uncertainty: expandedUncertainty.trim(),
         unit: unit || "g",
         is_load_batch: false,
-        load_batch_material_preset: "",
         active: true,
         certificate_number: certificateNumber.trim(),
         weight_certificate_id: weightCertificateId || null,
@@ -199,7 +201,6 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const openEdit = (r) => {
     setEditing(r);
     setIsLoadBatch(isLoadBatchItem(r));
-    setLoadBatchMaterialPreset(r.load_batch_material_preset || "aco");
     setIdentification(r.identification);
     setNominalValue(r.nominal_value);
     setConventionalValue(r.conventional_value || "");
@@ -304,11 +305,6 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                     </td>
                     <td className="p-2">
                       {r.nominal_value} {r.unit}
-                      {lot && r.load_batch_material_preset && (
-                        <span className="block text-[10px] text-slate-500">
-                          {loadBatchMaterialLabel(r.load_batch_material_preset)}
-                        </span>
-                      )}
                     </td>
                     <td className="p-2">{r.conventional_value || "—"} {r.conventional_value ? r.unit : ""}</td>
                     <td className="p-2">{r.expanded_uncertainty || "—"} {r.expanded_uncertainty ? r.unit : ""}</td>
@@ -363,12 +359,30 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label>Vc (valor nominal do lote)</Label>
+                      <Label>V.N. (valor nominal)</Label>
                       <Input
                         inputMode="decimal"
                         value={nominalValue}
                         onChange={(e) => setNominalValue(sanitizeMassNumericInput(e.target.value))}
                         placeholder="Ex.: 190"
+                      />
+                    </div>
+                    <div>
+                      <Label>V.V.C. (valor convencional)</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={conventionalValue}
+                        onChange={(e) => setConventionalValue(sanitizeMassNumericInput(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Ue (incerteza expandida)</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={expandedUncertainty}
+                        onChange={(e) => setExpandedUncertainty(sanitizeMassNumericInput(e.target.value))}
                       />
                     </div>
                     <div>
@@ -384,20 +398,9 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                       </select>
                     </div>
                   </div>
-                  <div>
-                    <Label>Material do lote (PPM empuxo)</Label>
-                    <select
-                      value={loadBatchMaterialPreset}
-                      onChange={(e) => setLoadBatchMaterialPreset(e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-                    >
-                      {MATERIAL_PRESETS.map((m) => (
-                        <option key={m.id} value={m.id}>{m.label}</option>
-                      ))}
-                    </select>
-                  </div>
                   <p className="text-xs text-slate-500">
-                    Lotes de carga são usados nos pontos P2+ com substituição (PR-7.6). O Vc soma-se aos pesos padrão na referência.
+                    Lotes de carga são usados nos pontos P2+ com substituição (PR-7.6).
+                    A densidade do material e o empuxo são definidos no ponto, como nos pesos padrão.
                   </p>
                 </>
               ) : (

@@ -3,7 +3,6 @@ import { massToGrams } from "@/lib/massValueUtils";
 import { parseCalibrationNumber } from "@/lib/certificateCalculations/parseNumber";
 import {
   isLoadBatchItem,
-  loadBatchMaterialLabel,
 } from "@/lib/standardWeightItemUtils";
 
 export const WEIGHT_PICKER_SORT_OPTIONS = [
@@ -28,7 +27,6 @@ export function filterWeightItemsByKind(items, kind = "all") {
 }
 
 export function weightItemSearchHaystack(item) {
-  const materialLabel = loadBatchMaterialLabel(item?.load_batch_material_preset);
   return [
     item?.identification,
     item?.nominal_value,
@@ -36,7 +34,6 @@ export function weightItemSearchHaystack(item) {
     item?.conventional_value,
     item?.certificate_number,
     item?.expanded_uncertainty,
-    materialLabel,
     isLoadBatchItem(item) ? "lote de carga" : "",
   ];
 }

@@ -15,6 +15,12 @@ export function loadBatchFieldsToPanel(point) {
     load_batch_nominal: pt.load_batch_nominal != null && String(pt.load_batch_nominal).trim() !== ""
       ? String(pt.load_batch_nominal)
       : "",
+    load_batch_conventional_value: pt.load_batch_conventional_value != null && String(pt.load_batch_conventional_value).trim() !== ""
+      ? String(pt.load_batch_conventional_value)
+      : "",
+    load_batch_expanded_uncertainty: pt.load_batch_expanded_uncertainty != null && String(pt.load_batch_expanded_uncertainty).trim() !== ""
+      ? String(pt.load_batch_expanded_uncertainty)
+      : "",
     load_batch_material_preset: pt.load_batch_material_preset || "",
     load_batch_weight_id: pt.load_batch_weight_id || null,
     error_multiplier: pt.error_multiplier != null && String(pt.error_multiplier).trim() !== ""
@@ -29,6 +35,8 @@ export function loadBatchFieldsToColeta(panelFields) {
     use_load_batch: Boolean(panelFields?.use_load_batch),
     load_batch_formation: panelFields?.load_batch_formation || "",
     load_batch_nominal: panelFields?.load_batch_nominal ?? "",
+    load_batch_conventional_value: panelFields?.load_batch_conventional_value ?? "",
+    load_batch_expanded_uncertainty: panelFields?.load_batch_expanded_uncertainty ?? "",
     load_batch_material_preset: panelFields?.load_batch_material_preset || "",
     load_batch_weight_id: panelFields?.load_batch_weight_id || null,
     error_multiplier: panelFields?.error_multiplier ?? "",
@@ -77,7 +85,7 @@ export function syncRepeatabilityFromPanelPoint(payload, pointNumber, panelPt) {
   const updated = {
     ...existing,
     valor_nominal: panelPt.load_batch_nominal ?? existing.valor_nominal ?? "",
-    material_preset: panelPt.load_batch_material_preset || existing.material_preset || rep.material_preset || "aco",
+    material_preset: panelPt.load_batch_material_preset || panelPt.material_preset || existing.material_preset || rep.material_preset || "aco",
   };
   if (idx >= 0) linhas[idx] = updated;
   else linhas.push(updated);
@@ -89,7 +97,7 @@ export function syncRepeatabilityFromPanelPoint(payload, pointNumber, panelPt) {
       repetitividade: {
         ...rep,
         aplicavel: rep.aplicavel !== false,
-        material_preset: panelPt.load_batch_material_preset || rep.material_preset || "aco",
+        material_preset: panelPt.load_batch_material_preset || panelPt.material_preset || rep.material_preset || "aco",
         linhas,
       },
     },
@@ -153,7 +161,10 @@ export function emptyCertificatePoint(pointNumber) {
     use_load_batch: false,
     load_batch_formation: "",
     load_batch_nominal: null,
+    load_batch_conventional_value: null,
+    load_batch_expanded_uncertainty: null,
     load_batch_material_preset: "",
+    load_batch_weight_id: null,
     error_multiplier: null,
   };
 }
@@ -279,6 +290,12 @@ export function certificatePointToPanelPoint(pt, balance = {}) {
     load_batch_nominal: withInstrument.load_batch_nominal != null && withInstrument.load_batch_nominal !== ""
       ? String(withInstrument.load_batch_nominal)
       : "",
+    load_batch_conventional_value: withInstrument.load_batch_conventional_value != null && withInstrument.load_batch_conventional_value !== ""
+      ? String(withInstrument.load_batch_conventional_value)
+      : "",
+    load_batch_expanded_uncertainty: withInstrument.load_batch_expanded_uncertainty != null && withInstrument.load_batch_expanded_uncertainty !== ""
+      ? String(withInstrument.load_batch_expanded_uncertainty)
+      : "",
     load_batch_material_preset: withInstrument.load_batch_material_preset || "",
     load_batch_weight_id: withInstrument.load_batch_weight_id || null,
     error_multiplier: withInstrument.error_multiplier != null && withInstrument.error_multiplier !== ""
@@ -335,6 +352,12 @@ export function pointToDbPatch(point, balance = {}, unit = "g") {
     load_batch_formation: synced.load_batch_formation || "",
     load_batch_nominal: synced.load_batch_nominal != null && synced.load_batch_nominal !== ""
       ? toDbNumeric(synced.load_batch_nominal)
+      : null,
+    load_batch_conventional_value: synced.load_batch_conventional_value != null && synced.load_batch_conventional_value !== ""
+      ? toDbNumeric(synced.load_batch_conventional_value)
+      : null,
+    load_batch_expanded_uncertainty: synced.load_batch_expanded_uncertainty != null && synced.load_batch_expanded_uncertainty !== ""
+      ? toDbNumeric(synced.load_batch_expanded_uncertainty)
       : null,
     load_batch_material_preset: synced.load_batch_material_preset || "",
     load_batch_weight_id: synced.load_batch_weight_id || null,

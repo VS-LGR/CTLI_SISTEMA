@@ -12,7 +12,6 @@ import {
   filterAndSortWeightItems,
   isLoadBatchItem,
 } from "@/lib/pesoPadraoPickerUtils";
-import { loadBatchMaterialLabel } from "@/lib/standardWeightItemUtils";
 
 function WeightPickerCard({
   item,
@@ -26,7 +25,12 @@ function WeightPickerCard({
     ? `${item.nominal_value} ${item.unit || "g"}`.trim()
     : "—";
   const isLot = isLoadBatchItem(item);
-  const materialLabel = isLot ? loadBatchMaterialLabel(item.load_batch_material_preset) : "";
+  const vvc = item.conventional_value
+    ? `${item.conventional_value} ${item.unit || "g"}`.trim()
+    : null;
+  const ue = item.expanded_uncertainty
+    ? `${item.expanded_uncertainty} ${item.unit || "g"}`.trim()
+    : null;
 
   return (
     <label
@@ -69,12 +73,17 @@ function WeightPickerCard({
           </div>
         </div>
         <p className="text-xs text-slate-600">
-          {isLot ? "Vc" : "V.N."}{" "}
+          {isLot ? "V.N." : "V.N."}{" "}
           <span className="font-mono font-medium text-slate-800">{nominal}</span>
         </p>
-        {materialLabel && (
-          <p className="text-[10px] text-slate-500 truncate" title={materialLabel}>
-            Material: {materialLabel}
+        {isLot && vvc && (
+          <p className="text-xs text-slate-600">
+            V.V.C. <span className="font-mono font-medium text-slate-800">{vvc}</span>
+          </p>
+        )}
+        {isLot && ue && (
+          <p className="text-[10px] text-slate-500">
+            Ue <span className="font-mono">{ue}</span>
           </p>
         )}
       </div>

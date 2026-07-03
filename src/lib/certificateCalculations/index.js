@@ -138,8 +138,11 @@ function resolveBuoyancyPpm(point) {
   const presetPpm = ppmFromPresetId(point.material_preset);
   const weightPpm = basePpm ?? presetPpm ?? 1;
 
-  if (point.use_load_batch && point.load_batch_material_preset) {
-    return buoyancyPpmCombined(weightPpm, point.load_batch_material_preset, 1);
+  if (point.use_load_batch) {
+    const lotPreset = point.load_batch_material_preset || point.material_preset;
+    if (lotPreset) {
+      return buoyancyPpmCombined(weightPpm, lotPreset, 1);
+    }
   }
   return weightPpm;
 }

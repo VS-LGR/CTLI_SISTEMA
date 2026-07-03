@@ -131,6 +131,8 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
 
       const touchesLoadBatch = fields.use_load_batch != null
         || fields.load_batch_nominal != null
+        || fields.load_batch_conventional_value != null
+        || fields.load_batch_expanded_uncertainty != null
         || fields.load_batch_formation != null
         || fields.load_batch_material_preset != null;
 
