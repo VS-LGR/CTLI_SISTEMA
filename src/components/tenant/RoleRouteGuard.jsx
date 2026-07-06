@@ -2,11 +2,11 @@ import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { usesRestrictedNav, restrictedNavHomePath } from "@/lib/roleNav";
-import { isCertificatePath, isPr72ModulePath } from "@/lib/certificateRoutes";
+import { isColetaPath } from "@/lib/coletaRoutes";
+import { isCertificatePath } from "@/lib/certificateRoutes";
 
 /**
- * Redireciona técnicos/signatários em ambiente full para coleta/aprovação.
- * No portal cliente, estes cargos têm nav completa.
+ * Redireciona técnicos para coleta e signatários para aprovação.
  */
 export default function RoleRouteGuard({ currentTenant, outletContext }) {
   const { user } = useAuth();
@@ -20,7 +20,7 @@ export default function RoleRouteGuard({ currentTenant, outletContext }) {
     return <Outlet context={outletContext} />;
   }
 
-  if (user.role === "tecnico_campo" && !isPr72ModulePath(loc.pathname)) {
+  if (user.role === "tecnico_campo" && !isColetaPath(loc.pathname)) {
     return <Navigate to={restrictedNavHomePath(user.role, currentTenant)} replace />;
   }
 

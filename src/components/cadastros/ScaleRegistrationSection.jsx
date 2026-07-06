@@ -14,6 +14,7 @@ import PointMaxToleranceFields from "@/components/forms/PointMaxToleranceFields"
 import ScaleIndicationRangesFields from "@/components/forms/ScaleIndicationRangesFields";
 import { TIPO_BALANCA_OPTIONS, UNIDADE_OPTIONS } from "@/lib/coletaSchema";
 import { countScaleRanges } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 
 const emptyForm = () => ({
   end_customer_id: "",
@@ -201,11 +202,31 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
               )}
               {filtered.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
-                  <td className="p-2">{customerName(r.end_customer_id)}</td>
-                  <td className="p-2 font-mono">{r.serial_number}</td>
-                  <td className="p-2">{r.identification_code || r.tag || "—"}</td>
-                  <td className="p-2">{r.manufacturer}</td>
-                  <td className="p-2">{r.model}</td>
+                  <td className="p-2 max-w-[9rem]">
+                    <EllipsisTooltip label={customerName(r.end_customer_id) || ""} className="block">
+                      {customerName(r.end_customer_id)}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-2 font-mono max-w-[6rem]">
+                    <EllipsisTooltip label={r.serial_number || ""} className="block">
+                      {r.serial_number}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-2 max-w-[7rem]">
+                    <EllipsisTooltip label={r.identification_code || r.tag || ""} className="block">
+                      {r.identification_code || r.tag || "—"}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-2 max-w-[8rem]">
+                    <EllipsisTooltip label={r.manufacturer || ""} className="block">
+                      {r.manufacturer}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-2 max-w-[8rem]">
+                    <EllipsisTooltip label={r.model || ""} className="block">
+                      {r.model}
+                    </EllipsisTooltip>
+                  </td>
                   <td className="p-2 text-xs text-slate-600">{countScaleRanges(r) || "—"}</td>
                   <td className="p-2">{r.instrument_class || "—"}</td>
                   <td className="p-2">

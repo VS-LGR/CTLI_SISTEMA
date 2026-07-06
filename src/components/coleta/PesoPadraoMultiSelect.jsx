@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CaretDown } from "@phosphor-icons/react";
 import { describeWeightComposition } from "@/lib/certificateCalculations/pointCalculations";
 import StandardWeightPickerPanel from "@/components/shared/StandardWeightPickerPanel";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 
 export default function PesoPadraoMultiSelect({
   weightItems = [],
@@ -31,7 +32,9 @@ export default function PesoPadraoMultiSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" className="w-full justify-between font-normal h-9 text-left">
-          <span className="truncate text-sm">{summary}</span>
+          <EllipsisTooltip label={summary} className="text-sm flex-1">
+            {summary}
+          </EllipsisTooltip>
           <CaretDown size={14} className="shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>

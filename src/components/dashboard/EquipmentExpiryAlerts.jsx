@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Warning, CalendarBlank } from "@phosphor-icons/react";
 import { fmtDmyShort } from "@/lib/dateFormat";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
+import { expandDisplayLabel } from "@/lib/metrologyDisplayLabels";
 
 const STATUS_LABELS = {
   expired: "Vencido",
@@ -11,6 +13,7 @@ const STATUS_LABELS = {
 
 function AlertRow({ item }) {
   const isExpired = item.status === "expired";
+  const kindExpanded = expandDisplayLabel(item.kind);
   return (
     <li className="flex items-start gap-2 text-sm py-2 border-b border-slate-100 last:border-0">
       <Warning
@@ -19,11 +22,19 @@ function AlertRow({ item }) {
         weight="fill"
       />
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-slate-800 truncate" title={item.label}>
-          {item.label}
-        </p>
+        <EllipsisTooltip label={item.label} className="font-medium text-slate-800 block" />
         <p className="text-xs text-slate-500">
-          {item.kind} · {STATUS_LABELS[item.status] || item.status} · {fmtDmyShort(item.expiry_date)}
+          <EllipsisTooltip
+            label={kindExpanded}
+            className="inline-block max-w-[8rem] align-bottom"
+            onlyWhenTruncated={kindExpanded !== item.kind}
+          >
+            {item.kind}
+          </EllipsisTooltip>
+          {" · "}
+          {STATUS_LABELS[item.status] || item.status}
+          {" · "}
+          {fmtDmyShort(item.expiry_date)}
         </p>
       </div>
     </li>

@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { weightItemCertStatus } from "@/lib/cadastroListUtils";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import { describeWeightComposition } from "@/lib/certificateCalculations/pointCalculations";
 import {
   WEIGHT_PICKER_SORT_OPTIONS,
@@ -50,8 +51,10 @@ function WeightPickerCard({
       />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-2 min-w-0">
-          <p className="font-mono text-sm font-medium text-slate-900 truncate" title={item.identification}>
-            {item.identification || "—"}
+          <p className="font-mono text-sm font-medium text-slate-900 truncate">
+            <EllipsisTooltip label={item.identification || ""} className="block">
+              {item.identification || "—"}
+            </EllipsisTooltip>
           </p>
           <div className="flex shrink-0 items-center gap-1">
             {isLot && (

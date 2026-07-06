@@ -1,5 +1,7 @@
 /** Filtros e status de download para a listagem de coletas */
 
+import { coletaOsSearchTokens, formatCollectionRef } from "@/lib/coletaOsMeta";
+
 function norm(s) {
   return String(s ?? "").trim().toLowerCase();
 }
@@ -51,6 +53,7 @@ export function filterColetaRows(
         row.scale_serial,
         row.commercial_proposal_ref,
         row.responsible_name,
+        ...coletaOsSearchTokens(row),
       ]
         .map(norm)
         .join(" ");

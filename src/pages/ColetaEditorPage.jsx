@@ -14,6 +14,7 @@ import {
   emptyColetaPayload, mergeColetaPayload, denormalizeFromPayload,
 } from "@/lib/coletaSchema";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
+import { assignNextCollectionNumber, formatColetaWorkOrderHeaderText } from "@/lib/coletaOsMeta";
 import { certificateEditorPath, CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "@/lib/certificateRoutes";
 import { COLETA_WORKFLOW_STATUSES, CERTIFICATE_TYPES, canColetaGenerateOfficial } from "@/lib/calibrationCertificates/certificateSchema";
 import { createCertificateFromColeta } from "@/lib/calibrationCertificates/certificateApi";
@@ -40,6 +41,8 @@ const ColetaEditorPage = () => {
   const [commercialProposalRef, setCommercialProposalRef] = useState("");
   const [commercialProposalId, setCommercialProposalId] = useState(null);
   const [commercialProposalScaleId, setCommercialProposalScaleId] = useState(null);
+  const [collectionNumber, setCollectionNumber] = useState(null);
+  const [collectionYear, setCollectionYear] = useState(null);
   const [workflowStatus, setWorkflowStatus] = useState("rascunho");
   const [certificateId, setCertificateId] = useState(null);
   const [certType, setCertType] = useState("rastreavel");
@@ -160,6 +163,8 @@ const ColetaEditorPage = () => {
       setCommercialProposalScaleId(data.commercial_proposal_scale_id || null);
       setWorkflowStatus(data.workflow_status || "rascunho");
       setCertificateId(data.certificate_id || null);
+      setCollectionNumber(data.collection_number ?? null);
+      setCollectionYear(data.collection_year ?? null);
     } finally {
       setLoading(false);
     }
@@ -201,9 +206,10 @@ const ColetaEditorPage = () => {
     const row = buildRow();
     try {
       if (isNew) {
+        const os = await assignNextCollectionNumber(currentTenantId);
         const { error } = await supabase
           .from("scale_calibration_collections")
-          .insert({ ...row, created_by: user.id });
+          .insert({ ...row, ...os, created_by: user.id });
         if (error) throw error;
         toast.success("Coleta criada");
       } else {
@@ -228,6 +234,8 @@ const ColetaEditorPage = () => {
     const row = {
       id,
       commercial_proposal_ref: commercialProposalRef,
+      collection_number: collectionNumber,
+      collection_year: collectionYear,
       payload,
       ...denormalizeFromPayload(payload, commercialProposalRef),
     };
@@ -298,7 +306,13 @@ const ColetaEditorPage = () => {
             <Link to={COLETA_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
           </Button>
           <h1 className="font-display text-xl font-semibold text-slate-900">
-            {isNew ? "Nova coleta" : "Editar coleta"}
+            {isNew ? "Nova coleta" : (
+              formatColetaWorkOrderHeaderText({
+                commercial_proposal_ref: commercialProposalRef,
+                collection_number: collectionNumber,
+                collection_year: collectionYear,
+              }) || "Editar coleta"
+            )}
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -393,6 +407,8 @@ const ColetaEditorPage = () => {
           endCustomers={endCustomers}
           employees={employees}
           isNew={isNew}
+          collectionNumber={collectionNumber}
+          collectionYear={collectionYear}
         />
       </Suspense>
 

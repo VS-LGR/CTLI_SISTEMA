@@ -7,7 +7,7 @@ import { COLETA_LIST_PATH, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "./coletaRout
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "./certificateRoutes";
 import { PROPOSAL_LIST_PATH } from "./commercialProposals/commercialProposalRoutes";
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
-import { LISTA_MESTRA_PATH } from "./masterDocuments/masterDocumentRoutes";
+import { LISTA_MESTRA_PATH, RE_71A_CONFIG_PATH, RE_72A_CONFIG_PATH } from "./masterDocuments/masterDocumentRoutes";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
 import { canAccessRequirement, canAccessRequirementFolder } from "./tenantAccess";
 import { isCtliAdmin } from "./roles";
@@ -109,6 +109,18 @@ const FOLDERS = {
           to: LISTA_MESTRA_PATH,
           requiresMasterDocuments: true,
         },
+        {
+          key: "config-re-72a",
+          label: "Config. RE-7.2A",
+          to: RE_72A_CONFIG_PATH,
+          requiresCtliAdmin: true,
+        },
+        {
+          key: "config-re-71a",
+          label: "Config. RE-7.1A",
+          to: RE_71A_CONFIG_PATH,
+          requiresCtliAdmin: true,
+        },
       ],
     },
     { folderKey: "pr-8-4", label: "PR-8.4 Controle de Registros" },
@@ -142,9 +154,10 @@ export function getVisibleReqMenuItems(tenant = null, role = null) {
 }
 
 /** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2, listas em PR-6.2). */
-export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false, canCommercialProposals = false } = {}) {
+export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false, canCommercialProposals = false, canCtliAdmin = false } = {}) {
   const list = folder?.children || [];
   return list.filter((c) => {
+    if (c.requiresCtliAdmin && !canCtliAdmin) return false;
     if (c.requiresColeta && !canColeta) return false;
     if (c.requiresCalibrationCertificates && !canCalibrationCertificates) return false;
     if (c.requiresPersonnelStandardOptions && !canPersonnelStandardOptions) return false;
@@ -155,13 +168,13 @@ export function getFolderNavChildren(folder, { canColeta = false, canPersonnelSt
 }
 
 /** Itens de sidebar: secções da pasta (Procedimentos, Registros, …) + extras configurados. */
-export function buildFolderSidebarNav(requirementId, folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false, canCommercialProposals = false } = {}) {
+export function buildFolderSidebarNav(requirementId, folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false, canCommercialProposals = false, canCtliAdmin = false } = {}) {
   const rid = String(requirementId);
   const fk = folder?.folderKey;
   if (!fk) return [];
 
   const mode = getFolderDocumentMode(rid, fk);
-  const sections = getVisibleSections(rid, fk);
+  const sections = mode.hideSectionNav ? [] : getVisibleSections(rid, fk);
   const base = buildRequirementListPath(rid, fk);
 
   const sectionItems = sections.map((section) => ({
@@ -173,7 +186,7 @@ export function buildFolderSidebarNav(requirementId, folder, { canColeta = false
     folderDefaultSection: mode.defaultSection,
   }));
 
-  const extras = getFolderNavChildren(folder, { canColeta, canPersonnelStandardOptions, canMasterDocuments, canCalibrationCertificates, canCommercialProposals });
+  const extras = getFolderNavChildren(folder, { canColeta, canPersonnelStandardOptions, canMasterDocuments, canCalibrationCertificates, canCommercialProposals, canCtliAdmin });
   return [...sectionItems, ...extras];
 }
 

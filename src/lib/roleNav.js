@@ -18,14 +18,14 @@ export function isClientPortalTenantModel(tenant) {
   return tenant?.deployment_model === "client_portal";
 }
 
-/** Nav restrita (só coleta ou só aprovação) — apenas em ambiente full/interno. */
+/** Nav restrita — técnico de campo (portal e full) ou signatário (só full). */
 export function usesRestrictedNav(role, tenant = null) {
+  if (role === "tecnico_campo") return true;
   if (isClientPortalTenantModel(tenant)) return false;
-  return role === "tecnico_campo" || role === "signatario";
+  return role === "signatario";
 }
 
 export function isTechnicianOnlyNav(role, tenant = null) {
-  if (isClientPortalTenantModel(tenant)) return false;
   return role === "tecnico_campo";
 }
 

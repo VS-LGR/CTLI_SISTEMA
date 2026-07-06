@@ -70,8 +70,14 @@ function drawHeader(doc, model, logoDataUrl) {
     maxWidth: CENTER_W,
   });
   doc.setFont("helvetica", "normal");
+  let metaY = titleY + 4.5;
+  doc.setFontSize(7);
+  for (const line of model.workOrderLines || []) {
+    doc.text(line, CENTER_MID, metaY, { align: "center", maxWidth: CENTER_W });
+    metaY += 3.8;
+  }
   doc.setFontSize(7.5);
-  doc.text(model.header.codeLine, CENTER_MID, titleY + 4.5, {
+  doc.text(model.header.codeLine, CENTER_MID, metaY + 1, {
     align: "center",
     maxWidth: CENTER_W,
   });

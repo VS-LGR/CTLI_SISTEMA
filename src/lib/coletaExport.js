@@ -1,5 +1,6 @@
 import { buildColetaDocumentModel } from "./coletaExportModel";
 import { buildColetaVbaLines } from "./coletaVbaMapping";
+import { padOsNumber } from "./coletaOsMeta";
 
 export { buildColetaDocumentModel };
 
@@ -27,7 +28,9 @@ export async function exportColetaPdf(
     record: row,
     defaultTitle: "COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA",
     fileNameContext: {
-      numero: row.collection_number || row.id?.slice?.(0, 8),
+      numero: row.collection_number != null
+        ? padOsNumber(row.collection_number)
+        : row.id?.slice?.(0, 8),
       cliente: clienteName,
       numeroSerie: row.scale_serial,
     },

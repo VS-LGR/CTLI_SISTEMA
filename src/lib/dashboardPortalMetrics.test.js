@@ -1,6 +1,7 @@
 import {
   DASHBOARD_CERTIFICATE_STATUSES,
   buildEquipmentExpiryAlerts,
+  buildMonthlyEmissions,
   classifyEquipmentExpiry,
   countFromSupabaseHead,
 } from "./dashboardPortalMetrics";
@@ -31,5 +32,23 @@ describe("dashboardPortalMetrics", () => {
     expect(alerts).toHaveLength(2);
     expect(alerts[0].status).toBe("expired");
     expect(alerts[1].status).toBe("warning");
+  });
+
+  test("buildMonthlyEmissions agrega por mês e total", () => {
+    const year = 2026;
+    const result = buildMonthlyEmissions(
+      year,
+      [{ proposal_date: "2026-01-15" }, { proposal_date: "2026-01-20" }],
+      [{ issue_date: "2026-03-01" }],
+      [{ calibration_date: "2026-03-10" }, { created_at: "2026-06-01T10:00:00Z" }],
+    );
+    expect(result.year).toBe(2026);
+    expect(result.months[0].proposals).toBe(2);
+    expect(result.months[2].certificates).toBe(1);
+    expect(result.months[2].coletas).toBe(1);
+    expect(result.months[5].coletas).toBe(1);
+    expect(result.totals.proposals).toBe(2);
+    expect(result.totals.certificates).toBe(1);
+    expect(result.totals.coletas).toBe(2);
   });
 });

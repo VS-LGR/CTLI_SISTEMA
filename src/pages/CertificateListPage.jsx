@@ -44,6 +44,7 @@ import CertificateEmitSendDialog from "@/components/calibrationCertificates/Cert
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import { sendCertificatesByEmailBatch } from "@/lib/certificateEmail/certificateEmailApi";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
@@ -408,17 +409,27 @@ export default function CertificateListPage() {
                     <td className="p-3 font-medium">{formatCertificateNumber(r.certificate_number, r.certificate_year)}</td>
                     <td className="p-3">{fmtDmy(r.issue_date || r.approval_date)}</td>
                     <td className="p-3">{fmtDmy(r.validity_date)}</td>
-                    <td className="p-3">{r.client_name || "—"}</td>
+                    <td className="p-3 max-w-[140px]">
+                      <EllipsisTooltip label={r.client_name || ""} className="block">
+                        {r.client_name || "—"}
+                      </EllipsisTooltip>
+                    </td>
                     <td className="p-3">{r.executor_name || "—"}</td>
-                    <td className="p-3">{r.scale_serial || "—"}</td>
+                    <td className="p-3 max-w-[100px] font-mono text-xs">
+                      <EllipsisTooltip label={r.scale_serial || ""} className="block">
+                        {r.scale_serial || "—"}
+                      </EllipsisTooltip>
+                    </td>
                     <td className="p-3">{certificateTypeLabel(r.certificate_type)}</td>
                     <td className="p-3">
                       <Badge className={statusTone[r.status] || "bg-slate-100"}>
                         {certificateStatusLabel(r.status)}
                       </Badge>
                     </td>
-                    <td className="p-3 text-xs text-slate-600 max-w-[120px] truncate" title={r.client_email_sent_to || ""}>
-                      {r.client_email_sent_to || (r.status === "enviado" ? "—" : "Não enviado")}
+                    <td className="p-3 text-xs text-slate-600 max-w-[120px]">
+                      <EllipsisTooltip label={r.client_email_sent_to || ""} className="block">
+                        {r.client_email_sent_to || (r.status === "enviado" ? "—" : "Não enviado")}
+                      </EllipsisTooltip>
                     </td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-1">

@@ -8,6 +8,7 @@ import {
   hydrateEnvironmentalTbh,
   TBH_QUANTITIES,
 } from "@/lib/tbhCorrection/tbhCorrectionCalculations";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 
 function formatDelta(delta) {
   if (delta == null || !Number.isFinite(delta)) return "—";
@@ -22,9 +23,12 @@ function CorrectionPreviewTable({ equipmentBlocks }) {
     <div className="space-y-3 mt-3">
       {equipmentBlocks.map((block) => (
         <div key={block.cert_id} className="rounded-md border border-slate-200 bg-slate-50/80 p-3">
-          <p className="text-xs font-semibold text-slate-700 mb-2">
+          <EllipsisTooltip
+            label={block.equipment_name || block.label || ""}
+            className="text-xs font-semibold text-slate-700 mb-2 block"
+          >
             {block.equipment_name || block.label}
-          </p>
+          </EllipsisTooltip>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>

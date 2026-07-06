@@ -453,6 +453,7 @@ const RequirementView = () => {
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
   const folderMode = useMemo(() => getFolderDocumentMode(id, folderKey), [id, folderKey]);
+  const hideSectionTabs = folderMode.hideSectionTabs === true;
   const visibleSections = useMemo(() => getVisibleSections(id, folderKey), [id, folderKey]);
   const defaultSection = folderMode.defaultSection;
   const tabFromUrl = searchParams.get("tab");
@@ -577,14 +578,16 @@ const RequirementView = () => {
 
       <Tabs value={section} onValueChange={onTabChange}>
         <div className="flex items-center justify-between flex-wrap gap-3">
+          {!hideSectionTabs && (
           <TabsList className="bg-white border border-slate-200">
             {visibleSections.map((s) => (
               <TabsTrigger key={s.id} value={s.id} data-testid={`tab-${s.id}`}>{s.label}</TabsTrigger>
             ))}
           </TabsList>
+          )}
 
-          {!isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
-            <div className="flex items-center gap-2 flex-wrap">
+          {!hideSectionTabs && !isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
+            <div className="flex items-center gap-2 flex-wrap ml-auto">
               <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5">
                 <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
                   className={status === "vigente" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
@@ -608,6 +611,29 @@ const RequirementView = () => {
             </div>
           )}
         </div>
+
+        {hideSectionTabs && !isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
+          <div className="flex items-center gap-2 flex-wrap mb-3">
+            <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5">
+              <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
+                className={status === "vigente" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                onClick={() => setStatus("vigente")}>Vigentes</Button>
+              <Button type="button" variant={status === "obsoleto" ? "default" : "ghost"} size="sm"
+                className={status === "obsoleto" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                onClick={() => setStatus("obsoleto")}>Obsoletos</Button>
+            </div>
+            {status === "vigente" && (
+              <CreateDocDialog
+                tenantId={currentTenantId}
+                requirement={id}
+                folderKey={folderKey}
+                section={section}
+                sectionLabel={folderLabel || "Manual da Qualidade"}
+                onCreated={onCreated}
+              />
+            )}
+          </div>
+        )}
 
         <TabsContent value={section} className="mt-4">
           {masterDocumentTab && canAccessMasterDocuments(user?.role) ? (

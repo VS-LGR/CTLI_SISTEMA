@@ -76,26 +76,92 @@ export function getEnabledQuantities(equipmentType) {
   return keys.map((k) => TBH_QUANTITIES[k]);
 }
 
+export function emptyTbhRange(label = "Faixa 1") {
+  return { label, min: "", max: "", points: [] };
+}
+
 export function emptyTbhCorrectionCalibration() {
   return {
-    temperature: { points: [] },
-    humidity: { points: [] },
-    pressure: { points: [] },
+    temperature: { ranges: [emptyTbhRange("Faixa 1")] },
+    humidity: { ranges: [emptyTbhRange("Faixa 1")] },
+    pressure: { ranges: [emptyTbhRange("Faixa 1")] },
   };
 }
 
+function normalizePoints(points) {
+  return (points || []).map((p) => ({
+    device: p?.device ?? "",
+    supplier: p?.supplier ?? "",
+  }));
+}
+
+function normalizeRange(range, index) {
+  return {
+    label: range?.label?.trim() || `Faixa ${index + 1}`,
+    min: range?.min != null ? String(range.min) : "",
+    max: range?.max != null ? String(range.max) : "",
+    points: normalizePoints(range?.points),
+  };
+}
+
+/** Migra legado { points } → { ranges: [{ points }] }. */
 export function normalizeTbhCorrectionCalibration(raw) {
   const base = emptyTbhCorrectionCalibration();
   if (!raw || typeof raw !== "object") return base;
+
   for (const q of Object.keys(base)) {
     const block = raw[q];
-    if (!block || !Array.isArray(block.points)) continue;
-    base[q].points = block.points.map((p) => ({
-      device: p?.device ?? "",
-      supplier: p?.supplier ?? "",
-    }));
+    if (!block || typeof block !== "object") continue;
+
+    if (Array.isArray(block.ranges) && block.ranges.length > 0) {
+      base[q].ranges = block.ranges.map((r, i) => normalizeRange(r, i));
+      continue;
+    }
+
+    if (Array.isArray(block.points)) {
+      base[q].ranges = [{
+        label: "Faixa única",
+        min: "",
+        max: "",
+        points: normalizePoints(block.points),
+      }];
+    }
   }
   return base;
+}
+
+export function getQuantityRanges(calibration, quantityKey) {
+  return normalizeTbhCorrectionCalibration(calibration)[quantityKey]?.ranges || [];
+}
+
+function parseBound(value) {
+  if (value == null || String(value).trim() === "") return null;
+  const parsed = parseCalibrationNumber(value);
+  return parsed.valid ? parsed.value : null;
+}
+
+/**
+ * Escolhe a faixa cuja leitura está entre min e max (inclusive).
+ * Se min/max ausentes, trata como faixa aberta. Fallback: primeira faixa com pontos válidos.
+ */
+export function pickRangeForReading(value, ranges = []) {
+  const parsed = parseCalibrationNumber(value);
+  if (!parsed.valid) {
+    const withPoints = ranges.find((r) => (r.points || []).length >= 2);
+    return withPoints || ranges[0] || null;
+  }
+  const v = parsed.value;
+
+  for (const range of ranges) {
+    const min = parseBound(range.min);
+    const max = parseBound(range.max);
+    const minOk = min == null || v >= min;
+    const maxOk = max == null || v <= max;
+    if (minOk && maxOk) return range;
+  }
+
+  const withPoints = ranges.find((r) => (r.points || []).length >= 2);
+  return withPoints || ranges[0] || null;
 }
 
 function parsePointPair(point) {
@@ -121,6 +187,10 @@ export function buildRegressionFromPoints(points = []) {
   return regression;
 }
 
+export function buildRegressionForRange(range) {
+  return buildRegressionFromPoints(range?.points || []);
+}
+
 export function formatTbhCorrectedValue(value, quantityKey) {
   if (value == null || !Number.isFinite(value)) return "";
   const decimals = quantityKey === "pressure" ? 1 : 1;
@@ -129,7 +199,9 @@ export function formatTbhCorrectedValue(value, quantityKey) {
 
 function correctReadingFromCert(deviceRaw, envCert, quantityKey) {
   const cal = normalizeTbhCorrectionCalibration(envCert?.tbh_correction_calibration);
-  const points = cal[quantityKey]?.points || [];
+  const ranges = cal[quantityKey]?.ranges || [];
+  const range = pickRangeForReading(deviceRaw, ranges);
+  const points = range?.points || [];
   const regression = buildRegressionFromPoints(points);
   if (!regression.valid) {
     return {
@@ -140,6 +212,7 @@ function correctReadingFromCert(deviceRaw, envCert, quantityKey) {
       device: null,
       corrected: null,
       delta: null,
+      range_label: range?.label || "",
     };
   }
   const deviceParsed = parseCalibrationNumber(deviceRaw);
@@ -152,6 +225,7 @@ function correctReadingFromCert(deviceRaw, envCert, quantityKey) {
       device: null,
       corrected: null,
       delta: null,
+      range_label: range?.label || "",
     };
   }
   const corrected = correctDeviceReading(deviceParsed.value, regression.slope, regression.intercept);
@@ -164,6 +238,7 @@ function correctReadingFromCert(deviceRaw, envCert, quantityKey) {
     device: deviceParsed.value,
     corrected,
     delta: computeCorrectionDelta(corrected, deviceParsed.value),
+    range_label: range?.label || "",
   };
 }
 
@@ -345,15 +420,21 @@ export function applyTbhCorrectionToEnvironmental(environmental = {}, thermoCert
   return { ...result, environmental: env };
 }
 
-export function previewRegressionForQuantity(calibration, quantityKey) {
-  const points = normalizeTbhCorrectionCalibration(calibration)[quantityKey]?.points || [];
-  const regression = buildRegressionFromPoints(points);
+export function previewRegressionForRange(range) {
+  const regression = buildRegressionForRange(range);
   if (!regression.valid) return null;
   return {
     slope: regression.slope,
     intercept: regression.intercept,
     pointCount: regression.pointCount,
   };
+}
+
+/** @deprecated use previewRegressionForRange — mantido para compatibilidade com editor legado */
+export function previewRegressionForQuantity(calibration, quantityKey, rangeIndex = 0) {
+  const ranges = getQuantityRanges(calibration, quantityKey);
+  const range = ranges[rangeIndex] || ranges[0];
+  return previewRegressionForRange(range);
 }
 
 /** Mescla metadados TBH do snapshot ambiental (coleta importada ou edição anterior). */

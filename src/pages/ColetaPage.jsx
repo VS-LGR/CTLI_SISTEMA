@@ -23,6 +23,7 @@ import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "@/lib/certificateRo
 import { coletaWorkflowLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { canAccessCalibrationCertificates } from "@/lib/roles";
 import { deleteColeta } from "@/lib/coletaApi";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import { formatColetaDocFullTitle } from "@/lib/coletaDocMeta";
 import { TENANT_BRANDING_BUCKET } from "@/lib/tenantBranding";
@@ -32,6 +33,7 @@ import {
   coletaCombinedExportDetail,
   coletaKpis,
 } from "@/lib/coletaListUtils";
+import { formatCollectionRef } from "@/lib/coletaOsMeta";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -381,6 +383,7 @@ const ColetaPage = ({ embedded = false }) => {
             <thead className="bg-slate-50 border-b">
               <tr>
                 <th className="text-left p-3 font-medium">Cliente</th>
+                <th className="text-left p-3 font-medium">O.S.</th>
                 <th className="text-left p-3 font-medium">Proposta</th>
                 <th className="text-left p-3 font-medium">Nº série</th>
                 <th className="text-left p-3 font-medium">Data calibração</th>
@@ -393,9 +396,29 @@ const ColetaPage = ({ embedded = false }) => {
             <tbody>
               {filteredRows.map((row) => (
                 <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50/50" data-testid={`coleta-row-${row.id}`}>
-                  <td className="p-3">{row.client_name || "—"}</td>
-                  <td className="p-3 font-mono text-xs">{row.commercial_proposal_ref || "—"}</td>
-                  <td className="p-3 font-mono text-xs">{row.scale_serial || "—"}</td>
+                  <td className="p-3 max-w-[140px]">
+                    <EllipsisTooltip label={row.client_name || ""} className="block">
+                      {row.client_name || "—"}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-3 font-mono text-xs max-w-[90px]">
+                    <EllipsisTooltip
+                      label={formatCollectionRef(row.collection_number, row.collection_year) || ""}
+                      className="block"
+                    >
+                      {formatCollectionRef(row.collection_number, row.collection_year) || "—"}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-3 font-mono text-xs max-w-[100px]">
+                    <EllipsisTooltip label={row.commercial_proposal_ref || ""} className="block">
+                      {row.commercial_proposal_ref || "—"}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-3 font-mono text-xs max-w-[100px]">
+                    <EllipsisTooltip label={row.scale_serial || ""} className="block">
+                      {row.scale_serial || "—"}
+                    </EllipsisTooltip>
+                  </td>
                   <td className="p-3">{fmtDmy(row.calibration_date)}</td>
                   <td className="p-3">
                     <Badge variant="outline" className="text-[10px] font-normal">

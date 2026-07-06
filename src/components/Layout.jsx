@@ -13,9 +13,10 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, canApproveCalibrationCertificate } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, canApproveCalibrationCertificate, isCtliAdmin } from "@/lib/roles";
 import { canAccessModule } from "@/lib/tenantAccess";
 import RoleRouteGuard from "@/components/tenant/RoleRouteGuard";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
@@ -31,8 +32,13 @@ import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroS
 import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
-import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 
+function resolveNavGroupFromPath(pathname) {
+  if (pathname.startsWith("/cadastros")) return "cadastros";
+  const m = pathname.match(/^\/requirement\/(\d+)/);
+  if (m) return `req-${m[1]}`;
+  return null;
+}
 const REQ_ICONS = {
   "4": ListChecks,
   "5": Buildings,
@@ -71,8 +77,8 @@ const Layout = () => {
   const location = useLocation();
   const [tenants, setTenants] = useState([]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [cadastrosExpanded, setCadastrosExpanded] = useState(
-    () => location.pathname.startsWith("/cadastros"),
+  const [openNavGroup, setOpenNavGroup] = useState(
+    () => resolveNavGroupFromPath(location.pathname),
   );
   const {
     collapsed: sidebarCollapsed,
@@ -176,8 +182,14 @@ const Layout = () => {
   const showBackupNav = canAccessModule({ tenant: currentTenant, role: user?.role, module: "backup" });
 
   useEffect(() => {
-    if (isCadastrosActive) setCadastrosExpanded(true);
-  }, [isCadastrosActive]);
+    const group = resolveNavGroupFromPath(location.pathname);
+    if (group) setOpenNavGroup(group);
+  }, [location.pathname]);
+
+  const handleNavGroupOpenChange = (group) => (open) => {
+    if (open) setOpenNavGroup(group);
+    else if (openNavGroup === group) setOpenNavGroup(null);
+  };
 
   const renderNav = (onNavigate) => (
     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain">
@@ -200,7 +212,10 @@ const Layout = () => {
       )}
 
       {!restrictedNav && (
-        <Collapsible open={cadastrosExpanded} onOpenChange={setCadastrosExpanded}>
+        <Collapsible
+          open={openNavGroup === "cadastros"}
+          onOpenChange={handleNavGroupOpenChange("cadastros")}
+        >
           <CollapsibleTrigger
             className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
               isCadastrosActive ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
@@ -226,12 +241,6 @@ const Layout = () => {
             ))}
           </CollapsibleContent>
         </Collapsible>
-      )}
-
-      {!restrictedNav && canAccessMasterDocuments(user?.role) && (
-        <NavLink to={LISTA_MESTRA_PATH} className={navLinkClass} data-testid="nav-lista-mestra" onClick={onNavigate}>
-          <List size={18} weight="duotone" /> Lista Mestra
-        </NavLink>
       )}
 
       {!restrictedNav && (
@@ -260,7 +269,11 @@ const Layout = () => {
             }
             const folders = getFoldersForRequirement(r.id, currentTenant, user?.role);
             return (
-              <Collapsible key={r.id} defaultOpen={isReqGroupActive(r.id)}>
+              <Collapsible
+                key={r.id}
+                open={openNavGroup === `req-${r.id}`}
+                onOpenChange={handleNavGroupOpenChange(`req-${r.id}`)}
+              >
                 <CollapsibleTrigger
                   className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
                     isReqGroupActive(r.id) ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
@@ -282,6 +295,7 @@ const Layout = () => {
                       canPersonnelStandardOptions: canEditPersonnelStandardOptions(user?.role),
                       canMasterDocuments: canAccessMasterDocuments(user?.role),
                       canCommercialProposals: canAccessCommercialProposals(user?.role),
+                      canCtliAdmin: isCtliAdmin(user?.role),
                     };
                     const sidebarItems = buildFolderSidebarNav(r.id, f, navOpts);
                     const hasSidebar = folderHasSidebarNav(r.id, f);
@@ -404,6 +418,7 @@ const Layout = () => {
   const desktopSidebarVisible = !sidebarCollapsed || desktopSidebarOverlay;
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       {/* Desktop sidebar — fixo quando expandido; overlay quando recolhido */}
       <aside
@@ -555,6 +570,7 @@ const Layout = () => {
         />
       )}
     </div>
+    </TooltipProvider>
   );
 };
 

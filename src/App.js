@@ -15,7 +15,7 @@ import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH, CERTIFICATE_PENDING_APPROV
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
-import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
+import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH, RE_71A_CONFIG_PATH, RE_72A_CONFIG_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 import TenantModuleGate, { RequirementAccessGate, CadastroSectionGate } from "@/components/tenant/TenantModuleGate";
 import "@/App.css";
 
@@ -25,6 +25,7 @@ const DocumentEditor = lazyWithRetry(() => import("@/pages/DocumentEditor"));
 const AdminClients = lazy(() => import("@/pages/AdminClients"));
 const BackupView = lazy(() => import("@/pages/BackupView"));
 const CadastrosPage = lazy(() => import("@/pages/CadastrosPage"));
+const MasterDocumentFormConfigPage = lazy(() => import("@/pages/MasterDocumentFormConfigPage"));
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
 const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
@@ -250,6 +251,16 @@ const App = () => (
               )}
             />
             <Route
+              path="/requirement/:id/:folderKey/config/:configKey"
+              element={(
+                <RequirementAccessGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <MasterDocumentFormConfigPage />
+                  </Suspense>
+                </RequirementAccessGate>
+              )}
+            />
+            <Route
               path="/requirement/:id/:folderKey"
               element={(
                 <RequirementAccessGate>
@@ -290,6 +301,8 @@ const App = () => (
               )}
             />
             <Route path="/cadastros" element={<Navigate to="/cadastros/fornecedores" replace />} />
+            <Route path="/cadastros/config-coleta" element={<Navigate to={RE_72A_CONFIG_PATH} replace />} />
+            <Route path="/cadastros/config-proposta" element={<Navigate to={RE_71A_CONFIG_PATH} replace />} />
             <Route
               path="/cadastros/:section"
               element={(

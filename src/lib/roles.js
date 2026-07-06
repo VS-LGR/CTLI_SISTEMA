@@ -26,6 +26,8 @@ export const RESPONSIBLE_ROLES = ROLES.filter(
 
 export const isCtliAdmin = (role) => role === "admin";
 
+export const isFieldTechnicianRole = (role) => role === "tecnico_campo";
+
 const OPERATIONS_AND_CLIENT = ["admin", "client", ...CLIENT_PORTAL_OPERATIONS_ROLES];
 
 export const canAccessColeta = (role) => OPERATIONS_AND_CLIENT.includes(role);
@@ -58,12 +60,12 @@ export const canSendCertificateEmail = (role) =>
     "signatario",
   ].includes(role);
 
-/** Certificados RE-7.2B — coleta + papéis internos de calibração. */
+/** Certificados RE-7.2B — coleta + papéis internos de calibração (exceto técnico de campo). */
 export const canAccessCalibrationCertificates = (role) =>
-  [
+  !isFieldTechnicianRole(role)
+  && [
     "admin",
     "client",
-    "tecnico_campo",
     ...CERTIFICATE_INTERNAL_ROLES,
     "administrativo_vendas",
   ].includes(role);
@@ -92,11 +94,12 @@ export const canAccessPurchaseOrders = (role) =>
 /** Solicitações de orçamento — mesmos papéis que pedidos de compra. */
 export const canAccessQuotationRequests = canAccessPurchaseOrders;
 
-/** Propostas comerciais RE-7.1A — operações do portal + adm/vendas. */
+/** Propostas comerciais RE-7.1A — operações do portal + adm/vendas (exceto técnico de campo). */
 export const canAccessCommercialProposals = (role) =>
-  [...OPERATIONS_AND_CLIENT, "administrativo_vendas"].includes(role);
+  !isFieldTechnicianRole(role)
+  && [...OPERATIONS_AND_CLIENT, "administrativo_vendas"].includes(role);
 
-/** Módulo 6.2 Pessoal — operações do portal + adm/vendas. */
+/** Módulo 6.2 Pessoal — operações do portal + adm/vendas (exceto técnico de campo). */
 export const canAccessPersonnel = canAccessCommercialProposals;
 
 /** Edição de listas padrão do módulo Pessoal. */
@@ -105,7 +108,8 @@ export const canEditPersonnelStandardOptions = (role) =>
 
 /** Lista Mestra de Documentos (PR-8.3). */
 export const canAccessMasterDocuments = (role) =>
-  ["admin", "client", ...CLIENT_PORTAL_OPERATIONS_ROLES].includes(role);
+  !isFieldTechnicianRole(role)
+  && ["admin", "client", ...CLIENT_PORTAL_OPERATIONS_ROLES.filter((r) => r !== "tecnico_campo")].includes(role);
 
 export const canManageTechnicians = (role) =>
   role === "admin" || role === "client";

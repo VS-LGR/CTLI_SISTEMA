@@ -4,6 +4,10 @@
 
 import api, { asArray, isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  syncOnTenantDocumentCreate,
+  syncOnTenantDocumentUpdate,
+} from "@/lib/masterDocuments/syncTenantDocumentToMasterList";
 
 export const TENANT_DOCUMENTS_BUCKET = "tenant-documents";
 
@@ -132,17 +136,22 @@ async function createDocumentSupabase(body, userId) {
     ({ data, error } = await supabase.from("tenant_documents").insert(retry).select("*").single());
   }
   if (error) throw error;
-  return mapRow(data);
+  const doc = mapRow(data);
+  await syncOnTenantDocumentCreate(doc);
+  return doc;
 }
 
 async function updateDocumentSupabase(id, patch, userId) {
+  const previous = await getDocumentSupabase(id);
   const payload = { ...patch, updated_by: userId || null };
   delete payload.id;
   delete payload.tenant_id;
   delete payload.created_at;
   const { data, error } = await supabase.from("tenant_documents").update(payload).eq("id", id).select("*").single();
   if (error) throw error;
-  return mapRow(data);
+  const doc = mapRow(data);
+  await syncOnTenantDocumentUpdate(doc, previous);
+  return doc;
 }
 
 async function deleteDocumentSupabase(id) {

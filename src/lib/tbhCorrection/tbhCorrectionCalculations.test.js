@@ -4,6 +4,8 @@ import {
   correctDeviceReading,
   formatTbhCorrectedValue,
   getEnabledQuantities,
+  normalizeTbhCorrectionCalibration,
+  pickRangeForReading,
 } from "./tbhCorrectionCalculations";
 
 const TEMP_POINTS = [
@@ -64,6 +66,23 @@ describe("tbhCorrectionCalculations", () => {
     expect(getEnabledQuantities("termo_higrometro").map((q) => q.key)).toEqual(["temperature", "humidity"]);
   });
 
+  test("normalizeTbhCorrectionCalibration migra legado points para ranges", () => {
+    const legacy = { temperature: { points: TEMP_POINTS } };
+    const norm = normalizeTbhCorrectionCalibration(legacy);
+    expect(norm.temperature.ranges).toHaveLength(1);
+    expect(norm.temperature.ranges[0].label).toBe("Faixa única");
+    expect(norm.temperature.ranges[0].points).toHaveLength(5);
+  });
+
+  test("pickRangeForReading escolhe faixa por min/max", () => {
+    const ranges = [
+      { label: "Baixa", min: "15", max: "25", points: TEMP_POINTS.slice(0, 3) },
+      { label: "Alta", min: "25", max: "35", points: TEMP_POINTS.slice(2) },
+    ];
+    expect(pickRangeForReading("20,3", ranges)?.label).toBe("Baixa");
+    expect(pickRangeForReading("29,9", ranges)?.label).toBe("Alta");
+  });
+
   test("applyTbhCorrectionToAmbiente — um TBH corrige ini e fin", () => {
     const envCert = {
       id: "cert-1",
@@ -91,6 +110,34 @@ describe("tbhCorrectionCalculations", () => {
     expect(result.updated.umidade_inicial).toBe("45,3");
     expect(result.updated.tbh_correction_applied).toBe(true);
     expect(result.updated.tbh_correction_raw.temp_inicial).toBe("20,3");
+  });
+
+  test("applyTbhCorrectionToAmbiente — multi-faixa temperatura", () => {
+    const envCert = {
+      id: "cert-mf",
+      equipment_name: "TBH MF",
+      equipment_type: "termo_higrometro",
+      tbh_correction_calibration: {
+        temperature: {
+          ranges: [
+            { label: "15-25", min: "15", max: "25", points: TEMP_POINTS.slice(0, 3) },
+            { label: "25-35", min: "25", max: "35", points: TEMP_POINTS.slice(2) },
+          ],
+        },
+        humidity: { ranges: [{ label: "Faixa 1", min: "", max: "", points: HUMIDITY_POINTS }] },
+      },
+    };
+    const ambiente = {
+      thermo_cert_id: "cert-mf",
+      temp_inicial: "20,3",
+      temp_final: "29,9",
+      umidade_inicial: "44",
+      umidade_final: "44",
+    };
+    const result = applyTbhCorrectionToAmbiente(ambiente, envCert);
+    expect(result.ok).toBe(true);
+    expect(result.updated.temp_inicial).toBe("20,2");
+    expect(result.updated.temp_final).toBe("30,0");
   });
 
   test("applyTbhCorrectionToAmbiente — dois TBH separados", () => {

@@ -28,6 +28,7 @@ import {
 import { WEIGHT_PICKER_KIND_OPTIONS, filterWeightItemsByKind } from "@/lib/pesoPadraoPickerUtils";
 import { isLoadBatchItem } from "@/lib/standardWeightItemUtils";
 import { cadastroFilterFieldClass } from "@/components/cadastros/CadastroListFilterBar";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 
 const WEIGHT_STATUS_OPTIONS = [
   { value: "", label: "—" },
@@ -291,9 +292,14 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
               {filtered.map((r) => {
                 const st = weightItemCertStatus(r, weightCerts);
                 const lot = isLoadBatchItem(r);
+                const certNum = weightItemCertNumber(r, weightCerts);
                 return (
                   <tr key={r.id} className="border-t border-slate-100">
-                    <td className="p-2 font-mono">{r.identification}</td>
+                    <td className="p-2 font-mono max-w-[6rem]">
+                      <EllipsisTooltip label={r.identification || ""} className="block">
+                        {r.identification}
+                      </EllipsisTooltip>
+                    </td>
                     <td className="p-2">
                       {lot ? (
                         <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 font-normal text-[10px]">
@@ -308,7 +314,11 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                     </td>
                     <td className="p-2">{r.conventional_value || "—"} {r.conventional_value ? r.unit : ""}</td>
                     <td className="p-2">{r.expanded_uncertainty || "—"} {r.expanded_uncertainty ? r.unit : ""}</td>
-                    <td className="p-2">{weightItemCertNumber(r, weightCerts)}</td>
+                    <td className="p-2 max-w-[8rem]">
+                      <EllipsisTooltip label={certNum || ""} className="block">
+                        {certNum}
+                      </EllipsisTooltip>
+                    </td>
                     <td className="p-2">
                       {st.vigente == null ? (
                         <span className="text-slate-400">—</span>

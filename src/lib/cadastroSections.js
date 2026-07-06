@@ -1,20 +1,18 @@
-import { canManageTechnicians, canManageTenantUsers, isCtliAdmin } from "@/lib/roles";
+import { canManageTechnicians, isCtliAdmin } from "@/lib/roles";
 import { canAccessCadastroSection } from "@/lib/tenantAccess";
 
 /** Secções do menu Cadastros (submenu lateral) */
 
 export const CADASTRO_SECTIONS = [
-  { id: "fornecedores", label: "Fornecedores" },
-  { id: "clientes", label: "Clientes" },
-  { id: "colaboradores", label: "Colaboradores" },
-  { id: "cert-peso", label: "Certificado de peso padrão" },
-  { id: "pesos", label: "Pesos padrão (identificação)" },
-  { id: "balancas", label: "Balanças" },
-  { id: "thermo", label: "Termo-baro-higrômetro" },
-  { id: "config-coleta", label: "Config. RE-7.2A", roles: ["admin", "client", "diretor", "gerente_qualidade", "gerente_tecnico", "signatario", "tecnico_campo"] },
-  { id: "config-proposta", label: "Config. RE-7.1A", roles: ["admin", "client", "diretor", "gerente_qualidade", "gerente_tecnico", "signatario"] },
-  { id: "tecnicos", label: "Técnicos de campo", techniciansOnly: true },
-  { id: "usuarios", label: "Usuários do ambiente", tenantAdminOnly: true },
+  { id: "fornecedores", label: "Fornecedores — 6.6" },
+  { id: "clientes", label: "Clientes — 7.1" },
+  { id: "colaboradores", label: "Colaboradores — 6.2" },
+  { id: "cert-peso", label: "Certificados — 6.4" },
+  { id: "pesos", label: "Peso Padrão — 6.4" },
+  { id: "balancas", label: "Balanças — 7.1" },
+  { id: "thermo", label: "Termobarohigrômetro — 6.4" },
+  { id: "tecnicos", label: "Técnicos de campo — 6.2", techniciansOnly: true },
+  { id: "usuarios", label: "Usuários do ambiente", ctliAdminOnly: true },
 ];
 
 export function cadastroSectionPath(id) {
@@ -28,8 +26,7 @@ export function getCadastroSectionLabel(id) {
 export function getVisibleCadastroSections(role, tenant = null) {
   return CADASTRO_SECTIONS.filter((s) => {
     if (s.techniciansOnly && !canManageTechnicians(role)) return false;
-    if (s.tenantAdminOnly && !canManageTenantUsers(role)) return false;
-    if (s.roles?.length && !s.roles.includes(role) && !isCtliAdmin(role)) return false;
+    if (s.ctliAdminOnly && !isCtliAdmin(role)) return false;
     if (tenant && !canAccessCadastroSection({ tenant, role, sectionId: s.id })) return false;
     return true;
   });

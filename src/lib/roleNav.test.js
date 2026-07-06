@@ -9,11 +9,12 @@ describe("roleNav", () => {
   const portalTenant = { deployment_model: "client_portal" };
   const fullTenant = { deployment_model: "full" };
 
-  test("portal desativa nav restrita para técnico e signatário", () => {
-    expect(isTechnicianOnlyNav("tecnico_campo", portalTenant)).toBe(false);
+  test("portal desativa nav restrita para signatário", () => {
+    expect(isTechnicianOnlyNav("tecnico_campo", portalTenant)).toBe(true);
     expect(isSignatoryOnlyNav("signatario", portalTenant)).toBe(false);
-    expect(usesRestrictedNav("tecnico_campo", portalTenant)).toBe(false);
+    expect(usesRestrictedNav("tecnico_campo", portalTenant)).toBe(true);
     expect(usesRestrictedNav("signatario", portalTenant)).toBe(false);
+    expect(restrictedNavHomePath("tecnico_campo", portalTenant)).toContain("coleta");
     expect(restrictedNavHomePath("signatario", portalTenant)).toBe("/dashboard");
   });
 

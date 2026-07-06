@@ -5,8 +5,6 @@ import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
 import TenantUsersPanel from "@/components/cadastros/TenantUsersPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
 import ScaleRegistrationSection from "@/components/cadastros/ScaleRegistrationSection";
-import ColetaTenantConfig from "@/components/cadastros/ColetaTenantConfig";
-import CommercialProposalTenantConfig from "@/components/cadastros/CommercialProposalTenantConfig";
 import { cadastroSectionPath, getCadastroSectionLabel, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
@@ -27,6 +25,7 @@ import {
   envEquipmentTypeLabel,
 } from "@/lib/cadastroConstants";
 import { downloadWeightCertificatesValidPdf, downloadEnvironmentCertificatesValidPdf } from "@/lib/cadastroPdf";
+import { downloadTbhCorrectionPdf } from "@/lib/tbhCorrectionPdf/downloadTbhCorrectionPdf";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import TbhCalibrationPointsEditor, { emptyTbhCorrectionCalibration, normalizeTbhCorrectionCalibration } from "@/components/cadastros/TbhCalibrationPointsEditor";
 import { filterCadastroByQuery } from "@/lib/cadastroListUtils";
@@ -36,6 +35,7 @@ import {
   listAvailableSourceSelections,
   validateEmployeeSourceSelection,
 } from "@/lib/employeeRegistrationsApi";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 
 function fmtIsoDate(d) {
   if (!d) return "";
@@ -226,12 +226,6 @@ const CadastrosPage = () => {
         {activeSection === "thermo" && (
           <EnvCertSection rows={filteredEnv} allRows={envCerts} tenantId={currentTenantId} tenantName={tenantName}
             year={yearEnv} years={yearsEnv} onYearChange={setYearEnv} onRefresh={loadAll} />
-        )}
-        {activeSection === "config-coleta" && (
-          <ColetaTenantConfig tenantId={currentTenantId} tenant={currentTenant} onSaved={() => reloadTenants?.()} />
-        )}
-        {activeSection === "config-proposta" && (
-          <CommercialProposalTenantConfig tenantId={currentTenantId} tenant={currentTenant} onSaved={() => reloadTenants?.()} />
         )}
         {activeSection === "tecnicos" && <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />}
         {activeSection === "usuarios" && (
@@ -939,8 +933,16 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
               )}
               {searchFiltered.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
-                  <td className="p-2 font-medium">{r.set_name}</td>
-                  <td className="p-2">{r.certificate_number}</td>
+                  <td className="p-2 font-medium max-w-[10rem]">
+                    <EllipsisTooltip label={r.set_name || ""} className="block">
+                      {r.set_name}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-2 max-w-[8rem]">
+                    <EllipsisTooltip label={r.certificate_number || ""} className="block">
+                      {r.certificate_number}
+                    </EllipsisTooltip>
+                  </td>
                   <td className="p-2">{fmtDmyShort(r.calibration_date)}</td>
                   <td className="p-2">{r.intermediate_check_label}</td>
                   <td className="p-2">{fmtDmyShort(r.expiry_date)}</td>
@@ -1103,6 +1105,15 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
     }
   };
 
+  const exportTbhCorrection = async (row) => {
+    try {
+      await downloadTbhCorrectionPdf(row, { tenantId, tenantName });
+      toast.success("Planilha de correção exportada");
+    } catch (e) {
+      toast.error(e?.message || "Falha ao exportar planilha TBH");
+    }
+  };
+
   return (
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
@@ -1148,9 +1159,21 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
               )}
               {searchFiltered.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
-                  <td className="p-2 text-xs">{envEquipmentTypeLabel(r.equipment_type)}</td>
-                  <td className="p-2 font-medium">{r.equipment_name}</td>
-                  <td className="p-2">{r.certificate_number}</td>
+                  <td className="p-2 text-xs max-w-[8rem]">
+                    <EllipsisTooltip label={envEquipmentTypeLabel(r.equipment_type)} className="block">
+                      {envEquipmentTypeLabel(r.equipment_type)}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-2 font-medium max-w-[10rem]">
+                    <EllipsisTooltip label={r.equipment_name || ""} className="block">
+                      {r.equipment_name}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-2 max-w-[8rem]">
+                    <EllipsisTooltip label={r.certificate_number || ""} className="block">
+                      {r.certificate_number}
+                    </EllipsisTooltip>
+                  </td>
                   <td className="p-2">{fmtDmyShort(r.calibration_date)}</td>
                   <td className="p-2">{r.intermediate_check_label}</td>
                   <td className="p-2">{fmtDmyShort(r.expiry_date)}</td>
@@ -1160,6 +1183,9 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
                     ) : "—"}
                   </td>
                   <td className="p-2">
+                    <Button variant="ghost" size="sm" title="Exportar planilha de correção (RE-6.4E)" onClick={() => exportTbhCorrection(r)}>
+                      <FilePdf size={16} />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => {
                       setEditing(r);
                       setEqName(r.equipment_name);

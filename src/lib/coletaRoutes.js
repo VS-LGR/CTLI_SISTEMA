@@ -13,3 +13,7 @@ export function coletaEditorPath(id) {
 export function isColetaPath(pathname) {
   return pathname.startsWith(COLETA_LIST_PATH);
 }
+
+export function isColetaOnlyPath(pathname) {
+  return isColetaPath(pathname);
+}

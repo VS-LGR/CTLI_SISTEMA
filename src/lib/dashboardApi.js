@@ -15,6 +15,7 @@ import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 import {
   DASHBOARD_CERTIFICATE_STATUSES,
   buildEquipmentExpiryAlerts,
+  buildMonthlyEmissions,
   countFromSupabaseHead,
 } from "@/lib/dashboardPortalMetrics";
 
@@ -137,12 +138,20 @@ function todayIsoDate() {
 
 async function fetchPortalMetrics(tenantId) {
   if (!supabase || !tenantId) {
-    return { certificates_issued_count: 0, proposals_issued_count: 0, equipment_expiry_alerts: [] };
+    return {
+      certificates_issued_count: 0,
+      proposals_issued_count: 0,
+      equipment_expiry_alerts: [],
+      monthly_emissions: buildMonthlyEmissions(new Date().getFullYear()),
+    };
   }
 
   const today = todayIsoDate();
+  const year = new Date().getFullYear();
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
 
-  const [certRes, propRes, weightRes, envRes] = await Promise.all([
+  const [certRes, propRes, weightRes, envRes, propDatesRes, certDatesRes, coletaDatesRes] = await Promise.all([
     supabase
       .from("calibration_certificates")
       .select("id", { count: "exact", head: true })
@@ -160,6 +169,23 @@ async function fetchPortalMetrics(tenantId) {
       .from("environment_sensor_certificates")
       .select("id, equipment_name, certificate_number, expiry_date")
       .eq("tenant_id", tenantId),
+    supabase
+      .from("commercial_proposals")
+      .select("proposal_date")
+      .eq("tenant_id", tenantId)
+      .gte("proposal_date", yearStart)
+      .lte("proposal_date", yearEnd),
+    supabase
+      .from("calibration_certificates")
+      .select("issue_date")
+      .eq("tenant_id", tenantId)
+      .in("status", DASHBOARD_CERTIFICATE_STATUSES)
+      .gte("issue_date", yearStart)
+      .lte("issue_date", yearEnd),
+    supabase
+      .from("scale_calibration_collections")
+      .select("calibration_date, created_at")
+      .eq("tenant_id", tenantId),
   ]);
 
   const certificates_issued_count = countFromSupabaseHead(certRes);
@@ -175,16 +201,36 @@ async function fetchPortalMetrics(tenantId) {
     EXPIRY_WARNING_DAYS,
   );
 
+  let monthly_emissions = buildMonthlyEmissions(year);
+  try {
+    if (!propDatesRes.error && !certDatesRes.error && !coletaDatesRes.error) {
+      monthly_emissions = buildMonthlyEmissions(
+        year,
+        propDatesRes.data || [],
+        certDatesRes.data || [],
+        coletaDatesRes.data || [],
+      );
+    }
+  } catch {
+    /* optional */
+  }
+
   return {
     certificates_issued_count,
     proposals_issued_count,
     equipment_expiry_alerts,
+    monthly_emissions,
   };
 }
 
 async function enrichDashboardPayload(tenantId, base) {
   let certificate_pending_approval = 0;
-  let portal = { certificates_issued_count: 0, proposals_issued_count: 0, equipment_expiry_alerts: [] };
+  let portal = {
+    certificates_issued_count: 0,
+    proposals_issued_count: 0,
+    equipment_expiry_alerts: [],
+    monthly_emissions: buildMonthlyEmissions(new Date().getFullYear()),
+  };
   try {
     certificate_pending_approval = await countPendingApprovalCertificates(tenantId);
   } catch { /* optional */ }

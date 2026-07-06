@@ -6,6 +6,7 @@ import {
   formatPesosIds,
 } from "../coletaSchema";
 import { coletaDocMetaFromTenant } from "../coletaDocMeta";
+import { formatColetaProposalLine, formatColetaOsTitle } from "../coletaOsMeta";
 
 export function fmtDmy(isoDate) {
   if (!isoDate) return "";
@@ -75,6 +76,13 @@ export function buildColetaPdfViewModel(
   return {
     tenantName,
     commercialProposalRef: prop,
+    workOrderLines: [
+      formatColetaProposalLine(prop),
+      formatColetaOsTitle({
+        collectionNumber: row?.collection_number,
+        collectionYear: row?.collection_year,
+      }),
+    ].filter(Boolean),
     header: {
       title: "COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA",
       codeLine: `Cód. ${meta.code}  Ref. ${meta.ref}  ${meta.revision}`,

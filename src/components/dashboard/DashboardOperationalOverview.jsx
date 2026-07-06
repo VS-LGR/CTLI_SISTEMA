@@ -1,38 +1,33 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartPieSlice } from "@phosphor-icons/react";
-import ProposalsCertificatesChart from "@/components/dashboard/ProposalsCertificatesChart";
+import { ChartBar } from "@phosphor-icons/react";
+import MonthlyEmissionsChart from "@/components/dashboard/MonthlyEmissionsChart";
 import EquipmentExpiryAlerts from "@/components/dashboard/EquipmentExpiryAlerts";
 
 export default function DashboardOperationalOverview({
-  certificatesCount = 0,
-  proposalsCount = 0,
+  monthlyEmissions,
   expiryAlerts,
   loading = false,
-  compact = false,
 }) {
   return (
-    <div className={compact ? "space-y-4" : "space-y-6"}>
-      <Card className="border-slate-200 min-w-0">
-        <CardHeader className="pb-2">
-          <CardTitle className="font-display text-lg flex items-center gap-2">
-            <ChartPieSlice size={20} className="text-blue-600" weight="duotone" />
-            Propostas e certificados
-          </CardTitle>
-          <p className="text-xs text-slate-500 font-normal mt-1">
-            Comparativo de registos operacionais do ambiente
-          </p>
-        </CardHeader>
-        <CardContent className="pt-0 min-w-0 overflow-hidden">
-          <ProposalsCertificatesChart
-            certificatesCount={certificatesCount}
-            proposalsCount={proposalsCount}
-            loading={loading}
-          />
-        </CardContent>
-      </Card>
-
-      <EquipmentExpiryAlerts alerts={expiryAlerts} loading={loading} />
-    </div>
+    <Card className="border-slate-200 min-w-0" data-testid="dashboard-operational-overview">
+      <CardHeader className="pb-2">
+        <CardTitle className="font-display text-lg flex items-center gap-2">
+          <ChartBar size={20} className="text-blue-600" weight="duotone" />
+          Indicadores
+        </CardTitle>
+        <p className="text-xs text-slate-500 font-normal mt-1 max-w-xl">
+          Quantidade emitida por mês. Pode ver o valor de cada mês no gráfico ou ao passar o cursor sobre as barras.
+        </p>
+      </CardHeader>
+      <CardContent className="pt-0 min-w-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 lg:gap-6 items-start min-w-0">
+          <div className="min-w-0 overflow-hidden">
+            <MonthlyEmissionsChart monthlyEmissions={monthlyEmissions} loading={loading} />
+          </div>
+          <EquipmentExpiryAlerts alerts={expiryAlerts} loading={loading} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -27,6 +27,7 @@ import ScaleIndicationRangesFields from "@/components/forms/ScaleIndicationRange
 import ColetaVersoForm from "@/components/coleta/ColetaVersoForm";
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
 import CalibracaoOrdemTooltip from "@/components/coleta/CalibracaoOrdemTooltip";
+import { formatColetaProposalLine, formatColetaOsTitle } from "@/lib/coletaOsMeta";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import FormRowCard from "@/components/forms/FormRowCard";
 import FormRowsTableShell, { FormRowsTableHead, FormRowsTableBody } from "@/components/forms/FormRowsTableShell";
@@ -84,6 +85,8 @@ export default function ColetaForm({
   endCustomers = [],
   employees = [],
   isNew = false,
+  collectionNumber = null,
+  collectionYear = null,
 }) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const selectedEndCustomerId = resolveEndCustomerId(payload, endCustomers);
@@ -171,22 +174,34 @@ export default function ColetaForm({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border bg-slate-50 px-4 py-3 text-center">
-        <p className="text-xs text-slate-600">Referente à Proposta Comercial:</p>
-        {linkedProposalId ? (
-          <div className="mt-1 space-y-1">
-            <p className="font-mono text-sm font-semibold">{commercialProposalRef || "—"}</p>
-            <Link to={proposalEditorPath(linkedProposalId)} className="text-xs text-blue-600 hover:underline">
-              Ver proposta vinculada
-            </Link>
-          </div>
-        ) : (
-          <Input
-            value={commercialProposalRef}
-            onChange={(e) => onProposalChange(e.target.value)}
-            className="mt-1 max-w-md mx-auto text-center"
-            placeholder="Nº / referência da proposta"
-          />
+      <div className="rounded-lg border bg-slate-50 px-4 py-3 text-center space-y-1">
+        {formatColetaProposalLine(commercialProposalRef) && (
+          <p className="text-xs text-slate-600">{formatColetaProposalLine(commercialProposalRef)}</p>
+        )}
+        {!isNew && formatColetaOsTitle({ collectionNumber, collectionYear }) && (
+          <p className="text-sm font-semibold text-slate-800">
+            {formatColetaOsTitle({ collectionNumber, collectionYear })}
+          </p>
+        )}
+        {isNew && (
+          <>
+            <p className="text-xs text-slate-600">Referente à Proposta Comercial:</p>
+            {linkedProposalId ? (
+              <div className="mt-1 space-y-1">
+                <p className="font-mono text-sm font-semibold">{commercialProposalRef || "—"}</p>
+                <Link to={proposalEditorPath(linkedProposalId)} className="text-xs text-blue-600 hover:underline">
+                  Ver proposta vinculada
+                </Link>
+              </div>
+            ) : (
+              <Input
+                value={commercialProposalRef}
+                onChange={(e) => onProposalChange(e.target.value)}
+                className="mt-1 max-w-md mx-auto text-center"
+                placeholder="Nº / referência da proposta"
+              />
+            )}
+          </>
         )}
         <p className="text-sm font-semibold mt-2">COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA</p>
         <p className="text-xs text-slate-500">Cód. RE-7.2A  Ref. PR-7.2  Rev.03 de 14/05/2026</p>

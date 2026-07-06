@@ -4,6 +4,7 @@ import { formatProposalRef } from "./commercialProposalSchema";
 import { scaleToBalanca } from "./commercialProposalCadastroExport";
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
+import { assignNextCollectionNumber } from "@/lib/coletaOsMeta";
 
 function emptyColetaCalPoint(defaultUnit = "g") {
   return {
@@ -105,6 +106,9 @@ export async function createColetaFromProposalScale(proposal, scale, { userId } 
   if (scale.scale_registration_id) {
     insertRow.scale_registration_id = scale.scale_registration_id;
   }
+
+  const os = await assignNextCollectionNumber(proposal.tenant_id);
+  Object.assign(insertRow, os);
 
   const { data: collection, error } = await supabase
     .from("scale_calibration_collections")

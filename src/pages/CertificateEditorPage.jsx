@@ -61,6 +61,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import CriticalAnalysisDialog from "@/components/calibrationCertificates/CriticalAnalysisDialog";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
+import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import CertificateBalanceSection from "@/components/calibrationCertificates/CertificateBalanceSection";
 import PointCalculationMemory from "@/components/calibrationCertificates/PointCalculationMemory";
 import PointRegistrationPanel from "@/components/calibrationCertificates/PointRegistrationPanel";
@@ -626,8 +627,15 @@ export default function CertificateEditorPage() {
             <Link to={CERTIFICATE_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
           </Button>
           <div className="min-w-0">
-            <h1 className="font-display text-xl font-semibold text-slate-900 truncate">
-              Certificado {formatCertificateNumber(cert.certificate_number, cert.certificate_year)}
+            <h1 className="font-display text-xl font-semibold text-slate-900 truncate min-w-0">
+              <EllipsisTooltip
+                label={cert?.certificate_number ? `Certificado ${formatCertificateNumber(cert.certificate_number, cert.certificate_year)}` : "Certificado"}
+                className="block"
+              >
+                {cert?.certificate_number
+                  ? `Certificado ${formatCertificateNumber(cert.certificate_number, cert.certificate_year)}`
+                  : "Certificado"}
+              </EllipsisTooltip>
             </h1>
             <div className="flex flex-wrap gap-2 mt-1">
               <Badge>{certificateStatusLabel(cert.status)}</Badge>
