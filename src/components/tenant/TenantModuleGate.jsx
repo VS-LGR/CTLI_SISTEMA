@@ -10,7 +10,7 @@ export default function TenantModuleGate({ children, module = null }) {
   const { user } = useAuth();
   const { currentTenant } = useOutletContext() || {};
 
-  if (module && !canAccessModule({ tenant: currentTenant, role: user?.role, module })) {
+  if (module && !canAccessModule({ tenant: currentTenant, role: user?.role, module, user })) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -23,7 +23,7 @@ export function RequirementAccessGate({ children }) {
   const { currentTenant } = useOutletContext() || {};
   const { id, folderKey } = useParams();
 
-  if (!canAccessRequirement({ tenant: currentTenant, role: user?.role, requirementId: id })) {
+  if (!canAccessRequirement({ tenant: currentTenant, role: user?.role, requirementId: id, user })) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -32,6 +32,7 @@ export function RequirementAccessGate({ children }) {
     role: user?.role,
     requirementId: id,
     folderKey,
+    user,
   })) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -46,7 +47,7 @@ export function CadastroSectionGate({ children, sectionId }) {
   const params = useParams();
   const section = sectionId || params.section;
 
-  if (section && !canAccessCadastroSection({ tenant: currentTenant, role: user?.role, sectionId: section })) {
+  if (section && !canAccessCadastroSection({ tenant: currentTenant, role: user?.role, sectionId: section, user })) {
     return <Navigate to="/dashboard" replace />;
   }
 

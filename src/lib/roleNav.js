@@ -40,6 +40,13 @@ export function restrictedNavHomePath(role, tenant = null) {
   return CERTIFICATE_PENDING_APPROVAL_PATH;
 }
 
+/** Menu enxuto do anexo — utilizadores com tenant fixo (exceto admin CTLI e nav restrita). */
+export function usesClientSidebarNav(role, tenant = null, user = null) {
+  if (role === "admin") return false;
+  if (usesRestrictedNav(role, tenant)) return false;
+  return Boolean(user?.tenant_id);
+}
+
 /** Cadastros de campo para técnico em ambiente full (CTLI/interno). */
 export const TECNICO_FIELD_CADASTRO_SECTIONS = new Set([
   "pesos",

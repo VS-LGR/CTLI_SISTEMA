@@ -11,6 +11,13 @@ import {
   canManageTechnicians,
   isClientPortalOperationsRole,
 } from "@/lib/roles";
+import {
+  CLIENT_ENV_REQ_IDS,
+  CLIENT_ENV_REQ5_FOLDERS,
+  CLIENT_ENV_REQ7_FOLDERS,
+  CLIENT_ENV_REQ8_FOLDERS,
+  isClientEnvironmentUser,
+} from "@/lib/clientNavConfig";
 
 export const DEPLOYMENT_MODELS = {
   FULL: "full",
@@ -87,12 +94,21 @@ export function isEffectiveClientPortal(tenant, role) {
   return effectiveDeploymentModel(tenant, role) === DEPLOYMENT_MODELS.CLIENT_PORTAL;
 }
 
-export function canAccessModule({ tenant, role, module }) {
+export function canAccessModule({ tenant, role, module, user = null }) {
   if (!module) return true;
   if (isCtliAdmin(role)) return true;
 
   if (isFieldTechnicianRole(role)) {
     return module === "coleta";
+  }
+
+  if (isClientEnvironmentUser(role, user, tenant)) {
+    if (module === "coleta") return canAccessColeta(role);
+    if (module === "propostas") return canAccessCommercialProposals(role);
+    if (module === "certificados") return canAccessCalibrationCertificates(role);
+    if (module === "lista_mestra") return canAccessMasterDocuments(role);
+    if (module === "req5" || module === "req7" || module === "req8") return true;
+    return false;
   }
 
   const portal = isEffectiveClientPortal(tenant, role);
@@ -151,15 +167,25 @@ export function canAccessModule({ tenant, role, module }) {
   return true;
 }
 
-export function canAccessRequirement({ tenant, role, requirementId }) {
+export function canAccessRequirement({ tenant, role, requirementId, user = null }) {
   const rid = String(requirementId);
   if (isCtliAdmin(role)) return true;
+  if (isClientEnvironmentUser(role, user, tenant)) {
+    return CLIENT_ENV_REQ_IDS.has(rid);
+  }
   if (!isEffectiveClientPortal(tenant, role)) return true;
   return CLIENT_PORTAL_REQ_IDS.includes(rid);
 }
 
-export function canAccessRequirementFolder({ tenant, role, requirementId, folderKey }) {
+export function canAccessRequirementFolder({ tenant, role, requirementId, folderKey, user = null }) {
   if (isCtliAdmin(role)) return true;
+  if (isClientEnvironmentUser(role, user, tenant)) {
+    const rid = String(requirementId);
+    if (rid === "5") return CLIENT_ENV_REQ5_FOLDERS.has(folderKey);
+    if (rid === "7") return CLIENT_ENV_REQ7_FOLDERS.has(folderKey);
+    if (rid === "8") return CLIENT_ENV_REQ8_FOLDERS.has(folderKey);
+    return false;
+  }
   if (!isEffectiveClientPortal(tenant, role)) return true;
   const rid = String(requirementId);
   if (rid === "5") return true;
@@ -169,11 +195,12 @@ export function canAccessRequirementFolder({ tenant, role, requirementId, folder
   return false;
 }
 
-export function canAccessCadastroSection({ tenant, role, sectionId }) {
+export function canAccessCadastroSection({ tenant, role, sectionId, user = null }) {
   if (sectionId === "usuarios") return isCtliAdmin(role);
   if (sectionId === "config-coleta" || sectionId === "config-proposta") return false;
   if (isFieldTechnicianRole(role)) return false;
   if (isCtliAdmin(role)) return true;
+  if (isClientEnvironmentUser(role, user, tenant)) return false;
   if (!isEffectiveClientPortal(tenant, role)) return true;
   if (sectionId === "tecnicos") return canManageTechnicians(role);
   return CLIENT_PORTAL_CADASTRO_SECTIONS.has(sectionId);

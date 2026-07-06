@@ -23,11 +23,11 @@ export function getCadastroSectionLabel(id) {
   return CADASTRO_SECTIONS.find((s) => s.id === id)?.label || "Cadastros";
 }
 
-export function getVisibleCadastroSections(role, tenant = null) {
+export function getVisibleCadastroSections(role, tenant = null, user = null) {
   return CADASTRO_SECTIONS.filter((s) => {
     if (s.techniciansOnly && !canManageTechnicians(role)) return false;
     if (s.ctliAdminOnly && !isCtliAdmin(role)) return false;
-    if (tenant && !canAccessCadastroSection({ tenant, role, sectionId: s.id })) return false;
+    if (tenant && !canAccessCadastroSection({ tenant, role, sectionId: s.id, user })) return false;
     return true;
   });
 }

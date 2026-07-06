@@ -11,7 +11,7 @@ export default function ClientPortalDashboard({
   onRemindersChange,
 }) {
   const { user } = useAuth();
-  const shortcuts = getVisibleDashboardShortcuts(user?.role, currentTenant);
+  const shortcuts = getVisibleDashboardShortcuts(user?.role, currentTenant, user);
   const pendingApprovals = data?.certificate_pending_approval || 0;
   const showApprovalQueue = canApproveCalibrationCertificate(user?.role) && pendingApprovals > 0;
   const showReminders = canManageDashboardReminders(user?.role);

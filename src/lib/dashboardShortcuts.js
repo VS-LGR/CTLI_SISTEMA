@@ -7,6 +7,7 @@ import {
 import { getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { isFieldTechnicianRole } from "@/lib/roles";
 import { canAccessModule } from "@/lib/tenantAccess";
+import { usesClientSidebarNav } from "@/lib/roleNav";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { PR_71_PROPOSAL_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
@@ -102,8 +103,11 @@ export const DASHBOARD_SHORTCUTS = HERO_SHORTCUTS;
 /** @deprecated use HERO_SHORTCUTS */
 export const CLIENT_PORTAL_SHORTCUTS = HERO_SHORTCUTS;
 
-function mapShortcutItem(item, { role, tenant, visibleCadastroIds }) {
-  if (item.module && !canAccessModule({ tenant, role, module: item.module })) {
+/** Atalhos operacionais alinhados ao menu cliente. */
+const CLIENT_ENV_SHORTCUT_IDS = new Set(["propostas", "coleta", "cert-balanca"]);
+
+function mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }) {
+  if (item.module && !canAccessModule({ tenant, role, module: item.module, user })) {
     return {
       id: item.id,
       label: item.label,
@@ -147,20 +151,27 @@ function mapShortcutItem(item, { role, tenant, visibleCadastroIds }) {
 /**
  * @returns {Array<{ id: string, label: string, to?: string, bgClass: string, icon: import('react').ComponentType, active: boolean, disabledReason?: string }>}
  */
-export function getVisibleDashboardShortcuts(role, tenant = null) {
+export function getVisibleDashboardShortcuts(role, tenant = null, user = null) {
   if (isFieldTechnicianRole(role)) {
     return HERO_SHORTCUTS
       .filter((item) => item.module === "coleta")
-      .map((item) => mapShortcutItem(item, { role, tenant, visibleCadastroIds: new Set() }))
+      .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() }))
+      .filter((s) => s.active);
+  }
+
+  if (usesClientSidebarNav(role, tenant, user)) {
+    return HERO_SHORTCUTS
+      .filter((item) => CLIENT_ENV_SHORTCUT_IDS.has(item.id))
+      .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() }))
       .filter((s) => s.active);
   }
 
   const visibleCadastroIds = new Set(
-    getVisibleCadastroSections(role, tenant).map((s) => s.id),
+    getVisibleCadastroSections(role, tenant, user).map((s) => s.id),
   );
 
   return HERO_SHORTCUTS
-    .map((item) => mapShortcutItem(item, { role, tenant, visibleCadastroIds }))
+    .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }))
     .filter((s) => s.active);
 }
 

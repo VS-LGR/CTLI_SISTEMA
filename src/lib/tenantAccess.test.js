@@ -15,6 +15,7 @@ import { getVisibleDashboardShortcuts, HERO_SHORTCUTS } from "./dashboardShortcu
 
 const portalTenant = { deployment_model: DEPLOYMENT_MODELS.CLIENT_PORTAL };
 const fullTenant = { deployment_model: DEPLOYMENT_MODELS.FULL };
+const clientUser = { tenant_id: "tenant-abc" };
 
 describe("tenantAccess", () => {
   test("isClientPortalTenant detecta modelo portal", () => {
@@ -27,45 +28,71 @@ describe("tenantAccess", () => {
     expect(isEffectiveClientPortal(portalTenant, "client")).toBe(true);
   });
 
-  test("client_portal bloqueia pedidos e backup", () => {
-    expect(canAccessModule({ tenant: portalTenant, role: "client", module: "pedidos_compra" })).toBe(false);
-    expect(canAccessModule({ tenant: portalTenant, role: "client", module: "backup" })).toBe(false);
+  test("utilizador cliente — bloqueia pedidos, backup e cadastros em full tenant", () => {
+    expect(canAccessModule({ tenant: fullTenant, role: "client", module: "pedidos_compra", user: clientUser })).toBe(false);
+    expect(canAccessModule({ tenant: fullTenant, role: "client", module: "backup", user: clientUser })).toBe(false);
+    expect(canAccessModule({ tenant: fullTenant, role: "client", module: "cadastros", user: clientUser })).toBe(false);
+    expect(canAccessModule({ tenant: fullTenant, role: "gerente_qualidade", module: "pedidos_compra", user: clientUser })).toBe(false);
     expect(canAccessModule({ tenant: fullTenant, role: "gerente_qualidade", module: "pedidos_compra" })).toBe(true);
   });
 
-  test("client_portal permite coleta e certificados", () => {
-    expect(canAccessModule({ tenant: portalTenant, role: "client", module: "coleta" })).toBe(true);
-    expect(canAccessModule({ tenant: portalTenant, role: "client", module: "certificados" })).toBe(true);
-    expect(canAccessModule({ tenant: portalTenant, role: "gerente_qualidade", module: "coleta" })).toBe(true);
+  test("utilizador cliente — permite coleta, propostas e certificados", () => {
+    expect(canAccessModule({ tenant: portalTenant, role: "client", module: "coleta", user: clientUser })).toBe(true);
+    expect(canAccessModule({ tenant: portalTenant, role: "client", module: "certificados", user: clientUser })).toBe(true);
+    expect(canAccessModule({ tenant: portalTenant, role: "client", module: "propostas", user: clientUser })).toBe(true);
+    expect(canAccessModule({ tenant: portalTenant, role: "client", module: "lista_mestra", user: clientUser })).toBe(true);
+    expect(canAccessModule({ tenant: portalTenant, role: "gerente_qualidade", module: "coleta", user: clientUser })).toBe(true);
   });
 
-  test("requisitos visíveis no portal incluem req 8", () => {
-    const items = getVisibleReqMenuItems(portalTenant, "client");
-    expect(items.map((i) => i.id)).toEqual(["5", "6", "7", "8"]);
-    expect(canAccessRequirement({ tenant: portalTenant, role: "client", requirementId: "4" })).toBe(false);
-    expect(canAccessRequirement({ tenant: portalTenant, role: "client", requirementId: "8" })).toBe(true);
+  test("utilizador cliente — requisitos 5, 7 e 8 apenas", () => {
+    expect(canAccessRequirement({ tenant: fullTenant, role: "client", requirementId: "4", user: clientUser })).toBe(false);
+    expect(canAccessRequirement({ tenant: fullTenant, role: "client", requirementId: "6", user: clientUser })).toBe(false);
+    expect(canAccessRequirement({ tenant: fullTenant, role: "client", requirementId: "5", user: clientUser })).toBe(true);
+    expect(canAccessRequirement({ tenant: fullTenant, role: "client", requirementId: "8", user: clientUser })).toBe(true);
   });
 
-  test("pastas req 6/7/8 filtradas no portal", () => {
-    const r6 = getFoldersForRequirement("6", portalTenant, "client").map((f) => f.folderKey);
-    expect(r6).toEqual(["pr-6-2", "pr-6-4"]);
-    const r7 = getFoldersForRequirement("7", portalTenant, "client").map((f) => f.folderKey);
-    expect(r7).toEqual(["pr-7-1", "pr-7-2"]);
-    const r8 = getFoldersForRequirement("8", portalTenant, "client").map((f) => f.folderKey);
-    expect(r8).toEqual(["pr-8-3"]);
+  test("utilizador cliente — pastas restritas", () => {
     expect(canAccessRequirementFolder({
-      tenant: portalTenant,
+      tenant: fullTenant,
+      role: "client",
+      requirementId: "5",
+      folderKey: "manual-qualidade",
+      user: clientUser,
+    })).toBe(true);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "client",
+      requirementId: "5",
+      folderKey: "politica-qualidade",
+      user: clientUser,
+    })).toBe(false);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
       role: "client",
       requirementId: "6",
-      folderKey: "pr-6-6",
+      folderKey: "pr-6-2",
+      user: clientUser,
     })).toBe(false);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "client",
+      requirementId: "7",
+      folderKey: "pr-7-2",
+      user: clientUser,
+    })).toBe(true);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "client",
+      requirementId: "8",
+      folderKey: "pr-8-3",
+      user: clientUser,
+    })).toBe(true);
   });
 
-  test("cadastros portal oculta fornecedores e usuarios", () => {
-    const sections = getVisibleCadastroSections("client", portalTenant).map((s) => s.id);
-    expect(sections).not.toContain("fornecedores");
-    expect(sections).not.toContain("usuarios");
-    expect(sections).toContain("pesos");
+  test("utilizador cliente — sem cadastros", () => {
+    const sections = getVisibleCadastroSections("client", portalTenant, clientUser).map((s) => s.id);
+    expect(sections).toEqual([]);
+    expect(canAccessCadastroSection({ tenant: portalTenant, role: "client", sectionId: "pesos", user: clientUser })).toBe(false);
   });
 
   test("tecnico de campo — apenas coleta no portal", () => {
@@ -78,15 +105,15 @@ describe("tenantAccess", () => {
     expect(shortcuts.every((s) => s.id === "coleta")).toBe(true);
   });
 
-  test("dashboard shortcuts portal — atalhos ativos filtrados por permissão", () => {
+  test("dashboard shortcuts utilizador cliente — só propostas, coleta e certificados", () => {
     for (const role of ["client", "signatario", "diretor", "gerente_qualidade"]) {
-      const shortcuts = getVisibleDashboardShortcuts(role, portalTenant);
+      const shortcuts = getVisibleDashboardShortcuts(role, portalTenant, clientUser);
       expect(shortcuts.length).toBeGreaterThan(0);
-      expect(shortcuts.length).toBeLessThanOrEqual(HERO_SHORTCUTS.length);
+      expect(shortcuts.length).toBeLessThanOrEqual(3);
+      expect(shortcuts.every((s) => ["propostas", "coleta", "cert-balanca"].includes(s.id))).toBe(true);
       expect(shortcuts.every((s) => s.active)).toBe(true);
     }
   });
-
 
   test("tecnico portal não acede cadastros", () => {
     expect(canAccessCadastroSection({ tenant: portalTenant, role: "tecnico_campo", sectionId: "pesos" })).toBe(false);
@@ -103,8 +130,15 @@ describe("tenantAccess", () => {
 
   test("canAccessCadastroSection usuarios só admin CTLI", () => {
     expect(canAccessCadastroSection({ tenant: portalTenant, role: "admin", sectionId: "usuarios" })).toBe(true);
-    expect(canAccessCadastroSection({ tenant: portalTenant, role: "client", sectionId: "usuarios" })).toBe(false);
+    expect(canAccessCadastroSection({ tenant: portalTenant, role: "client", sectionId: "usuarios", user: clientUser })).toBe(false);
     expect(canAccessCadastroSection({ tenant: portalTenant, role: "tecnico_campo", sectionId: "usuarios" })).toBe(false);
-    expect(canAccessCadastroSection({ tenant: portalTenant, role: "client", sectionId: "config-coleta" })).toBe(false);
+    expect(canAccessCadastroSection({ tenant: portalTenant, role: "client", sectionId: "config-coleta", user: clientUser })).toBe(false);
+  });
+
+  test("portal legado sem user — mantém regras antigas para testes de pasta", () => {
+    const items = getVisibleReqMenuItems(portalTenant, "client");
+    expect(items.map((i) => i.id)).toEqual(["5", "6", "7", "8"]);
+    const r7 = getFoldersForRequirement("7", portalTenant, "client").map((f) => f.folderKey);
+    expect(r7).toEqual(["pr-7-1", "pr-7-2"]);
   });
 });

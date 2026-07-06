@@ -7,6 +7,7 @@ import {
   House, SignOut, CaretDown,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
   Buildings, CaretRight, ClipboardText, List, X,
+  FileText, Certificate, BookOpen, FolderSimple,
 } from "@phosphor-icons/react";
 import AppBrand from "@/components/branding/AppBrand";
 import {
@@ -18,6 +19,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, canApproveCalibrationCertificate, isCtliAdmin } from "@/lib/roles";
 import { canAccessModule } from "@/lib/tenantAccess";
+import { usesClientSidebarNav } from "@/lib/roleNav";
+import { CLIENT_TOP_NAV_ITEMS, getClientListaMestraNavItems } from "@/lib/clientNavConfig";
 import RoleRouteGuard from "@/components/tenant/RoleRouteGuard";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 import {
@@ -35,10 +38,19 @@ import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDi
 
 function resolveNavGroupFromPath(pathname) {
   if (pathname.startsWith("/cadastros")) return "cadastros";
+  if (pathname.startsWith("/requirement/8/pr-8-3") || pathname.startsWith("/lista-mestra")) return "lista-mestra";
   const m = pathname.match(/^\/requirement\/(\d+)/);
   if (m) return `req-${m[1]}`;
   return null;
 }
+
+const CLIENT_NAV_ICONS = {
+  dashboard: House,
+  propostas: FileText,
+  coleta: ClipboardText,
+  certificados: Certificate,
+  "manual-qualidade": BookOpen,
+};
 const REQ_ICONS = {
   "4": ListChecks,
   "5": Buildings,
@@ -122,7 +134,8 @@ const Layout = () => {
   const technicianNav = isTechnicianOnlyNav(user?.role, currentTenant);
   const signatoryNav = isSignatoryOnlyNav(user?.role, currentTenant);
   const restrictedNav = technicianNav || signatoryNav;
-  const showApprovalNav = canApproveCalibrationCertificate(user?.role) && !restrictedNav;
+  const clientSidebarNav = usesClientSidebarNav(user?.role, currentTenant, user);
+  const showApprovalNav = canApproveCalibrationCertificate(user?.role) && !restrictedNav && !clientSidebarNav;
 
   const {
     confirmOpen: tenantConfirmOpen,
@@ -191,7 +204,82 @@ const Layout = () => {
     else if (openNavGroup === group) setOpenNavGroup(null);
   };
 
+  const isListaMestraActive = location.pathname.startsWith("/requirement/8/pr-8-3")
+    || location.pathname.startsWith("/lista-mestra");
+
+  const isClientNavItemVisible = (item) => {
+    if (item.requiresColeta && !canAccessColeta(user?.role)) return false;
+    if (item.requiresCommercialProposals && !canAccessCommercialProposals(user?.role)) return false;
+    if (item.requiresCalibrationCertificates && !canAccessCalibrationCertificates(user?.role)) return false;
+    return true;
+  };
+
+  const isListaMestraTabActive = (to) => {
+    const [path, query] = to.split("?");
+    if (location.pathname !== path) return false;
+    const expectedTab = new URLSearchParams(query || "").get("tab");
+    const currentTab = new URLSearchParams(location.search).get("tab");
+    return currentTab === expectedTab;
+  };
+
+  const renderClientNav = (onNavigate) => (
+    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain">
+      {CLIENT_TOP_NAV_ITEMS.filter(isClientNavItemVisible).map((item) => {
+        const Icon = CLIENT_NAV_ICONS[item.id] || ListChecks;
+        return (
+          <NavLink
+            key={item.id}
+            to={item.to}
+            className={navLinkClass}
+            data-testid={`nav-client-${item.id}`}
+            onClick={onNavigate}
+            end={item.id === "dashboard"}
+          >
+            <Icon size={18} weight="duotone" />
+            <span className="flex-1 min-w-0">{item.label}</span>
+          </NavLink>
+        );
+      })}
+
+      {canAccessMasterDocuments(user?.role) && (
+        <Collapsible
+          open={openNavGroup === "lista-mestra"}
+          onOpenChange={handleNavGroupOpenChange("lista-mestra")}
+        >
+          <CollapsibleTrigger
+            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
+              isListaMestraActive ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            }`}
+            data-testid="nav-client-lista-mestra"
+          >
+            <FolderSimple size={18} weight="duotone" className="shrink-0" />
+            <span className="flex-1 min-w-0">Lista Mestra</span>
+            <CaretRight size={14} className="shrink-0 opacity-70" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
+            {getClientListaMestraNavItems().map((tab) => (
+              <NavLink
+                key={tab.key}
+                to={tab.to}
+                className={subNavLinkClass}
+                title={tab.label}
+                data-testid={`nav-client-lista-mestra-${tab.key}`}
+                onClick={onNavigate}
+                isActive={({ location: loc }) => isListaMestraTabActive(tab.to) || (
+                  loc.pathname.startsWith("/lista-mestra/") && tab.key === "lista_mestra_internos"
+                )}
+              >
+                <span className="truncate">{tab.label}</span>
+              </NavLink>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+    </nav>
+  );
+
   const renderNav = (onNavigate) => (
+    clientSidebarNav ? renderClientNav(onNavigate) : (
     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain">
       {!restrictedNav && (
         <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard" onClick={onNavigate}>
@@ -379,6 +467,7 @@ const Layout = () => {
         </>
       )}
     </nav>
+    )
   );
 
   const renderUserMenu = () => (
