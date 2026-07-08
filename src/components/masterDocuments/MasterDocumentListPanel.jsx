@@ -7,13 +7,20 @@ import { Card } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, PencilSimple, Eye, Copy, Prohibit } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Eye, Copy, Prohibit, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   listMasterDocuments,
   duplicateMasterDocument,
   markDocumentObsolete,
 } from "@/lib/masterDocuments/masterDocumentsApi";
+import {
+  deleteMasterDocumentCascade,
+  getLinkedTenantDocumentCounts,
+  isSystemPresentMasterDocument,
+  listLinkedTenantDocuments,
+} from "@/lib/masterDocuments/masterDocumentDeletion";
+import PermanentDeleteDialog from "@/components/ui/PermanentDeleteDialog";
 import {
   MASTER_DOCUMENT_TYPES,
   MASTER_DOCUMENT_STATUSES,
@@ -40,20 +47,30 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
   const [formOpen, setFormOpen] = useState(false);
   const [editDoc, setEditDoc] = useState(null);
   const [obsoleteDoc, setObsoleteDoc] = useState(null);
+  const [deleteDoc, setDeleteDoc] = useState(null);
+  const [deleteLinked, setDeleteLinked] = useState([]);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const systemOnly = extraFilters.systemOnly === true;
 
   const load = useCallback(async () => {
     if (!tenantId) return;
     setLoading(true);
     try {
       const data = await listMasterDocuments(tenantId, filters);
-      setRows(data);
+      if (systemOnly) {
+        const counts = await getLinkedTenantDocumentCounts(tenantId);
+        setRows(data.filter((d) => isSystemPresentMasterDocument(d, counts[d.id] || 0)));
+      } else {
+        setRows(data);
+      }
     } catch (e) {
       toast.error(e.message || "Falha ao carregar documentos");
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [tenantId, filters]);
+  }, [tenantId, filters, systemOnly]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -77,6 +94,39 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
       toast.error(e.message);
     }
   };
+
+  const openDelete = async (row) => {
+    setDeleteDoc(row);
+    try {
+      const linked = await listLinkedTenantDocuments(tenantId, row.id);
+      setDeleteLinked(linked);
+    } catch {
+      setDeleteLinked([]);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!deleteDoc) return;
+    setDeleteBusy(true);
+    try {
+      const result = await deleteMasterDocumentCascade(tenantId, deleteDoc.id, { source: "lista_mestra" });
+      toast.success(
+        result.removedTenantDocuments
+          ? `Documento removido (${result.removedTenantDocuments} ficheiro(s) SGQ também excluído(s))`
+          : "Documento removido da Lista Mestra",
+      );
+      setDeleteDoc(null);
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
+  const deleteLabel = deleteDoc
+    ? [deleteDoc.code, deleteDoc.title].filter(Boolean).join(" — ")
+    : "";
 
   return (
     <div className="space-y-4">
@@ -181,6 +231,9 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
                           <Prohibit size={16} className="text-amber-600" />
                         </Button>
                       )}
+                      <Button variant="ghost" size="sm" title="Excluir" onClick={() => openDelete(row)}>
+                        <Trash size={16} className="text-red-600" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -201,6 +254,23 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
         open={!!obsoleteDoc}
         onOpenChange={(o) => !o && setObsoleteDoc(null)}
         onConfirm={handleObsolete}
+      />
+      <PermanentDeleteDialog
+        open={!!deleteDoc}
+        onOpenChange={(o) => { if (!o && !deleteBusy) setDeleteDoc(null); }}
+        title="Remover documento da Lista Mestra?"
+        entityLabel={deleteLabel}
+        busy={deleteBusy}
+        onConfirm={handlePermanentDelete}
+        description={(
+          <p>
+            O documento <strong>{deleteLabel}</strong> será removido permanentemente da Lista Mestra
+            {deleteLinked.length > 0
+              ? ` e ${deleteLinked.length} ficheiro(s) vinculado(s) nos requisitos SGQ também serão excluído(s)`
+              : ""}.
+            O registo da exclusão será guardado no histórico. Esta ação <strong>não pode ser desfeita</strong>.
+          </p>
+        )}
       />
     </div>
   );

@@ -479,7 +479,7 @@ export default function PedidoCompraEditorPage() {
               <CardContent className="space-y-4">
                 {employees.length === 0 && (
                   <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                    Cadastre colaboradores em Cadastros para preencher os responsáveis e assinaturas do pedido.
+                    Cadastre colaboradores em PR-6.2 → Colaboradores para preencher os responsáveis e assinaturas do pedido.
                   </p>
                 )}
                 <div>

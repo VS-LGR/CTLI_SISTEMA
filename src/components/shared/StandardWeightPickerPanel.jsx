@@ -105,7 +105,7 @@ export default function StandardWeightPickerPanel({
   disabled = false,
   unit = "g",
   compact = false,
-  emptyMessage = "Cadastre pesos padrão em Cadastros → Pesos padrão (identificação).",
+  emptyMessage = "Cadastre pesos padrão em PR-6.4 → Peso Padrão (identificação).",
   /** "all" | "weights" | "load_batches" — quando fixo, oculta seletor de tipo */
   itemKind = "weights",
   allowKindFilter = false,
@@ -161,7 +161,7 @@ export default function StandardWeightPickerPanel({
     const kindLabel = effectiveKind === "load_batches" ? "lotes de carga" : "pesos padrão";
     return (
       <p className="text-sm text-slate-500 p-3 border rounded-md bg-slate-50">
-        Nenhum {kindLabel} cadastrado. Cadastre em Cadastros → Pesos padrão.
+        Nenhum {kindLabel} cadastrado. Cadastre em PR-6.4 → Peso Padrão.
       </p>
     );
   }

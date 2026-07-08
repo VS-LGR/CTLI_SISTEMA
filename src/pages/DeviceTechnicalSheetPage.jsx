@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { FilePdf, MagnifyingGlass } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { cadastroSectionPath } from "@/lib/cadastroSections";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import {
   buildDeviceTechnicalSheets,
@@ -120,9 +121,9 @@ export default function DeviceTechnicalSheetPage() {
             Visão consolidada dos pesos padrão e termo-baro-higrômetros cadastrados.
           </p>
           <div className="mt-2 flex flex-wrap gap-3 text-xs">
-            <Link to="/cadastros/pesos" className="text-blue-600 hover:underline">Pesos</Link>
-            <Link to="/cadastros/thermo" className="text-blue-600 hover:underline">Termo-baro</Link>
-            <Link to="/cadastros/cert-peso" className="text-blue-600 hover:underline">Certificados de peso</Link>
+            <Link to={cadastroSectionPath("pesos")} className="text-blue-600 hover:underline">Pesos</Link>
+            <Link to={cadastroSectionPath("thermo")} className="text-blue-600 hover:underline">Termo-baro</Link>
+            <Link to={cadastroSectionPath("cert-peso")} className="text-blue-600 hover:underline">Certificados de peso</Link>
           </div>
         </div>
         <Button type="button" onClick={handlePdf} disabled={busyPdf || loading || !filtered.length}>

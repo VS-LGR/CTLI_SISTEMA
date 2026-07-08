@@ -17,7 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canEditPersonnelStandardOptions, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, canApproveCalibrationCertificate, isCtliAdmin } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, canApproveCalibrationCertificate } from "@/lib/roles";
 import { canAccessModule } from "@/lib/tenantAccess";
 import { usesClientSidebarNav } from "@/lib/roleNav";
 import { CLIENT_TOP_NAV_ITEMS, getClientListaMestraNavItems } from "@/lib/clientNavConfig";
@@ -26,19 +26,14 @@ import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 import {
   getVisibleReqMenuItems,
   getFoldersForRequirement,
-  buildFolderSidebarNav,
-  folderHasSidebarNav,
   requiresFolderNav,
-  isPr72OperationalPath,
   REQ_NAMES,
 } from "@/lib/requirementNavConfig";
-import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
 
 function resolveNavGroupFromPath(pathname) {
-  if (pathname.startsWith("/cadastros")) return "cadastros";
   if (pathname.startsWith("/requirement/8/pr-8-3") || pathname.startsWith("/lista-mestra")) return "lista-mestra";
   const m = pathname.match(/^\/requirement\/(\d+)/);
   if (m) return `req-${m[1]}`;
@@ -68,20 +63,10 @@ function SidebarBrand({ collapsed = false }) {
   );
 }
 
-function isFolderSectionNavActive(location, item) {
-  if (isPr72OperationalPath(location.pathname)) return false;
-  const [path, query] = item.to.split("?");
-  if (location.pathname !== path) return false;
-  const expected = new URLSearchParams(query || "");
-  const expectedTab = expected.get("tab") || item.folderDefaultSection;
-  const currentTab = new URLSearchParams(location.search).get("tab") || item.folderDefaultSection;
-  return currentTab === expectedTab;
-}
-
-function isModuleNavActive(location, to) {
-  const { pathname } = location;
-  if (pathname === to || pathname.startsWith(`${to}/`)) return true;
-  return false;
+function isFolderNavActive(location, requirementId, folderKey) {
+  const prefix = `/requirement/${requirementId}/${folderKey}`;
+  return location.pathname === prefix
+    || location.pathname.startsWith(`${prefix}/`);
 }
 
 const Layout = () => {
@@ -170,28 +155,12 @@ const Layout = () => {
         : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
     }`;
 
-  const folderSectionNavClass = ({ isActive }) =>
-    `flex items-center gap-2 pl-9 pr-3 py-1.5 rounded-md text-xs transition-all leading-snug ${
-      isActive
-        ? "bg-slate-800/90 text-white border-l-2 border-blue-400 pl-[2.125rem]"
-        : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 border-l-2 border-transparent pl-[2.125rem]"
-    }`;
-
-  const folderModuleNavClass = ({ isActive }) =>
-    `flex items-center gap-2 pl-9 pr-3 py-1.5 rounded-md text-xs transition-all leading-snug ${
-      isActive
-        ? "bg-blue-600 text-white font-medium shadow-sm"
-        : "text-slate-300 hover:bg-slate-800 hover:text-white border-l-2 border-transparent pl-[2.125rem]"
-    }`;
-
   const reqGroupPathPrefix = (rid) => `/requirement/${rid}`;
   const isReqGroupActive = (rid) => {
     const p = location.pathname;
     return p === reqGroupPathPrefix(rid) || p.startsWith(`${reqGroupPathPrefix(rid)}/`);
   };
 
-  const isCadastrosActive = location.pathname.startsWith("/cadastros");
-  const cadastroSections = getVisibleCadastroSections(user?.role, currentTenant);
   const reqMenuItems = getVisibleReqMenuItems(currentTenant, user?.role);
   const showBackupNav = canAccessModule({ tenant: currentTenant, role: user?.role, module: "backup" });
 
@@ -301,38 +270,6 @@ const Layout = () => {
       )}
 
       {!restrictedNav && (
-        <Collapsible
-          open={openNavGroup === "cadastros"}
-          onOpenChange={handleNavGroupOpenChange("cadastros")}
-        >
-          <CollapsibleTrigger
-            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
-              isCadastrosActive ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
-            }`}
-            data-testid="nav-cadastros"
-          >
-            <ClipboardText size={18} weight="duotone" className="shrink-0" />
-            <span className="flex-1 min-w-0">Cadastros</span>
-            <CaretRight size={14} className="shrink-0 opacity-70" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
-            {cadastroSections.map((s) => (
-              <NavLink
-                key={s.id}
-                to={cadastroSectionPath(s.id)}
-                className={subNavLinkClass}
-                title={s.label}
-                data-testid={`nav-cadastros-${s.id}`}
-                onClick={onNavigate}
-              >
-                <span className="truncate">{s.label}</span>
-              </NavLink>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-
-      {!restrictedNav && (
         <>
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Requisitos
@@ -375,70 +312,19 @@ const Layout = () => {
                   <CaretRight size={14} className="shrink-0 opacity-70" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
-                  {folders.map((f) => {
-                    const navOpts = {
-                      canColeta: canAccessColeta(user?.role),
-                      canCalibrationCertificates: canAccessCalibrationCertificates(user?.role),
-                      canPersonnelStandardOptions: canEditPersonnelStandardOptions(user?.role),
-                      canMasterDocuments: canAccessMasterDocuments(user?.role),
-                      canCommercialProposals: canAccessCommercialProposals(user?.role),
-                      canCtliAdmin: isCtliAdmin(user?.role),
-                    };
-                    const sidebarItems = buildFolderSidebarNav(r.id, f, navOpts);
-                    const hasSidebar = folderHasSidebarNav(r.id, f);
-                    if (hasSidebar) {
-                      const folderActive = location.pathname.startsWith(`/requirement/${r.id}/${f.folderKey}`);
-                      return (
-                        <div key={f.folderKey} className="space-y-0.5">
-                          <div
-                            className={`px-3 py-1.5 text-xs font-medium truncate ${
-                              folderActive && isPr72OperationalPath(location.pathname)
-                                ? "text-blue-300"
-                                : folderActive
-                                  ? "text-slate-300"
-                                  : "text-slate-500"
-                            }`}
-                            title={f.label}
-                          >
-                            {f.label}
-                          </div>
-                          {sidebarItems.map((c) => {
-                            const isModule = c.kind !== "section";
-                            return (
-                              <NavLink
-                                key={c.key}
-                                to={c.to}
-                                end={isModule}
-                                className={isModule ? folderModuleNavClass : folderSectionNavClass}
-                                title={c.label}
-                                data-testid={`nav-req-${r.id}-${f.folderKey}-${c.key}`}
-                                onClick={onNavigate}
-                                isActive={
-                                  isModule
-                                    ? ({ location: loc }) => isModuleNavActive(loc, c.to)
-                                    : ({ location: loc }) => isFolderSectionNavActive(loc, c)
-                                }
-                              >
-                                <span className="truncate">{c.label}</span>
-                              </NavLink>
-                            );
-                          })}
-                        </div>
-                      );
-                    }
-                    return (
-                      <NavLink
-                        key={f.folderKey}
-                        to={`/requirement/${r.id}/${f.folderKey}`}
-                        className={subNavLinkClass}
-                        title={f.label}
-                        data-testid={`nav-req-${r.id}-${f.folderKey}`}
-                        onClick={onNavigate}
-                      >
-                        <span className="truncate">{f.label}</span>
-                      </NavLink>
-                    );
-                  })}
+                  {folders.map((f) => (
+                    <NavLink
+                      key={f.folderKey}
+                      to={`/requirement/${r.id}/${f.folderKey}`}
+                      className={subNavLinkClass}
+                      title={f.label}
+                      data-testid={`nav-req-${r.id}-${f.folderKey}`}
+                      onClick={onNavigate}
+                      isActive={({ location: loc }) => isFolderNavActive(loc, r.id, f.folderKey)}
+                    >
+                      <span className="truncate">{f.label}</span>
+                    </NavLink>
+                  ))}
                 </CollapsibleContent>
               </Collapsible>
             );

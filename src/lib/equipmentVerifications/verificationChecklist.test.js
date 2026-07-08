@@ -1,6 +1,11 @@
 import {
   emptyVerificationResponses,
   getVerificationChecklist,
+  isLegacyResponses,
+  isLegacyResponsible,
+  LEGACY_ASSET_KEY,
+  normalizeMultiAssetResponses,
+  normalizeMultiAssetResponsible,
   normalizeVerificationResponses,
   verificationValueMode,
 } from "./verificationChecklist";
@@ -27,6 +32,28 @@ describe("verificationChecklist", () => {
     expect(n.monitor["5"]).toBe("nok");
     expect(n.monitor["12"]).toBe("");
     expect(n.teclado["1"]).toBe("");
+  });
+
+  test("normalizeMultiAssetResponses converte formato legado", () => {
+    const legacy = { limpo: { "1": "ok" } };
+    expect(isLegacyResponses(legacy, "pesos")).toBe(true);
+    const n = normalizeMultiAssetResponses("pesos", legacy, []);
+    expect(n[LEGACY_ASSET_KEY].limpo["1"]).toBe("ok");
+  });
+
+  test("normalizeMultiAssetResponses por equipamento", () => {
+    const n = normalizeMultiAssetResponses("pesos", {
+      a1: { limpo: { "1": "ok" } },
+      a2: { limpo: { "2": "nok" } },
+    }, ["a1", "a2"]);
+    expect(n.a1.limpo["1"]).toBe("ok");
+    expect(n.a2.limpo["2"]).toBe("nok");
+  });
+
+  test("normalizeMultiAssetResponsible converte legado", () => {
+    expect(isLegacyResponsible({ "1": "João" })).toBe(true);
+    const n = normalizeMultiAssetResponsible({ "1": "João" }, []);
+    expect(n[LEGACY_ASSET_KEY]["1"]).toBe("João");
   });
 
   test("verificationValueMode", () => {

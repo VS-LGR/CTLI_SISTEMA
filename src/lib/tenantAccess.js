@@ -47,8 +47,6 @@ export const CLIENT_PORTAL_CADASTRO_SECTIONS = new Set([
   "pesos",
   "balancas",
   "thermo",
-  "computadores",
-  "veiculos",
   "tecnicos",
   "clientes",
 ]);

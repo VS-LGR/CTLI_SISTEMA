@@ -10,9 +10,10 @@ import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 import { LISTA_MESTRA_PATH, RE_71A_CONFIG_PATH, RE_72A_CONFIG_PATH } from "./masterDocuments/masterDocumentRoutes";
 import { DEVICE_SHEET_LIST_PATH } from "./deviceTechnicalSheetRoutes";
 import { EQUIPMENT_VERIFICATION_LIST_PATH } from "./equipmentVerificationRoutes";
+import { cadastroSectionPath } from "./cadastroSections";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
-import { canAccessRequirement, canAccessRequirementFolder } from "./tenantAccess";
-import { isCtliAdmin } from "./roles";
+import { canAccessRequirement, canAccessRequirementFolder, canAccessCadastroSection } from "./tenantAccess";
+import { canManageTechnicians, isCtliAdmin } from "./roles";
 
 export const REQ_NAMES = {
   "4": "Requisitos Gerais",
@@ -53,6 +54,21 @@ const FOLDERS = {
           to: PERSONNEL_LISTAS_PATH,
           requiresPersonnelStandardOptions: true,
         },
+        {
+          key: "cad-colaboradores",
+          label: "Colaboradores — 6.2",
+          to: cadastroSectionPath("colaboradores"),
+          cadastroSectionId: "colaboradores",
+          kind: "cadastro",
+        },
+        {
+          key: "cad-tecnicos",
+          label: "Técnicos de campo — 6.2",
+          to: cadastroSectionPath("tecnicos"),
+          cadastroSectionId: "tecnicos",
+          requiresTechnicians: true,
+          kind: "cadastro",
+        },
       ],
     },
     { folderKey: "pr-6-4", label: "PR-6.4 Equipamentos",
@@ -61,6 +77,27 @@ const FOLDERS = {
           key: "fichas",
           label: "Ficha Técnica (RE-6.4B)",
           to: DEVICE_SHEET_LIST_PATH,
+        },
+        {
+          key: "cad-cert-peso",
+          label: "Certificados — 6.4",
+          to: cadastroSectionPath("cert-peso"),
+          cadastroSectionId: "cert-peso",
+          kind: "cadastro",
+        },
+        {
+          key: "cad-pesos",
+          label: "Peso Padrão — 6.4",
+          to: cadastroSectionPath("pesos"),
+          cadastroSectionId: "pesos",
+          kind: "cadastro",
+        },
+        {
+          key: "cad-thermo",
+          label: "Termobarohigrômetro — 6.4",
+          to: cadastroSectionPath("thermo"),
+          cadastroSectionId: "thermo",
+          kind: "cadastro",
         },
       ],
     },
@@ -75,7 +112,17 @@ const FOLDERS = {
       ],
     },
     { folderKey: "pr-6-5", label: "PR-6.5 Rastreabilidade Metrológica" },
-    { folderKey: "pr-6-6", label: "PR-6.6 Produtos e Serviços Providos Externamente" },
+    { folderKey: "pr-6-6", label: "PR-6.6 Produtos e Serviços Providos Externamente",
+      children: [
+        {
+          key: "cad-fornecedores",
+          label: "Fornecedores — 6.6",
+          to: cadastroSectionPath("fornecedores"),
+          cadastroSectionId: "fornecedores",
+          kind: "cadastro",
+        },
+      ],
+    },
   ],
   "7": [
     { folderKey: "pr-7-1", label: "PR-7.1 Análise Crítica de Pedidos, Propostas e Contratos",
@@ -85,6 +132,20 @@ const FOLDERS = {
           label: "Propostas Comerciais (RE-7.1A)",
           to: PROPOSAL_LIST_PATH,
           requiresCommercialProposals: true,
+        },
+        {
+          key: "cad-clientes",
+          label: "Clientes — 7.1",
+          to: cadastroSectionPath("clientes"),
+          cadastroSectionId: "clientes",
+          kind: "cadastro",
+        },
+        {
+          key: "cad-balancas",
+          label: "Balanças — 7.1",
+          to: cadastroSectionPath("balancas"),
+          cadastroSectionId: "balancas",
+          kind: "cadastro",
         },
       ],
     },
@@ -171,8 +232,19 @@ export function getVisibleReqMenuItems(tenant = null, role = null) {
   return REQ_MENU_ITEMS.filter((r) => canAccessRequirement({ tenant, role, requirementId: r.id }));
 }
 
-/** Atalhos opcionais sob uma pasta (ex.: coleta em PR-7.2, listas em PR-6.2). */
-export function getFolderNavChildren(folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false, canCommercialProposals = false, canCtliAdmin = false } = {}) {
+/** Atalhos operacionais dentro da pasta (ex.: coleta, certificados, fichas, cadastros). */
+export function getFolderNavChildren(folder, {
+  canColeta = false,
+  canPersonnelStandardOptions = false,
+  canMasterDocuments = false,
+  canCalibrationCertificates = false,
+  canCommercialProposals = false,
+  canCtliAdmin = false,
+  canTechnicians = false,
+  tenant = null,
+  role = null,
+  user = null,
+} = {}) {
   const list = folder?.children || [];
   return list.filter((c) => {
     if (c.requiresCtliAdmin && !canCtliAdmin) return false;
@@ -181,11 +253,15 @@ export function getFolderNavChildren(folder, { canColeta = false, canPersonnelSt
     if (c.requiresPersonnelStandardOptions && !canPersonnelStandardOptions) return false;
     if (c.requiresMasterDocuments && !canMasterDocuments) return false;
     if (c.requiresCommercialProposals && !canCommercialProposals) return false;
+    if (c.requiresTechnicians && !canTechnicians) return false;
+    if (c.cadastroSectionId && tenant && role) {
+      return canAccessCadastroSection({ tenant, role, sectionId: c.cadastroSectionId, user });
+    }
     return true;
   });
 }
 
-/** Itens de sidebar: secções da pasta (Procedimentos, Registros, …) + extras configurados. */
+/** Secções documentais (Procedimentos, Registros, …) — usadas nas abas da página do PR, não no menu lateral. */
 export function buildFolderSidebarNav(requirementId, folder, { canColeta = false, canPersonnelStandardOptions = false, canMasterDocuments = false, canCalibrationCertificates = false, canCommercialProposals = false, canCtliAdmin = false } = {}) {
   const rid = String(requirementId);
   const fk = folder?.folderKey;

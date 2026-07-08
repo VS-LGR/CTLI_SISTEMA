@@ -15,6 +15,7 @@ import {
   listEquipmentVerifications,
   createEquipmentVerification,
   deleteEquipmentVerification,
+  getEquipmentVerification,
 } from "@/lib/equipmentVerifications/equipmentVerificationsApi";
 import { downloadEquipmentVerificationPdf } from "@/lib/equipmentVerifications/downloadEquipmentVerificationPdf";
 import {
@@ -84,7 +85,8 @@ export default function EquipmentVerificationListPage() {
 
   const handlePdf = async (row) => {
     try {
-      await downloadEquipmentVerificationPdf(row, {
+      const full = await getEquipmentVerification(row.id, currentTenantId);
+      await downloadEquipmentVerificationPdf(full, {
         tenantId: currentTenantId,
         tenantName: currentTenant?.name || "",
         tenant: currentTenant,
@@ -108,7 +110,7 @@ export default function EquipmentVerificationListPage() {
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4.12 · RE-6.4.12B</div>
           <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Verificação de Equipamentos</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Checklists anuais (Pesos, Thermo, Computadores e Veículos).
+            Checklists anuais por tipo. Vincule vários equipamentos em cada verificação.
           </p>
         </div>
         <Button type="button" onClick={() => setCreateOpen(true)}>
@@ -142,6 +144,7 @@ export default function EquipmentVerificationListPage() {
               <tr>
                 <th className="p-3">Tipo</th>
                 <th className="p-3">Ano</th>
+                <th className="p-3">Equipamentos</th>
                 <th className="p-3">Emissão</th>
                 <th className="p-3">Aprovado por</th>
                 <th className="p-3">Ações</th>
@@ -149,13 +152,14 @@ export default function EquipmentVerificationListPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-slate-500">A carregar…</td></tr>
               ) : !rows.length ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-500">Nenhuma verificação registada.</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-slate-500">Nenhuma verificação registada.</td></tr>
               ) : rows.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
                   <td className="p-3 font-medium">{equipmentKindLabel(r.equipment_kind)}</td>
                   <td className="p-3">{r.year}</td>
+                  <td className="p-3">{(r.linked_asset_ids || []).length || "—"}</td>
                   <td className="p-3">{fmtDmyShort(r.issue_date)}</td>
                   <td className="p-3">{r.issued_approved_by || "—"}</td>
                   <td className="p-3 whitespace-nowrap">

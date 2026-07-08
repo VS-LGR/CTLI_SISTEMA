@@ -4,7 +4,7 @@ import {
   canAccessPersonnel,
   canAccessCalibrationCertificates,
 } from "@/lib/roles";
-import { getVisibleCadastroSections } from "@/lib/cadastroSections";
+import { getVisibleCadastroSections, cadastroSectionPath } from "@/lib/cadastroSections";
 import { isFieldTechnicianRole } from "@/lib/roles";
 import { canAccessModule } from "@/lib/tenantAccess";
 import { usesClientSidebarNav } from "@/lib/roleNav";
@@ -53,7 +53,7 @@ export const HERO_SHORTCUTS = [
   {
     id: "cert-peso",
     label: "Emissão de Certificado de Calibração Peso Padrão",
-    to: "/cadastros/cert-peso",
+    to: cadastroSectionPath("cert-peso"),
     bgClass: "bg-[#3B82F6] hover:bg-[#2563eb]",
     icon: Certificate,
     cadastroSectionId: "cert-peso",
@@ -71,7 +71,7 @@ export const HERO_SHORTCUTS = [
   {
     id: "cad-pesos",
     label: "Cadastro Peso Padrão",
-    to: "/cadastros/pesos",
+    to: cadastroSectionPath("pesos"),
     bgClass: "bg-[#64748B] hover:bg-[#556275]",
     icon: Cube,
     cadastroSectionId: "pesos",
@@ -80,7 +80,7 @@ export const HERO_SHORTCUTS = [
   {
     id: "cad-balancas",
     label: "Cadastro Balanças",
-    to: "/cadastros/balancas",
+    to: cadastroSectionPath("balancas"),
     bgClass: "bg-[#1D4ED8] hover:bg-[#1e40af]",
     icon: Scales,
     cadastroSectionId: "balancas",
@@ -89,7 +89,7 @@ export const HERO_SHORTCUTS = [
   {
     id: "cad-thermo",
     label: "Cadastro Termo-Baro-Higrômetro",
-    to: "/cadastros/thermo",
+    to: cadastroSectionPath("thermo"),
     bgClass: "bg-[#0D9488] hover:bg-[#0f766e]",
     icon: Thermometer,
     cadastroSectionId: "thermo",

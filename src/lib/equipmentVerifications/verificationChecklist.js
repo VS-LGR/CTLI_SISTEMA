@@ -97,6 +97,18 @@ export function emptyVerificationResponses(kind) {
   return out;
 }
 
+/** Chave sintética para registos antigos sem equipamentos vinculados. */
+export const LEGACY_ASSET_KEY = "__legacy__";
+
+export function isLegacyResponses(responses = {}, kind) {
+  const checklistKeys = new Set(getVerificationChecklist(kind).map((i) => i.key));
+  return Object.keys(responses || {}).some((k) => checklistKeys.has(k));
+}
+
+export function isLegacyResponsible(responsible = {}) {
+  return MONTH_KEYS.some((m) => typeof responsible?.[m] === "string");
+}
+
 export function normalizeVerificationResponses(kind, responses = {}) {
   const base = emptyVerificationResponses(kind);
   for (const item of getVerificationChecklist(kind)) {
@@ -106,4 +118,77 @@ export function normalizeVerificationResponses(kind, responses = {}) {
     }
   }
   return base;
+}
+
+/** Normaliza respostas por equipamento (suporta formato legado). */
+export function normalizeMultiAssetResponses(kind, responses = {}, linkedAssetIds = []) {
+  if (isLegacyResponses(responses, kind)) {
+    const key = linkedAssetIds[0] || LEGACY_ASSET_KEY;
+    return { [key]: normalizeVerificationResponses(kind, responses) };
+  }
+  const out = {};
+  const ids = linkedAssetIds.length
+    ? linkedAssetIds
+    : Object.keys(responses || {}).filter((k) => k !== LEGACY_ASSET_KEY);
+  for (const assetId of ids) {
+    out[assetId] = normalizeVerificationResponses(kind, responses?.[assetId] || {});
+  }
+  return out;
+}
+
+/** Normaliza responsável por mês por equipamento (suporta formato legado). */
+export function normalizeMultiAssetResponsible(responsible = {}, linkedAssetIds = [], legacyAssetKey = LEGACY_ASSET_KEY) {
+  if (isLegacyResponsible(responsible)) {
+    const key = linkedAssetIds[0] || legacyAssetKey;
+    return { [key]: { ...responsible } };
+  }
+  const out = {};
+  const ids = linkedAssetIds.length
+    ? linkedAssetIds
+    : Object.keys(responsible || {});
+  for (const assetId of ids) {
+    const src = responsible?.[assetId] || {};
+    out[assetId] = Object.fromEntries(MONTH_KEYS.map((m) => [m, src[m] || ""]));
+  }
+  return out;
+}
+
+export function emptyMultiAssetResponses(kind, assetIds = []) {
+  return Object.fromEntries(
+    assetIds.map((id) => [id, emptyVerificationResponses(kind)]),
+  );
+}
+
+export function assetKindUsesInlineCadastro(kind) {
+  return kind === "computador" || kind === "veiculo";
+}
+
+export function assetKindUsesCadastroLink(kind) {
+  return kind === "pesos" || kind === "thermo";
+}
+
+export function assetTableForKind(kind) {
+  switch (kind) {
+    case "pesos": return "standard_weight_items";
+    case "thermo": return "environment_sensor_certificates";
+    case "computador": return "equipment_computers";
+    case "veiculo": return "equipment_vehicles";
+    default: return null;
+  }
+}
+
+export function formatAssetLabel(asset, kind) {
+  if (!asset) return "—";
+  if (kind === "pesos") {
+    const nom = asset.identification || asset.nominal_value || "";
+    const unit = asset.unit ? ` ${asset.unit}` : "";
+    return nom ? `${nom}${unit}` : asset.id?.slice(0, 8) || "—";
+  }
+  if (kind === "thermo") {
+    return asset.equipment_name || asset.certificate_number || "—";
+  }
+  if (kind === "veiculo") {
+    return [asset.identification, asset.plate].filter(Boolean).join(" · ") || "—";
+  }
+  return asset.identification || asset.brand || "—";
 }

@@ -10,9 +10,13 @@ import {
   MONTH_KEYS,
   MONTH_LABELS,
   equipmentKindLabel,
+  formatAssetLabel,
   formatVerificationValue,
   getVerificationChecklist,
-  normalizeVerificationResponses,
+  isLegacyResponses,
+  LEGACY_ASSET_KEY,
+  normalizeMultiAssetResponses,
+  normalizeMultiAssetResponsible,
 } from "./verificationChecklist";
 
 const TABLE_STYLES = {
@@ -20,6 +24,43 @@ const TABLE_STYLES = {
   fontSize: 7,
   textColor: TEXT,
 };
+
+function drawAssetChecklistTable(doc, {
+  kind,
+  assetLabel,
+  responses,
+  responsible,
+  startY,
+}) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT);
+  doc.text(assetLabel, ML, startY);
+  startY += 4;
+
+  const checklist = getVerificationChecklist(kind);
+  const headMonths = MONTH_LABELS.map((m) => m.slice(0, 3));
+  const body = checklist.map((item) => [
+    item.label,
+    ...MONTH_KEYS.map((m) => formatVerificationValue(kind, responses[item.key]?.[m])),
+  ]);
+  const respRow = [
+    "Responsável",
+    ...MONTH_KEYS.map((m) => responsible[m] || ""),
+  ];
+
+  autoTable(doc, {
+    startY,
+    margin: { left: ML, right: 10 },
+    head: [["Itens a serem verificados", ...headMonths]],
+    body: [...body, respRow],
+    styles: TABLE_STYLES,
+    headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold", fontSize: 6.5 },
+    columnStyles: { 0: { cellWidth: 55 } },
+  });
+
+  return (doc.lastAutoTable?.finalY || startY) + 8;
+}
 
 export async function downloadEquipmentVerificationPdf(record, {
   tenantId = null,
@@ -30,9 +71,16 @@ export async function downloadEquipmentVerificationPdf(record, {
   const kind = record.equipment_kind;
   const year = record.year;
   const kindLabel = equipmentKindLabel(kind);
-  const responses = normalizeVerificationResponses(kind, record.responses);
-  const checklist = getVerificationChecklist(kind);
-  const responsible = record.responsible_by_month || {};
+  const assets = record.assets || [];
+  const linkedIds = assets.map((a) => a.id).length
+    ? assets.map((a) => a.id)
+    : (record.linked_asset_ids || []);
+
+  const responsesByAsset = normalizeMultiAssetResponses(kind, record.responses, linkedIds);
+  const responsibleByAsset = normalizeMultiAssetResponsible(
+    record.responsible_by_month || {},
+    linkedIds,
+  );
 
   const { meta, fileName } = await prepareMasterDocumentExport({
     tenantId,
@@ -67,28 +115,38 @@ export async function downloadEquipmentVerificationPdf(record, {
   );
   startY += 8;
 
-  const headMonths = MONTH_LABELS.map((m) => m.slice(0, 3));
-  const body = checklist.map((item) => [
-    item.label,
-    ...MONTH_KEYS.map((m) => formatVerificationValue(kind, responses[item.key]?.[m])),
-  ]);
+  if (assets.length) {
+    for (const asset of assets) {
+      const assetLabel = formatAssetLabel(asset, kind);
+      const pageH = doc.internal.pageSize.getHeight();
+      if (startY > pageH - 60) {
+        doc.addPage();
+        startY = drawInstitutionalPdfHeader(doc, header, logoDataUrl) + 8;
+      }
+      startY = drawAssetChecklistTable(doc, {
+        kind,
+        assetLabel,
+        responses: responsesByAsset[asset.id] || {},
+        responsible: responsibleByAsset[asset.id] || {},
+        startY,
+      });
+    }
+  } else if (isLegacyResponses(record.responses, kind)) {
+    startY = drawAssetChecklistTable(doc, {
+      kind,
+      assetLabel: kindLabel,
+      responses: responsesByAsset[LEGACY_ASSET_KEY] || record.responses,
+      responsible: responsibleByAsset[LEGACY_ASSET_KEY] || record.responsible_by_month || {},
+      startY,
+    });
+  }
 
-  const respRow = [
-    "Responsável",
-    ...MONTH_KEYS.map((m) => responsible[m] || ""),
-  ];
-
-  autoTable(doc, {
-    startY,
-    margin: { left: ML, right: 10 },
-    head: [["Itens a serem verificados", ...headMonths]],
-    body: [...body, respRow],
-    styles: TABLE_STYLES,
-    headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold", fontSize: 6.5 },
-    columnStyles: { 0: { cellWidth: 55 } },
-  });
-
-  let y = (doc.lastAutoTable?.finalY || startY) + 10;
+  let y = (doc.lastAutoTable?.finalY || startY) + 6;
+  const pageH = doc.internal.pageSize.getHeight();
+  if (y > pageH - 30) {
+    doc.addPage();
+    y = drawInstitutionalPdfHeader(doc, header, logoDataUrl) + 12;
+  }
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...TEXT);

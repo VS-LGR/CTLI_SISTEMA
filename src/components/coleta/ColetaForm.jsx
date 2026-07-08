@@ -212,7 +212,7 @@ export default function ColetaForm({
           <p className="text-sm text-slate-600">
             Nenhum cliente cadastrado.{" "}
             <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
-              Cadastros → Clientes
+              PR-7.1 → Clientes
             </Link>
           </p>
         ) : (

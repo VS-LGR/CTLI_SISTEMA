@@ -68,7 +68,7 @@ export default function CertificateBalanceSection({
           </Select>
           {!scales.length && (
             <p className="text-xs text-amber-700 mt-1">
-              Cadastre balanças em Cadastros → Balanças para selecionar aqui.
+              Cadastre balanças em PR-7.1 → Balanças para selecionar aqui.
             </p>
           )}
         </div>

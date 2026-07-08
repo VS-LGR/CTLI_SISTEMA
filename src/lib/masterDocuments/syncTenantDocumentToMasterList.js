@@ -154,3 +154,18 @@ export async function syncOnTenantDocumentUpdate(tenantDoc, previousDoc = null) 
     return null;
   }
 }
+
+export async function syncOnTenantDocumentDelete(tenantDoc) {
+  if (!isSupabaseAuthMode || !tenantDoc?.tenant_id) return null;
+  const { removeMasterDocumentIfOrphaned } = await import("./masterDocumentDeletion");
+  const masterId = tenantDoc.master_document_id;
+  if (masterId) {
+    return removeMasterDocumentIfOrphaned(tenantDoc.tenant_id, masterId, { source: "sgq_delete" });
+  }
+  if (!shouldSyncTenantDocumentToMasterList(tenantDoc)) return null;
+  const code = resolveDocumentCode(tenantDoc);
+  if (!code) return null;
+  const masterDoc = await findMasterDocumentByCode(tenantDoc.tenant_id, code);
+  if (!masterDoc?.id) return null;
+  return removeMasterDocumentIfOrphaned(tenantDoc.tenant_id, masterDoc.id, { source: "sgq_delete" });
+}

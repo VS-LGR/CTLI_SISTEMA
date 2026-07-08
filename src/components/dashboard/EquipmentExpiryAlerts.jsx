@@ -5,6 +5,7 @@ import { Warning, CalendarBlank } from "@phosphor-icons/react";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import { expandDisplayLabel } from "@/lib/metrologyDisplayLabels";
+import { cadastroSectionPath } from "@/lib/cadastroSections";
 
 const STATUS_LABELS = {
   expired: "Vencido",
@@ -114,10 +115,10 @@ export default function EquipmentExpiryAlerts({ alerts = [], loading = false }) 
           </div>
         )}
         <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          <Link to="/cadastros/cert-peso" className="text-blue-600 hover:underline">
+          <Link to={cadastroSectionPath("cert-peso")} className="text-blue-600 hover:underline">
             Certificados de peso padrão
           </Link>
-          <Link to="/cadastros/thermo" className="text-blue-600 hover:underline">
+          <Link to={cadastroSectionPath("thermo")} className="text-blue-600 hover:underline">
             Termo-baro-higrômetro
           </Link>
         </div>

@@ -8,7 +8,9 @@ import {
   getFirstFolderKey,
   isValidFolderKey,
   getFolderLabel,
+  getFoldersForRequirement,
 } from "@/lib/requirementNavConfig";
+import RequirementFolderShortcuts from "@/components/requirements/RequirementFolderShortcuts";
 import {
   getFolderDocumentMode,
   getVisibleSections,
@@ -55,6 +57,8 @@ import { PERSONNEL_REQ_ID, PERSONNEL_FOLDER_KEY } from "@/lib/personnelRegistros
 import { canAccessColeta, canAccessPersonnel, canAccessMasterDocuments } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
+import PermanentDeleteDialog from "@/components/ui/PermanentDeleteDialog";
+import { shouldSyncTenantDocumentToMasterList } from "@/lib/masterDocuments/syncTenantDocumentToMasterList";
 import AssinaturasSection from "@/components/documents/AssinaturasSection";
 import { findMasterDocumentByCode } from "@/lib/masterDocuments/masterDocumentsApi";
 import { inferProcedureCodeFromFolder } from "@/lib/masterDocuments/masterDocumentRoutes";
@@ -263,6 +267,35 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
   );
 };
 
+function DocDeleteDialogs({ doc, deleteOpen, setDeleteOpen, remove, busy }) {
+  const label = doc.title || doc.code || "documento";
+  const synced = shouldSyncTenantDocumentToMasterList(doc);
+
+  if (synced) {
+    return (
+      <PermanentDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Remover documento permanentemente?"
+        entityLabel={label}
+        busy={busy}
+        onConfirm={remove}
+        description={(
+          <p>
+            O documento <strong>{label}</strong> será excluído dos requisitos SGQ e removido da Lista Mestra
+            (se não houver outros ficheiros vinculados). O registo da exclusão será guardado no histórico.
+            Esta ação <strong>não pode ser desfeita</strong>.
+          </p>
+        )}
+      />
+    );
+  }
+
+  return (
+    <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} onConfirm={remove} busy={busy} />
+  );
+}
+
 const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -344,7 +377,11 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
     setBusy(true);
     try {
       await deleteDocument(doc.id);
-      toast.success("Excluído");
+      toast.success(
+        shouldSyncTenantDocumentToMasterList(doc)
+          ? "Excluído dos requisitos e da Lista Mestra"
+          : "Excluído",
+      );
       setDeleteOpen(false);
       onDelete?.(doc.id);
     } catch {
@@ -414,7 +451,13 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
           <Button variant="ghost" size="sm" className="text-red-600" onClick={() => setDeleteOpen(true)} title="Excluir"><Trash size={16} /></Button>
         </div>
       </td>
-      <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} onConfirm={remove} busy={busy} />
+      <DocDeleteDialogs
+        doc={doc}
+        deleteOpen={deleteOpen}
+        setDeleteOpen={setDeleteOpen}
+        remove={remove}
+        busy={busy}
+      />
     </tr>
   );
 };
@@ -516,6 +559,9 @@ const RequirementView = () => {
   }
 
   const folderLabel = folderKey ? getFolderLabel(id, folderKey, currentTenant, user?.role) : null;
+  const folderMeta = folderKey
+    ? getFoldersForRequirement(id, currentTenant, user?.role).find((f) => f.folderKey === folderKey)
+    : null;
   const reqTitle = REQ_NAMES[String(id)];
   const isColetaRegistro =
     String(id) === COLETA_REQ_ID && folderKey === COLETA_FOLDER_KEY && section === "registro" && canAccessColeta(user?.role);
@@ -563,6 +609,16 @@ const RequirementView = () => {
         {folderLabel && <p className="text-sm text-slate-700 mt-1 font-medium">{folderLabel}</p>}
         <p className="text-sm text-slate-600 mt-1">Ambiente: <span className="font-medium">{currentTenant?.name}</span></p>
       </div>
+
+      {folderMeta && (
+        <RequirementFolderShortcuts
+          requirementId={id}
+          folder={folderMeta}
+          role={user?.role}
+          tenant={currentTenant}
+          user={user}
+        />
+      )}
 
       {!isColetaRegistro && !isPersonnelRegistro && !moduleTab && (
         <div className="relative max-w-md">

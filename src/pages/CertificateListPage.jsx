@@ -397,7 +397,7 @@ export default function CertificateListPage() {
     const customer = endCustomers.find((c) => c.id === downloadClientId);
     if (!customer) return toast.error("Cliente não encontrado");
     if (!customer.email) {
-      return toast.error("Cliente sem e-mail cadastrado. Atualize em Cadastros → Clientes.");
+      return toast.error("Cliente sem e-mail cadastrado. Atualize em PR-7.1 → Clientes.");
     }
 
     setBatchBusy(true);

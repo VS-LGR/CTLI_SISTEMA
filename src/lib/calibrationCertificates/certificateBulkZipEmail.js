@@ -17,7 +17,7 @@ export function resolveBatchRecipientEmail(certs = [], endCustomers = []) {
     const { email } = resolveClientEmail(cert, endCustomers);
     if (!email || !isValidEmail(email)) {
       throw new Error(
-        `E-mail do cliente não cadastrado para ${cert.client_name || cert.certificate_number || cert.id}. Atualize em Cadastros → Clientes.`,
+        `E-mail do cliente não cadastrado para ${cert.client_name || cert.certificate_number || cert.id}. Atualize em PR-7.1 → Clientes.`,
       );
     }
     emails.push(email.trim().toLowerCase());

@@ -155,7 +155,7 @@ export default function PurchaseOrderInspectionForm({
             <Label>Responsável pela inspeção</Label>
             {employees.length === 0 ? (
               <p className="text-xs text-slate-500 mt-1">
-                Cadastre colaboradores em Cadastros para selecionar o responsável.
+                Cadastre colaboradores em PR-6.2 → Colaboradores para selecionar o responsável.
               </p>
             ) : (
               <select

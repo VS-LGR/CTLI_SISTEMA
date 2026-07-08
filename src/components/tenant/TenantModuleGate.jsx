@@ -40,7 +40,7 @@ export function RequirementAccessGate({ children }) {
   return children;
 }
 
-/** Gate para secções /cadastros/:section */
+/** Gate para secções de cadastro em /requirement/:id/:folderKey/cadastro/:section */
 export function CadastroSectionGate({ children, sectionId }) {
   const { user } = useAuth();
   const { currentTenant } = useOutletContext() || {};

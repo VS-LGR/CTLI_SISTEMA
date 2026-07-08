@@ -244,7 +244,7 @@ function PointTabContent({
                   compact
                   itemKind="load_batches"
                   singleSelect
-                  emptyMessage="Cadastre lotes de carga em Cadastros → Pesos padrão."
+                  emptyMessage="Cadastre lotes de carga em PR-6.4 → Peso Padrão."
                 />
               </div>
               <div>

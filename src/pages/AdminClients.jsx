@@ -20,6 +20,7 @@ import {
   DEFAULT_COLETA_FORM_REVISION,
 } from "@/lib/coletaDocMeta";
 import { invokeSupabaseEdgeFunction, toastSupabaseAccessError } from "@/lib/supabaseFunctions";
+import TenantUsersPanel from "@/components/cadastros/TenantUsersPanel";
 
 const isDocumentResponsibleRole = (role) =>
   RESPONSIBLE_ROLES.some((r) => r.value === role);
@@ -48,6 +49,7 @@ const AdminClients = () => {
   const [resps, setResps] = useState({});
   const [openTenant, setOpenTenant] = useState(false);
   const [openUser, setOpenUser] = useState(false);
+  const [portalUsersTenantId, setPortalUsersTenantId] = useState(null);
 
   const [editingTenantId, setEditingTenantId] = useState(null);
   const [editingUserId, setEditingUserId] = useState(null);
@@ -669,7 +671,7 @@ const AdminClients = () => {
                     )}
                     {uTenant && tenantSignatories.length === 0 && (
                       <p className="text-xs text-amber-700 mt-1">
-                        Cadastre um colaborador com função Signatário em Cadastros.
+                        Cadastre um colaborador com função Signatário em PR-6.2 → Colaboradores.
                       </p>
                     )}
                   </div>
@@ -1012,20 +1014,31 @@ const AdminClients = () => {
                 </TabsContent>
               </Tabs>
 
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-2 mt-4 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1"
+                  className="flex-1 min-w-[8rem]"
                   onClick={() => openCreatePerson(t.id)}
                   data-testid={`add-person-${t.id}`}
                 >
                   <UserPlus size={14} className="mr-1" /> Novo usuário
                 </Button>
+                {isSupabaseAuthMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 min-w-[8rem]"
+                    onClick={() => setPortalUsersTenantId(t.id)}
+                    data-testid={`portal-users-${t.id}`}
+                  >
+                    <Users size={14} className="mr-1" /> Portal
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1"
+                  className="flex-1 min-w-[8rem]"
                   onClick={() => (requestAdminTenantSwitch || selectTenant)(t.id)}
                   data-testid={`enter-tenant-${t.id}`}
                 >
@@ -1036,6 +1049,19 @@ const AdminClients = () => {
           </Card>
         ))}
       </div>
+
+      <Dialog open={Boolean(portalUsersTenantId)} onOpenChange={(o) => { if (!o) setPortalUsersTenantId(null); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Usuários do ambiente — {tenants.find((t) => t.id === portalUsersTenantId)?.name || ""}
+            </DialogTitle>
+          </DialogHeader>
+          {portalUsersTenantId && (
+            <TenantUsersPanel tenantId={portalUsersTenantId} isAdmin={isAdmin} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

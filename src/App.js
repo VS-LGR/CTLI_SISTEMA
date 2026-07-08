@@ -19,6 +19,7 @@ import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH, RE_71A_CONFIG_PATH, RE_72A_
 import { DEVICE_SHEET_LIST_PATH } from "@/lib/deviceTechnicalSheetRoutes";
 import { EQUIPMENT_VERIFICATION_LIST_PATH } from "@/lib/equipmentVerificationRoutes";
 import TenantModuleGate, { RequirementAccessGate, CadastroSectionGate } from "@/components/tenant/TenantModuleGate";
+import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import "@/App.css";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -59,6 +60,24 @@ const ColetaLegacyRedirect = () => {
   const { id } = useParams();
   if (id === "nova") return <Navigate to={COLETA_NEW_PATH} replace />;
   return <Navigate to={coletaEditorPath(id)} replace />;
+};
+
+const CadastrosRootRedirect = () => {
+  const { user } = useAuth();
+  const { currentTenant } = useOutletContext() || {};
+  const sections = getVisibleCadastroSections(user?.role, currentTenant, user);
+  const target = sections[0]?.id
+    ? cadastroSectionPath(sections[0].id)
+    : cadastroSectionPath("fornecedores");
+  return <Navigate to={target} replace />;
+};
+
+const CadastroLegacyRedirect = () => {
+  const { section } = useParams();
+  if (section === "usuarios") return <Navigate to="/admin/clients" replace />;
+  if (section === "config-coleta") return <Navigate to={RE_72A_CONFIG_PATH} replace />;
+  if (section === "config-proposta") return <Navigate to={RE_71A_CONFIG_PATH} replace />;
+  return <Navigate to={cadastroSectionPath(section)} replace />;
 };
 
 const Protected = ({ children, adminOnly = false, coletaOnly = false, certificatesOnly = false, purchaseOrdersOnly = false, quotationRequestsOnly = false, commercialProposalsOnly = false, personnelOnly = false, masterDocumentsOnly = false }) => {
@@ -296,6 +315,18 @@ const App = () => (
               )}
             />
             <Route
+              path="/requirement/:id/:folderKey/cadastro/:section"
+              element={(
+                <RequirementAccessGate>
+                  <CadastroSectionGate>
+                    <Suspense fallback={pageSuspenseFallback}>
+                      <CadastrosPage />
+                    </Suspense>
+                  </CadastroSectionGate>
+                </RequirementAccessGate>
+              )}
+            />
+            <Route
               path="/requirement/:id/:folderKey"
               element={(
                 <RequirementAccessGate>
@@ -335,19 +366,11 @@ const App = () => (
                 </TenantModuleGate>
               )}
             />
-            <Route path="/cadastros" element={<Navigate to="/cadastros/fornecedores" replace />} />
+            <Route path="/cadastros" element={<CadastrosRootRedirect />} />
             <Route path="/cadastros/config-coleta" element={<Navigate to={RE_72A_CONFIG_PATH} replace />} />
             <Route path="/cadastros/config-proposta" element={<Navigate to={RE_71A_CONFIG_PATH} replace />} />
-            <Route
-              path="/cadastros/:section"
-              element={(
-                <CadastroSectionGate>
-                  <Suspense fallback={pageSuspenseFallback}>
-                    <CadastrosPage />
-                  </Suspense>
-                </CadastroSectionGate>
-              )}
-            />
+            <Route path="/cadastros/usuarios" element={<Navigate to="/admin/clients" replace />} />
+            <Route path="/cadastros/:section" element={<CadastroLegacyRedirect />} />
             <Route path={PERSONNEL_BASE_PATH} element={<Navigate to={PERSONNEL_DASHBOARD_PATH} replace />} />
             <Route
               path={`${PERSONNEL_BASE_PATH}/:section`}

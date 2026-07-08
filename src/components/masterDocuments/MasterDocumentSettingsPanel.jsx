@@ -65,7 +65,10 @@ export default function MasterDocumentSettingsPanel({ tenantId, tenant }) {
       <Card>
         <CardHeader><CardTitle className="text-base">Catálogo padrão</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-slate-600">Importa procedimentos, registros e documentos externos conforme a Lista Mestra do SGQ.</p>
+          <p className="text-sm text-slate-600">
+            A Lista Mestra reflete os documentos existentes no sistema (criados nos requisitos ou manualmente).
+            O catálogo padrão é opcional e serve apenas como ponto de partida — entradas sem ficheiro real não aparecem na lista interna.
+          </p>
           <Button onClick={handleSeed} disabled={busy} variant="outline">Importar catálogo padrão</Button>
         </CardContent>
       </Card>

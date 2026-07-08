@@ -254,7 +254,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                 ))}
               </select>
               {!scales.length && (
-                <p className="text-xs text-amber-700 mt-1">Nenhuma balança cadastrada. Preencha os campos abaixo ou cadastre em Cadastros → Balanças.</p>
+                <p className="text-xs text-amber-700 mt-1">Nenhuma balança cadastrada. Preencha os campos abaixo ou cadastre em PR-7.1 → Balanças.</p>
               )}
             </div>
             <div><Label>Data calibração</Label><Input type="date" value={calibrationDate} onChange={(e) => setCalibrationDate(e.target.value)} className="mt-1" /></div>

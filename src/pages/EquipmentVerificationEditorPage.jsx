@@ -5,29 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, FilePdf } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
+  buildVerificationSavePayload,
   getEquipmentVerification,
+  LEGACY_ASSET_KEY,
   updateEquipmentVerification,
 } from "@/lib/equipmentVerifications/equipmentVerificationsApi";
 import { downloadEquipmentVerificationPdf } from "@/lib/equipmentVerifications/downloadEquipmentVerificationPdf";
 import {
-  MONTH_KEYS,
-  MONTH_LABELS,
   equipmentKindLabel,
-  getVerificationChecklist,
-  normalizeVerificationResponses,
-  verificationValueOptions,
+  emptyVerificationResponses,
+  isLegacyResponses,
+  MONTH_KEYS,
 } from "@/lib/equipmentVerifications/verificationChecklist";
 import { EQUIPMENT_VERIFICATION_LIST_PATH } from "@/lib/equipmentVerificationRoutes";
+import VerificationAssetLinker, {
+  initAssetResponseState,
+  initAssetResponsibleState,
+} from "@/components/equipmentVerifications/VerificationAssetLinker";
+import VerificationAssetChecklist from "@/components/equipmentVerifications/VerificationAssetChecklist";
 
 export default function EquipmentVerificationEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentTenantId, currentTenant } = useOutletContext();
   const [record, setRecord] = useState(null);
+  const [assets, setAssets] = useState([]);
   const [responses, setResponses] = useState({});
   const [responsible, setResponsible] = useState({});
   const [occurrences, setOccurrences] = useState("");
@@ -37,12 +42,13 @@ export default function EquipmentVerificationEditorPage() {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id || !isSupabaseAuthMode) return;
+    if (!id || !currentTenantId || !isSupabaseAuthMode) return;
     setLoading(true);
     try {
-      const data = await getEquipmentVerification(id);
+      const data = await getEquipmentVerification(id, currentTenantId);
       setRecord(data);
-      setResponses(normalizeVerificationResponses(data.equipment_kind, data.responses));
+      setAssets(data.assets || []);
+      setResponses(data.responses || {});
       setResponsible(data.responsible_by_month || {});
       setOccurrences(data.occurrences || "");
       setIssuedApprovedBy(data.issued_approved_by || "");
@@ -53,33 +59,80 @@ export default function EquipmentVerificationEditorPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, navigate]);
+  }, [id, currentTenantId, navigate]);
 
   useEffect(() => { load(); }, [load]);
 
-  const setCell = (itemKey, month, value) => {
+  const linkedAssetIds = assets.map((a) => a.id);
+
+  const handleAssetsChange = (nextAssets) => {
+    setAssets(nextAssets);
+    const nextIds = new Set(nextAssets.map((a) => a.id));
+    setResponses((prev) => {
+      const out = {};
+      for (const assetId of nextIds) {
+        out[assetId] = prev[assetId] || emptyVerificationResponses(record?.equipment_kind);
+      }
+      return out;
+    });
+    setResponsible((prev) => {
+      const out = {};
+      for (const assetId of nextIds) {
+        out[assetId] = prev[assetId] || Object.fromEntries(MONTH_KEYS.map((m) => [m, ""]));
+      }
+      return out;
+    });
+  };
+
+  const initAssetResponses = (assetId) => {
+    if (!record) return;
+    setResponses((prev) => initAssetResponseState(record.equipment_kind, assetId, prev));
+    setResponsible((prev) => initAssetResponsibleState(assetId, prev));
+  };
+
+  const setCell = (assetId, itemKey, month, value) => {
     setResponses((prev) => ({
       ...prev,
-      [itemKey]: { ...(prev[itemKey] || {}), [month]: value },
+      [assetId]: {
+        ...(prev[assetId] || emptyVerificationResponses(record?.equipment_kind)),
+        [itemKey]: { ...(prev[assetId]?.[itemKey] || {}), [month]: value },
+      },
     }));
   };
 
-  const setRespMonth = (month, value) => {
-    setResponsible((prev) => ({ ...prev, [month]: value }));
+  const setRespMonth = (assetId, month, value) => {
+    setResponsible((prev) => ({
+      ...prev,
+      [assetId]: { ...(prev[assetId] || {}), [month]: value },
+    }));
   };
 
   const save = async () => {
     if (!record) return;
+    const kind = record.equipment_kind;
+    const effectiveIds = linkedAssetIds;
+
+    if (!effectiveIds.length && !responses[LEGACY_ASSET_KEY]) {
+      return toast.error("Vincule ou adicione ao menos um equipamento");
+    }
+
     setSaving(true);
     try {
-      const updated = await updateEquipmentVerification(record.id, {
+      const payload = buildVerificationSavePayload({
+        equipmentKind: kind,
         responses,
-        responsible_by_month: responsible,
+        responsibleByMonth: responsible,
+        linkedAssetIds: effectiveIds,
         occurrences,
-        issued_approved_by: issuedApprovedBy,
-        issue_date: issueDate || null,
+        issuedApprovedBy,
+        issueDate: issueDate || null,
       });
-      setRecord(updated);
+      const updated = await updateEquipmentVerification(record.id, payload);
+      const reloaded = await getEquipmentVerification(updated.id, currentTenantId);
+      setRecord(reloaded);
+      setAssets(reloaded.assets || []);
+      setResponses(reloaded.responses || {});
+      setResponsible(reloaded.responsible_by_month || {});
       toast.success("Guardado");
     } catch (e) {
       toast.error(e.message);
@@ -94,6 +147,7 @@ export default function EquipmentVerificationEditorPage() {
       await downloadEquipmentVerificationPdf(
         {
           ...record,
+          assets,
           responses,
           responsible_by_month: responsible,
           occurrences,
@@ -119,8 +173,9 @@ export default function EquipmentVerificationEditorPage() {
   if (!record) return <Navigate to={EQUIPMENT_VERIFICATION_LIST_PATH} replace />;
 
   const kind = record.equipment_kind;
-  const checklist = getVerificationChecklist(kind);
-  const valueOpts = verificationValueOptions(kind);
+  const showLegacyChecklist = !assets.length && isLegacyResponses(record.responses, kind);
+  const legacyResponses = responses[LEGACY_ASSET_KEY] || responses;
+  const legacyResponsible = responsible[LEGACY_ASSET_KEY] || responsible;
 
   return (
     <div className="space-y-6 max-w-[1400px] w-full min-w-0" data-testid="equipment-verification-editor">
@@ -147,55 +202,57 @@ export default function EquipmentVerificationEditorPage() {
         </div>
       </div>
 
-      <Card className="border-slate-200 overflow-hidden">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Itens × meses</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-xs min-w-[1100px]">
-            <thead className="bg-slate-50 text-slate-600">
-              <tr>
-                <th className="p-2 text-left sticky left-0 bg-slate-50 min-w-[200px]">Item</th>
-                {MONTH_LABELS.map((m) => (
-                  <th key={m} className="p-2 text-center min-w-[72px]">{m.slice(0, 3)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {checklist.map((item) => (
-                <tr key={item.key} className="border-t border-slate-100">
-                  <td className="p-2 sticky left-0 bg-white font-medium text-slate-800">{item.label}</td>
-                  {MONTH_KEYS.map((m) => (
-                    <td key={m} className="p-1">
-                      <select
-                        className="w-full h-8 rounded border border-slate-200 bg-white px-1 text-xs"
-                        value={responses[item.key]?.[m] || ""}
-                        onChange={(e) => setCell(item.key, m, e.target.value)}
-                      >
-                        {valueOpts.map((o) => (
-                          <option key={o.value || "empty"} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              <tr className="border-t border-slate-200 bg-slate-50/80">
-                <td className="p-2 sticky left-0 bg-slate-50 font-medium">Responsável</td>
-                {MONTH_KEYS.map((m) => (
-                  <td key={m} className="p-1">
-                    <Input
-                      className="h-8 text-xs px-1"
-                      value={responsible[m] || ""}
-                      onChange={(e) => setRespMonth(m, e.target.value)}
-                    />
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
+      <VerificationAssetLinker
+        kind={kind}
+        tenantId={currentTenantId}
+        verificationId={record.id}
+        assets={assets}
+        onAssetsChange={handleAssetsChange}
+        onInitAssetResponses={initAssetResponses}
+        disabled={saving}
+      />
+
+      {assets.length > 0 ? (
+        <div className="space-y-4">
+          {assets.map((asset) => (
+            <VerificationAssetChecklist
+              key={asset.id}
+              kind={kind}
+              asset={asset}
+              responses={responses[asset.id] || {}}
+              responsible={responsible[asset.id] || {}}
+              onCellChange={(itemKey, month, value) => setCell(asset.id, itemKey, month, value)}
+              onResponsibleChange={(month, value) => setRespMonth(asset.id, month, value)}
+            />
+          ))}
+        </div>
+      ) : showLegacyChecklist ? (
+        <VerificationAssetChecklist
+          kind={kind}
+          asset={{ identification: "Geral" }}
+          responses={legacyResponses}
+          responsible={legacyResponsible}
+          onCellChange={(itemKey, month, value) => {
+            setResponses((prev) => ({
+              ...prev,
+              [LEGACY_ASSET_KEY]: {
+                ...(prev[LEGACY_ASSET_KEY] || emptyVerificationResponses(kind)),
+                [itemKey]: { ...(prev[LEGACY_ASSET_KEY]?.[itemKey] || {}), [month]: value },
+              },
+            }));
+          }}
+          onResponsibleChange={(month, value) => {
+            setResponsible((prev) => ({
+              ...prev,
+              [LEGACY_ASSET_KEY]: { ...(prev[LEGACY_ASSET_KEY] || {}), [month]: value },
+            }));
+          }}
+        />
+      ) : (
+        <p className="text-sm text-slate-500 rounded-lg border border-dashed border-slate-200 p-6 text-center">
+          Vincule ou adicione equipamentos acima para preencher os checklists mensais.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1 md:col-span-2">

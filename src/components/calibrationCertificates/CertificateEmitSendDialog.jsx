@@ -35,7 +35,7 @@ export default function CertificateEmitSendDialog({
               </span>
             ) : (
               <span className="block text-amber-800">
-                E-mail do cliente não cadastrado — atualize em Cadastros → Clientes antes de enviar.
+                E-mail do cliente não cadastrado — atualize em PR-7.1 → Clientes antes de enviar.
               </span>
             )}
           </DialogDescription>

@@ -1,16 +1,21 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link, useParams, useOutletContext } from "react-router-dom";
+import { Link, useParams, useOutletContext, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, PencilSimple } from "@phosphor-icons/react";
+import { ArrowLeft, PencilSimple, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   getMasterDocument,
   listDocumentRevisions,
   listDocumentDistributions,
 } from "@/lib/masterDocuments/masterDocumentsApi";
+import {
+  deleteMasterDocumentCascade,
+  listLinkedTenantDocuments,
+} from "@/lib/masterDocuments/masterDocumentDeletion";
+import PermanentDeleteDialog from "@/components/ui/PermanentDeleteDialog";
 import {
   typeLabel,
   statusLabel,
@@ -25,6 +30,7 @@ import CriticalAnalysisDialog from "@/components/masterDocuments/CriticalAnalysi
 
 export default function MasterDocumentDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { currentTenantId, currentTenant } = useOutletContext();
   const [doc, setDoc] = useState(null);
   const [revisions, setRevisions] = useState([]);
@@ -33,6 +39,9 @@ export default function MasterDocumentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLinked, setDeleteLinked] = useState([]);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!currentTenantId || !id) return;
@@ -59,6 +68,34 @@ export default function MasterDocumentDetailPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const openDelete = async () => {
+    if (!currentTenantId || !doc) return;
+    setDeleteOpen(true);
+    try {
+      const linked = await listLinkedTenantDocuments(currentTenantId, doc.id);
+      setDeleteLinked(linked);
+    } catch {
+      setDeleteLinked([]);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!currentTenantId || !doc) return;
+    setDeleteBusy(true);
+    try {
+      const result = await deleteMasterDocumentCascade(currentTenantId, doc.id, { source: "lista_mestra" });
+      toast.success(
+        result.removedTenantDocuments
+          ? `Documento removido (${result.removedTenantDocuments} ficheiro(s) SGQ também excluído(s))`
+          : "Documento removido",
+      );
+      navigate(masterDocumentListPath());
+    } catch (e) {
+      toast.error(e.message);
+      setDeleteBusy(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-slate-500">Carregando…</div>;
   if (!doc) return <div className="p-8 text-center text-slate-500">Documento não encontrado.</div>;
 
@@ -82,6 +119,9 @@ export default function MasterDocumentDetailPage() {
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setAnalysisOpen(true)}>Registrar análise crítica</Button>
           <Button variant="outline" onClick={() => setEditOpen(true)}><PencilSimple size={16} className="mr-1" /> Editar</Button>
+          <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={openDelete}>
+            <Trash size={16} className="mr-1" /> Excluir
+          </Button>
         </div>
       </div>
 
@@ -197,6 +237,23 @@ export default function MasterDocumentDetailPage() {
         tenantId={currentTenantId}
         document={doc}
         onSaved={() => { setEditOpen(false); load(); }}
+      />
+      <PermanentDeleteDialog
+        open={deleteOpen}
+        onOpenChange={(o) => { if (!o && !deleteBusy) setDeleteOpen(false); }}
+        title="Remover documento da Lista Mestra?"
+        entityLabel={`${doc.code} — ${doc.title}`}
+        busy={deleteBusy}
+        onConfirm={handlePermanentDelete}
+        description={(
+          <p>
+            Este documento será removido permanentemente da Lista Mestra
+            {deleteLinked.length > 0
+              ? ` e ${deleteLinked.length} ficheiro(s) vinculado(s) nos requisitos SGQ também serão excluído(s)`
+              : ""}.
+            O registo da exclusão será guardado no histórico.
+          </p>
+        )}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   syncOnTenantDocumentCreate,
   syncOnTenantDocumentUpdate,
+  syncOnTenantDocumentDelete,
 } from "@/lib/masterDocuments/syncTenantDocumentToMasterList";
 
 export const TENANT_DOCUMENTS_BUCKET = "tenant-documents";
@@ -154,13 +155,16 @@ async function updateDocumentSupabase(id, patch, userId) {
   return doc;
 }
 
-async function deleteDocumentSupabase(id) {
+async function deleteDocumentSupabase(id, { syncMasterList = true } = {}) {
   const doc = await getDocumentSupabase(id);
   if (doc.storage_path) {
     await supabase.storage.from(TENANT_DOCUMENTS_BUCKET).remove([doc.storage_path]);
   }
   const { error } = await supabase.from("tenant_documents").delete().eq("id", id);
   if (error) throw error;
+  if (syncMasterList) {
+    await syncOnTenantDocumentDelete(doc);
+  }
   return { ok: true };
 }
 
@@ -275,8 +279,8 @@ export async function updateDocument(id, patch, userId) {
   return updateDocumentApi(id, patch);
 }
 
-export async function deleteDocument(id) {
-  if (isSupabaseDocumentsEnabled()) return deleteDocumentSupabase(id);
+export async function deleteDocument(id, options) {
+  if (isSupabaseDocumentsEnabled()) return deleteDocumentSupabase(id, options);
   return deleteDocumentApi(id);
 }
 

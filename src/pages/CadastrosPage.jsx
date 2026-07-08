@@ -2,12 +2,15 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, Navigate, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
-import TenantUsersPanel from "@/components/cadastros/TenantUsersPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
 import ScaleRegistrationSection from "@/components/cadastros/ScaleRegistrationSection";
-import ComputerEquipmentSection from "@/components/cadastros/ComputerEquipmentSection";
-import VehicleEquipmentSection from "@/components/cadastros/VehicleEquipmentSection";
-import { cadastroSectionPath, getCadastroSectionLabel, getVisibleCadastroSections } from "@/lib/cadastroSections";
+import {
+  cadastroSectionPath,
+  getCadastroSectionLabel,
+  getCadastroSectionParent,
+  getVisibleCadastroSections,
+} from "@/lib/cadastroSections";
+import { buildRequirementListPath, getFolderLabel } from "@/lib/requirementNavConfig";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -84,7 +87,7 @@ async function removeStoragePath(path) {
 
 const CadastrosPage = () => {
   const { user } = useAuth();
-  const { section } = useParams();
+  const { id: reqId, folderKey, section } = useParams();
   const { currentTenantId, currentTenant, isAdmin, reloadTenants } = useOutletContext();
   const tenantName = currentTenant?.name || "";
   const [suppliers, setSuppliers] = useState([]);
@@ -95,8 +98,6 @@ const CadastrosPage = () => {
   const [weightItems, setWeightItems] = useState([]);
   const [scaleRegistrations, setScaleRegistrations] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
-  const [computers, setComputers] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
 
   const [yearWeight, setYearWeight] = useState("all");
   const [yearEnv, setYearEnv] = useState("all");
@@ -105,7 +106,7 @@ const CadastrosPage = () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
     const tid = currentTenantId;
     await ensureDefaultPositionsSeeded(tid).catch(() => {});
-    const [s, e, em, pos, w, wi, sr, v, pc, vh] = await Promise.all([
+    const [s, e, em, pos, w, wi, sr, v] = await Promise.all([
       supabase.from("supplier_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("end_customer_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("employee_registrations").select("*").eq("tenant_id", tid).order("full_name"),
@@ -114,8 +115,6 @@ const CadastrosPage = () => {
       supabase.from("standard_weight_items").select("*").eq("tenant_id", tid).eq("active", true).order("identification"),
       supabase.from("scale_registrations").select("*").eq("tenant_id", tid).eq("active", true).order("serial_number"),
       supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", tid).order("calibration_date", { ascending: false }),
-      supabase.from("equipment_computers").select("*").eq("tenant_id", tid).order("identification"),
-      supabase.from("equipment_vehicles").select("*").eq("tenant_id", tid).order("identification"),
     ]);
     if (s.error) toast.error(s.error.message);
     else setSuppliers(s.data || []);
@@ -133,10 +132,6 @@ const CadastrosPage = () => {
     else setScaleRegistrations(sr.data || []);
     if (v.error) toast.error(v.error.message);
     else setEnvCerts(v.data || []);
-    if (pc.error) toast.error(pc.error.message);
-    else setComputers(pc.data || []);
-    if (vh.error) toast.error(vh.error.message);
-    else setVehicles(vh.data || []);
   }, [currentTenantId]);
 
   useEffect(() => {
@@ -189,19 +184,31 @@ const CadastrosPage = () => {
     );
   }
 
-  const visibleSections = getVisibleCadastroSections(user?.role, currentTenant);
+  const visibleSections = getVisibleCadastroSections(user?.role, currentTenant, user);
   const defaultSectionId = visibleSections[0]?.id || "fornecedores";
   const activeSection = section || defaultSectionId;
   if (!section) return <Navigate to={cadastroSectionPath(defaultSectionId)} replace />;
   if (!visibleSections.some((s) => s.id === activeSection)) {
     return <Navigate to={cadastroSectionPath(visibleSections[0]?.id || defaultSectionId)} replace />;
   }
+
+  const sectionParent = getCadastroSectionParent(activeSection);
+  if (sectionParent && (String(sectionParent.reqId) !== String(reqId) || sectionParent.folderKey !== folderKey)) {
+    return <Navigate to={cadastroSectionPath(activeSection)} replace />;
+  }
+
   const sectionTitle = getCadastroSectionLabel(activeSection);
+  const folderLabel = getFolderLabel(reqId, folderKey, currentTenant, user?.role);
+  const folderPath = buildRequirementListPath(reqId, folderKey);
 
   return (
     <div className="space-y-6 min-w-0" data-testid="cadastros-page">
       <div>
-        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Gestão</div>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+          <Link to="/dashboard" className="hover:text-slate-700">Dashboard</Link>
+          <span className="mx-1.5">/</span>
+          <Link to={folderPath} className="hover:text-slate-700">{folderLabel || `Requisito ${reqId}`}</Link>
+        </div>
         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">{sectionTitle}</h1>
         <p className="text-sm text-slate-600 mt-1">
           Ambiente: <span className="font-medium text-slate-800">{tenantName || currentTenantId}</span>
@@ -237,16 +244,7 @@ const CadastrosPage = () => {
           <EnvCertSection rows={filteredEnv} allRows={envCerts} tenantId={currentTenantId} tenantName={tenantName}
             year={yearEnv} years={yearsEnv} onYearChange={setYearEnv} onRefresh={loadAll} />
         )}
-        {activeSection === "computadores" && (
-          <ComputerEquipmentSection rows={computers} tenantId={currentTenantId} onRefresh={loadAll} />
-        )}
-        {activeSection === "veiculos" && (
-          <VehicleEquipmentSection rows={vehicles} tenantId={currentTenantId} onRefresh={loadAll} />
-        )}
         {activeSection === "tecnicos" && <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />}
-        {activeSection === "usuarios" && (
-          <TenantUsersPanel tenantId={currentTenantId} isAdmin={isAdmin} />
-        )}
       </div>
     </div>
   );

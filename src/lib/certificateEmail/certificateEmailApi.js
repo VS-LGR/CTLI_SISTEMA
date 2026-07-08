@@ -76,7 +76,7 @@ export async function sendCertificateByEmail(
     ? { email: recipientEmail.trim(), source: "manual" }
     : resolveClientEmail(cert, endCustomers);
   if (!resolved.email) {
-    throw new Error("E-mail do cliente não cadastrado. Atualize em Cadastros → Clientes.");
+    throw new Error("E-mail do cliente não cadastrado. Atualize em PR-7.1 → Clientes.");
   }
 
   const { blob, fileName: pdfName } = await buildCertificatePdfForEmail(cert, tenantName || tenant?.name || "", {

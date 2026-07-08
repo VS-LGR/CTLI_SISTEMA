@@ -11,7 +11,7 @@ import MasterDocumentSettingsPanel from "./MasterDocumentSettingsPanel";
 export default function MasterDocumentHub({ tenantId, tenant, section }) {
   switch (section) {
     case "lista_mestra_internos":
-      return <MasterDocumentListPanel tenantId={tenantId} filters={{ internalOnly: true }} />;
+      return <MasterDocumentListPanel tenantId={tenantId} filters={{ internalOnly: true, systemOnly: true }} />;
     case "lista_mestra_externos":
       return <ExternalDocumentsPanel tenantId={tenantId} />;
     case "lista_mestra_revisoes":
