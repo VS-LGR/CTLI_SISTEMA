@@ -1,10 +1,11 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { prepareMasterDocumentExport, recordMasterDocumentExport } from "@/lib/masterDocuments/masterDocumentExportHelper";
-import { drawInstitutionalReportHeader } from "@/lib/institutionalPdf/drawHeader";
+import { drawInstitutionalPdfHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
 import { ML, TEXT } from "@/lib/institutionalPdf/theme";
 import { fmtDmyShort } from "@/lib/dateFormat";
+import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import {
   MONTH_KEYS,
   MONTH_LABELS,
@@ -23,6 +24,8 @@ const TABLE_STYLES = {
 export async function downloadEquipmentVerificationPdf(record, {
   tenantId = null,
   tenantName = "",
+  tenant = null,
+  logoDataUrl: preloadedLogo = null,
 } = {}) {
   const kind = record.equipment_kind;
   const year = record.year;
@@ -41,11 +44,28 @@ export async function downloadEquipmentVerificationPdf(record, {
     },
   });
 
-  const doc = new jsPDF({ orientation: "landscape" });
-  const startY = drawInstitutionalReportHeader(doc, {
-    title: `Verificação de Equipamento — ${kindLabel}`,
-    subtitle: `RE-6.4.12B  |  REF.: PR-6.4.12  |  Ano: ${year}  |  Ambiente: ${tenantName || "—"}`,
-  });
+  const logoDataUrl = preloadedLogo
+    || (tenant ? await loadTenantLogoDataUrl(tenant) : null);
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const header = {
+    title: meta?.title || "Verificação de Equipamento",
+    code: meta?.code || "RE-6.4.12B",
+    reference: meta?.reference || "PR-6.4.12",
+    revision: meta?.revision || "00",
+    modelIssueDate: meta?.modelIssueDate || null,
+  };
+  let startY = drawInstitutionalPdfHeader(doc, header, logoDataUrl);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...TEXT);
+  doc.text(
+    `Equipamento: ${kindLabel}  |  Ano: ${year}  |  Ambiente: ${tenantName || "—"}`,
+    ML,
+    startY + 2,
+  );
+  startY += 8;
 
   const headMonths = MONTH_LABELS.map((m) => m.slice(0, 3));
   const body = checklist.map((item) => [
@@ -59,8 +79,8 @@ export async function downloadEquipmentVerificationPdf(record, {
   ];
 
   autoTable(doc, {
-    startY: startY + 4,
-    margin: { left: ML },
+    startY,
+    margin: { left: ML, right: 10 },
     head: [["Itens a serem verificados", ...headMonths]],
     body: [...body, respRow],
     styles: TABLE_STYLES,
@@ -69,13 +89,14 @@ export async function downloadEquipmentVerificationPdf(record, {
   });
 
   let y = (doc.lastAutoTable?.finalY || startY) + 10;
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...TEXT);
   doc.text(`Ocorrências: ${record.occurrences || "—"}`, ML, y);
   y += 6;
   doc.text(`Emitido e Aprovado por: ${record.issued_approved_by || "—"}`, ML, y);
   y += 6;
-  doc.text(`Emissão: ${fmtDmyShort(record.issue_date) || "—"}`, ML, y);
+  doc.text(`Data de emissão do registro: ${fmtDmyShort(record.issue_date) || "—"}`, ML, y);
 
   drawInstitutionalPageFooters(doc);
   doc.save(fileName);

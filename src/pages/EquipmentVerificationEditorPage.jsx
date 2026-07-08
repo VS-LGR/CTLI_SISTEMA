@@ -100,7 +100,11 @@ export default function EquipmentVerificationEditorPage() {
           issued_approved_by: issuedApprovedBy,
           issue_date: issueDate || null,
         },
-        { tenantId: currentTenantId, tenantName: currentTenant?.name || "" },
+        {
+          tenantId: currentTenantId,
+          tenantName: currentTenant?.name || "",
+          tenant: currentTenant,
+        },
       );
       toast.success("PDF gerado");
     } catch (e) {

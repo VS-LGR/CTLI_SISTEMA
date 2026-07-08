@@ -96,6 +96,7 @@ export default function DeviceTechnicalSheetPage() {
       await downloadDeviceTechnicalSheetPdf(filtered, {
         tenantId: currentTenantId,
         tenantName: currentTenant?.name || "",
+        tenant: currentTenant,
       });
       toast.success("PDF gerado");
     } catch (e) {

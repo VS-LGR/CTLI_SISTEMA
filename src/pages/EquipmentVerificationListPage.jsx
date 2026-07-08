@@ -87,6 +87,7 @@ export default function EquipmentVerificationListPage() {
       await downloadEquipmentVerificationPdf(row, {
         tenantId: currentTenantId,
         tenantName: currentTenant?.name || "",
+        tenant: currentTenant,
       });
       toast.success("PDF gerado");
     } catch (e) {

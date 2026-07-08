@@ -1,10 +1,11 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { prepareMasterDocumentExport, recordMasterDocumentExport } from "@/lib/masterDocuments/masterDocumentExportHelper";
-import { drawInstitutionalReportHeader } from "@/lib/institutionalPdf/drawHeader";
+import { drawInstitutionalPdfHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
 import { ML, TEXT } from "@/lib/institutionalPdf/theme";
 import { fmtDmyShort } from "@/lib/dateFormat";
+import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 
 const TABLE_STYLES = {
   font: "helvetica",
@@ -15,8 +16,9 @@ const TABLE_STYLES = {
 export async function downloadDeviceTechnicalSheetPdf(rows, {
   tenantId = null,
   tenantName = "",
+  tenant = null,
+  logoDataUrl: preloadedLogo = null,
 } = {}) {
-  const today = new Date().toISOString().slice(0, 10);
   const { meta, fileName } = await prepareMasterDocumentExport({
     tenantId,
     code: "RE-6.4B",
@@ -24,11 +26,28 @@ export async function downloadDeviceTechnicalSheetPdf(rows, {
     fileNameContext: { ano: new Date().getFullYear() },
   });
 
-  const doc = new jsPDF({ orientation: "landscape" });
-  const startY = drawInstitutionalReportHeader(doc, {
-    title: "Ficha Técnica de Dispositivos (RE-6.4B)",
-    subtitle: `Ambiente: ${tenantName || "—"}  |  Emissão: ${fmtDmyShort(today)}  |  ${rows.length} linha(s)`,
-  });
+  const logoDataUrl = preloadedLogo
+    || (tenant ? await loadTenantLogoDataUrl(tenant) : null);
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const header = {
+    title: meta?.title || "Ficha Técnica de Dispositivos",
+    code: meta?.code || "RE-6.4B",
+    reference: meta?.reference || "PR-6.4",
+    revision: meta?.revision || "00",
+    modelIssueDate: meta?.modelIssueDate || null,
+  };
+  let startY = drawInstitutionalPdfHeader(doc, header, logoDataUrl);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...TEXT);
+  doc.text(
+    `Ambiente: ${tenantName || "—"}  |  ${rows.length} linha(s)`,
+    ML,
+    startY + 2,
+  );
+  startY += 8;
 
   const body = (rows || []).map((r) => [
     r.identification || "",
@@ -47,8 +66,8 @@ export async function downloadDeviceTechnicalSheetPdf(rows, {
   ]);
 
   autoTable(doc, {
-    startY: startY + 4,
-    margin: { left: ML },
+    startY,
+    margin: { left: ML, right: 10 },
     head: [[
       "ID", "Tipo", "Fabricante", "Nº cert.", "Calibração", "Próxima",
       "Nominal", "V.C.", "Ue", "Un.", "Classe", "Grandeza", "Situação",

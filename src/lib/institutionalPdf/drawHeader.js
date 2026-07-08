@@ -10,8 +10,10 @@ import { LOGO_H, LOGO_W, ML, MR, PAGE_W, TEXT } from "./theme";
  */
 export function drawInstitutionalPdfHeader(doc, header, logoDataUrl, yStart = 8) {
   const y = yStart;
-  const rightX = MR - 2;
-  const centerX = PAGE_W / 2;
+  const pageW = doc.internal?.pageSize?.getWidth?.() || PAGE_W;
+  const rightX = pageW > PAGE_W ? pageW - 12 : MR - 2;
+  const centerX = pageW / 2;
+  const titleMaxWidth = pageW > PAGE_W ? 160 : 100;
 
   if (logoDataUrl) {
     try {
@@ -22,7 +24,7 @@ export function drawInstitutionalPdfHeader(doc, header, logoDataUrl, yStart = 8)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...TEXT);
-  doc.text(displayValue(header.title), centerX, y + 6, { align: "center", maxWidth: 100 });
+  doc.text(displayValue(header.title), centerX, y + 6, { align: "center", maxWidth: titleMaxWidth });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
