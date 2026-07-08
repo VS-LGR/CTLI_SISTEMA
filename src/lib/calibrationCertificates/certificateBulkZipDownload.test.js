@@ -2,8 +2,10 @@ import {
   buildCertificatesZipFileName,
   certificateMatchesClient,
   collectDownloadableCertificateIdsForClient,
+  collectEmailableCertificateIdsForClient,
   downloadCertificatesZip,
   isZipDownloadableRow,
+  isZipEmailableRow,
   sanitizeZipSegment,
 } from "./certificateBulkZipDownload";
 
@@ -13,11 +15,20 @@ describe("certificateBulkZipDownload", () => {
     global.URL.revokeObjectURL = jest.fn();
   });
 
-  test("isZipDownloadableRow aceita status finais", () => {
+  test("isZipDownloadableRow aceita prévia e status finais", () => {
+    expect(isZipDownloadableRow({ status: "calculado" })).toBe(true);
+    expect(isZipDownloadableRow({ status: "rascunho" })).toBe(true);
     expect(isZipDownloadableRow({ status: "aprovado" })).toBe(true);
     expect(isZipDownloadableRow({ status: "emitido" })).toBe(true);
     expect(isZipDownloadableRow({ status: "enviado" })).toBe(true);
-    expect(isZipDownloadableRow({ status: "rascunho" })).toBe(false);
+    expect(isZipDownloadableRow({ status: "obsoleto" })).toBe(false);
+  });
+
+  test("isZipEmailableRow só aceita status finais", () => {
+    expect(isZipEmailableRow({ status: "calculado" })).toBe(false);
+    expect(isZipEmailableRow({ status: "aprovado" })).toBe(true);
+    expect(isZipEmailableRow({ status: "emitido" })).toBe(true);
+    expect(isZipEmailableRow({ status: "enviado" })).toBe(true);
   });
 
   test("sanitizeZipSegment remove acentos e espaços", () => {
@@ -40,15 +51,26 @@ describe("certificateBulkZipDownload", () => {
     expect(certificateMatchesClient({ end_customer_id: "x", client_name: "Outro" }, customer)).toBe(false);
   });
 
-  test("collectDownloadableCertificateIdsForClient agrega por nome mesmo com id nulo", () => {
+  test("collectDownloadableCertificateIdsForClient inclui calculado e agrega por nome", () => {
     const customer = { id: "c1", name: "Cliente Teste" };
     const ids = collectDownloadableCertificateIdsForClient([
       { id: "1", status: "emitido", end_customer_id: "c1", client_name: "Cliente Teste" },
-      { id: "2", status: "aprovado", end_customer_id: null, client_name: "cliente teste" },
+      { id: "2", status: "calculado", end_customer_id: null, client_name: "cliente teste" },
       { id: "3", status: "rascunho", end_customer_id: "c1", client_name: "Cliente Teste" },
       { id: "4", status: "enviado", end_customer_id: "other", client_name: "Outro" },
+      { id: "5", status: "obsoleto", end_customer_id: "c1", client_name: "Cliente Teste" },
     ], customer);
-    expect(ids).toEqual(["1", "2"]);
+    expect(ids).toEqual(["1", "2", "3"]);
+  });
+
+  test("collectEmailableCertificateIdsForClient restringe a status finais", () => {
+    const customer = { id: "c1", name: "Cliente Teste" };
+    const ids = collectEmailableCertificateIdsForClient([
+      { id: "1", status: "emitido", end_customer_id: "c1", client_name: "Cliente Teste" },
+      { id: "2", status: "calculado", end_customer_id: "c1", client_name: "Cliente Teste" },
+      { id: "3", status: "aprovado", end_customer_id: "c1", client_name: "Cliente Teste" },
+    ], customer);
+    expect(ids).toEqual(["1", "3"]);
   });
 
   test("downloadCertificatesZip empacota PDFs e resolve colisões de nome", async () => {

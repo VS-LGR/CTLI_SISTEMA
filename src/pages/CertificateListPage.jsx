@@ -43,9 +43,12 @@ import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import { sendCertificatesByEmailBatch } from "@/lib/certificateEmail/certificateEmailApi";
 import {
   buildCertificatesZipFileName,
+  certificateMatchesClient,
   collectDownloadableCertificateIdsForClient,
+  collectEmailableCertificateIdsForClient,
   downloadCertificatesZip,
   isZipDownloadableRow,
+  isZipEmailableRow,
 } from "@/lib/calibrationCertificates/certificateBulkZipDownload";
 import { sendCertificatesZipByEmail } from "@/lib/calibrationCertificates/certificateBulkZipEmail";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
@@ -301,20 +304,19 @@ export default function CertificateListPage() {
       return row && isZipDownloadableRow(row);
     });
     if (!ids.length) {
-      return toast.error("Selecione certificados aprovados, emitidos ou enviados");
+      return toast.error("Selecione ao menos um certificado com PDF gerável");
     }
     await runBulkZipDownload(ids, buildCertificatesZipFileName());
   };
 
-  const resolveClientZipIds = async (customer) => {
+  const resolveClientZipIds = async (customer, { forEmail = false } = {}) => {
     const all = await listCertificates(currentTenantId, { status: "all" });
+    const collect = forEmail
+      ? collectEmailableCertificateIdsForClient
+      : collectDownloadableCertificateIdsForClient;
     return {
-      ids: collectDownloadableCertificateIdsForClient(all, customer),
-      allCount: all.filter((r) => {
-        const nameMatch = String(r.client_name || "").trim().toLowerCase()
-          === String(customer.name || "").trim().toLowerCase();
-        return nameMatch || r.end_customer_id === customer.id;
-      }).length,
+      ids: collect(all, customer),
+      totalForClient: all.filter((r) => certificateMatchesClient(r, customer)).length,
     };
   };
 
@@ -330,10 +332,10 @@ export default function CertificateListPage() {
       const resolved = await resolveClientZipIds(customer);
       ids = resolved.ids;
       if (!ids.length) {
-        toast.error("Nenhum certificado baixável (aprovado/emitido/enviado) para este cliente");
+        toast.error("Nenhum certificado baixável para este cliente");
         return;
       }
-      toast.info(`${ids.length} certificado(s) encontrado(s) para ${customer.name}`);
+      toast.info(`${ids.length} de ${resolved.totalForClient} certificado(s) de ${customer.name} no ZIP`);
     } catch (e) {
       toast.error(e.message);
       return;
@@ -379,7 +381,7 @@ export default function CertificateListPage() {
   const handleBulkSendZipEmail = async () => {
     const ids = selectedIds.filter((id) => {
       const row = rows.find((r) => r.id === id);
-      return row && isZipDownloadableRow(row);
+      return row && isZipEmailableRow(row);
     });
     if (!ids.length) {
       return toast.error("Selecione certificados aprovados, emitidos ou enviados");
@@ -402,7 +404,7 @@ export default function CertificateListPage() {
     setBatchProgress("A carregar…");
     let ids = [];
     try {
-      const resolved = await resolveClientZipIds(customer);
+      const resolved = await resolveClientZipIds(customer, { forEmail: true });
       ids = resolved.ids;
     } catch (e) {
       toast.error(e.message);
@@ -414,7 +416,7 @@ export default function CertificateListPage() {
     setBatchProgress("");
 
     if (!ids.length) {
-      return toast.error("Nenhum certificado baixável para este cliente");
+      return toast.error("Nenhum certificado aprovado/emitido/enviado para este cliente");
     }
     if (!window.confirm(
       `Enviar ZIP com ${ids.length} certificado(s) de ${customer.name} para ${customer.email}?`,

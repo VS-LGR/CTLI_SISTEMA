@@ -2,12 +2,29 @@ import JSZip from "jszip";
 import { exportCertificatePdfBlob } from "@/lib/certificateExport";
 import { triggerBlobDownload } from "@/lib/blobDownload";
 
-export const ZIP_DOWNLOADABLE_STATUSES = ["aprovado", "emitido", "enviado"];
+/** Status que entram no ZIP de download (prévia ou oficial). */
+export const ZIP_DOWNLOADABLE_STATUSES = [
+  "rascunho",
+  "calculado",
+  "em_revisao_tecnica",
+  "aguardando_aprovacao",
+  "aprovado",
+  "emitido",
+  "enviado",
+  "reprovado",
+];
+
+/** Status elegíveis para envio do ZIP por e-mail (PDF “final”). */
+export const ZIP_EMAILABLE_STATUSES = ["aprovado", "emitido", "enviado"];
 
 export const MAX_ZIP_EMAIL_BYTES = Math.floor(3.5 * 1024 * 1024);
 
 export function isZipDownloadableRow(row) {
   return ZIP_DOWNLOADABLE_STATUSES.includes(row?.status);
+}
+
+export function isZipEmailableRow(row) {
+  return ZIP_EMAILABLE_STATUSES.includes(row?.status);
 }
 
 export function normalizeClientMatchName(value) {
@@ -31,6 +48,13 @@ export function certificateMatchesClient(row, customer) {
 export function collectDownloadableCertificateIdsForClient(rows = [], customer) {
   return (rows || [])
     .filter((r) => isZipDownloadableRow(r) && certificateMatchesClient(r, customer))
+    .map((r) => r.id)
+    .filter(Boolean);
+}
+
+export function collectEmailableCertificateIdsForClient(rows = [], customer) {
+  return (rows || [])
+    .filter((r) => isZipEmailableRow(r) && certificateMatchesClient(r, customer))
     .map((r) => r.id)
     .filter(Boolean);
 }
