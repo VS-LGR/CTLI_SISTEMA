@@ -80,7 +80,7 @@ export default function DashboardContent({
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 lg:gap-6 items-start min-w-0">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-4 lg:gap-6 items-stretch min-w-0">
         <DashboardOperationalOverview
           monthlyEmissions={monthlyEmissions}
           loading={loading}

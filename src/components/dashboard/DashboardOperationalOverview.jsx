@@ -8,7 +8,7 @@ export default function DashboardOperationalOverview({
   loading = false,
 }) {
   return (
-    <Card className="border-slate-200 min-w-0" data-testid="dashboard-operational-overview">
+    <Card className="border-slate-200 min-w-0 h-full" data-testid="dashboard-operational-overview">
       <CardHeader className="pb-2">
         <CardTitle className="font-display text-lg flex items-center gap-2">
           <ChartBar size={20} className="text-blue-600" weight="duotone" />

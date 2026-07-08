@@ -349,9 +349,8 @@ const Layout = () => {
                   onClick={onNavigate}
                 >
                   <Icon size={18} weight="duotone" />
-                  <span className="flex-1 min-w-0">
-                    <span className="font-mono text-xs text-slate-400 mr-1.5">{r.id}.</span>
-                    <span className="break-words">{r.label || REQ_NAMES[r.id] || r.name}</span>
+                  <span className="flex-1 min-w-0 break-words">
+                    {r.label || REQ_NAMES[r.id] || r.name}
                   </span>
                 </NavLink>
               );
@@ -370,9 +369,8 @@ const Layout = () => {
                   data-testid={`nav-req-group-${r.id}`}
                 >
                   <Icon size={18} weight="duotone" className="shrink-0" />
-                  <span className="flex-1 min-w-0">
-                    <span className="font-mono text-xs text-slate-400 mr-1.5">{r.id}.</span>
-                    <span className="break-words">{r.label || REQ_NAMES[r.id] || r.name}</span>
+                  <span className="flex-1 min-w-0 break-words">
+                    {r.label || REQ_NAMES[r.id] || r.name}
                   </span>
                   <CaretRight size={14} className="shrink-0 opacity-70" />
                 </CollapsibleTrigger>
