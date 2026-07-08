@@ -197,26 +197,14 @@ serve(async (req) => {
     const { user, profile, adminClient } = gate;
     const body = await req.json();
     const action = String(body.action || "send");
-
-    const certificateId = body.certificateId as string;
     const tenantId = body.tenantId as string;
-    if (!certificateId || !tenantId) {
-      return jsonResponse({ error: "certificateId e tenantId são obrigatórios" }, 400);
+
+    if (!tenantId) {
+      return jsonResponse({ error: "tenantId é obrigatório" }, 400);
     }
 
     if (profile.role !== "admin" && profile.tenant_id !== tenantId) {
       return jsonResponse({ error: "Forbidden" }, 403);
-    }
-
-    const { data: cert, error: certErr } = await adminClient
-      .from("calibration_certificates")
-      .select("*")
-      .eq("id", certificateId)
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
-
-    if (certErr || !cert) {
-      return jsonResponse({ error: "Certificado não encontrado" }, 404);
     }
 
     const { data: tenant } = await adminClient
@@ -235,6 +223,133 @@ serve(async (req) => {
     const fromEmail = fromResolved.email;
     const fromName = tenant?.certificate_email_from_name || tenant?.name || "Calibração";
     const from = `${fromName} <${fromEmail}>`;
+
+    // —— Lote ZIP ——
+    if (action === "send_zip") {
+      if (!SEND_ROLES.has(profile.role)) {
+        return jsonResponse({ error: "Forbidden" }, 403);
+      }
+
+      const certificateIds = Array.isArray(body.certificateIds)
+        ? (body.certificateIds as string[]).filter(Boolean)
+        : [];
+      if (!certificateIds.length) {
+        return jsonResponse({ error: "certificateIds é obrigatório" }, 400);
+      }
+
+      const zipBase64 = String(body.zipBase64 || "");
+      const zipFileName = String(body.fileName || "certificados.zip");
+      if (!zipBase64) {
+        return jsonResponse({ error: "zipBase64 é obrigatório" }, 400);
+      }
+
+      const { data: certs, error: listErr } = await adminClient
+        .from("calibration_certificates")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .in("id", certificateIds);
+
+      if (listErr) throw listErr;
+      if (!certs?.length) {
+        return jsonResponse({ error: "Nenhum certificado encontrado" }, 404);
+      }
+      if (certs.length !== certificateIds.length) {
+        return jsonResponse({ error: "Um ou mais certificados não pertencem a este ambiente" }, 400);
+      }
+
+      for (const c of certs) {
+        if (!["aprovado", "emitido", "enviado"].includes(c.status)) {
+          return jsonResponse({
+            error: `Certificado ${c.certificate_number || c.id} com status inválido para envio: ${c.status}`,
+          }, 400);
+        }
+      }
+
+      let recipientEmail = String(body.recipientEmail || "").trim();
+      if (!recipientEmail) {
+        recipientEmail = await resolveClientEmail(adminClient, certs[0]);
+      }
+      if (!recipientEmail || !isValidEmail(recipientEmail)) {
+        return jsonResponse({ error: "E-mail do cliente inválido ou não cadastrado" }, 400);
+      }
+
+      const clientLabel = certs[0].client_name || "Cliente";
+      const n = certs.length;
+
+      let resendData;
+      try {
+        resendData = await sendViaResend({
+          from,
+          to: recipientEmail,
+          subject: `Lote de certificados (${n}) — ${clientLabel}`,
+          html: `
+            <p>Prezado(a),</p>
+            <p>Segue em anexo o ficheiro ZIP com <strong>${n}</strong> certificado(s) de calibração.</p>
+            <p>Cliente: <strong>${clientLabel}</strong>.</p>
+            <p>Atenciosamente,<br/>${fromName}</p>
+          `,
+          attachment: { filename: zipFileName, content: zipBase64 },
+        });
+      } catch (sendErr) {
+        const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr);
+        await adminClient.from("certificate_email_deliveries").insert(
+          certs.map((c) => ({
+            certificate_id: c.id,
+            tenant_id: tenantId,
+            recipient: recipientEmail,
+            status: "failed",
+            error_message: errMsg,
+            sent_by: user.id,
+          })),
+        );
+        throw sendErr;
+      }
+
+      const now = new Date().toISOString();
+      await adminClient.from("calibration_certificates").update({
+        status: "enviado",
+        client_email_sent_at: now,
+        client_email_sent_to: recipientEmail,
+        client_email_sent_by: user.id,
+        updated_by: user.id,
+        updated_at: now,
+      }).in("id", certificateIds);
+
+      await adminClient.from("certificate_email_deliveries").insert(
+        certs.map((c) => ({
+          certificate_id: c.id,
+          tenant_id: tenantId,
+          recipient: recipientEmail,
+          resend_id: resendData.id || "",
+          status: "sent",
+          sent_by: user.id,
+        })),
+      );
+
+      return jsonResponse({
+        ok: true,
+        resendId: resendData.id || "",
+        recipient: recipientEmail,
+        count: n,
+        status: "enviado",
+      });
+    }
+
+    const certificateId = body.certificateId as string;
+    if (!certificateId) {
+      return jsonResponse({ error: "certificateId é obrigatório" }, 400);
+    }
+
+    const { data: cert, error: certErr } = await adminClient
+      .from("calibration_certificates")
+      .select("*")
+      .eq("id", certificateId)
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (certErr || !cert) {
+      return jsonResponse({ error: "Certificado não encontrado" }, 404);
+    }
 
     if (action === "notify") {
       if (cert.status !== "aguardando_aprovacao") {

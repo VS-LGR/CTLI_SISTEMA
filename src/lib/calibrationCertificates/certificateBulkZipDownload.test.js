@@ -1,5 +1,7 @@
 import {
   buildCertificatesZipFileName,
+  certificateMatchesClient,
+  collectDownloadableCertificateIdsForClient,
   downloadCertificatesZip,
   isZipDownloadableRow,
   sanitizeZipSegment,
@@ -28,6 +30,25 @@ describe("certificateBulkZipDownload", () => {
     expect(buildCertificatesZipFileName({ clientName: "Acme SA", date })).toBe(
       "certificados-Acme-SA-2026-07-08.zip",
     );
+  });
+
+  test("certificateMatchesClient por id ou nome normalizado", () => {
+    const customer = { id: "c1", name: "Acme SA" };
+    expect(certificateMatchesClient({ end_customer_id: "c1", client_name: "Outro" }, customer)).toBe(true);
+    expect(certificateMatchesClient({ end_customer_id: null, client_name: "  acme  sa " }, customer)).toBe(true);
+    expect(certificateMatchesClient({ end_customer_id: "x", client_name: "acme sa" }, customer)).toBe(true);
+    expect(certificateMatchesClient({ end_customer_id: "x", client_name: "Outro" }, customer)).toBe(false);
+  });
+
+  test("collectDownloadableCertificateIdsForClient agrega por nome mesmo com id nulo", () => {
+    const customer = { id: "c1", name: "Cliente Teste" };
+    const ids = collectDownloadableCertificateIdsForClient([
+      { id: "1", status: "emitido", end_customer_id: "c1", client_name: "Cliente Teste" },
+      { id: "2", status: "aprovado", end_customer_id: null, client_name: "cliente teste" },
+      { id: "3", status: "rascunho", end_customer_id: "c1", client_name: "Cliente Teste" },
+      { id: "4", status: "enviado", end_customer_id: "other", client_name: "Outro" },
+    ], customer);
+    expect(ids).toEqual(["1", "2"]);
   });
 
   test("downloadCertificatesZip empacota PDFs e resolve colisões de nome", async () => {

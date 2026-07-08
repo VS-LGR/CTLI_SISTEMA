@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Archive, CheckCircle, PaperPlaneTilt } from "@phosphor-icons/react";
+import { Archive, CheckCircle, PaperPlaneTilt, FileZip } from "@phosphor-icons/react";
 
 export default function CertificateBulkActionBar({
   selectedCount = 0,
@@ -11,6 +11,7 @@ export default function CertificateBulkActionBar({
   onApprove,
   onSendEmail,
   onDownloadZip,
+  onSendZipEmail,
   canApprove = false,
   canSend = false,
   canDownloadZip = false,
@@ -45,6 +46,12 @@ export default function CertificateBulkActionBar({
         <Button type="button" size="sm" variant="outline" onClick={onDownloadZip} disabled={busy || !selectedCount}>
           <Archive size={16} className="mr-1" />
           Baixar ZIP ({selectedCount || 0})
+        </Button>
+      )}
+      {canSend && onSendZipEmail && (
+        <Button type="button" size="sm" variant="outline" onClick={onSendZipEmail} disabled={busy || !selectedCount}>
+          <FileZip size={16} className="mr-1" />
+          Enviar ZIP ({selectedCount || 0})
         </Button>
       )}
     </div>

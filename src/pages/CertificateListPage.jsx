@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, PencilSimple, FilePdf, Calculator, MagnifyingGlass, Archive, Trash, PaperPlaneTilt } from "@phosphor-icons/react";
+import { Plus, MagnifyingGlass, Archive, PaperPlaneTilt } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   CERTIFICATE_NEW_PATH,
@@ -33,22 +33,21 @@ import {
   certificateStatusLabel,
   certificateTypeLabel,
   formatCertificateNumber,
-  isCertificateEditable,
-  canMarkCertificateObsolete,
-  canDeleteCertificate,
 } from "@/lib/calibrationCertificates/certificateSchema";
 import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
 import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
 import CertificateBulkActionBar from "@/components/calibrationCertificates/CertificateBulkActionBar";
+import CertificateRowActions from "@/components/calibrationCertificates/CertificateRowActions";
 import CertificateEmitSendDialog from "@/components/calibrationCertificates/CertificateEmitSendDialog";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import { sendCertificatesByEmailBatch } from "@/lib/certificateEmail/certificateEmailApi";
 import {
   buildCertificatesZipFileName,
+  collectDownloadableCertificateIdsForClient,
   downloadCertificatesZip,
   isZipDownloadableRow,
 } from "@/lib/calibrationCertificates/certificateBulkZipDownload";
-import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
+import { sendCertificatesZipByEmail } from "@/lib/calibrationCertificates/certificateBulkZipEmail";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
@@ -307,6 +306,18 @@ export default function CertificateListPage() {
     await runBulkZipDownload(ids, buildCertificatesZipFileName());
   };
 
+  const resolveClientZipIds = async (customer) => {
+    const all = await listCertificates(currentTenantId, { status: "all" });
+    return {
+      ids: collectDownloadableCertificateIdsForClient(all, customer),
+      allCount: all.filter((r) => {
+        const nameMatch = String(r.client_name || "").trim().toLowerCase()
+          === String(customer.name || "").trim().toLowerCase();
+        return nameMatch || r.end_customer_id === customer.id;
+      }).length,
+    };
+  };
+
   const handleClientDownloadZip = async () => {
     if (!downloadClientId) return toast.error("Selecione um cliente");
     const customer = endCustomers.find((c) => c.id === downloadClientId);
@@ -316,33 +327,99 @@ export default function CertificateListPage() {
     setBatchProgress("A carregar…");
     let ids = [];
     try {
-      const all = await listCertificates(currentTenantId, { status: "all" });
-      ids = all
-        .filter((r) => {
-          if (!isZipDownloadableRow(r)) return false;
-          if (r.end_customer_id === customer.id) return true;
-          if (!r.end_customer_id && r.client_name === customer.name) return true;
-          return false;
-        })
-        .map((r) => r.id);
+      const resolved = await resolveClientZipIds(customer);
+      ids = resolved.ids;
+      if (!ids.length) {
+        toast.error("Nenhum certificado baixável (aprovado/emitido/enviado) para este cliente");
+        return;
+      }
+      toast.info(`${ids.length} certificado(s) encontrado(s) para ${customer.name}`);
     } catch (e) {
       toast.error(e.message);
+      return;
+    } finally {
       setBatchBusy(false);
       setBatchProgress("");
-      return;
-    }
-
-    setBatchBusy(false);
-    setBatchProgress("");
-    if (!ids.length) {
-      toast.error("Nenhum certificado baixável para este cliente");
-      return;
     }
 
     await runBulkZipDownload(
       ids,
       buildCertificatesZipFileName({ clientName: customer.name }),
     );
+  };
+
+  const runBulkZipEmail = async (ids, { clientName = null } = {}) => {
+    if (!ids.length) return;
+    setBatchBusy(true);
+    setBatchProgress(`0/${ids.length}`);
+    try {
+      const result = await sendCertificatesZipByEmail({
+        ids,
+        loadCertificate: getCertificate,
+        tenant: currentTenant,
+        tenantName: currentTenant?.name || "",
+        logoDataUrl,
+        endCustomers,
+        clientName,
+        onProgress: ({ index, total, phase }) => {
+          const label = phase === "send" ? "A enviar…" : `${index}/${total}`;
+          setBatchProgress(label);
+        },
+      });
+      toast.success(`ZIP enviado para ${result.recipient} (${result.count} certificado(s))`);
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBatchBusy(false);
+      setBatchProgress("");
+    }
+  };
+
+  const handleBulkSendZipEmail = async () => {
+    const ids = selectedIds.filter((id) => {
+      const row = rows.find((r) => r.id === id);
+      return row && isZipDownloadableRow(row);
+    });
+    if (!ids.length) {
+      return toast.error("Selecione certificados aprovados, emitidos ou enviados");
+    }
+    if (!window.confirm(
+      `Gerar ZIP e enviar ${ids.length} certificado(s) por e-mail ao cliente? Os registros passarão a “enviado”.`,
+    )) return;
+    await runBulkZipEmail(ids);
+  };
+
+  const handleClientSendZipEmail = async () => {
+    if (!downloadClientId) return toast.error("Selecione um cliente");
+    const customer = endCustomers.find((c) => c.id === downloadClientId);
+    if (!customer) return toast.error("Cliente não encontrado");
+    if (!customer.email) {
+      return toast.error("Cliente sem e-mail cadastrado. Atualize em Cadastros → Clientes.");
+    }
+
+    setBatchBusy(true);
+    setBatchProgress("A carregar…");
+    let ids = [];
+    try {
+      const resolved = await resolveClientZipIds(customer);
+      ids = resolved.ids;
+    } catch (e) {
+      toast.error(e.message);
+      setBatchBusy(false);
+      setBatchProgress("");
+      return;
+    }
+    setBatchBusy(false);
+    setBatchProgress("");
+
+    if (!ids.length) {
+      return toast.error("Nenhum certificado baixável para este cliente");
+    }
+    if (!window.confirm(
+      `Enviar ZIP com ${ids.length} certificado(s) de ${customer.name} para ${customer.email}?`,
+    )) return;
+    await runBulkZipEmail(ids, { clientName: customer.name });
   };
 
   const handleSingleSend = async (row) => {
@@ -446,14 +523,14 @@ export default function CertificateListPage() {
         </Select>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center flex-wrap">
         <Select
           value={downloadClientId || undefined}
           onValueChange={setDownloadClientId}
           disabled={batchBusy}
         >
           <SelectTrigger className="w-full sm:w-72 h-10">
-            <SelectValue placeholder="Cliente para download em lote" />
+            <SelectValue placeholder="Cliente para lote (ZIP)" />
           </SelectTrigger>
           <SelectContent>
             {sortedEndCustomers.map((c) => (
@@ -469,8 +546,20 @@ export default function CertificateListPage() {
           disabled={batchBusy || !downloadClientId}
         >
           <Archive size={16} className="mr-1" />
-          Baixar do cliente
+          Baixar ZIP do cliente
         </Button>
+        {canSend && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 shrink-0"
+            onClick={handleClientSendZipEmail}
+            disabled={batchBusy || !downloadClientId}
+          >
+            <PaperPlaneTilt size={16} className="mr-1" />
+            Enviar ZIP do cliente
+          </Button>
+        )}
       </div>
 
       <CertificateBulkActionBar
@@ -481,6 +570,7 @@ export default function CertificateListPage() {
         onApprove={showApprovalBar ? handleBulkApprove : undefined}
         onSendEmail={canSend ? handleBulkSend : undefined}
         onDownloadZip={handleBulkDownloadZip}
+        onSendZipEmail={canSend ? handleBulkSendZipEmail : undefined}
         canApprove={showApprovalBar}
         canSend={canSend}
         canDownloadZip
@@ -552,37 +642,17 @@ export default function CertificateListPage() {
                       </EllipsisTooltip>
                     </td>
                     <td className="p-3">
-                      <div className="flex flex-wrap gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(certificateEditorPath(r.id))}>
-                          <PencilSimple size={16} />
-                        </Button>
-                        {isCertificateEditable(r.status) && (
-                          <>
-                            <Button variant="ghost" size="sm" onClick={() => handleRecalc(r)} title="Recalcular">
-                              <Calculator size={16} />
-                            </Button>
-                            <CertificateCalculationsHelp iconOnly />
-                          </>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => handlePreview(r)} title="Prévia PDF">
-                          <FilePdf size={16} />
-                        </Button>
-                        {canSend && isSendableRow(r) && (
-                          <Button variant="ghost" size="sm" onClick={() => handleSingleSend(r)} title="Enviar por e-mail" disabled={batchBusy}>
-                            <PaperPlaneTilt size={16} />
-                          </Button>
-                        )}
-                        {canMarkCertificateObsolete(r.status) && (
-                          <Button variant="ghost" size="sm" className="text-amber-700" onClick={() => openObsolete(r)} title="Marcar obsoleto">
-                            <Archive size={16} />
-                          </Button>
-                        )}
-                        {canDeleteCertificate(r.status) && (
-                          <Button variant="ghost" size="sm" className="text-red-600" onClick={() => openDelete(r)} title="Remover permanentemente">
-                            <Trash size={16} />
-                          </Button>
-                        )}
-                      </div>
+                      <CertificateRowActions
+                        row={r}
+                        canSend={canSend}
+                        busy={batchBusy}
+                        onEdit={() => navigate(certificateEditorPath(r.id))}
+                        onRecalc={() => handleRecalc(r)}
+                        onPreview={() => handlePreview(r)}
+                        onSendEmail={() => handleSingleSend(r)}
+                        onObsolete={() => openObsolete(r)}
+                        onDelete={() => openDelete(r)}
+                      />
                     </td>
                   </tr>
                 );

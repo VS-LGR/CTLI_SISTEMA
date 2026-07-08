@@ -4,8 +4,35 @@ import { triggerBlobDownload } from "@/lib/blobDownload";
 
 export const ZIP_DOWNLOADABLE_STATUSES = ["aprovado", "emitido", "enviado"];
 
+export const MAX_ZIP_EMAIL_BYTES = Math.floor(3.5 * 1024 * 1024);
+
 export function isZipDownloadableRow(row) {
   return ZIP_DOWNLOADABLE_STATUSES.includes(row?.status);
+}
+
+export function normalizeClientMatchName(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+/** Match por end_customer_id OU nome normalizado (não exige ID vazio). */
+export function certificateMatchesClient(row, customer) {
+  if (!row || !customer) return false;
+  if (customer.id && row.end_customer_id === customer.id) return true;
+  const rowName = normalizeClientMatchName(row.client_name);
+  const custName = normalizeClientMatchName(customer.name);
+  return Boolean(rowName && custName && rowName === custName);
+}
+
+export function collectDownloadableCertificateIdsForClient(rows = [], customer) {
+  return (rows || [])
+    .filter((r) => isZipDownloadableRow(r) && certificateMatchesClient(r, customer))
+    .map((r) => r.id)
+    .filter(Boolean);
 }
 
 /** Data local YYYY-MM-DD para nome de arquivo. */
@@ -54,10 +81,10 @@ function uniquePdfFileName(baseName, used) {
 }
 
 /**
- * Gera PDFs em sequência, empacota em ZIP (DEFLATE) e dispara o download.
- * @returns {{ ok: number, fail: number, errors: Array<{ id: string, message: string }> }}
+ * Gera PDFs em sequência e empacota em ZIP (DEFLATE), sem disparar download.
+ * @returns {{ blob: Blob, ok: number, fail: number, errors: Array<{ id: string, message: string }>, zipFileName: string }}
  */
-export async function downloadCertificatesZip({
+export async function buildCertificatesZipBlob({
   ids = [],
   loadCertificate,
   tenant = null,
@@ -66,10 +93,11 @@ export async function downloadCertificatesZip({
   zipFileName = null,
   onProgress = null,
   exportPdf = exportCertificatePdfBlob,
+  compressForEmail = false,
 } = {}) {
   const list = Array.isArray(ids) ? ids.filter(Boolean) : [];
   if (!list.length) {
-    throw new Error("Nenhum certificado selecionado para download");
+    throw new Error("Nenhum certificado selecionado para o ZIP");
   }
   if (typeof loadCertificate !== "function") {
     throw new Error("loadCertificate é obrigatório");
@@ -89,6 +117,7 @@ export async function downloadCertificatesZip({
         logoDataUrl,
         tenant,
         skipRecordExport: true,
+        compressForEmail,
       });
       if (!blob) throw new Error("PDF vazio");
       zip.file(uniquePdfFileName(fileName, usedNames), blob);
@@ -104,7 +133,21 @@ export async function downloadCertificatesZip({
 
   const outName = zipFileName || buildCertificatesZipFileName();
   const zipBlob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
-  triggerBlobDownload(zipBlob, outName);
 
-  return { ok, fail: errors.length, errors, zipFileName: outName };
+  return {
+    blob: zipBlob,
+    ok,
+    fail: errors.length,
+    errors,
+    zipFileName: outName,
+  };
+}
+
+/**
+ * Gera PDFs em sequência, empacota em ZIP (DEFLATE) e dispara o download.
+ */
+export async function downloadCertificatesZip(opts = {}) {
+  const result = await buildCertificatesZipBlob(opts);
+  triggerBlobDownload(result.blob, result.zipFileName);
+  return result;
 }
