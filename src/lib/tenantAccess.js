@@ -35,7 +35,7 @@ export const TENANT_ADMIN_CREATABLE_ROLES = [
 
 export const CLIENT_PORTAL_REQ_IDS = ["5", "6", "7", "8"];
 
-export const CLIENT_PORTAL_REQ6_FOLDERS = new Set(["pr-6-2", "pr-6-4"]);
+export const CLIENT_PORTAL_REQ6_FOLDERS = new Set(["pr-6-2", "pr-6-4", "pr-6-4-12"]);
 
 export const CLIENT_PORTAL_REQ7_FOLDERS = new Set(["pr-7-1", "pr-7-2"]);
 
@@ -47,6 +47,8 @@ export const CLIENT_PORTAL_CADASTRO_SECTIONS = new Set([
   "pesos",
   "balancas",
   "thermo",
+  "computadores",
+  "veiculos",
   "tecnicos",
   "clientes",
 ]);

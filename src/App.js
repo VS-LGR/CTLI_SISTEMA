@@ -16,6 +16,8 @@ import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH, RE_71A_CONFIG_PATH, RE_72A_CONFIG_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
+import { DEVICE_SHEET_LIST_PATH } from "@/lib/deviceTechnicalSheetRoutes";
+import { EQUIPMENT_VERIFICATION_LIST_PATH } from "@/lib/equipmentVerificationRoutes";
 import TenantModuleGate, { RequirementAccessGate, CadastroSectionGate } from "@/components/tenant/TenantModuleGate";
 import "@/App.css";
 
@@ -31,6 +33,9 @@ const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
 const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
 const CertificateNewPage = lazy(() => import("@/pages/CertificateNewPage"));
 const CertificateEditorPage = lazy(() => import("@/pages/CertificateEditorPage"));
+const DeviceTechnicalSheetPage = lazy(() => import("@/pages/DeviceTechnicalSheetPage"));
+const EquipmentVerificationListPage = lazy(() => import("@/pages/EquipmentVerificationListPage"));
+const EquipmentVerificationEditorPage = lazy(() => import("@/pages/EquipmentVerificationEditorPage"));
 const PedidosCompraPage = lazy(() => import("@/pages/PedidosCompraPage"));
 const PedidoCompraEditorPage = lazy(() => import("@/pages/PedidoCompraEditorPage"));
 const QuotationRequestsPage = lazy(() => import("@/pages/QuotationRequestsPage"));
@@ -248,6 +253,36 @@ const App = () => (
                     <CommercialProposalEditorPage />
                   </Suspense>
                 </Protected>
+              )}
+            />
+            <Route
+              path={`${DEVICE_SHEET_LIST_PATH}`}
+              element={(
+                <RequirementAccessGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <DeviceTechnicalSheetPage />
+                  </Suspense>
+                </RequirementAccessGate>
+              )}
+            />
+            <Route
+              path={EQUIPMENT_VERIFICATION_LIST_PATH}
+              element={(
+                <RequirementAccessGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <EquipmentVerificationListPage />
+                  </Suspense>
+                </RequirementAccessGate>
+              )}
+            />
+            <Route
+              path={`${EQUIPMENT_VERIFICATION_LIST_PATH}/:id`}
+              element={(
+                <RequirementAccessGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <EquipmentVerificationEditorPage />
+                  </Suspense>
+                </RequirementAccessGate>
               )}
             />
             <Route

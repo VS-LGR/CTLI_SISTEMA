@@ -8,6 +8,8 @@ import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "./certificateRoutes
 import { PROPOSAL_LIST_PATH } from "./commercialProposals/commercialProposalRoutes";
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 import { LISTA_MESTRA_PATH, RE_71A_CONFIG_PATH, RE_72A_CONFIG_PATH } from "./masterDocuments/masterDocumentRoutes";
+import { DEVICE_SHEET_LIST_PATH } from "./deviceTechnicalSheetRoutes";
+import { EQUIPMENT_VERIFICATION_LIST_PATH } from "./equipmentVerificationRoutes";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
 import { canAccessRequirement, canAccessRequirementFolder } from "./tenantAccess";
 import { isCtliAdmin } from "./roles";
@@ -53,9 +55,25 @@ const FOLDERS = {
         },
       ],
     },
-    { folderKey: "pr-6-4", label: "PR-6.4 Equipamentos" },
+    { folderKey: "pr-6-4", label: "PR-6.4 Equipamentos",
+      children: [
+        {
+          key: "fichas",
+          label: "Ficha Técnica (RE-6.4B)",
+          to: DEVICE_SHEET_LIST_PATH,
+        },
+      ],
+    },
     { folderKey: "pr-6-4-10", label: "PR-6.4.10 Checagens Intermediárias" },
-    { folderKey: "pr-6-4-12", label: "PR-6.4.12 Manutenção de Equipamentos" },
+    { folderKey: "pr-6-4-12", label: "PR-6.4.12 Manutenção de Equipamentos",
+      children: [
+        {
+          key: "verificacoes",
+          label: "Verificação (RE-6.4.12B)",
+          to: EQUIPMENT_VERIFICATION_LIST_PATH,
+        },
+      ],
+    },
     { folderKey: "pr-6-5", label: "PR-6.5 Rastreabilidade Metrológica" },
     { folderKey: "pr-6-6", label: "PR-6.6 Produtos e Serviços Providos Externamente" },
   ],
@@ -220,9 +238,11 @@ export function buildRequirementListPath(requirementId, folderKey) {
   return `/requirement/${rid}`;
 }
 
-/** Verifica se pathname está num submódulo (coleta/certificados) da pasta PR-7.2. */
+/** Verifica se pathname está num submódulo operacional de pastas do req 6/7. */
 export function isPr72OperationalPath(pathname) {
   if (!pathname) return false;
+  if (pathname.startsWith(DEVICE_SHEET_LIST_PATH)) return true;
+  if (pathname.startsWith(EQUIPMENT_VERIFICATION_LIST_PATH)) return true;
   const base = `/requirement/${COLETA_REQ_ID}/${COLETA_FOLDER_KEY}`;
   return pathname.startsWith(`${base}/coleta`) || pathname.startsWith(`${base}/certificados`);
 }

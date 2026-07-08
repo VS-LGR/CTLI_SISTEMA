@@ -11,6 +11,8 @@ export const CADASTRO_SECTIONS = [
   { id: "pesos", label: "Peso Padrão — 6.4" },
   { id: "balancas", label: "Balanças — 7.1" },
   { id: "thermo", label: "Termobarohigrômetro — 6.4" },
+  { id: "computadores", label: "Computadores — 6.4" },
+  { id: "veiculos", label: "Veículos — 6.4" },
   { id: "tecnicos", label: "Técnicos de campo — 6.2", techniciansOnly: true },
   { id: "usuarios", label: "Usuários do ambiente", ctliAdminOnly: true },
 ];

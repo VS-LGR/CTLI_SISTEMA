@@ -5,6 +5,8 @@ import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
 import TenantUsersPanel from "@/components/cadastros/TenantUsersPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
 import ScaleRegistrationSection from "@/components/cadastros/ScaleRegistrationSection";
+import ComputerEquipmentSection from "@/components/cadastros/ComputerEquipmentSection";
+import VehicleEquipmentSection from "@/components/cadastros/VehicleEquipmentSection";
 import { cadastroSectionPath, getCadastroSectionLabel, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
@@ -93,6 +95,8 @@ const CadastrosPage = () => {
   const [weightItems, setWeightItems] = useState([]);
   const [scaleRegistrations, setScaleRegistrations] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
+  const [computers, setComputers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
 
   const [yearWeight, setYearWeight] = useState("all");
   const [yearEnv, setYearEnv] = useState("all");
@@ -101,7 +105,7 @@ const CadastrosPage = () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
     const tid = currentTenantId;
     await ensureDefaultPositionsSeeded(tid).catch(() => {});
-    const [s, e, em, pos, w, wi, sr, v] = await Promise.all([
+    const [s, e, em, pos, w, wi, sr, v, pc, vh] = await Promise.all([
       supabase.from("supplier_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("end_customer_registrations").select("*").eq("tenant_id", tid).order("name"),
       supabase.from("employee_registrations").select("*").eq("tenant_id", tid).order("full_name"),
@@ -110,6 +114,8 @@ const CadastrosPage = () => {
       supabase.from("standard_weight_items").select("*").eq("tenant_id", tid).eq("active", true).order("identification"),
       supabase.from("scale_registrations").select("*").eq("tenant_id", tid).eq("active", true).order("serial_number"),
       supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", tid).order("calibration_date", { ascending: false }),
+      supabase.from("equipment_computers").select("*").eq("tenant_id", tid).order("identification"),
+      supabase.from("equipment_vehicles").select("*").eq("tenant_id", tid).order("identification"),
     ]);
     if (s.error) toast.error(s.error.message);
     else setSuppliers(s.data || []);
@@ -127,6 +133,10 @@ const CadastrosPage = () => {
     else setScaleRegistrations(sr.data || []);
     if (v.error) toast.error(v.error.message);
     else setEnvCerts(v.data || []);
+    if (pc.error) toast.error(pc.error.message);
+    else setComputers(pc.data || []);
+    if (vh.error) toast.error(vh.error.message);
+    else setVehicles(vh.data || []);
   }, [currentTenantId]);
 
   useEffect(() => {
@@ -226,6 +236,12 @@ const CadastrosPage = () => {
         {activeSection === "thermo" && (
           <EnvCertSection rows={filteredEnv} allRows={envCerts} tenantId={currentTenantId} tenantName={tenantName}
             year={yearEnv} years={yearsEnv} onYearChange={setYearEnv} onRefresh={loadAll} />
+        )}
+        {activeSection === "computadores" && (
+          <ComputerEquipmentSection rows={computers} tenantId={currentTenantId} onRefresh={loadAll} />
+        )}
+        {activeSection === "veiculos" && (
+          <VehicleEquipmentSection rows={vehicles} tenantId={currentTenantId} onRefresh={loadAll} />
         )}
         {activeSection === "tecnicos" && <ColetaTechniciansPanel tenantId={currentTenantId} isAdmin={isAdmin} />}
         {activeSection === "usuarios" && (
