@@ -34,7 +34,10 @@ export default function CertificateRowActions({
     canMarkCertificateObsolete(row.status) || canDeleteCertificate(row.status);
 
   return (
-    <div className="inline-flex items-center gap-0.5 whitespace-nowrap" data-testid="certificate-row-actions">
+    <div
+      className="inline-flex items-center gap-0.5 whitespace-nowrap shrink-0"
+      data-testid="certificate-row-actions"
+    >
       <Button
         type="button"
         variant="ghost"

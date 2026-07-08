@@ -582,7 +582,7 @@ export default function CertificateListPage() {
 
       <Card className="border-slate-200 overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-sm min-w-[980px]">
+          <table className="w-full text-sm min-w-[1100px]">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="p-3 w-10" />
@@ -595,7 +595,9 @@ export default function CertificateListPage() {
                 <th className="p-3">Tipo</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">E-mail</th>
-                <th className="p-3">Ações</th>
+                <th className="p-3 sticky right-0 z-20 bg-slate-50 min-w-[11.5rem] shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.18)]">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -606,7 +608,7 @@ export default function CertificateListPage() {
               ) : filtered.map((r) => {
                 const selectable = selectableIds.includes(r.id);
                 return (
-                  <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50/50">
+                  <tr key={r.id} className="group border-t border-slate-100 hover:bg-slate-50/50">
                     <td className="p-3 align-middle">
                       {selectable && (
                         <Checkbox
@@ -641,7 +643,7 @@ export default function CertificateListPage() {
                         {r.client_email_sent_to || (r.status === "enviado" ? "—" : "Não enviado")}
                       </EllipsisTooltip>
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 sticky right-0 z-10 bg-white group-hover:bg-slate-50/80 min-w-[11.5rem] shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)]">
                       <CertificateRowActions
                         row={r}
                         canSend={canSend}
