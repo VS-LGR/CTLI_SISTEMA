@@ -31,6 +31,7 @@ export default function DocumentDistributionPie({ byRequirement = {} }) {
   const pieData = Object.entries(byRequirement)
     .map(([req, v]) => ({
       name: `${req}. ${(v.name || "")
+        .replace("Requisitos De ", "")
         .replace("Requisitos de ", "")
         .replace("Requisitos ", "")}`,
       value: (v.procedimentos || 0) + (v.registros || 0),

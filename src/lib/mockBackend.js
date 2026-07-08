@@ -8,10 +8,10 @@ const STORAGE_KEY = "pv_mock_db";
 
 const REQ_NAMES = {
   "4": "Requisitos Gerais",
-  "5": "Requisitos de Estrutura",
-  "6": "Requisitos de Recurso",
-  "7": "Requisitos de Processo",
-  "8": "Requisitos de Gestão",
+  "5": "Requisitos De Estrutura",
+  "6": "Requisitos De Recurso",
+  "7": "Requisitos De Processo",
+  "8": "Requisitos De Gestão",
 };
 
 const nowIso = () => new Date().toISOString();

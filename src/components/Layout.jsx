@@ -30,6 +30,7 @@ import {
   folderHasSidebarNav,
   requiresFolderNav,
   isPr72OperationalPath,
+  REQ_NAMES,
 } from "@/lib/requirementNavConfig";
 import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
@@ -289,13 +290,13 @@ const Layout = () => {
 
       {showApprovalNav && (
         <NavLink to={CERTIFICATE_PENDING_APPROVAL_PATH} className={navLinkClass} data-testid="nav-certificates-approval" onClick={onNavigate}>
-          <ClipboardText size={18} weight="duotone" /> Certificados — aprovação
+          <ClipboardText size={18} weight="duotone" /> Aprovação
         </NavLink>
       )}
 
       {signatoryNav && (
         <NavLink to={CERTIFICATE_PENDING_APPROVAL_PATH} className={navLinkClass} data-testid="nav-certificates-approval" onClick={onNavigate}>
-          <ClipboardText size={18} weight="duotone" /> Certificados — aprovação
+          <ClipboardText size={18} weight="duotone" /> Aprovação
         </NavLink>
       )}
 
@@ -350,7 +351,7 @@ const Layout = () => {
                   <Icon size={18} weight="duotone" />
                   <span className="flex-1 min-w-0">
                     <span className="font-mono text-xs text-slate-400 mr-1.5">{r.id}.</span>
-                    <span className="break-words">Requisitos de {r.name}</span>
+                    <span className="break-words">{r.label || REQ_NAMES[r.id] || r.name}</span>
                   </span>
                 </NavLink>
               );
@@ -371,7 +372,7 @@ const Layout = () => {
                   <Icon size={18} weight="duotone" className="shrink-0" />
                   <span className="flex-1 min-w-0">
                     <span className="font-mono text-xs text-slate-400 mr-1.5">{r.id}.</span>
-                    <span className="break-words">Requisitos de {r.name}</span>
+                    <span className="break-words">{r.label || REQ_NAMES[r.id] || r.name}</span>
                   </span>
                   <CaretRight size={14} className="shrink-0 opacity-70" />
                 </CollapsibleTrigger>
@@ -445,17 +446,6 @@ const Layout = () => {
             );
           })}
 
-          {isAdmin && (
-            <>
-              <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
-                Administração CTLI
-              </div>
-              <NavLink to="/admin/clients" className={navLinkClass} data-testid="nav-admin-clients" onClick={onNavigate}>
-                <Buildings size={18} weight="duotone" /> Ambientes (clientes)
-              </NavLink>
-            </>
-          )}
-
           <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Sistema
           </div>
@@ -463,6 +453,17 @@ const Layout = () => {
           <NavLink to="/backup" className={navLinkClass} data-testid="nav-backup" onClick={onNavigate}>
             <Database size={18} weight="duotone" /> Backup
           </NavLink>
+          )}
+
+          {isAdmin && (
+            <>
+              <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                Administração
+              </div>
+              <NavLink to="/admin/clients" className={navLinkClass} data-testid="nav-admin-clients" onClick={onNavigate}>
+                <Buildings size={18} weight="duotone" /> Ambientes
+              </NavLink>
+            </>
           )}
         </>
       )}

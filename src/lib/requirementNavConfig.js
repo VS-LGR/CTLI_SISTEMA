@@ -14,19 +14,19 @@ import { isCtliAdmin } from "./roles";
 
 export const REQ_NAMES = {
   "4": "Requisitos Gerais",
-  "5": "Requisitos de Estrutura",
-  "6": "Requisitos de Recurso",
-  "7": "Requisitos de Processo",
-  "8": "Requisitos de Gestão",
+  "5": "Requisitos De Estrutura",
+  "6": "Requisitos De Recurso",
+  "7": "Requisitos De Processo",
+  "8": "Requisitos De Gestão",
 };
 
 /** Itens de menu principal (sidebar) — id alinhado à API `requirement`. */
 export const REQ_MENU_ITEMS = [
-  { id: "4", name: "Gerais" },
-  { id: "5", name: "Estrutura" },
-  { id: "6", name: "Recurso" },
-  { id: "7", name: "Processo" },
-  { id: "8", name: "Gestão" },
+  { id: "4", name: "Gerais", label: "Requisitos Gerais" },
+  { id: "5", name: "Estrutura", label: "Requisitos De Estrutura" },
+  { id: "6", name: "Recurso", label: "Requisitos De Recurso" },
+  { id: "7", name: "Processo", label: "Requisitos De Processo" },
+  { id: "8", name: "Gestão", label: "Requisitos De Gestão" },
 ];
 
 const FOLDERS = {

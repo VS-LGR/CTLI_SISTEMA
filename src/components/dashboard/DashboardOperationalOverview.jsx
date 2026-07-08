@@ -2,11 +2,9 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartBar } from "@phosphor-icons/react";
 import MonthlyEmissionsChart from "@/components/dashboard/MonthlyEmissionsChart";
-import EquipmentExpiryAlerts from "@/components/dashboard/EquipmentExpiryAlerts";
 
 export default function DashboardOperationalOverview({
   monthlyEmissions,
-  expiryAlerts,
   loading = false,
 }) {
   return (
@@ -21,11 +19,8 @@ export default function DashboardOperationalOverview({
         </p>
       </CardHeader>
       <CardContent className="pt-0 min-w-0">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 lg:gap-6 items-start min-w-0">
-          <div className="min-w-0 overflow-hidden">
-            <MonthlyEmissionsChart monthlyEmissions={monthlyEmissions} loading={loading} />
-          </div>
-          <EquipmentExpiryAlerts alerts={expiryAlerts} loading={loading} />
+        <div className="min-w-0 overflow-hidden">
+          <MonthlyEmissionsChart monthlyEmissions={monthlyEmissions} loading={loading} />
         </div>
       </CardContent>
     </Card>

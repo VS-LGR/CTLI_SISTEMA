@@ -43,6 +43,11 @@ import CertificateBulkActionBar from "@/components/calibrationCertificates/Certi
 import CertificateEmitSendDialog from "@/components/calibrationCertificates/CertificateEmitSendDialog";
 import { exportCertificatePdfPreview } from "@/lib/certificateExport";
 import { sendCertificatesByEmailBatch } from "@/lib/certificateEmail/certificateEmailApi";
+import {
+  buildCertificatesZipFileName,
+  downloadCertificatesZip,
+  isZipDownloadableRow,
+} from "@/lib/calibrationCertificates/certificateBulkZipDownload";
 import CertificateCalculationsHelp from "@/components/calibrationCertificates/CertificateCalculationsHelp";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
@@ -98,6 +103,7 @@ export default function CertificateListPage() {
   const [batchProgress, setBatchProgress] = useState("");
   const [emitSendOpen, setEmitSendOpen] = useState(false);
   const [approvedForSendIds, setApprovedForSendIds] = useState([]);
+  const [downloadClientId, setDownloadClientId] = useState("");
 
   const canApprove = canApproveCalibrationCertificate(user?.role);
   const canSend = canSendCertificateEmail(user?.role);
@@ -147,11 +153,23 @@ export default function CertificateListPage() {
   }), [rows, query, emailFilter]);
 
   const selectableIds = useMemo(() => {
-    if (statusFilter === "aguardando_aprovacao" || (canApprove && filtered.some(isApprovableRow))) {
-      return filtered.filter(isApprovableRow).map((r) => r.id);
+    const ids = new Set();
+    const approvalMode =
+      statusFilter === "aguardando_aprovacao" || (canApprove && filtered.some(isApprovableRow));
+    if (approvalMode) {
+      filtered.filter(isApprovableRow).forEach((r) => ids.add(r.id));
     }
-    return filtered.filter(isSendableRow).map((r) => r.id);
-  }, [filtered, statusFilter, canApprove]);
+    filtered.filter(isZipDownloadableRow).forEach((r) => ids.add(r.id));
+    if (canSend) {
+      filtered.filter(isSendableRow).forEach((r) => ids.add(r.id));
+    }
+    return [...ids];
+  }, [filtered, statusFilter, canApprove, canSend]);
+
+  const sortedEndCustomers = useMemo(
+    () => [...endCustomers].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt")),
+    [endCustomers],
+  );
 
   if (!canAccessCalibrationCertificates(user?.role)) {
     return <Navigate to="/dashboard" replace />;
@@ -252,6 +270,79 @@ export default function CertificateListPage() {
     if (!ids.length) return toast.error("Selecione certificados aprovados ou emitidos");
     if (!window.confirm(`Emitir e enviar ${ids.length} certificado(s) por e-mail?`)) return;
     await runBulkSend(ids);
+  };
+
+  const runBulkZipDownload = async (ids, zipFileName) => {
+    if (!ids.length) return;
+    setBatchBusy(true);
+    setBatchProgress(`0/${ids.length}`);
+    try {
+      const { ok, fail } = await downloadCertificatesZip({
+        ids,
+        loadCertificate: getCertificate,
+        tenant: currentTenant,
+        tenantName: currentTenant?.name || "",
+        logoDataUrl,
+        zipFileName,
+        onProgress: ({ index, total }) => setBatchProgress(`${index}/${total}`),
+      });
+      if (ok) toast.success(`${ok} certificado(s) no ZIP`);
+      if (fail) toast.error(`${fail} falha(s) na geração do PDF`);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBatchBusy(false);
+      setBatchProgress("");
+    }
+  };
+
+  const handleBulkDownloadZip = async () => {
+    const ids = selectedIds.filter((id) => {
+      const row = rows.find((r) => r.id === id);
+      return row && isZipDownloadableRow(row);
+    });
+    if (!ids.length) {
+      return toast.error("Selecione certificados aprovados, emitidos ou enviados");
+    }
+    await runBulkZipDownload(ids, buildCertificatesZipFileName());
+  };
+
+  const handleClientDownloadZip = async () => {
+    if (!downloadClientId) return toast.error("Selecione um cliente");
+    const customer = endCustomers.find((c) => c.id === downloadClientId);
+    if (!customer) return toast.error("Cliente não encontrado");
+
+    setBatchBusy(true);
+    setBatchProgress("A carregar…");
+    let ids = [];
+    try {
+      const all = await listCertificates(currentTenantId, { status: "all" });
+      ids = all
+        .filter((r) => {
+          if (!isZipDownloadableRow(r)) return false;
+          if (r.end_customer_id === customer.id) return true;
+          if (!r.end_customer_id && r.client_name === customer.name) return true;
+          return false;
+        })
+        .map((r) => r.id);
+    } catch (e) {
+      toast.error(e.message);
+      setBatchBusy(false);
+      setBatchProgress("");
+      return;
+    }
+
+    setBatchBusy(false);
+    setBatchProgress("");
+    if (!ids.length) {
+      toast.error("Nenhum certificado baixável para este cliente");
+      return;
+    }
+
+    await runBulkZipDownload(
+      ids,
+      buildCertificatesZipFileName({ clientName: customer.name }),
+    );
   };
 
   const handleSingleSend = async (row) => {
@@ -355,6 +446,33 @@ export default function CertificateListPage() {
         </Select>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        <Select
+          value={downloadClientId || undefined}
+          onValueChange={setDownloadClientId}
+          disabled={batchBusy}
+        >
+          <SelectTrigger className="w-full sm:w-72 h-10">
+            <SelectValue placeholder="Cliente para download em lote" />
+          </SelectTrigger>
+          <SelectContent>
+            {sortedEndCustomers.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name || "Sem nome"}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 shrink-0"
+          onClick={handleClientDownloadZip}
+          disabled={batchBusy || !downloadClientId}
+        >
+          <Archive size={16} className="mr-1" />
+          Baixar do cliente
+        </Button>
+      </div>
+
       <CertificateBulkActionBar
         selectedCount={selectedIds.length}
         totalSelectable={selectableIds.length}
@@ -362,12 +480,14 @@ export default function CertificateListPage() {
         onToggleAll={toggleSelectAll}
         onApprove={showApprovalBar ? handleBulkApprove : undefined}
         onSendEmail={canSend ? handleBulkSend : undefined}
+        onDownloadZip={handleBulkDownloadZip}
         canApprove={showApprovalBar}
         canSend={canSend}
+        canDownloadZip
         busy={batchBusy}
       />
       {batchProgress && (
-        <p className="text-xs text-slate-600">Progresso do envio: {batchProgress}</p>
+        <p className="text-xs text-slate-600">Progresso: {batchProgress}</p>
       )}
 
       <Card className="border-slate-200 overflow-hidden">

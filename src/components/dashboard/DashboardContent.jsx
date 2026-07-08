@@ -6,6 +6,7 @@ import { SealCheck, Info, PushPin, NotePencil } from "@phosphor-icons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardHeroSection from "@/components/dashboard/DashboardHeroSection";
 import DashboardOperationalOverview from "@/components/dashboard/DashboardOperationalOverview";
+import EquipmentExpiryAlerts from "@/components/dashboard/EquipmentExpiryAlerts";
 import DashboardRecentDocs from "@/components/dashboard/DashboardRecentDocs";
 import DashboardPinnedDocs from "@/components/dashboard/DashboardPinnedDocs";
 import DashboardReminders from "@/components/dashboard/DashboardReminders";
@@ -79,11 +80,16 @@ export default function DashboardContent({
         </Alert>
       )}
 
-      <DashboardOperationalOverview
-        monthlyEmissions={monthlyEmissions}
-        expiryAlerts={data?.equipment_expiry_alerts}
-        loading={loading}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 lg:gap-6 items-start min-w-0">
+        <DashboardOperationalOverview
+          monthlyEmissions={monthlyEmissions}
+          loading={loading}
+        />
+        <EquipmentExpiryAlerts
+          alerts={data?.equipment_expiry_alerts}
+          loading={loading}
+        />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 items-start">
         <Card className="border-slate-200 min-w-0 lg:row-span-2">
