@@ -22,8 +22,13 @@ import {
   EQUIPMENT_VERIFICATION_KINDS,
   equipmentKindLabel,
 } from "@/lib/equipmentVerifications/verificationChecklist";
-import { equipmentVerificationEditorPath } from "@/lib/equipmentVerificationRoutes";
+import {
+  EQUIPMENT_VERIFICATION_REQ_ID,
+  EQUIPMENT_VERIFICATION_FOLDER_KEY,
+  equipmentVerificationEditorPath,
+} from "@/lib/equipmentVerificationRoutes";
 import { fmtDmyShort } from "@/lib/dateFormat";
+import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
 
 export default function EquipmentVerificationListPage() {
   const { currentTenantId, currentTenant } = useOutletContext();
@@ -117,6 +122,11 @@ export default function EquipmentVerificationListPage() {
           <Plus size={16} className="mr-1" /> Nova verificação
         </Button>
       </div>
+
+      <RequirementFolderQuickAccess
+        requirementId={EQUIPMENT_VERIFICATION_REQ_ID}
+        folderKey={EQUIPMENT_VERIFICATION_FOLDER_KEY}
+      />
 
       <div className="flex flex-wrap gap-2">
         <Select value={kindFilter} onValueChange={setKindFilter}>

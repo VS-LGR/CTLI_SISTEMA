@@ -10,7 +10,7 @@ import {
   getFolderLabel,
   getFoldersForRequirement,
 } from "@/lib/requirementNavConfig";
-import RequirementFolderShortcuts from "@/components/requirements/RequirementFolderShortcuts";
+import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
 import {
   getFolderDocumentMode,
   getVisibleSections,
@@ -610,14 +610,8 @@ const RequirementView = () => {
         <p className="text-sm text-slate-600 mt-1">Ambiente: <span className="font-medium">{currentTenant?.name}</span></p>
       </div>
 
-      {folderMeta && (
-        <RequirementFolderShortcuts
-          requirementId={id}
-          folder={folderMeta}
-          role={user?.role}
-          tenant={currentTenant}
-          user={user}
-        />
+      {folderMeta && folderKey && (
+        <RequirementFolderQuickAccess requirementId={id} folderKey={folderKey} />
       )}
 
       {!isColetaRegistro && !isPersonnelRegistro && !moduleTab && (

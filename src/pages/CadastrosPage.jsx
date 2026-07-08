@@ -41,6 +41,7 @@ import {
   validateEmployeeSourceSelection,
 } from "@/lib/employeeRegistrationsApi";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
+import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
 
 function fmtIsoDate(d) {
   if (!d) return "";
@@ -214,6 +215,7 @@ const CadastrosPage = () => {
           Ambiente: <span className="font-medium text-slate-800">{tenantName || currentTenantId}</span>
         </p>
       </div>
+      <RequirementFolderQuickAccess requirementId={reqId} folderKey={folderKey} />
       <div className="mt-2">
         {activeSection === "fornecedores" && <SupplierSection rows={suppliers} tenantId={currentTenantId} onRefresh={loadAll} />}
         {activeSection === "clientes" && <EndCustomerSection rows={endCustomers} tenantId={currentTenantId} onRefresh={loadAll} />}

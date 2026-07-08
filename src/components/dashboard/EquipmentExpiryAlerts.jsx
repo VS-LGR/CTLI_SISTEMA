@@ -1,11 +1,12 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Warning, CalendarBlank } from "@phosphor-icons/react";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import { expandDisplayLabel } from "@/lib/metrologyDisplayLabels";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
+import { getRequirementShortcutIcon } from "@/lib/requirementShortcutIcons";
+import RequirementShortcutTile from "@/components/requirements/RequirementShortcutTile";
 
 const STATUS_LABELS = {
   expired: "Vencido",
@@ -114,13 +115,19 @@ export default function EquipmentExpiryAlerts({ alerts = [], loading = false }) 
             <AlertSection title="Próximos 60 dias" tone="warning" items={warning} />
           </div>
         )}
-        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          <Link to={cadastroSectionPath("cert-peso")} className="text-blue-600 hover:underline">
-            Certificados de peso padrão
-          </Link>
-          <Link to={cadastroSectionPath("thermo")} className="text-blue-600 hover:underline">
-            Termo-baro-higrômetro
-          </Link>
+        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <RequirementShortcutTile
+            to={cadastroSectionPath("cert-peso")}
+            label="Certificados de peso padrão"
+            icon={getRequirementShortcutIcon("cad-cert-peso")}
+            testId="equipment-alert-shortcut-cert-peso"
+          />
+          <RequirementShortcutTile
+            to={cadastroSectionPath("thermo")}
+            label="Termo-baro-higrômetro"
+            icon={getRequirementShortcutIcon("cad-thermo")}
+            testId="equipment-alert-shortcut-thermo"
+          />
         </div>
       </CardContent>
     </Card>

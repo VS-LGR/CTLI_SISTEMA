@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { useOutletContext } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { FilePdf, MagnifyingGlass } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { cadastroSectionPath } from "@/lib/cadastroSections";
+import { DEVICE_SHEET_REQ_ID, DEVICE_SHEET_FOLDER_KEY } from "@/lib/deviceTechnicalSheetRoutes";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import {
   buildDeviceTechnicalSheets,
@@ -20,6 +20,7 @@ import {
 } from "@/lib/deviceTechnicalSheets/buildDeviceTechnicalSheets";
 import { downloadDeviceTechnicalSheetPdf } from "@/lib/deviceTechnicalSheets/downloadDeviceTechnicalSheetPdf";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
+import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
 
 const STATUS_TONE = {
   APROVADO: "bg-emerald-100 text-emerald-800",
@@ -120,17 +121,17 @@ export default function DeviceTechnicalSheetPage() {
           <p className="text-sm text-slate-500 mt-1">
             Visão consolidada dos pesos padrão e termo-baro-higrômetros cadastrados.
           </p>
-          <div className="mt-2 flex flex-wrap gap-3 text-xs">
-            <Link to={cadastroSectionPath("pesos")} className="text-blue-600 hover:underline">Pesos</Link>
-            <Link to={cadastroSectionPath("thermo")} className="text-blue-600 hover:underline">Termo-baro</Link>
-            <Link to={cadastroSectionPath("cert-peso")} className="text-blue-600 hover:underline">Certificados de peso</Link>
-          </div>
         </div>
         <Button type="button" onClick={handlePdf} disabled={busyPdf || loading || !filtered.length}>
           <FilePdf size={16} className="mr-1" />
           Exportar PDF (RE-6.4B)
         </Button>
       </div>
+
+      <RequirementFolderQuickAccess
+        requirementId={DEVICE_SHEET_REQ_ID}
+        folderKey={DEVICE_SHEET_FOLDER_KEY}
+      />
 
       <div className="flex flex-col gap-3">
         <div className="relative flex-1 max-w-xl">

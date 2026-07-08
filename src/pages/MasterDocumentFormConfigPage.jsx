@@ -5,6 +5,7 @@ import { isCtliAdmin } from "@/lib/roles";
 import ColetaTenantConfig from "@/components/cadastros/ColetaTenantConfig";
 import CommercialProposalTenantConfig from "@/components/cadastros/CommercialProposalTenantConfig";
 import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
+import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
 
 const CONFIG_META = {
   "re-72a": {
@@ -18,7 +19,7 @@ const CONFIG_META = {
 };
 
 export default function MasterDocumentFormConfigPage() {
-  const { configKey } = useParams();
+  const { id, folderKey, configKey } = useParams();
   const { user } = useAuth();
   const { currentTenantId, currentTenant, reloadTenants } = useOutletContext() || {};
   const meta = CONFIG_META[configKey];
@@ -46,6 +47,10 @@ export default function MasterDocumentFormConfigPage() {
         </h1>
         <p className="text-sm text-slate-600 mt-1">{meta.subtitle}</p>
       </div>
+
+      {id && folderKey && (
+        <RequirementFolderQuickAccess requirementId={id} folderKey={folderKey} />
+      )}
 
       {configKey === "re-72a" && (
         <ColetaTenantConfig

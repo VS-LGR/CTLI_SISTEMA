@@ -18,7 +18,7 @@ import {
   Plus, PencilSimple, Trash, FilePdf, FileText, CaretDown, Scales, CheckCircle, Clock, MagnifyingGlass, Certificate,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { COLETA_NEW_PATH, coletaEditorPath } from "@/lib/coletaRoutes";
+import { COLETA_NEW_PATH, coletaEditorPath, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "@/lib/certificateRoutes";
 import { coletaWorkflowLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { canAccessCalibrationCertificates } from "@/lib/roles";
@@ -34,6 +34,7 @@ import {
   coletaKpis,
 } from "@/lib/coletaListUtils";
 import { formatCollectionRef } from "@/lib/coletaOsMeta";
+import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -268,6 +269,13 @@ const ColetaPage = ({ embedded = false }) => {
           </Button>
         </div>
       </div>
+
+      {!embedded && (
+        <RequirementFolderQuickAccess
+          requirementId={COLETA_REQ_ID}
+          folderKey={COLETA_FOLDER_KEY}
+        />
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4" data-testid="coleta-kpis">
         <KpiCard

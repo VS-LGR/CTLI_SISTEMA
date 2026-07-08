@@ -1,7 +1,8 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { ArrowSquareOut } from "@phosphor-icons/react";
+import { useLocation } from "react-router-dom";
 import { getFolderNavChildren } from "@/lib/requirementNavConfig";
+import { getRequirementShortcutIcon } from "@/lib/requirementShortcutIcons";
+import { isModuleLinkActive } from "@/lib/requirementFolderShortcutsUtils";
 import {
   canAccessColeta,
   canAccessCalibrationCertificates,
@@ -11,44 +12,30 @@ import {
   canManageTechnicians,
   isCtliAdmin,
 } from "@/lib/roles";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import RequirementShortcutTile from "@/components/requirements/RequirementShortcutTile";
 
-function isModuleLinkActive(location, to) {
-  const [path] = to.split("?");
-  if (location.pathname === path) return true;
-  if (path !== "/" && location.pathname.startsWith(`${path}/`)) return true;
-  if (to.includes("?")) {
-    const expected = new URLSearchParams(to.split("?")[1] || "");
-    const current = new URLSearchParams(location.search);
-    for (const [key, value] of expected.entries()) {
-      if (current.get(key) !== value) return false;
-    }
-    return location.pathname === path;
-  }
-  return false;
-}
-
-function ShortcutGrid({ items, folder, location }) {
+function ShortcutSection({ title, items, folder, location, showTitle }) {
   if (!items.length) return null;
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-      {items.map((item) => {
-        const active = isModuleLinkActive(location, item.to);
-        return (
-          <Link
+    <div className="space-y-2.5">
+      {showTitle && (
+        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+          {title}
+        </div>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 min-w-0">
+        {items.map((item) => (
+          <RequirementShortcutTile
             key={item.key}
             to={item.to}
-            className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
-              active
-                ? "border-blue-200 bg-blue-50 text-blue-900 font-medium"
-                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-            }`}
-            data-testid={`req-shortcut-${folder.folderKey}-${item.key}`}
-          >
-            <span className="min-w-0 leading-snug">{item.label}</span>
-            <ArrowSquareOut size={16} className="shrink-0 opacity-60" />
-          </Link>
-        );
-      })}
+            label={item.label}
+            icon={getRequirementShortcutIcon(item.key)}
+            active={isModuleLinkActive(location, item.to)}
+            testId={`req-shortcut-${folder.folderKey}-${item.key}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -74,23 +61,26 @@ export default function RequirementFolderShortcuts({ requirementId, folder, role
   if (!modules.length && !cadastros.length) return null;
 
   return (
-    <div className="space-y-4" data-testid={`req-folder-shortcuts-${folder?.folderKey}`}>
-      {modules.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-            Módulos e registros
-          </div>
-          <ShortcutGrid items={modules} folder={folder} location={location} />
-        </div>
-      )}
-      {cadastros.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-            Cadastros
-          </div>
-          <ShortcutGrid items={cadastros} folder={folder} location={location} />
-        </div>
-      )}
-    </div>
+    <Card className="border-slate-200 shadow-sm min-w-0" data-testid={`req-folder-shortcuts-${folder?.folderKey}`}>
+      <CardHeader className="pb-3">
+        <CardTitle className="font-display text-base text-slate-900">Acesso rápido</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5 pt-0 min-w-0">
+        <ShortcutSection
+          title="Módulos e registros"
+          items={modules}
+          folder={folder}
+          location={location}
+          showTitle
+        />
+        <ShortcutSection
+          title="Cadastros"
+          items={cadastros}
+          folder={folder}
+          location={location}
+          showTitle
+        />
+      </CardContent>
+    </Card>
   );
 }

@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import {
   CERTIFICATE_NEW_PATH,
   certificateEditorPath,
+  CERTIFICATE_REQ_ID,
+  CERTIFICATE_FOLDER_KEY,
 } from "@/lib/certificateRoutes";
 import {
   listCertificates,
@@ -55,6 +57,7 @@ import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
+import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -490,6 +493,11 @@ export default function CertificateListPage() {
           </Button>
         )}
       </div>
+
+      <RequirementFolderQuickAccess
+        requirementId={CERTIFICATE_REQ_ID}
+        folderKey={CERTIFICATE_FOLDER_KEY}
+      />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
