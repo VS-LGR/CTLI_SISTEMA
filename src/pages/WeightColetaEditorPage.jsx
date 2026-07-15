@@ -21,8 +21,10 @@ import {
   END_CUSTOMER_LOOKUP_SELECT,
   applyEndCustomerToWeightCliente,
   resolveWeightEndCustomerId,
+  normalizeWeightAmbiente,
 } from "@/lib/weightCalibration/weightColetaSchema";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
+import WeightAmbientSection from "@/components/weightCalibration/WeightAmbientSection";
 import {
   WEIGHT_COLETA_LIST_PATH,
   WEIGHT_COLETA_NEW_PATH,
@@ -61,7 +63,7 @@ function mergePayload(raw) {
     ...raw,
     cliente: { ...base.cliente, ...(raw.cliente || {}) },
     geral: { ...base.geral, ...(raw.geral || {}) },
-    ambiente: { ...base.ambiente, ...(raw.ambiente || {}) },
+    ambiente: normalizeWeightAmbiente({ ...base.ambiente, ...(raw.ambiente || {}) }),
     rastreabilidade: {
       balancas: raw.rastreabilidade?.balancas || [],
       conjuntos_peso: raw.rastreabilidade?.conjuntos_peso || [],
@@ -453,11 +455,12 @@ export default function WeightColetaEditorPage() {
   const [certType, setCertType] = useState("rastreavel");
   const [endCustomers, setEndCustomers] = useState([]);
   const [weightItems, setWeightItems] = useState([]);
+  const [envCerts, setEnvCerts] = useState([]);
   const [expandedItems, setExpandedItems] = useState(() => new Set([0]));
 
   const loadLookups = useCallback(async () => {
     if (!currentTenantId) return;
-    const [c, w] = await Promise.all([
+    const [c, w, env] = await Promise.all([
       supabase
         .from("end_customer_registrations")
         .select(END_CUSTOMER_LOOKUP_SELECT)
@@ -469,6 +472,11 @@ export default function WeightColetaEditorPage() {
         .eq("tenant_id", currentTenantId)
         .eq("active", true)
         .order("identification"),
+      supabase
+        .from("environment_sensor_certificates")
+        .select("*")
+        .eq("tenant_id", currentTenantId)
+        .order("equipment_name"),
     ]);
     if (c.error) {
       toast.error(`Falha ao carregar clientes: ${c.error.message}`);
@@ -476,6 +484,11 @@ export default function WeightColetaEditorPage() {
       setEndCustomers(c.data || []);
     }
     if (!w.error) setWeightItems(w.data || []);
+    if (env.error) {
+      toast.error(`Falha ao carregar TBH: ${env.error.message}`);
+    } else {
+      setEnvCerts(env.data || []);
+    }
   }, [currentTenantId]);
 
   const load = useCallback(async () => {
@@ -511,11 +524,32 @@ export default function WeightColetaEditorPage() {
 
   const setCliente = (k, v) => setPayload((p) => ({ ...p, cliente: { ...p.cliente, [k]: v } }));
   const setGeral = (k, v) => setPayload((p) => ({ ...p, geral: { ...p.geral, [k]: v } }));
-  const setAmbiente = (k, v) => setPayload((p) => ({ ...p, ambiente: { ...p.ambiente, [k]: v } }));
   const setRastro = (group, rows) => setPayload((p) => ({
     ...p,
     rastreabilidade: { ...p.rastreabilidade, [group]: rows },
   }));
+
+  const onAmbienteChange = (ambiente) => {
+    setPayload((p) => {
+      const next = { ...p, ambiente };
+      // Espelha TBH selecionados na rastreabilidade (padrão da planilha PREENCHER)
+      const ids = [ambiente.thermo_cert_id, ambiente.thermo_cert_id_2].filter(Boolean);
+      if (ids.length) {
+        const rows = ids.map((id) => {
+          const cert = envCerts.find((e) => e.id === id);
+          return {
+            identificacao: cert?.equipment_name || "",
+            certificado: cert?.certificate_number || "",
+            validade: cert?.expiry_date || "",
+            laboratorio: cert?.calibrated_by || "",
+            standard_id: id,
+          };
+        });
+        next.rastreabilidade = { ...p.rastreabilidade, tbh: rows };
+      }
+      return next;
+    });
+  };
 
   const customerOptions = useMemo(
     () => [...endCustomers].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt")),
@@ -853,23 +887,13 @@ export default function WeightColetaEditorPage() {
       </Card>
 
       <Card>
-        <CardContent className="p-4 sm:p-6 space-y-4">
-          <h2 className="font-medium text-slate-900">Ambiente</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[
-              ["temp_inicial", "Temp. inicial"],
-              ["temp_final", "Temp. final"],
-              ["ur_inicial", "UR inicial"],
-              ["ur_final", "UR final"],
-              ["pressao_inicial", "Pressão inicial"],
-              ["pressao_final", "Pressão final"],
-            ].map(([k, label]) => (
-              <div key={k}>
-                <Label className="text-[11px]">{label}</Label>
-                <Input className={fieldClass} value={payload.ambiente?.[k] || ""} onChange={(e) => setAmbiente(k, e.target.value)} />
-              </div>
-            ))}
-          </div>
+        <CardContent className="p-4 sm:p-6">
+          <WeightAmbientSection
+            ambiente={payload.ambiente}
+            envCerts={envCerts}
+            onAmbienteChange={onAmbienteChange}
+            fieldClass={fieldClass}
+          />
         </CardContent>
       </Card>
 
@@ -887,7 +911,7 @@ export default function WeightColetaEditorPage() {
             onChange={(rows) => setRastro("conjuntos_peso", rows)}
           />
           <TraceRows
-            title="TBH"
+            title="TBH (preenchido ao selecionar no ambiente; editável)"
             rows={payload.rastreabilidade?.tbh}
             onChange={(rows) => setRastro("tbh", rows)}
           />

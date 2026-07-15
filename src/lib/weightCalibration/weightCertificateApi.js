@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { calculateWeightItem } from "@/lib/weightCalibrationCalculations";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
+import { calculateAirDensityFromEnvironmental } from "@/lib/certificateCalculations/environmentalCalculations";
 import {
   INACTIVE_CERTIFICATE_STATUSES,
   canColetaGenerateOfficial,
@@ -245,10 +246,25 @@ export function buildWeightStandardsFromPayload(rastreabilidade = {}) {
 export function buildWeightEnvironmentalFromPayload(ambiente = {}, extras = {}) {
   const initial_temperature = String(ambiente.temp_inicial ?? ambiente.initial_temperature ?? "").trim();
   const final_temperature = String(ambiente.temp_final ?? ambiente.final_temperature ?? "").trim();
-  const initial_humidity = String(ambiente.ur_inicial ?? ambiente.initial_humidity ?? "").trim();
-  const final_humidity = String(ambiente.ur_final ?? ambiente.final_humidity ?? "").trim();
+  const initial_humidity = String(
+    ambiente.umidade_inicial ?? ambiente.ur_inicial ?? ambiente.initial_humidity ?? "",
+  ).trim();
+  const final_humidity = String(
+    ambiente.umidade_final ?? ambiente.ur_final ?? ambiente.final_humidity ?? "",
+  ).trim();
   const initial_pressure = String(ambiente.pressao_inicial ?? ambiente.initial_pressure ?? "").trim();
   const final_pressure = String(ambiente.pressao_final ?? ambiente.final_pressure ?? "").trim();
+
+  const density = extras.air_density != null
+    ? { value: extras.air_density, valid: true }
+    : calculateAirDensityFromEnvironmental({
+      initial_temperature,
+      final_temperature,
+      initial_humidity,
+      final_humidity,
+      initial_pressure,
+      final_pressure,
+    });
 
   return {
     initial_temperature,
@@ -260,9 +276,15 @@ export function buildWeightEnvironmentalFromPayload(ambiente = {}, extras = {}) 
     mean_temperature: envAverage(initial_temperature, final_temperature),
     mean_humidity: envAverage(initial_humidity, final_humidity),
     mean_pressure: envAverage(initial_pressure, final_pressure),
-    air_density: extras.air_density ?? null,
-    notes: String(ambiente.notes || extras.notes || "").trim(),
-    snapshot: ambiente || {},
+    air_density: density.valid ? density.value : (extras.air_density ?? null),
+    notes: String(ambiente.observacoes || ambiente.notes || extras.notes || "").trim(),
+    snapshot: {
+      ...(ambiente || {}),
+      thermo_cert_id: ambiente.thermo_cert_id || "",
+      thermo_cert_id_2: ambiente.thermo_cert_id_2 || "",
+      horario_inicial: ambiente.horario_inicial || "",
+      horario_final: ambiente.horario_final || "",
+    },
   };
 }
 

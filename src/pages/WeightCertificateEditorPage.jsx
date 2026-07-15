@@ -29,7 +29,14 @@ import {
   recalculateWeightCertificate,
   transitionWeightCertificateStatus,
   emitWeightCertificate,
+  upsertWeightCertificateEnvironmental,
+  buildWeightEnvironmentalFromPayload,
 } from "@/lib/weightCalibration/weightCertificateApi";
+import { normalizeWeightAmbiente } from "@/lib/weightCalibration/weightColetaSchema";
+import WeightAmbientSection from "@/components/weightCalibration/WeightAmbientSection";
+import {
+  formatAirDensityDisplay,
+} from "@/lib/certificateCalculations/environmentalCalculations";
 import {
   isCertificateEditable,
   certificateStatusLabel,
@@ -53,6 +60,27 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const fieldClass = "h-9 text-sm";
 
+function environmentalToAmbiente(env) {
+  if (!env) return normalizeWeightAmbiente();
+  const snap = env.snapshot || {};
+  return normalizeWeightAmbiente({
+    thermo_cert_id: snap.thermo_cert_id || "",
+    thermo_cert_id_2: snap.thermo_cert_id_2 || "",
+    horario_inicial: snap.horario_inicial || "",
+    horario_final: snap.horario_final || "",
+    temp_inicial: env.initial_temperature || "",
+    temp_final: env.final_temperature || "",
+    umidade_inicial: env.initial_humidity || "",
+    umidade_final: env.final_humidity || "",
+    pressao_inicial: env.initial_pressure || "",
+    pressao_final: env.final_pressure || "",
+    observacoes: env.notes || "",
+    tbh_correction_raw: snap.tbh_correction_raw || {},
+    tbh_correction_meta: snap.tbh_correction_meta || null,
+    tbh_correction_applied: !!snap.tbh_correction_applied,
+  });
+}
+
 function fmtNum(v, digits = 4) {
   if (v == null || v === "") return "—";
   const n = Number(v);
@@ -73,6 +101,7 @@ export default function WeightCertificateEditorPage() {
   const [logoDataUrl, setLogoDataUrl] = useState(null);
   const [endCustomers, setEndCustomers] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [envCerts, setEnvCerts] = useState([]);
   const [checklist, setChecklist] = useState(() => emptyCriticalChecklist());
   const [criticalOpen, setCriticalOpen] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
@@ -125,9 +154,15 @@ export default function WeightCertificateEditorPage() {
         .select("id, full_name")
         .eq("tenant_id", currentTenantId)
         .order("full_name"),
-    ]).then(([c, e]) => {
+      supabase
+        .from("environment_sensor_certificates")
+        .select("*")
+        .eq("tenant_id", currentTenantId)
+        .order("equipment_name"),
+    ]).then(([c, e, env]) => {
       if (!c.error) setEndCustomers(c.data || []);
       if (!e.error) setEmployees(e.data || []);
+      if (!env.error) setEnvCerts(env.data || []);
     });
   }, [currentTenantId]);
 
@@ -147,6 +182,18 @@ export default function WeightCertificateEditorPage() {
 
   const patchHeader = (key, value) => {
     setCert((c) => ({ ...c, [key]: value }));
+  };
+
+  const onAmbientChange = (ambiente) => {
+    const built = buildWeightEnvironmentalFromPayload(ambiente);
+    setCert((c) => ({
+      ...c,
+      environmental: {
+        ...(c.environmental || {}),
+        ...built,
+        id: c.environmental?.id,
+      },
+    }));
   };
 
   const saveHeader = async () => {
@@ -175,7 +222,10 @@ export default function WeightCertificateEditorPage() {
         was_adjusted: cert.was_adjusted || "nao",
       };
       await updateWeightCertificateHeader(cert.id, patch, user.id);
-      toast.success("Cabeçalho guardado");
+      if (cert.environmental) {
+        await upsertWeightCertificateEnvironmental(cert.id, cert.environmental);
+      }
+      toast.success("Dados guardados");
       await load();
     } catch (e) {
       toast.error(e.message);
@@ -611,24 +661,28 @@ export default function WeightCertificateEditorPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <h2 className="font-medium text-slate-900">Ambiente</h2>
-            {cert.environmental ? (
-              <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-                <dt className="text-slate-500">Temp. média</dt>
-                <dd>{fmtNum(cert.environmental.mean_temperature, 2)}</dd>
-                <dt className="text-slate-500">UR média</dt>
-                <dd>{fmtNum(cert.environmental.mean_humidity, 2)}</dd>
-                <dt className="text-slate-500">Pressão média</dt>
-                <dd>{fmtNum(cert.environmental.mean_pressure, 2)}</dd>
-              </dl>
-            ) : (
-              <p className="text-sm text-slate-500">Sem dados ambientais.</p>
-            )}
-          </CardContent>
-        </Card>
       </div>
+
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+          <WeightAmbientSection
+            ambiente={environmentalToAmbiente(cert.environmental)}
+            envCerts={envCerts}
+            onAmbienteChange={onAmbientChange}
+            disabled={!editable}
+            fieldClass={fieldClass}
+          />
+          {cert.environmental?.air_density != null && (
+            <p className="text-xs text-slate-500 mt-2">
+              Densidade do ar persistida: {formatAirDensityDisplay(cert.environmental.air_density)} kg/m³
+              {" · "}
+              média T {fmtNum(cert.environmental.mean_temperature, 2)} °C /
+              UR {fmtNum(cert.environmental.mean_humidity, 2)} % /
+              P {fmtNum(cert.environmental.mean_pressure, 2)} hPa
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">

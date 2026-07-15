@@ -15,9 +15,11 @@ import {
   MAX_WEIGHT_ITEMS,
   END_CUSTOMER_LOOKUP_SELECT,
   applyEndCustomerToWeightCliente,
+  normalizeWeightAmbiente,
 } from "@/lib/weightCalibration/weightColetaSchema";
 import { WEIGHT_CLASSES, MATERIALS } from "@/lib/weightCalibration/weightCertificateSchema";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
+import WeightAmbientSection from "@/components/weightCalibration/WeightAmbientSection";
 
 const fieldClass = "h-9 text-sm";
 
@@ -37,6 +39,7 @@ export default function WeightCertificateManualForm({
 }) {
   const [endCustomers, setEndCustomers] = useState([]);
   const [weightItems, setWeightItems] = useState([]);
+  const [envCerts, setEnvCerts] = useState([]);
   const [endCustomerId, setEndCustomerId] = useState("");
   const [payload, setPayload] = useState(() => {
     const p = emptyWeightColetaPayload();
@@ -47,7 +50,7 @@ export default function WeightCertificateManualForm({
 
   const load = useCallback(async () => {
     if (!tenantId) return;
-    const [c, w] = await Promise.all([
+    const [c, w, env] = await Promise.all([
       supabase
         .from("end_customer_registrations")
         .select(END_CUSTOMER_LOOKUP_SELECT)
@@ -59,6 +62,11 @@ export default function WeightCertificateManualForm({
         .eq("tenant_id", tenantId)
         .eq("active", true)
         .order("identification"),
+      supabase
+        .from("environment_sensor_certificates")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .order("equipment_name"),
     ]);
     if (c.error) {
       toast.error(`Falha ao carregar clientes: ${c.error.message}`);
@@ -66,6 +74,11 @@ export default function WeightCertificateManualForm({
       setEndCustomers(c.data || []);
     }
     if (!w.error) setWeightItems(w.data || []);
+    if (env.error) {
+      toast.error(`Falha ao carregar TBH: ${env.error.message}`);
+    } else {
+      setEnvCerts(env.data || []);
+    }
   }, [tenantId]);
 
   useEffect(() => { load(); }, [load]);
@@ -87,7 +100,29 @@ export default function WeightCertificateManualForm({
 
   const setCliente = (k, v) => setPayload((p) => ({ ...p, cliente: { ...p.cliente, [k]: v } }));
   const setGeral = (k, v) => setPayload((p) => ({ ...p, geral: { ...p.geral, [k]: v } }));
-  const setAmbiente = (k, v) => setPayload((p) => ({ ...p, ambiente: { ...p.ambiente, [k]: v } }));
+
+  const onAmbienteChange = (ambiente) => {
+    setPayload((p) => {
+      const next = { ...p, ambiente: normalizeWeightAmbiente(ambiente) };
+      const ids = [ambiente.thermo_cert_id, ambiente.thermo_cert_id_2].filter(Boolean);
+      if (ids.length) {
+        next.rastreabilidade = {
+          ...p.rastreabilidade,
+          tbh: ids.map((id) => {
+            const cert = envCerts.find((e) => e.id === id);
+            return {
+              identificacao: cert?.equipment_name || "",
+              certificado: cert?.certificate_number || "",
+              validade: cert?.expiry_date || "",
+              laboratorio: cert?.calibrated_by || "",
+              standard_id: id,
+            };
+          }),
+        };
+      }
+      return next;
+    });
+  };
 
   const updateItem = (idx, patch) => {
     setPayload((p) => {
@@ -247,23 +282,13 @@ export default function WeightCertificateManualForm({
         </div>
       </div>
 
-      <div>
-        <h3 className="text-sm font-medium mb-2">Ambiente</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {[
-            ["temp_inicial", "Temp. inicial"],
-            ["temp_final", "Temp. final"],
-            ["ur_inicial", "UR inicial"],
-            ["ur_final", "UR final"],
-            ["pressao_inicial", "Pressão inicial"],
-            ["pressao_final", "Pressão final"],
-          ].map(([k, label]) => (
-            <div key={k}>
-              <Label className="text-[11px]">{label}</Label>
-              <Input className={fieldClass} value={payload.ambiente?.[k] || ""} onChange={(e) => setAmbiente(k, e.target.value)} />
-            </div>
-          ))}
-        </div>
+      <div className="rounded-lg border p-4">
+        <WeightAmbientSection
+          ambiente={payload.ambiente}
+          envCerts={envCerts}
+          onAmbienteChange={onAmbienteChange}
+          fieldClass={fieldClass}
+        />
       </div>
 
       <div className="space-y-3">

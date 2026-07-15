@@ -95,14 +95,7 @@ export function emptyWeightColetaPayload() {
       obs3: "",
     },
     peso_descricoes: ["", "", "", ""],
-    ambiente: {
-      temp_inicial: "",
-      temp_final: "",
-      ur_inicial: "",
-      ur_final: "",
-      pressao_inicial: "",
-      pressao_final: "",
-    },
+    ambiente: emptyWeightAmbiente(),
     rastreabilidade: {
       balancas: [],
       conjuntos_peso: [],
@@ -111,4 +104,38 @@ export function emptyWeightColetaPayload() {
     executores: "",
     itens: Array.from({ length: 4 }, () => emptyWeightItem()),
   };
+}
+
+/** Ambiente alinhado à coleta RE-7.2A (campos + TBH). */
+export function emptyWeightAmbiente(overrides = {}) {
+  return {
+    thermo_cert_id: "",
+    thermo_cert_id_2: "",
+    horario_inicial: "",
+    horario_final: "",
+    temp_inicial: "",
+    temp_final: "",
+    umidade_inicial: "",
+    umidade_final: "",
+    pressao_inicial: "",
+    pressao_final: "",
+    observacoes: "",
+    tbh_correction_raw: {},
+    tbh_correction_meta: null,
+    tbh_correction_applied: false,
+    ...overrides,
+  };
+}
+
+/** Normaliza ambiente legado (`ur_*`) para o padrão `umidade_*`. */
+export function normalizeWeightAmbiente(raw = {}) {
+  return emptyWeightAmbiente({
+    ...raw,
+    umidade_inicial: raw.umidade_inicial || raw.ur_inicial || "",
+    umidade_final: raw.umidade_final || raw.ur_final || "",
+    observacoes: raw.observacoes || raw.notes || "",
+    tbh_correction_raw: raw.tbh_correction_raw || {},
+    tbh_correction_meta: raw.tbh_correction_meta || null,
+    tbh_correction_applied: !!raw.tbh_correction_applied,
+  });
 }
