@@ -147,5 +147,5 @@ export function canMarkCertificateObsolete(status) {
 }
 
 export function canDeleteCertificate(status) {
-  return EDITABLE_CERTIFICATE_STATUSES.includes(status) || status === "obsoleto";
+  return status === "obsoleto";
 }

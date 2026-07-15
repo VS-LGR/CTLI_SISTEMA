@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft, FloppyDisk, ArrowsClockwise, FilePdf, CheckCircle, PaperPlaneTilt, EnvelopeSimple,
+  ArrowLeft, FloppyDisk, ArrowsClockwise, FilePdf, CheckCircle, PaperPlaneTilt, EnvelopeSimple, Archive, Trash,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
@@ -31,6 +31,8 @@ import {
   emitWeightCertificate,
   upsertWeightCertificateEnvironmental,
   buildWeightEnvironmentalFromPayload,
+  markWeightCertificateObsolete,
+  deleteWeightCertificate,
 } from "@/lib/weightCalibration/weightCertificateApi";
 import { normalizeWeightAmbiente } from "@/lib/weightCalibration/weightColetaSchema";
 import WeightAmbientSection from "@/components/weightCalibration/WeightAmbientSection";
@@ -48,6 +50,8 @@ import {
   CRITICAL_ANALYSIS_CHECKLIST,
   DOC_CODE,
   TEMPLATE_KEY,
+  canMarkCertificateObsolete,
+  canDeleteCertificate,
 } from "@/lib/weightCalibration/weightCertificateSchema";
 import { downloadWeightCertificatePdf } from "@/lib/weightCalibration/weightCertificateExport";
 import {
@@ -57,6 +61,8 @@ import {
 } from "@/lib/weightCalibration/weightCertificateEmailApi";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { Checkbox } from "@/components/ui/checkbox";
+import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
+import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
 
 const fieldClass = "h-9 text-sm";
 
@@ -116,6 +122,8 @@ export default function WeightCertificateEditorPage() {
   const [approvalNotes, setApprovalNotes] = useState("");
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailTo, setEmailTo] = useState("");
+  const [obsoleteOpen, setObsoleteOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const canEdit = canEditCalibrationCertificate(user?.role);
   const canApprove = canApproveCalibrationCertificate(user?.role);
@@ -414,6 +422,34 @@ export default function WeightCertificateEditorPage() {
       setEmailDialogOpen(false);
       toast.success(`Enviado para ${emailTo || clientEmail}`);
       await load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleMarkObsolete = async (reason) => {
+    setBusy(true);
+    try {
+      const updated = await markWeightCertificateObsolete(cert.id, { userId: user.id, reason });
+      setCert(updated);
+      setObsoleteOpen(false);
+      toast.success("Certificado marcado como obsoleto");
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    setBusy(true);
+    try {
+      await deleteWeightCertificate(cert.id, { tenantId: currentTenantId });
+      setDeleteOpen(false);
+      toast.success("Certificado removido permanentemente");
+      navigate(WEIGHT_CERTIFICATE_LIST_PATH);
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -755,6 +791,41 @@ export default function WeightCertificateEditorPage() {
             )}
           </div>
 
+          {canEdit && (
+            <div className="pt-4 mt-2 border-t space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Remoção</p>
+              {canMarkCertificateObsolete(cert.status) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-amber-300 text-amber-800 hover:bg-amber-50"
+                  disabled={busy}
+                  onClick={() => setObsoleteOpen(true)}
+                >
+                  <Archive size={16} className="mr-1" /> Marcar como obsoleto
+                </Button>
+              )}
+              {cert.status === "emitido" && (
+                <p className="text-xs text-slate-500">
+                  Certificados emitidos devem ser cancelados ou substituídos antes de marcar como obsoleto.
+                </p>
+              )}
+              {canDeleteCertificate(cert.status) && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={busy}
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash size={16} className="mr-1" /> Remover permanentemente
+                </Button>
+              )}
+              {!canMarkCertificateObsolete(cert.status) && !canDeleteCertificate(cert.status) && cert.status !== "emitido" && (
+                <p className="text-xs text-slate-500">Este certificado não pode ser removido no estado atual.</p>
+              )}
+            </div>
+          )}
+
           {criticalOpen && (
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
               <p className="text-sm font-medium">Análise crítica</p>
@@ -813,6 +884,21 @@ export default function WeightCertificateEditorPage() {
           )}
         </CardContent>
       </Card>
+
+      <CertificateObsoleteDialog
+        open={obsoleteOpen}
+        onOpenChange={setObsoleteOpen}
+        certificateLabel={certLabel}
+        onConfirm={handleMarkObsolete}
+        busy={busy}
+      />
+      <CertificatePermanentDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        certificateLabel={certLabel}
+        onConfirm={handlePermanentDelete}
+        busy={busy}
+      />
     </div>
   );
 }

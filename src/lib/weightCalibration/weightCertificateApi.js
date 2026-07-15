@@ -8,7 +8,7 @@ import {
   canColetaGenerateOfficial,
   canTransitionCertificateStatus,
   canMarkCertificateObsolete,
-  EDITABLE_CERTIFICATE_STATUSES,
+  canDeleteCertificate,
 } from "./weightCertificateSchema";
 import { validateWeightCalcPayload } from "./weightColetaSchema";
 
@@ -1090,16 +1090,15 @@ export async function markWeightCertificateObsolete(id, { userId, reason } = {})
   return getWeightCertificate(id);
 }
 
-/** Remove apenas certificados em estados de rascunho/edição. */
+/** Remove permanentemente apenas certificados obsoletos (mesmo fluxo RE-7.2B). */
 export async function deleteWeightCertificate(id, { tenantId } = {}) {
   const full = await getWeightCertificate(id);
   if (tenantId && full.tenant_id !== tenantId) {
     throw new Error("Certificado não pertence a este ambiente.");
   }
-  const draftLike = EDITABLE_CERTIFICATE_STATUSES.includes(full.status);
-  if (!draftLike) {
+  if (!canDeleteCertificate(full.status)) {
     throw new Error(
-      "Somente certificados em rascunho/edição podem ser excluídos. Cancele ou marque como obsoleto os demais.",
+      "Somente certificados obsoletos podem ser removidos permanentemente. Marque como obsoleto primeiro.",
     );
   }
 

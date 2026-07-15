@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, MagnifyingGlass, Archive, FilePdf, EnvelopeSimple } from "@phosphor-icons/react";
+import { Plus, MagnifyingGlass, Archive, FilePdf, EnvelopeSimple, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   WEIGHT_CERTIFICATE_NEW_PATH,
@@ -25,12 +25,16 @@ import {
   listWeightCertificates,
   getWeightCertificate,
   bulkApproveWeightCertificates,
+  markWeightCertificateObsolete,
+  deleteWeightCertificate,
 } from "@/lib/weightCalibration/weightCertificateApi";
 import {
   certificateStatusLabel,
   certificateTypeLabel,
   formatCertificateNumber,
   CERTIFICATE_STATUSES,
+  canMarkCertificateObsolete,
+  canDeleteCertificate,
 } from "@/lib/weightCalibration/weightCertificateSchema";
 import { downloadWeightCertificatePdf } from "@/lib/weightCalibration/weightCertificateExport";
 import {
@@ -45,6 +49,8 @@ import {
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
+import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
+import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -88,6 +94,10 @@ export default function WeightCertificateListPage() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchProgress, setBatchProgress] = useState("");
+  const [lifecycleRow, setLifecycleRow] = useState(null);
+  const [obsoleteOpen, setObsoleteOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
 
   const canApprove = canApproveCalibrationCertificate(user?.role);
   const canSend = canSendCertificateEmail(user?.role);
@@ -237,6 +247,52 @@ export default function WeightCertificateListPage() {
     }
   };
 
+  const openObsolete = (row) => {
+    setLifecycleRow(row);
+    setObsoleteOpen(true);
+  };
+
+  const openDelete = (row) => {
+    setLifecycleRow(row);
+    setDeleteOpen(true);
+  };
+
+  const handleMarkObsolete = async (reason) => {
+    if (!lifecycleRow) return;
+    setLifecycleBusy(true);
+    try {
+      await markWeightCertificateObsolete(lifecycleRow.id, { userId: user.id, reason });
+      toast.success("Certificado marcado como obsoleto");
+      setObsoleteOpen(false);
+      setLifecycleRow(null);
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!lifecycleRow) return;
+    setLifecycleBusy(true);
+    try {
+      await deleteWeightCertificate(lifecycleRow.id, { tenantId: currentTenantId });
+      toast.success("Certificado removido permanentemente");
+      setDeleteOpen(false);
+      setLifecycleRow(null);
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  const lifecycleLabel = lifecycleRow
+    ? formatCertificateNumber(lifecycleRow.certificate_number, lifecycleRow.certificate_year)
+    : "";
+
   return (
     <div className="space-y-6 min-w-0" data-testid="weight-certificate-list">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -377,6 +433,28 @@ export default function WeightCertificateListPage() {
                           <EnvelopeSimple size={16} />
                         </Button>
                       )}
+                      {canCreate && canMarkCertificateObsolete(row.status) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+                          onClick={() => openObsolete(row)}
+                          title="Marcar obsoleto"
+                        >
+                          <Archive size={16} />
+                        </Button>
+                      )}
+                      {canCreate && canDeleteCertificate(row.status) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          onClick={() => openDelete(row)}
+                          title="Remover permanentemente"
+                        >
+                          <Trash size={16} />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -385,6 +463,27 @@ export default function WeightCertificateListPage() {
           </table>
         </div>
       )}
+
+      <CertificateObsoleteDialog
+        open={obsoleteOpen}
+        onOpenChange={(open) => {
+          setObsoleteOpen(open);
+          if (!open) setLifecycleRow(null);
+        }}
+        certificateLabel={lifecycleLabel}
+        onConfirm={handleMarkObsolete}
+        busy={lifecycleBusy}
+      />
+      <CertificatePermanentDeleteDialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) setLifecycleRow(null);
+        }}
+        certificateLabel={lifecycleLabel}
+        onConfirm={handlePermanentDelete}
+        busy={lifecycleBusy}
+      />
     </div>
   );
 }
