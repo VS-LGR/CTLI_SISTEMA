@@ -15,6 +15,9 @@ const MEMORY_FIELDS = [
   { key: "coverage_factor_raw", label: "k (raw)", decimals: 3 },
   { key: "display_expanded", label: "U (exibida)", decimals: 6 },
   { key: "erro_permitido", label: "Erro permitido (3·Ucl)", decimals: 6 },
+  { key: "tolerance_positive", label: "Limite superior (G59)", decimals: 6 },
+  { key: "tolerance_negative", label: "Limite inferior (G60)", decimals: 6 },
+  { key: "valor_encontrado", label: "Valor encontrado (H61)", decimals: 6 },
 ];
 
 const COMPONENT_LABELS = {
@@ -138,6 +141,15 @@ export default function WeightItemCalculationMemory({ item }) {
               <span className="text-slate-500 truncate">Assume U classe</span>
               <span className="font-mono text-slate-800 shrink-0">
                 {fmt(memory.assume_class_uncertainty)}
+              </span>
+            </div>
+          )}
+
+          {item.approved != null && (
+            <div className="col-span-full flex justify-between gap-2 min-w-0 pt-1 border-t border-slate-200">
+              <span className="text-slate-500 truncate">Parecer (G57)</span>
+              <span className={`font-mono shrink-0 ${item.approved ? "text-emerald-700" : "text-red-700"}`}>
+                {item.approved ? "Aprovado" : "Não aprovado"}
               </span>
             </div>
           )}

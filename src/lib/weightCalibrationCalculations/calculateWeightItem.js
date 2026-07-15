@@ -258,8 +258,17 @@ export function calculateWeightItem(input = {}) {
     const roundedUncertainty = roundUp(displayExpanded ?? U95, decimals);
 
     const nominalG = toGrams(nominal, unit);
-    const classUncRaw = lookupClassUncertainty(nominalG, input.uut_class, unit === "mg" ? "mg" : "g");
-    const classUncertainty = classUncRaw != null ? fixedRound(classUncRaw, decimals) : null;
+    const classUncLookupUnit = unit === "mg" ? "mg" : "g";
+    let classUncRaw = lookupClassUncertainty(nominalG, input.uut_class, classUncLookupUnit);
+    // Tabelas UNCERTAINTY_G estão em g; quando a unidade de trabalho é kg, converter.
+    if (classUncRaw != null && unit === "kg") {
+      classUncRaw /= 1000;
+    }
+    let classUncertainty = classUncRaw != null ? fixedRound(classUncRaw, decimals) : null;
+    // FIXED com poucas casas pode zerar Uclasse e colapsar limites em Mo (reprova até erro 0).
+    if (classUncertainty === 0 && classUncRaw > 0) {
+      classUncertainty = roundUp(classUncRaw, decimals);
+    }
 
     const assumeClass = input.assume_class_uncertainty !== false;
     const usedUncertainty = assumeClass && classUncertainty != null
@@ -281,12 +290,15 @@ export function calculateWeightItem(input = {}) {
     const displayUncertainty = usedUncertainty;
     const displayCoverageFactor = fixedRound(k, 2);
 
-    if (classUncertainty != null && usedUncertainty != null) {
+    // Parecer da planilha (G57/H64/H65): limites SEMPRE com incerteza de classe D63
+    // G58 = D63*3; G59 = FIXED(D57-(D63-G58)); G60 = FIXED(D57+(D63-G58));
+    // H61 = VALUE(D58) = VVC arredondado; H64 = H60<H61; H65 = H59>H61 (estrito).
+    if (classUncertainty != null && displayNominal != null && displayConventional != null) {
       const erroPermitido = classUncertainty * 3;
-      // G59 = Mo - (U - erro) = upper; G60 = Mo + (U - erro) = lower
-      tolerancePositive = fixedRound(nominal - (usedUncertainty - erroPermitido), decimals);
-      toleranceNegative = fixedRound(nominal + (usedUncertainty - erroPermitido), decimals);
-      const found = conventionalValue;
+      // "Valor Positivo Permitido" (G59) = limite superior; "Negativo" (G60) = inferior
+      tolerancePositive = fixedRound(displayNominal - (classUncertainty - erroPermitido), decimals);
+      toleranceNegative = fixedRound(displayNominal + (classUncertainty - erroPermitido), decimals);
+      const found = displayConventional;
       const aboveLower = toleranceNegative < found;
       const belowUpper = tolerancePositive > found;
       approved = aboveLower && belowUpper;
@@ -337,6 +349,19 @@ export function calculateWeightItem(input = {}) {
         coverage_factor_raw: k,
         assume_class_uncertainty: assumeClass,
         erro_permitido: classUncertainty != null ? classUncertainty * 3 : null,
+        tolerance_positive: tolerancePositive,
+        tolerance_negative: toleranceNegative,
+        valor_encontrado: displayConventional,
+        approval_checks: classUncertainty != null
+          ? {
+            below_upper: tolerancePositive != null && displayConventional != null
+              ? tolerancePositive > displayConventional
+              : null,
+            above_lower: toleranceNegative != null && displayConventional != null
+              ? toleranceNegative < displayConventional
+              : null,
+          }
+          : null,
       },
       calc_status: "calculado",
       calc_error: "",
