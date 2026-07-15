@@ -359,9 +359,9 @@ export default function WeightCertificateManualForm({
                 </Select>
               </div>
               <div>
-                <Label className="text-[11px]">Material UUT</Label>
+                <Label className="text-[11px]">Material do mensurando (UUT)</Label>
                 <Select value={item.uut_material || "__"} onValueChange={(v) => updateItem(idx, { uut_material: v === "__" ? "" : v })}>
-                  <SelectTrigger className={fieldClass}><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={fieldClass}><SelectValue placeholder="Material do peso calibrado" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__">—</SelectItem>
                     {MATERIALS.map((m) => (
@@ -369,14 +369,15 @@ export default function WeightCertificateManualForm({
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-[10px] text-slate-500 mt-0.5">Peso sob calibração — densidade no empuxo</p>
               </div>
               <div>
-                <Label className="text-[11px]">Material padrão</Label>
+                <Label className="text-[11px]">Material do padrão</Label>
                 <Select
                   value={item.reference_material || "__"}
                   onValueChange={(v) => updateItem(idx, { reference_material: v === "__" ? "" : v })}
                 >
-                  <SelectTrigger className={fieldClass}><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={fieldClass}><SelectValue placeholder="Material do peso de referência" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__">—</SelectItem>
                     {MATERIALS.map((m) => (
@@ -384,6 +385,7 @@ export default function WeightCertificateManualForm({
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-[10px] text-slate-500 mt-0.5">Preenchido pelo cadastro; editável se necessário</p>
               </div>
               <div className="sm:col-span-3 space-y-2">
                 <Label className="text-[11px]">Referência (cadastro)</Label>

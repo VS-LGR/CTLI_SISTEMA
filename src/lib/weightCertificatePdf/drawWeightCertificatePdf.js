@@ -175,30 +175,35 @@ function drawResultsSection(doc, model, y, ctx) {
   ({ y } = ensureSpace(doc, y, 40, ctx));
   y = drawSectionBar(doc, ML, y, CW, "RESULTADOS DA CALIBRAÇÃO", m);
 
+  const emptyRow = Array.from({ length: 13 }, () => "—");
   const body = (model.items || []).length
     ? model.items.map((it) => [
       s(it.number),
       s(it.identification),
+      s(it.material),
       s(it.nominal),
+      s(it.density),
       s(it.conventional),
       s(it.deviation),
       s(it.uncertainty),
       s(it.k),
       s(it.class),
+      s(it.before),
+      s(it.after),
       s(it.approved),
     ])
-    : [["—", "—", "—", "—", "—", "—", "—", "—", "—"]];
+    : [emptyRow];
 
   autoTable(doc, {
     startY: y,
     margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
     head: [[
-      "Item", "Identificação", "Nominal", "Valor conv.", "Desvio",
-      "U (k)", "k", "Classe", "Aprovado",
+      "Item", "Identificação", "Material", "Nominal", "Densidade",
+      "Valor conv.", "Desvio", "U", "k", "Classe", "Antes", "Após", "Aprovado",
     ]],
     body,
-    styles: { fontSize: m.compactTableFontSize || 6.2, cellPadding: 1.1, halign: "center", valign: "middle" },
-    headStyles: { ...tableHeadStyles(doc), fontSize: (m.tableHeadFontSize || 7) - 0.5 },
+    styles: { fontSize: Math.min(m.compactTableFontSize || 6.2, 5.6), cellPadding: 0.9, halign: "center", valign: "middle" },
+    headStyles: { ...tableHeadStyles(doc), fontSize: Math.max((m.tableHeadFontSize || 7) - 1.2, 5.2) },
     theme: "grid",
   });
   return doc.lastAutoTable.finalY + 2;

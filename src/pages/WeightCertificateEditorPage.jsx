@@ -22,6 +22,7 @@ import {
   ArrowLeft, FloppyDisk, ArrowsClockwise, FilePdf, CheckCircle, PaperPlaneTilt, EnvelopeSimple, Archive, Trash,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import WeightItemCalculationMemory from "@/components/weightCalibration/WeightItemCalculationMemory";
 import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
 import {
   getWeightCertificate,
@@ -649,7 +650,7 @@ export default function WeightCertificateEditorPage() {
             <p className="text-sm text-slate-500">Sem itens.</p>
           ) : (
             <div className="overflow-x-auto border rounded-lg">
-              <table className="w-full text-sm min-w-[700px]">
+              <table className="w-full text-sm min-w-[780px]">
                 <thead className="bg-slate-50 border-b">
                   <tr>
                     <th className="text-left p-2 font-medium">#</th>
@@ -666,30 +667,33 @@ export default function WeightCertificateEditorPage() {
                   {cert.items.map((it) => {
                     const decimals = itemDecimalPlaces(it);
                     return (
-                    <tr key={it.id || it.item_number} className="border-b last:border-0">
-                      <td className="p-2 text-xs text-slate-500">{it.item_number}</td>
-                      <td className="p-2">{it.identification || "—"}</td>
-                      <td className="p-2 font-mono text-xs">
-                        {fmtNum(it.nominal_value, decimals)} {it.nominal_unit || "g"}
-                      </td>
-                      <td className="p-2 font-mono text-xs">{fmtNum(it.conventional_value, decimals)}</td>
-                      <td className="p-2 font-mono text-xs">{fmtNum(it.expanded_uncertainty, decimals)}</td>
-                      <td className="p-2 font-mono text-xs">{fmtNum(it.coverage_factor, 2)}</td>
-                      <td className="p-2">
-                        {it.approved === true && <Badge className="bg-emerald-100 text-emerald-800 text-[10px]">Sim</Badge>}
-                        {it.approved === false && <Badge className="bg-red-100 text-red-800 text-[10px]">Não</Badge>}
-                        {it.approved == null && <span className="text-slate-400">—</span>}
-                      </td>
-                      <td className="p-2 text-xs max-w-[14rem]">
-                        {it.calc_status === "erro" ? (
-                          <span className="text-red-600" title={it.calc_error || "Erro"}>
-                            {it.calc_error || "Erro"}
-                          </span>
-                        ) : (
-                          it.calc_status || "—"
-                        )}
-                      </td>
-                    </tr>
+                      <tr key={it.id || it.item_number} className="border-b last:border-0 align-top">
+                        <td className="p-2 text-xs text-slate-500">{it.item_number}</td>
+                        <td className="p-2">{it.identification || "—"}</td>
+                        <td className="p-2 font-mono text-xs whitespace-nowrap">
+                          {fmtNum(it.nominal_value, decimals)} {it.nominal_unit || "g"}
+                        </td>
+                        <td className="p-2 font-mono text-xs">{fmtNum(it.conventional_value, decimals)}</td>
+                        <td className="p-2 font-mono text-xs">{fmtNum(it.expanded_uncertainty, decimals)}</td>
+                        <td className="p-2 font-mono text-xs">{fmtNum(it.coverage_factor, 2)}</td>
+                        <td className="p-2">
+                          {it.approved === true && <Badge className="bg-emerald-100 text-emerald-800 text-[10px]">Sim</Badge>}
+                          {it.approved === false && <Badge className="bg-red-100 text-red-800 text-[10px]">Não</Badge>}
+                          {it.approved == null && <span className="text-slate-400">—</span>}
+                        </td>
+                        <td className="p-2 text-xs max-w-[16rem]">
+                          {it.calc_status === "erro" ? (
+                            <div className="space-y-1">
+                              <p className="text-red-600" title={it.calc_error || "Erro"}>
+                                {it.calc_error || "Erro"}
+                              </p>
+                              <WeightItemCalculationMemory item={it} />
+                            </div>
+                          ) : (
+                            <WeightItemCalculationMemory item={it} />
+                          )}
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>

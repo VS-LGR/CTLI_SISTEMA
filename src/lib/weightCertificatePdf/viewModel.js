@@ -126,14 +126,18 @@ export function buildWeightCertificatePdfViewModel(cert, opts = {}) {
       return {
         number: it.item_number,
         identification: s(it.identification),
+        material: s(it.uut_material),
         nominal: it.nominal_value != null
           ? `${formatNum(it.nominal_value, decimals)} ${it.nominal_unit || "g"}`
           : "—",
+        density: it.specific_density != null ? formatNum(it.specific_density, 1) : "—",
         conventional: formatNum(it.conventional_value, decimals),
         deviation: formatNum(it.deviation, decimals),
         uncertainty: formatNum(it.expanded_uncertainty, decimals),
         k: it.coverage_factor != null ? formatNum(it.coverage_factor, 2) : "—",
         class: s(it.uut_class),
+        before: formatNum(it.value_before_adjustment, decimals),
+        after: formatNum(it.value_after_adjustment, decimals),
         conformity: s(it.conformity_result, "nao_avaliado"),
         approved: it.approved == null ? "—" : (it.approved ? "Sim" : "Não"),
       };
