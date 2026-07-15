@@ -16,6 +16,7 @@ import {
   END_CUSTOMER_LOOKUP_SELECT,
   applyEndCustomerToWeightCliente,
   normalizeWeightAmbiente,
+  validateWeightCalcPayload,
 } from "@/lib/weightCalibration/weightColetaSchema";
 import { WEIGHT_CLASSES, MATERIALS } from "@/lib/weightCalibration/weightCertificateSchema";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
@@ -165,6 +166,11 @@ export default function WeightCertificateManualForm({
     e.preventDefault();
     if (!payload.cliente?.solicitante?.trim()) {
       toast.error("Informe o solicitante");
+      return;
+    }
+    const check = validateWeightCalcPayload(payload);
+    if (!check.ok) {
+      toast.error(check.message);
       return;
     }
     onSubmit?.({

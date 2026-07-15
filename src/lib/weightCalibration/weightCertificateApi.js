@@ -10,6 +10,7 @@ import {
   canMarkCertificateObsolete,
   EDITABLE_CERTIFICATE_STATUSES,
 } from "./weightCertificateSchema";
+import { validateWeightCalcPayload } from "./weightColetaSchema";
 
 export function assertSupabaseWeightCertificates() {
   if (!isSupabaseAuthMode) throw new Error("Certificados de pesos requerem ligação Supabase.");
@@ -403,6 +404,9 @@ export async function createWeightCertificateManual({
   assertSupabaseWeightCertificates();
   if (!tenantId) throw new Error("tenantId é obrigatório");
 
+  const check = validateWeightCalcPayload(payload || {});
+  if (!check.ok) throw new Error(check.message);
+
   const calDate = calibrationDate || payload?.geral?.data_calibracao || new Date().toISOString().slice(0, 10);
   const year = new Date(calDate).getFullYear();
   const nextNum = await suggestNextWeightCertificateNumber(tenantId, year);
@@ -477,6 +481,9 @@ export async function createWeightCertificateFromColeta({
   const nextNum = await suggestNextWeightCertificateNumber(tenantId, year);
 
   const payload = collection.payload || {};
+  const check = validateWeightCalcPayload(payload);
+  if (!check.ok) throw new Error(check.message);
+
   const bundle = buildBundleFromPayload({
     payload,
     certificateType,
@@ -627,8 +634,42 @@ export async function upsertWeightCertificateEnvironmental(certificateId, env = 
   return data;
 }
 
-function itemCalcInput(item, environmental) {
+function firstFiniteAmbient(...candidates) {
+  for (const c of candidates) {
+    if (c == null || c === "") continue;
+    const n = parseNum(c);
+    if (n != null) return n;
+  }
+  return null;
+}
+
+function ambientFromPayloadAmbiente(ambiente = {}) {
+  return {
+    temp: envAverage(
+      ambiente.temp_inicial ?? ambiente.initial_temperature,
+      ambiente.temp_final ?? ambiente.final_temperature,
+    ),
+    humidity: envAverage(
+      ambiente.umidade_inicial ?? ambiente.ur_inicial ?? ambiente.initial_humidity,
+      ambiente.umidade_final ?? ambiente.ur_final ?? ambiente.final_humidity,
+    ),
+    pressure: envAverage(
+      ambiente.pressao_inicial ?? ambiente.initial_pressure,
+      ambiente.pressao_final ?? ambiente.final_pressure,
+    ),
+  };
+}
+
+function itemCalcInput(item, environmental, collectionPayload = null) {
   const env = environmental || {};
+  const payloadAmb = ambientFromPayloadAmbiente(collectionPayload?.ambiente || {});
+  const itemFromPayload = Array.isArray(collectionPayload?.itens)
+    ? collectionPayload.itens.find((it) =>
+      (Number(it.item_number) || 0) === (Number(item.item_number) || 0)
+      || (it.identification && it.identification === item.identification),
+    )
+    : null;
+
   return {
     identification: item.identification,
     nominal_value: item.nominal_value,
@@ -645,9 +686,27 @@ function itemCalcInput(item, environmental) {
     value_before_adjustment: item.value_before_adjustment,
     assume_class_uncertainty: item.assume_class_uncertainty !== false,
     cycles: item.cycle_readings || [],
-    ambient_temp: env.mean_temperature ?? envAverage(env.initial_temperature, env.final_temperature),
-    ambient_humidity: env.mean_humidity ?? envAverage(env.initial_humidity, env.final_humidity),
-    ambient_pressure: env.mean_pressure ?? envAverage(env.initial_pressure, env.final_pressure),
+    ambient_temp: firstFiniteAmbient(
+      env.mean_temperature,
+      envAverage(env.initial_temperature, env.final_temperature),
+      item.ambient_temp,
+      itemFromPayload?.ambient_temp,
+      payloadAmb.temp,
+    ),
+    ambient_humidity: firstFiniteAmbient(
+      env.mean_humidity,
+      envAverage(env.initial_humidity, env.final_humidity),
+      item.ambient_humidity,
+      itemFromPayload?.ambient_humidity,
+      payloadAmb.humidity,
+    ),
+    ambient_pressure: firstFiniteAmbient(
+      env.mean_pressure,
+      envAverage(env.initial_pressure, env.final_pressure),
+      item.ambient_pressure,
+      itemFromPayload?.ambient_pressure,
+      payloadAmb.pressure,
+    ),
   };
 }
 
@@ -662,17 +721,22 @@ export async function recalculateWeightCertificate(id) {
     throw new Error("Certificado sem itens para calcular.");
   }
 
+  const collectionPayload = full.collection_snapshot?.payload || null;
+
   for (const item of full.items) {
     if (!item.id) continue;
     try {
-      const result = calculateWeightItem(itemCalcInput(item, full.environmental));
+      const result = calculateWeightItem(itemCalcInput(item, full.environmental, collectionPayload));
       const { error } = await supabase
         .from("weight_calibration_certificate_items")
         .update({
-          conventional_value: result.conventionalValue ?? null,
-          deviation: result.deviation ?? null,
-          expanded_uncertainty: result.expandedUncertainty ?? result.roundedUncertainty ?? null,
-          coverage_factor: result.coverageFactor ?? null,
+          conventional_value: result.displayConventional ?? result.conventionalValue ?? null,
+          deviation: result.displayDeviation ?? result.deviation ?? null,
+          expanded_uncertainty: result.displayUncertainty
+            ?? result.usedUncertainty
+            ?? result.roundedUncertainty
+            ?? null,
+          coverage_factor: result.displayCoverageFactor ?? result.coverageFactor ?? null,
           degrees_of_freedom: result.degreesOfFreedom ?? null,
           class_uncertainty: result.classUncertainty ?? null,
           specific_density: result.specificDensity ?? null,

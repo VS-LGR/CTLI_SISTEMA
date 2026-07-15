@@ -139,3 +139,82 @@ export function normalizeWeightAmbiente(raw = {}) {
     tbh_correction_applied: !!raw.tbh_correction_applied,
   });
 }
+
+function hasNumeric(v) {
+  if (v == null || v === "") return false;
+  const n = Number(String(v).replace(",", "."));
+  return Number.isFinite(n);
+}
+
+function ambientMeansFromPayload(ambiente = {}) {
+  const a = normalizeWeightAmbiente(ambiente);
+  const tempOk = hasNumeric(a.temp_inicial) || hasNumeric(a.temp_final);
+  const urOk = hasNumeric(a.umidade_inicial) || hasNumeric(a.umidade_final);
+  const pOk = hasNumeric(a.pressao_inicial) || hasNumeric(a.pressao_final);
+  return { tempOk, urOk, pOk };
+}
+
+/**
+ * Valida entradas necessárias ao cálculo RE-5.4.2B (planilha P1).
+ * @returns {{ ok: boolean, message: string }}
+ */
+export function validateWeightCalcPayload(payload = {}) {
+  const ambiente = payload.ambiente || {};
+  const { tempOk, urOk, pOk } = ambientMeansFromPayload(ambiente);
+  if (!tempOk || !urOk || !pOk) {
+    return {
+      ok: false,
+      message: "Preencha temperatura, umidade e pressão no bloco de condições ambientais.",
+    };
+  }
+
+  const itens = (payload.itens || []).filter((it) => {
+    if (!it) return false;
+    return (
+      String(it.identification || "").trim()
+      || hasNumeric(it.nominal_value)
+      || String(it.reference_identification || "").trim()
+      || (Array.isArray(it.cycles) && it.cycles.some((c) => c?.standard_reading || c?.measuring_reading))
+    );
+  });
+
+  if (!itens.length) {
+    return { ok: false, message: "Inclua ao menos um item de peso com dados de coleta." };
+  }
+
+  for (let i = 0; i < itens.length; i += 1) {
+    const it = itens[i];
+    const label = `Item ${i + 1}${it.identification ? ` (${it.identification})` : ""}`;
+    if (!hasNumeric(it.nominal_value)) {
+      return { ok: false, message: `${label}: informe o valor nominal.` };
+    }
+    if (!hasNumeric(it.reference_conventional_value)) {
+      return { ok: false, message: `${label}: informe o VVC do peso de referência.` };
+    }
+    if (!hasNumeric(it.reference_uncertainty)) {
+      return { ok: false, message: `${label}: informe a incerteza (Ue) do padrão.` };
+    }
+    if (!hasNumeric(it.balance_resolution)) {
+      return { ok: false, message: `${label}: informe a resolução da balança.` };
+    }
+    if (!String(it.uut_material || "").trim()) {
+      return { ok: false, message: `${label}: selecione o material do mensurando (UUT).` };
+    }
+    if (!String(it.reference_material || "").trim()) {
+      return { ok: false, message: `${label}: selecione o material do peso de referência.` };
+    }
+    const n = Math.max(1, Math.min(10, Number(it.cycle_count) || 3));
+    const cycles = Array.isArray(it.cycles) ? it.cycles : [];
+    for (let ci = 0; ci < n; ci += 1) {
+      const c = cycles[ci] || {};
+      if (!hasNumeric(c.standard_reading) || !hasNumeric(c.measuring_reading)) {
+        return {
+          ok: false,
+          message: `${label}: preencha leituras do padrão e do mensurando no ciclo ${ci + 1}.`,
+        };
+      }
+    }
+  }
+
+  return { ok: true, message: "" };
+}

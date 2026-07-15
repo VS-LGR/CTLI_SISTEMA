@@ -85,7 +85,16 @@ function fmtNum(v, digits = 4) {
   if (v == null || v === "") return "—";
   const n = Number(v);
   if (!Number.isFinite(n)) return String(v);
-  return n.toLocaleString("pt-BR", { maximumFractionDigits: digits });
+  const d = Math.max(0, Math.floor(Number(digits)) || 0);
+  return n.toLocaleString("pt-BR", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  });
+}
+
+function itemDecimalPlaces(it) {
+  const d = Number(it?.decimal_places);
+  return Number.isFinite(d) && d >= 0 ? Math.floor(d) : 2;
 }
 
 export default function WeightCertificateEditorPage() {
@@ -237,9 +246,17 @@ export default function WeightCertificateEditorPage() {
   const handleRecalc = async () => {
     setBusy(true);
     try {
+      if (cert.environmental) {
+        await upsertWeightCertificateEnvironmental(cert.id, cert.environmental);
+      }
       const updated = await recalculateWeightCertificate(cert.id);
       setCert(updated);
-      toast.success("Cálculos atualizados");
+      const failed = (updated.items || []).filter((it) => it.calc_status === "erro");
+      if (failed.length) {
+        toast.warning(failed[0].calc_error || `${failed.length} item(ns) com erro no cálculo`);
+      } else {
+        toast.success("Cálculos atualizados");
+      }
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -610,30 +627,35 @@ export default function WeightCertificateEditorPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cert.items.map((it) => (
+                  {cert.items.map((it) => {
+                    const decimals = itemDecimalPlaces(it);
+                    return (
                     <tr key={it.id || it.item_number} className="border-b last:border-0">
                       <td className="p-2 text-xs text-slate-500">{it.item_number}</td>
                       <td className="p-2">{it.identification || "—"}</td>
                       <td className="p-2 font-mono text-xs">
-                        {fmtNum(it.nominal_value, 6)} {it.nominal_unit || "g"}
+                        {fmtNum(it.nominal_value, decimals)} {it.nominal_unit || "g"}
                       </td>
-                      <td className="p-2 font-mono text-xs">{fmtNum(it.conventional_value, 6)}</td>
-                      <td className="p-2 font-mono text-xs">{fmtNum(it.expanded_uncertainty, 6)}</td>
+                      <td className="p-2 font-mono text-xs">{fmtNum(it.conventional_value, decimals)}</td>
+                      <td className="p-2 font-mono text-xs">{fmtNum(it.expanded_uncertainty, decimals)}</td>
                       <td className="p-2 font-mono text-xs">{fmtNum(it.coverage_factor, 2)}</td>
                       <td className="p-2">
                         {it.approved === true && <Badge className="bg-emerald-100 text-emerald-800 text-[10px]">Sim</Badge>}
                         {it.approved === false && <Badge className="bg-red-100 text-red-800 text-[10px]">Não</Badge>}
                         {it.approved == null && <span className="text-slate-400">—</span>}
                       </td>
-                      <td className="p-2 text-xs">
+                      <td className="p-2 text-xs max-w-[14rem]">
                         {it.calc_status === "erro" ? (
-                          <span className="text-red-600" title={it.calc_error}>Erro</span>
+                          <span className="text-red-600" title={it.calc_error || "Erro"}>
+                            {it.calc_error || "Erro"}
+                          </span>
                         ) : (
                           it.calc_status || "—"
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

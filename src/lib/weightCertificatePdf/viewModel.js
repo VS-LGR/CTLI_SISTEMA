@@ -119,20 +119,25 @@ export function buildWeightCertificatePdfViewModel(cert, opts = {}) {
       laboratory: s(st.laboratory),
       description: s(st.description, ""),
     })),
-    items: items.map((it) => ({
-      number: it.item_number,
-      identification: s(it.identification),
-      nominal: it.nominal_value != null
-        ? `${formatNum(it.nominal_value, it.decimal_places ?? 2)} ${it.nominal_unit || "g"}`
-        : "—",
-      conventional: formatNum(it.conventional_value, it.decimal_places ?? 4),
-      deviation: formatNum(it.deviation, it.decimal_places ?? 4),
-      uncertainty: formatNum(it.expanded_uncertainty, it.decimal_places ?? 4),
-      k: it.coverage_factor != null ? formatNum(it.coverage_factor, 2) : "—",
-      class: s(it.uut_class),
-      conformity: s(it.conformity_result, "nao_avaliado"),
-      approved: it.approved == null ? "—" : (it.approved ? "Sim" : "Não"),
-    })),
+    items: items.map((it) => {
+      const decimals = Number.isFinite(Number(it.decimal_places))
+        ? Math.max(0, Math.floor(Number(it.decimal_places)))
+        : 2;
+      return {
+        number: it.item_number,
+        identification: s(it.identification),
+        nominal: it.nominal_value != null
+          ? `${formatNum(it.nominal_value, decimals)} ${it.nominal_unit || "g"}`
+          : "—",
+        conventional: formatNum(it.conventional_value, decimals),
+        deviation: formatNum(it.deviation, decimals),
+        uncertainty: formatNum(it.expanded_uncertainty, decimals),
+        k: it.coverage_factor != null ? formatNum(it.coverage_factor, 2) : "—",
+        class: s(it.uut_class),
+        conformity: s(it.conformity_result, "nao_avaliado"),
+        approved: it.approved == null ? "—" : (it.approved ? "Sim" : "Não"),
+      };
+    }),
     observations: resolveObservations(cert),
     people: {
       executor: s(

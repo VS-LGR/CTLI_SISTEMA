@@ -22,6 +22,7 @@ import {
   applyEndCustomerToWeightCliente,
   resolveWeightEndCustomerId,
   normalizeWeightAmbiente,
+  validateWeightCalcPayload,
 } from "@/lib/weightCalibration/weightColetaSchema";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import WeightAmbientSection from "@/components/weightCalibration/WeightAmbientSection";
@@ -364,21 +365,6 @@ function WeightItemCard({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-[11px]">Temp. média</Label>
-                <Input className={fieldClass} value={item.ambient_temp || ""} onChange={(e) => set({ ambient_temp: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-[11px]">UR média</Label>
-                <Input className={fieldClass} value={item.ambient_humidity || ""} onChange={(e) => set({ ambient_humidity: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Pressão média</Label>
-                <Input className={fieldClass} value={item.ambient_pressure || ""} onChange={(e) => set({ ambient_pressure: e.target.value })} />
-              </div>
-            </div>
-
             <div>
               <Label className="text-[11px] mb-1 block">Ciclos (padrão / medição)</Label>
               <div className="space-y-1">
@@ -638,6 +624,8 @@ export default function WeightColetaEditorPage() {
       return toast.error("Sem permissão para gerar certificados");
     }
     if (isNew) return toast.error("Guarde a coleta antes de gerar o certificado");
+    const check = validateWeightCalcPayload(payload);
+    if (!check.ok) return toast.error(check.message);
     setGenerating(true);
     try {
       await persist(workflowStatus);

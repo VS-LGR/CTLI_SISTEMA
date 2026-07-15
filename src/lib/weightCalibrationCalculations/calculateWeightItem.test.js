@@ -22,6 +22,24 @@ function p2Cycles() {
   ];
 }
 
+const p1Base = {
+  nominal_value: 2000,
+  nominal_unit: "g",
+  reference_conventional_value: 2000.0012,
+  reference_uncertainty: 0.001,
+  reference_material: "Inox",
+  uut_material: "Inox",
+  uut_class: "F1",
+  balance_resolution: 0.01,
+  decimal_places: 4,
+  cycle_count: 3,
+  ambient_temp: 20.8,
+  ambient_humidity: 58.7,
+  ambient_pressure: 927.1,
+  cycles: p1Cycles(),
+  closing_standard_reading: 2000,
+};
+
 describe("weightCalibrationCalculations", () => {
   test("airDensity matches P1 ambient (20.8 °C, 58.7 %, 927.1 hPa)", () => {
     const da = airDensity(20.8, 58.7, 927.1);
@@ -45,21 +63,7 @@ describe("weightCalibrationCalculations", () => {
 
   test("P1 golden: 2000 g F1 Inox/Inox, ciclos iguais", () => {
     const res = calculateWeightItem({
-      nominal_value: 2000,
-      nominal_unit: "g",
-      reference_conventional_value: 2000.0012,
-      reference_uncertainty: 0.001,
-      reference_material: "Inox",
-      uut_material: "Inox",
-      uut_class: "F1",
-      balance_resolution: 0.01,
-      decimal_places: 4,
-      cycle_count: 3,
-      ambient_temp: 20.8,
-      ambient_humidity: 58.7,
-      ambient_pressure: 927.1,
-      cycles: p1Cycles(),
-      closing_standard_reading: 2000,
+      ...p1Base,
       assume_class_uncertainty: true,
     });
 
@@ -71,6 +75,10 @@ describe("weightCalibrationCalculations", () => {
     expect(res.roundedUncertainty).toBeCloseTo(0.0065, 4);
     expect(res.classUncertainty).toBeCloseTo(0.0033, 4);
     expect(res.usedUncertainty).toBeCloseTo(0.0033, 4);
+    expect(res.displayConventional).toBeCloseTo(2000.0012, 6);
+    expect(res.displayDeviation).toBeCloseTo(0.0012, 6);
+    expect(res.displayUncertainty).toBeCloseTo(0.0033, 4);
+    expect(res.displayCoverageFactor).toBeCloseTo(2.0, 2);
     expect(res.coverageFactor).toBeCloseTo(2.0, 2);
     expect(res.approved).toBe(true);
     expect(res.conformity_result).toBe("conforme");
@@ -78,25 +86,12 @@ describe("weightCalibrationCalculations", () => {
 
   test("P1 without assume class uses rounded calculated U", () => {
     const res = calculateWeightItem({
-      nominal_value: 2000,
-      nominal_unit: "g",
-      reference_conventional_value: 2000.0012,
-      reference_uncertainty: 0.001,
-      reference_material: "Inox",
-      uut_material: "Inox",
-      uut_class: "F1",
-      balance_resolution: 0.01,
-      decimal_places: 4,
-      cycle_count: 3,
-      ambient_temp: 20.8,
-      ambient_humidity: 58.7,
-      ambient_pressure: 927.1,
-      cycles: p1Cycles(),
-      closing_standard_reading: 2000,
+      ...p1Base,
       assume_class_uncertainty: false,
     });
 
     expect(res.usedUncertainty).toBeCloseTo(0.0065, 4);
+    expect(res.displayUncertainty).toBeCloseTo(0.0065, 4);
   });
 
   test("P2 golden: 5000 g M1 Ferro Fundido", () => {
@@ -121,9 +116,42 @@ describe("weightCalibrationCalculations", () => {
 
     expect(res.calc_status).toBe("calculado");
     expect(res.conventionalValue).toBeCloseTo(5000.01, 4);
+    expect(res.displayConventional).toBeCloseTo(5000.01, 2);
     expect(res.classUncertainty).toBeCloseTo(0.08, 2);
     expect(res.usedUncertainty).toBeCloseTo(0.08, 2);
+    expect(res.displayUncertainty).toBeCloseTo(0.08, 2);
     expect(res.roundedUncertainty).toBeCloseTo(0.02, 2);
+    expect(res.displayCoverageFactor).toBeCloseTo(2.0, 2);
     expect(res.approved).toBe(true);
+  });
+
+  test("retorna calc_error explícito quando material ausente", () => {
+    const res = calculateWeightItem({
+      ...p1Base,
+      uut_material: "",
+      reference_material: "Inox",
+    });
+    expect(res.calc_status).toBe("erro");
+    expect(res.calc_error).toMatch(/Material do mensurando/i);
+  });
+
+  test("retorna calc_error explícito quando ambiente incompleto", () => {
+    const res = calculateWeightItem({
+      ...p1Base,
+      ambient_temp: null,
+      ambient_humidity: 58.7,
+      ambient_pressure: 927.1,
+    });
+    expect(res.calc_status).toBe("erro");
+    expect(res.calc_error).toMatch(/ambientais incompletas/i);
+  });
+
+  test("retorna calc_error explícito quando resolução ausente", () => {
+    const res = calculateWeightItem({
+      ...p1Base,
+      balance_resolution: "",
+    });
+    expect(res.calc_status).toBe("erro");
+    expect(res.calc_error).toMatch(/Resolução/i);
   });
 });

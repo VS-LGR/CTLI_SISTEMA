@@ -149,6 +149,11 @@ function emptyError(message) {
     roundedUncertainty: null,
     classUncertainty: null,
     usedUncertainty: null,
+    displayNominal: null,
+    displayConventional: null,
+    displayDeviation: null,
+    displayUncertainty: null,
+    displayCoverageFactor: null,
     tolerancePositive: null,
     toleranceNegative: null,
     approved: null,
@@ -266,6 +271,16 @@ export function calculateWeightItem(input = {}) {
     let approved = null;
     let conformity_result = "nao_avaliado";
 
+    // FIXED / ROUNDUP da planilha (D57–D63 / CERTIFICADO F61)
+    const displayNominal = fixedRound(nominal, decimals);
+    const displayConventional = fixedRound(conventionalValue, decimals);
+    const displayDeviation = fixedRound(
+      (displayConventional ?? 0) - (displayNominal ?? 0),
+      decimals,
+    );
+    const displayUncertainty = usedUncertainty;
+    const displayCoverageFactor = fixedRound(k, 2);
+
     if (classUncertainty != null && usedUncertainty != null) {
       const erroPermitido = classUncertainty * 3;
       // G59 = Mo - (U - erro) = upper; G60 = Mo + (U - erro) = lower
@@ -287,10 +302,16 @@ export function calculateWeightItem(input = {}) {
       combinedUncertainty: uc,
       coverageFactor: k,
       degreesOfFreedom: veff,
+      /** U95 bruto (memória); certificado usa usedUncertainty / displayUncertainty */
       expandedUncertainty: U95,
       roundedUncertainty,
       classUncertainty,
       usedUncertainty,
+      displayNominal,
+      displayConventional,
+      displayDeviation,
+      displayUncertainty,
+      displayCoverageFactor,
       tolerancePositive,
       toleranceNegative,
       approved,
@@ -312,6 +333,8 @@ export function calculateWeightItem(input = {}) {
         ue_ppm_uut: ppmUut,
         ue_ppm_ref: ppmRef,
         display_expanded: displayExpanded,
+        U95,
+        coverage_factor_raw: k,
         assume_class_uncertainty: assumeClass,
         erro_permitido: classUncertainty != null ? classUncertainty * 3 : null,
       },
