@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { weightItemCertStatus } from "@/lib/cadastroListUtils";
+import { weightItemCertStatus, weightItemCertNumber } from "@/lib/cadastroListUtils";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import { describeWeightComposition } from "@/lib/certificateCalculations/pointCalculations";
 import {
@@ -14,24 +14,27 @@ import {
   isLoadBatchItem,
 } from "@/lib/pesoPadraoPickerUtils";
 
+function formatMassField(value, unit) {
+  if (value == null || String(value).trim() === "") return null;
+  return `${value} ${unit || "g"}`.trim();
+}
+
 function WeightPickerCard({
   item,
   checked,
   disabled,
   weightCerts,
   onToggle,
+  showDetailPreview = false,
 }) {
   const st = weightItemCertStatus(item, weightCerts);
-  const nominal = item.nominal_value
-    ? `${item.nominal_value} ${item.unit || "g"}`.trim()
-    : "—";
+  const unit = item.unit || "g";
+  const nominal = formatMassField(item.nominal_value, unit) || "—";
   const isLot = isLoadBatchItem(item);
-  const vvc = item.conventional_value
-    ? `${item.conventional_value} ${item.unit || "g"}`.trim()
-    : null;
-  const ue = item.expanded_uncertainty
-    ? `${item.expanded_uncertainty} ${item.unit || "g"}`.trim()
-    : null;
+  const vvc = formatMassField(item.conventional_value, unit);
+  const ue = formatMassField(item.expanded_uncertainty, unit);
+  const material = item.material || item.material_preset || null;
+  const weightClass = item.weight_class || item.class || null;
 
   return (
     <label
@@ -76,21 +79,56 @@ function WeightPickerCard({
           </div>
         </div>
         <p className="text-xs text-slate-600">
-          {isLot ? "V.N." : "V.N."}{" "}
-          <span className="font-mono font-medium text-slate-800">{nominal}</span>
+          V.N. <span className="font-mono font-medium text-slate-800">{nominal}</span>
         </p>
-        {isLot && vvc && (
+        {vvc && (
           <p className="text-xs text-slate-600">
             V.V.C. <span className="font-mono font-medium text-slate-800">{vvc}</span>
           </p>
         )}
-        {isLot && ue && (
+        {ue && (
           <p className="text-[10px] text-slate-500">
             Ue <span className="font-mono">{ue}</span>
           </p>
         )}
+        {showDetailPreview && (material || weightClass) && (
+          <p className="text-[10px] text-slate-500 truncate">
+            {[weightClass, material].filter(Boolean).join(" · ")}
+          </p>
+        )}
       </div>
     </label>
+  );
+}
+
+function SelectedWeightPreview({ item, weightCerts }) {
+  if (!item) return null;
+  const unit = item.unit || "g";
+  const certNumber = weightItemCertNumber(item, weightCerts);
+  const rows = [
+    { label: "Identificação", value: item.identification || "—" },
+    { label: "V.N.", value: formatMassField(item.nominal_value, unit) || "—" },
+    { label: "V.V.C.", value: formatMassField(item.conventional_value, unit) || "—" },
+    { label: "Ue", value: formatMassField(item.expanded_uncertainty, unit) || "—" },
+    { label: "Classe", value: item.weight_class || item.class || "—" },
+    { label: "Material", value: item.material || item.material_preset || "—" },
+    { label: "Certificado", value: certNumber && certNumber !== "—" ? certNumber : "—" },
+  ];
+
+  return (
+    <div className="rounded-md border border-blue-200 bg-blue-50/50 px-3 py-2.5 space-y-1.5">
+      <p className="text-[11px] font-medium text-blue-900">Pré-visualização do peso selecionado</p>
+      <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
+        {rows.map((row) => (
+          <div key={row.label} className="min-w-0">
+            <dt className="text-slate-500">{row.label}</dt>
+            <dd className="font-mono text-slate-800 truncate" title={String(row.value)}>
+              {row.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 
@@ -131,6 +169,11 @@ export default function StandardWeightPickerPanel({
     () => describeWeightComposition(selected, weightItems, { targetUnit: unit }),
     [selected, weightItems, unit],
   );
+
+  const selectedItem = useMemo(() => {
+    if (!singleSelect || selected.length !== 1) return null;
+    return weightItems.find((w) => w.id === selected[0]) || null;
+  }, [singleSelect, selected, weightItems]);
 
   const toggle = (id) => {
     if (disabled) return;
@@ -242,12 +285,17 @@ export default function StandardWeightPickerPanel({
               disabled={disabled}
               weightCerts={weightCerts}
               onToggle={() => toggle(w.id)}
+              showDetailPreview
             />
           ))}
         </div>
       )}
 
-      {composition.valid && selected.length > 0 && effectiveKind !== "load_batches" && (
+      {singleSelect && selectedItem && (
+        <SelectedWeightPreview item={selectedItem} weightCerts={weightCerts} />
+      )}
+
+      {composition.valid && selected.length > 0 && !singleSelect && effectiveKind !== "load_batches" && (
         <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 space-y-1">
           {composition.parts.length > 1 && (
             <p>

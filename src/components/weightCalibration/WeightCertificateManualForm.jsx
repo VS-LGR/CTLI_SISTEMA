@@ -20,6 +20,7 @@ import {
 import { WEIGHT_CLASSES, MATERIALS } from "@/lib/weightCalibration/weightCertificateSchema";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import WeightAmbientSection from "@/components/weightCalibration/WeightAmbientSection";
+import StandardWeightPickerPanel from "@/components/shared/StandardWeightPickerPanel";
 
 const fieldClass = "h-9 text-sm";
 
@@ -39,6 +40,7 @@ export default function WeightCertificateManualForm({
 }) {
   const [endCustomers, setEndCustomers] = useState([]);
   const [weightItems, setWeightItems] = useState([]);
+  const [weightCerts, setWeightCerts] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [endCustomerId, setEndCustomerId] = useState("");
   const [payload, setPayload] = useState(() => {
@@ -50,7 +52,7 @@ export default function WeightCertificateManualForm({
 
   const load = useCallback(async () => {
     if (!tenantId) return;
-    const [c, w, env] = await Promise.all([
+    const [c, w, wc, env] = await Promise.all([
       supabase
         .from("end_customer_registrations")
         .select(END_CUSTOMER_LOOKUP_SELECT)
@@ -63,6 +65,10 @@ export default function WeightCertificateManualForm({
         .eq("active", true)
         .order("identification"),
       supabase
+        .from("weight_standard_certificates")
+        .select("*")
+        .eq("tenant_id", tenantId),
+      supabase
         .from("environment_sensor_certificates")
         .select("*")
         .eq("tenant_id", tenantId)
@@ -74,6 +80,7 @@ export default function WeightCertificateManualForm({
       setEndCustomers(c.data || []);
     }
     if (!w.error) setWeightItems(w.data || []);
+    if (!wc.error) setWeightCerts(wc.data || []);
     if (env.error) {
       toast.error(`Falha ao carregar TBH: ${env.error.message}`);
     } else {
@@ -368,20 +375,19 @@ export default function WeightCertificateManualForm({
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="sm:col-span-3 space-y-2">
                 <Label className="text-[11px]">Referência (cadastro)</Label>
-                <Select
-                  value={item.reference_standard_id || "__none"}
-                  onValueChange={(v) => applyReference(idx, v)}
-                >
-                  <SelectTrigger className={fieldClass}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">—</SelectItem>
-                    {weightItems.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>{w.identification}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <StandardWeightPickerPanel
+                  weightItems={weightItems}
+                  weightCerts={weightCerts}
+                  value={item.reference_standard_id ? [item.reference_standard_id] : []}
+                  onChange={(ids) => applyReference(idx, ids[0] || "__none")}
+                  unit={item.nominal_unit || "g"}
+                  compact
+                  itemKind="weights"
+                  singleSelect
+                  emptyMessage="Cadastre pesos padrão em PR-6.4 → Peso Padrão."
+                />
               </div>
               <div>
                 <Label className="text-[11px]">VVC ref.</Label>

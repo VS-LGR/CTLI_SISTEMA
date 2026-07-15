@@ -25,6 +25,7 @@ import {
 } from "@/lib/weightCalibration/weightColetaSchema";
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import WeightAmbientSection from "@/components/weightCalibration/WeightAmbientSection";
+import StandardWeightPickerPanel from "@/components/shared/StandardWeightPickerPanel";
 import {
   WEIGHT_COLETA_LIST_PATH,
   WEIGHT_COLETA_NEW_PATH,
@@ -174,6 +175,7 @@ function WeightItemCard({
   onChange,
   onRemove,
   weightItems,
+  weightCerts = [],
 }) {
   const set = (patch) => onChange({ ...item, ...patch });
 
@@ -293,35 +295,32 @@ function WeightItemCard({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-3">
-                <Label className="text-[11px]">Peso de referência (cadastro)</Label>
-                <Select
-                  value={item.reference_standard_id || "__none"}
-                  onValueChange={applyReference}
-                >
-                  <SelectTrigger className={fieldClass}><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">— Manual —</SelectItem>
-                    {weightItems.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.identification} ({w.nominal_value} {w.unit})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-[11px]">Ident. referência</Label>
-                <Input className={fieldClass} value={item.reference_identification || ""} onChange={(e) => set({ reference_identification: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-[11px]">VVC referência</Label>
-                <Input className={fieldClass} value={item.reference_conventional_value || ""} onChange={(e) => set({ reference_conventional_value: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Ue referência</Label>
-                <Input className={fieldClass} value={item.reference_uncertainty || ""} onChange={(e) => set({ reference_uncertainty: e.target.value })} />
+            <div className="space-y-2">
+              <Label className="text-[11px]">Peso de referência (cadastro)</Label>
+              <StandardWeightPickerPanel
+                weightItems={weightItems}
+                weightCerts={weightCerts}
+                value={item.reference_standard_id ? [item.reference_standard_id] : []}
+                onChange={(ids) => applyReference(ids[0] || "__none")}
+                unit={item.nominal_unit || "g"}
+                compact
+                itemKind="weights"
+                singleSelect
+                emptyMessage="Cadastre pesos padrão em PR-6.4 → Peso Padrão."
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-[11px]">Ident. referência</Label>
+                  <Input className={fieldClass} value={item.reference_identification || ""} onChange={(e) => set({ reference_identification: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-[11px]">VVC referência</Label>
+                  <Input className={fieldClass} value={item.reference_conventional_value || ""} onChange={(e) => set({ reference_conventional_value: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-[11px]">Ue referência</Label>
+                  <Input className={fieldClass} value={item.reference_uncertainty || ""} onChange={(e) => set({ reference_uncertainty: e.target.value })} />
+                </div>
               </div>
             </div>
 
@@ -455,12 +454,13 @@ export default function WeightColetaEditorPage() {
   const [certType, setCertType] = useState("rastreavel");
   const [endCustomers, setEndCustomers] = useState([]);
   const [weightItems, setWeightItems] = useState([]);
+  const [weightCerts, setWeightCerts] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [expandedItems, setExpandedItems] = useState(() => new Set([0]));
 
   const loadLookups = useCallback(async () => {
     if (!currentTenantId) return;
-    const [c, w, env] = await Promise.all([
+    const [c, w, wc, env] = await Promise.all([
       supabase
         .from("end_customer_registrations")
         .select(END_CUSTOMER_LOOKUP_SELECT)
@@ -473,6 +473,10 @@ export default function WeightColetaEditorPage() {
         .eq("active", true)
         .order("identification"),
       supabase
+        .from("weight_standard_certificates")
+        .select("*")
+        .eq("tenant_id", currentTenantId),
+      supabase
         .from("environment_sensor_certificates")
         .select("*")
         .eq("tenant_id", currentTenantId)
@@ -484,6 +488,7 @@ export default function WeightColetaEditorPage() {
       setEndCustomers(c.data || []);
     }
     if (!w.error) setWeightItems(w.data || []);
+    if (!wc.error) setWeightCerts(wc.data || []);
     if (env.error) {
       toast.error(`Falha ao carregar TBH: ${env.error.message}`);
     } else {
@@ -953,6 +958,7 @@ export default function WeightColetaEditorPage() {
               }));
             }}
             weightItems={weightItems}
+            weightCerts={weightCerts}
           />
         ))}
       </div>
