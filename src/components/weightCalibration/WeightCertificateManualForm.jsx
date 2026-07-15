@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,11 @@ import {
   emptyWeightColetaPayload,
   emptyWeightItem,
   MAX_WEIGHT_ITEMS,
+  END_CUSTOMER_LOOKUP_SELECT,
+  applyEndCustomerToWeightCliente,
 } from "@/lib/weightCalibration/weightColetaSchema";
 import { WEIGHT_CLASSES, MATERIALS } from "@/lib/weightCalibration/weightCertificateSchema";
+import { cadastroSectionPath } from "@/lib/cadastroSections";
 
 const fieldClass = "h-9 text-sm";
 
@@ -46,7 +50,7 @@ export default function WeightCertificateManualForm({
     const [c, w] = await Promise.all([
       supabase
         .from("end_customer_registrations")
-        .select("id, name, representative_name, full_address, address, city, state, cnpj")
+        .select(END_CUSTOMER_LOOKUP_SELECT)
         .eq("tenant_id", tenantId)
         .order("name"),
       supabase
@@ -56,7 +60,11 @@ export default function WeightCertificateManualForm({
         .eq("active", true)
         .order("identification"),
     ]);
-    if (!c.error) setEndCustomers(c.data || []);
+    if (c.error) {
+      toast.error(`Falha ao carregar clientes: ${c.error.message}`);
+    } else {
+      setEndCustomers(c.data || []);
+    }
     if (!w.error) setWeightItems(w.data || []);
   }, [tenantId]);
 
@@ -68,15 +76,7 @@ export default function WeightCertificateManualForm({
     if (!c) return;
     setPayload((p) => ({
       ...p,
-      cliente: {
-        ...p.cliente,
-        solicitante: c.name || "",
-        responsavel: c.representative_name || "",
-        endereco: c.full_address || c.address || "",
-        cidade: c.city || "",
-        estado: c.state || "",
-        cnpj: c.cnpj || "",
-      },
+      cliente: applyEndCustomerToWeightCliente(p.cliente, c),
     }));
   }, [endCustomerId, endCustomers]);
 
@@ -137,15 +137,33 @@ export default function WeightCertificateManualForm({
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <Label className="text-sm font-medium">Cliente (cadastro)</Label>
-        <Select value={endCustomerId || "__"} onValueChange={(v) => setEndCustomerId(v === "__" ? "" : v)}>
-          <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__">— Manual —</SelectItem>
-            {customers.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {customers.length === 0 ? (
+          <p className="text-sm text-slate-600 mt-1">
+            Nenhum cliente cadastrado.{" "}
+            <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+              PR-7.1 → Clientes
+            </Link>
+          </p>
+        ) : (
+          <>
+            <select
+              value={endCustomerId}
+              onChange={(e) => setEndCustomerId(e.target.value)}
+              className="w-full border rounded-md h-10 px-3 text-sm bg-white mt-1"
+            >
+              <option value="">— Selecionar para preencher automaticamente —</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Novos clientes em{" "}
+              <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+                PR-7.1 → Clientes
+              </Link>
+            </p>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

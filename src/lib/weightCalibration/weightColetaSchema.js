@@ -36,9 +36,42 @@ export function emptyWeightItem(overrides = {}) {
   };
 }
 
+/** Colunas válidas de `end_customer_registrations` para o seletor/autofill. */
+export const END_CUSTOMER_LOOKUP_SELECT =
+  "id, name, representative_name, full_address, city, state, unit, cnpj, email, phone";
+
+/** Preenche dados do cliente a partir do cadastro PR-7.1 → Clientes. */
+export function applyEndCustomerToWeightCliente(cliente = {}, endCustomer) {
+  if (!endCustomer) {
+    return { ...cliente, end_customer_id: "" };
+  }
+  return {
+    ...cliente,
+    end_customer_id: endCustomer.id || "",
+    solicitante: endCustomer.name || "",
+    contratante: cliente.contratante || "O mesmo",
+    responsavel: endCustomer.representative_name || "",
+    endereco: endCustomer.full_address || "",
+    cidade: endCustomer.city || "",
+    estado: endCustomer.state || "",
+    unidade: endCustomer.unit || "",
+    cnpj: endCustomer.cnpj || "",
+  };
+}
+
+export function resolveWeightEndCustomerId(cliente = {}, endCustomers = []) {
+  const cid = cliente?.end_customer_id;
+  if (cid && endCustomers.some((c) => c.id === cid)) return cid;
+  const name = String(cliente?.solicitante || "").trim();
+  if (!name) return "";
+  const match = endCustomers.find((c) => String(c.name || "").trim() === name);
+  return match?.id || "";
+}
+
 export function emptyWeightColetaPayload() {
   return {
     cliente: {
+      end_customer_id: "",
       solicitante: "",
       contratante: "",
       endereco: "",

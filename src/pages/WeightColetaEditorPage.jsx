@@ -18,7 +18,11 @@ import {
   emptyWeightColetaPayload,
   emptyWeightItem,
   MAX_WEIGHT_ITEMS,
+  END_CUSTOMER_LOOKUP_SELECT,
+  applyEndCustomerToWeightCliente,
+  resolveWeightEndCustomerId,
 } from "@/lib/weightCalibration/weightColetaSchema";
+import { cadastroSectionPath } from "@/lib/cadastroSections";
 import {
   WEIGHT_COLETA_LIST_PATH,
   WEIGHT_COLETA_NEW_PATH,
@@ -450,14 +454,13 @@ export default function WeightColetaEditorPage() {
   const [endCustomers, setEndCustomers] = useState([]);
   const [weightItems, setWeightItems] = useState([]);
   const [expandedItems, setExpandedItems] = useState(() => new Set([0]));
-  const [customerPick, setCustomerPick] = useState("");
 
   const loadLookups = useCallback(async () => {
     if (!currentTenantId) return;
     const [c, w] = await Promise.all([
       supabase
         .from("end_customer_registrations")
-        .select("id, name, representative_name, full_address, address, city, state, unit, cnpj")
+        .select(END_CUSTOMER_LOOKUP_SELECT)
         .eq("tenant_id", currentTenantId)
         .order("name"),
       supabase
@@ -467,7 +470,11 @@ export default function WeightColetaEditorPage() {
         .eq("active", true)
         .order("identification"),
     ]);
-    if (!c.error) setEndCustomers(c.data || []);
+    if (c.error) {
+      toast.error(`Falha ao carregar clientes: ${c.error.message}`);
+    } else {
+      setEndCustomers(c.data || []);
+    }
     if (!w.error) setWeightItems(w.data || []);
   }, [currentTenantId]);
 
@@ -515,22 +522,24 @@ export default function WeightColetaEditorPage() {
     [endCustomers],
   );
 
+  const selectedEndCustomerId = resolveWeightEndCustomerId(payload.cliente, endCustomers);
+
   const applyCustomer = (custId) => {
-    setCustomerPick(custId);
+    if (!custId) {
+      setPayload((p) => ({
+        ...p,
+        cliente: applyEndCustomerToWeightCliente(
+          { ...p.cliente, solicitante: "", responsavel: "", endereco: "", cidade: "", estado: "", unidade: "", cnpj: "" },
+          null,
+        ),
+      }));
+      return;
+    }
     const c = endCustomers.find((x) => x.id === custId);
     if (!c) return;
     setPayload((p) => ({
       ...p,
-      cliente: {
-        ...p.cliente,
-        solicitante: c.name || "",
-        responsavel: c.representative_name || "",
-        endereco: c.full_address || c.address || "",
-        cidade: c.city || "",
-        estado: c.state || "",
-        unidade: c.unit || "",
-        cnpj: c.cnpj || "",
-      },
+      cliente: applyEndCustomerToWeightCliente(p.cliente, c),
     }));
   };
 
@@ -704,18 +713,34 @@ export default function WeightColetaEditorPage() {
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
           <h2 className="font-medium text-slate-900">Cliente</h2>
-          <div>
-            <Label className="text-[11px]">Selecionar do cadastro (opcional)</Label>
-            <Select value={customerPick || "__"} onValueChange={(v) => applyCustomer(v === "__" ? "" : v)}>
-              <SelectTrigger className="h-10 mt-1"><SelectValue placeholder="Cliente…" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__">— Manual —</SelectItem>
+          {customerOptions.length === 0 ? (
+            <p className="text-sm text-slate-600">
+              Nenhum cliente cadastrado.{" "}
+              <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+                PR-7.1 → Clientes
+              </Link>
+            </p>
+          ) : (
+            <div>
+              <Label className="text-[11px]">Selecionar do cadastro</Label>
+              <select
+                value={selectedEndCustomerId}
+                onChange={(e) => applyCustomer(e.target.value)}
+                className="w-full border rounded-md h-10 px-3 text-sm bg-white mt-1"
+              >
+                <option value="">— Selecionar para preencher automaticamente —</option>
                 {customerOptions.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
+              </select>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Cadastro em{" "}
+                <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+                  PR-7.1 → Clientes
+                </Link>
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               ["solicitante", "Solicitante"],

@@ -350,7 +350,7 @@ function buildBundleFromPayload({
       certificate_revision: "00",
       certificate_type: certificateType || "rastreavel",
       status: "rascunho",
-      end_customer_id: endCustomerId,
+      end_customer_id: endCustomerId || payload?.cliente?.end_customer_id || null,
       executor_id: executorId,
       signatory_id: signatoryId,
       ...header,
