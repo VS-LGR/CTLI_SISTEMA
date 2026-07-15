@@ -477,6 +477,10 @@ export async function seedMasterDocumentsForTenant(tenantId) {
   assertSupabaseMasterDocuments();
   const { error } = await supabase.rpc("seed_master_documents_for_tenant", { p_tenant_id: tenantId });
   if (error) throw error;
+  const { error: weightErr } = await supabase.rpc("ensure_weight_calibration_master_documents", {
+    p_tenant_id: tenantId,
+  });
+  if (weightErr) throw weightErr;
   clearMasterDocumentCache(tenantId);
 }
 

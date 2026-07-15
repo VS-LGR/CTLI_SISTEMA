@@ -231,7 +231,9 @@ export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6, metri
   doc.setFont("helvetica", "bold");
   const titleSuffix = model.certificateType === "rbc" ? " RBC" : "";
   doc.setFontSize(m.singlePage ? 9 : 10);
-  doc.text(`CERTIFICADO DE CALIBRAÇÃO${titleSuffix}`, centerX, headerTop + (m.singlePage ? 6.5 : 8), { align: "center" });
+  const certTitle = model.certificateTitle
+    || `CERTIFICADO DE CALIBRAÇÃO${titleSuffix}`;
+  doc.text(certTitle, centerX, headerTop + (m.singlePage ? 6.5 : 8), { align: "center" });
   doc.setFontSize(m.singlePage ? 10 : 11);
   doc.text(`Nº ${model.certificateNumber || "—"}`, centerX, headerTop + (m.singlePage ? 12 : 15), { align: "center" });
 

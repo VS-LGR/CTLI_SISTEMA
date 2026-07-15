@@ -13,6 +13,8 @@ const LEGACY_BY_CODE = {
   "RE-7.2A": { code: "RE-7.2A", reference: DEFAULT_COLETA_FORM_REF, revision: "00", title: DEFAULT_COLETA_FORM_TITLE, modelIssueDate: "2025-06-30" },
   "RE-7.1A": { code: "RE-7.1A", reference: "PR-7.1", revision: "00", title: "PROPOSTA COMERCIAL", modelIssueDate: "2025-06-30" },
   "RE-7.2B": { code: "RE-7.2B", reference: "PR-7.2", revision: "00", title: "CERTIFICADO DE CALIBRAÇÃO", modelIssueDate: "2025-06-30" },
+  "RE-5.4.2A": { code: "RE-5.4.2A", reference: "PR-7.2", revision: "00", title: "COLETA DE DADOS — PESOS-PADRÃO", modelIssueDate: "2025-06-30" },
+  "RE-5.4.2B": { code: "RE-5.4.2B", reference: "PR-7.2", revision: "03", title: "CERTIFICADO DE CALIBRAÇÃO DE PESOS", modelIssueDate: "2025-06-30" },
   "RE-6.4B": { code: "RE-6.4B", reference: "PR-6.4", revision: "00", title: "Ficha Técnica de Dispositivo", modelIssueDate: "2025-06-30" },
   "RE-6.4.12B": { code: "RE-6.4.12B", reference: "PR-6.4.12", revision: "00", title: "Verificação de Equipamento", modelIssueDate: "2025-06-30" },
 };
@@ -29,6 +31,8 @@ const LEGACY_BY_TEMPLATE = {
   "re-72a-coleta-pdf": LEGACY_BY_CODE["RE-7.2A"],
   "re-71a-proposta-comercial-pdf": LEGACY_BY_CODE["RE-7.1A"],
   "re-72b-certificado-calibracao-pdf": LEGACY_BY_CODE["RE-7.2B"],
+  "re-542a-coleta-peso-padrao-pdf": LEGACY_BY_CODE["RE-5.4.2A"],
+  "re-542b-certificado-peso-padrao-pdf": LEGACY_BY_CODE["RE-5.4.2B"],
 };
 
 let lastFallbackWarning = null;

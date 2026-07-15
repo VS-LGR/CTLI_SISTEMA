@@ -34,6 +34,11 @@ const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
 const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
 const CertificateNewPage = lazy(() => import("@/pages/CertificateNewPage"));
 const CertificateEditorPage = lazy(() => import("@/pages/CertificateEditorPage"));
+const WeightColetaPage = lazy(() => import("@/pages/WeightColetaPage"));
+const WeightColetaEditorPage = lazy(() => import("@/pages/WeightColetaEditorPage"));
+const WeightCertificateListPage = lazy(() => import("@/pages/WeightCertificateListPage"));
+const WeightCertificateNewPage = lazy(() => import("@/pages/WeightCertificateNewPage"));
+const WeightCertificateEditorPage = lazy(() => import("@/pages/WeightCertificateEditorPage"));
 const DeviceTechnicalSheetPage = lazy(() => import("@/pages/DeviceTechnicalSheetPage"));
 const EquipmentVerificationListPage = lazy(() => import("@/pages/EquipmentVerificationListPage"));
 const EquipmentVerificationEditorPage = lazy(() => import("@/pages/EquipmentVerificationEditorPage"));
@@ -200,6 +205,66 @@ const App = () => (
                 <Protected certificatesOnly>
                   <Suspense fallback={pageSuspenseFallback}>
                     <CertificateEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/pesos/coleta"
+              element={(
+                <Protected coletaOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <WeightColetaPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/pesos/coleta/nova"
+              element={(
+                <Protected coletaOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <WeightColetaEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/pesos/coleta/:id"
+              element={(
+                <Protected coletaOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <WeightColetaEditorPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/pesos/certificados"
+              element={(
+                <Protected certificatesOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <WeightCertificateListPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/pesos/certificados/nova"
+              element={(
+                <Protected certificatesOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <WeightCertificateNewPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/pesos/certificados/:id"
+              element={(
+                <Protected certificatesOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <WeightCertificateEditorPage />
                   </Suspense>
                 </Protected>
               )}

@@ -5,6 +5,8 @@
 
 import { COLETA_LIST_PATH, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "./coletaRoutes";
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "./certificateRoutes";
+import { WEIGHT_COLETA_LIST_PATH } from "./weightCalibration/weightColetaRoutes";
+import { WEIGHT_CERTIFICATE_LIST_PATH } from "./weightCalibration/weightCertificateRoutes";
 import { PROPOSAL_LIST_PATH } from "./commercialProposals/commercialProposalRoutes";
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 import { LISTA_MESTRA_PATH, RE_71A_CONFIG_PATH, RE_72A_CONFIG_PATH } from "./masterDocuments/masterDocumentRoutes";
@@ -80,7 +82,7 @@ const FOLDERS = {
         },
         {
           key: "cad-cert-peso",
-          label: "Certificados — 6.4",
+          label: "Inventário de certificados — 6.4",
           to: cadastroSectionPath("cert-peso"),
           cadastroSectionId: "cert-peso",
           kind: "cadastro",
@@ -166,6 +168,18 @@ const FOLDERS = {
           key: "certificados",
           label: "Certificados de Calibração (RE-7.2B)",
           to: CERTIFICATE_LIST_PATH,
+          requiresCalibrationCertificates: true,
+        },
+        {
+          key: "coleta-pesos",
+          label: "Coleta de dados — Pesos (RE-5.4.2A)",
+          to: WEIGHT_COLETA_LIST_PATH,
+          requiresColeta: true,
+        },
+        {
+          key: "certificados-pesos",
+          label: "Certificados — Pesos (RE-5.4.2B)",
+          to: WEIGHT_CERTIFICATE_LIST_PATH,
           requiresCalibrationCertificates: true,
         },
       ],

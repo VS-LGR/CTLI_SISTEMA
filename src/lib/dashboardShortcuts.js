@@ -11,6 +11,7 @@ import { usesClientSidebarNav } from "@/lib/roleNav";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { PR_71_PROPOSAL_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
+import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
 import {
   FileText,
   ClipboardText,
@@ -53,11 +54,11 @@ export const HERO_SHORTCUTS = [
   {
     id: "cert-peso",
     label: "Emissão de Certificado de Calibração Peso Padrão",
-    to: cadastroSectionPath("cert-peso"),
+    to: WEIGHT_CERTIFICATE_LIST_PATH,
     bgClass: "bg-[#3B82F6] hover:bg-[#2563eb]",
     icon: Certificate,
-    cadastroSectionId: "cert-peso",
-    module: "cadastros",
+    requiresCalibrationCertificates: true,
+    module: "certificados",
   },
   {
     id: "pessoal",

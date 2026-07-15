@@ -1,0 +1,172 @@
+import JSZip from "jszip";
+import { exportWeightCertificatePdfBlob } from "./weightCertificateExport";
+import { triggerBlobDownload } from "@/lib/blobDownload";
+
+/** Status que entram no ZIP de download (prévia ou oficial). */
+export const ZIP_DOWNLOADABLE_STATUSES = [
+  "rascunho",
+  "calculado",
+  "em_revisao_tecnica",
+  "aguardando_aprovacao",
+  "aprovado",
+  "emitido",
+  "enviado",
+  "reprovado",
+];
+
+/** Status elegíveis para envio do ZIP por e-mail (PDF “final”). */
+export const ZIP_EMAILABLE_STATUSES = ["aprovado", "emitido", "enviado"];
+
+export const MAX_ZIP_EMAIL_BYTES = Math.floor(3.5 * 1024 * 1024);
+
+export function isZipDownloadableRow(row) {
+  return ZIP_DOWNLOADABLE_STATUSES.includes(row?.status);
+}
+
+export function isZipEmailableRow(row) {
+  return ZIP_EMAILABLE_STATUSES.includes(row?.status);
+}
+
+export function normalizeClientMatchName(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+/** Match por end_customer_id OU nome normalizado. */
+export function certificateMatchesClient(row, customer) {
+  if (!row || !customer) return false;
+  if (customer.id && row.end_customer_id === customer.id) return true;
+  const rowName = normalizeClientMatchName(row.client_name);
+  const custName = normalizeClientMatchName(customer.name);
+  return Boolean(rowName && custName && rowName === custName);
+}
+
+export function collectDownloadableWeightCertificateIdsForClient(rows = [], customer) {
+  return (rows || [])
+    .filter((r) => isZipDownloadableRow(r) && certificateMatchesClient(r, customer))
+    .map((r) => r.id)
+    .filter(Boolean);
+}
+
+export function collectEmailableWeightCertificateIdsForClient(rows = [], customer) {
+  return (rows || [])
+    .filter((r) => isZipEmailableRow(r) && certificateMatchesClient(r, customer))
+    .map((r) => r.id)
+    .filter(Boolean);
+}
+
+export function zipDateStamp(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function sanitizeZipSegment(value, fallback = "cliente") {
+  const cleaned = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w.-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+  return cleaned || fallback;
+}
+
+export function buildWeightCertificatesZipFileName({ clientName = null, date = new Date() } = {}) {
+  const stamp = zipDateStamp(date);
+  if (clientName) {
+    return `certificados-pesos-${sanitizeZipSegment(clientName)}-${stamp}.zip`;
+  }
+  return `certificados-pesos-${stamp}.zip`;
+}
+
+function uniquePdfFileName(baseName, used) {
+  let name = baseName && String(baseName).trim() ? String(baseName).trim() : "certificado-peso.pdf";
+  if (!/\.pdf$/i.test(name)) name = `${name}.pdf`;
+  if (!used.has(name.toLowerCase())) {
+    used.add(name.toLowerCase());
+    return name;
+  }
+  const stem = name.replace(/\.pdf$/i, "");
+  let n = 2;
+  let candidate;
+  do {
+    candidate = `${stem}-${n}.pdf`;
+    n += 1;
+  } while (used.has(candidate.toLowerCase()));
+  used.add(candidate.toLowerCase());
+  return candidate;
+}
+
+/**
+ * Gera PDFs em sequência e empacota em ZIP (DEFLATE), sem disparar download.
+ */
+export async function buildWeightCertificatesZipBlob({
+  ids = [],
+  loadCertificate,
+  tenant = null,
+  tenantName = "",
+  logoDataUrl = null,
+  zipFileName = null,
+  onProgress = null,
+  exportPdf = exportWeightCertificatePdfBlob,
+  compressForEmail = false,
+} = {}) {
+  const list = Array.isArray(ids) ? ids.filter(Boolean) : [];
+  if (!list.length) {
+    throw new Error("Nenhum certificado selecionado para o ZIP");
+  }
+  if (typeof loadCertificate !== "function") {
+    throw new Error("loadCertificate é obrigatório");
+  }
+
+  const zip = new JSZip();
+  const usedNames = new Set();
+  const errors = [];
+  let ok = 0;
+
+  for (let i = 0; i < list.length; i += 1) {
+    const id = list[i];
+    if (onProgress) onProgress({ index: i + 1, total: list.length, id });
+    try {
+      const full = await loadCertificate(id);
+      const { blob, fileName } = await exportPdf(full, tenantName, {
+        logoDataUrl,
+        tenant,
+        skipRecordExport: true,
+        compressForEmail,
+      });
+      if (!blob) throw new Error("PDF vazio");
+      zip.file(uniquePdfFileName(fileName, usedNames), blob);
+      ok += 1;
+    } catch (e) {
+      errors.push({ id, message: e?.message || String(e) });
+    }
+  }
+
+  if (ok === 0) {
+    throw new Error(errors[0]?.message || "Falha ao gerar os PDFs");
+  }
+
+  const outName = zipFileName || buildWeightCertificatesZipFileName();
+  const zipBlob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+
+  return {
+    blob: zipBlob,
+    ok,
+    fail: errors.length,
+    errors,
+    zipFileName: outName,
+  };
+}
+
+export async function downloadWeightCertificatesZip(opts = {}) {
+  const result = await buildWeightCertificatesZipBlob(opts);
+  triggerBlobDownload(result.blob, result.zipFileName);
+  return result;
+}
