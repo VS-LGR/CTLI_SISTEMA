@@ -198,10 +198,16 @@ export function validateWeightCalcPayload(payload = {}) {
       return { ok: false, message: `${label}: informe a resolução da balança.` };
     }
     if (!String(it.uut_material || "").trim()) {
-      return { ok: false, message: `${label}: selecione o material do mensurando (UUT).` };
+      return {
+        ok: false,
+        message: `${label}: selecione o material do mensurando (UUT). Pode preencher manualmente ou no cadastro PR-6.4.`,
+      };
     }
     if (!String(it.reference_material || "").trim()) {
-      return { ok: false, message: `${label}: selecione o material do peso de referência.` };
+      return {
+        ok: false,
+        message: `${label}: selecione o material do peso de referência (preenchido ao escolher o cadastro; edite no item ou em PR-6.4 → Peso Padrão).`,
+      };
     }
     const n = Math.max(1, Math.min(10, Number(it.cycle_count) || 3));
     const cycles = Array.isArray(it.cycles) ? it.cycles : [];

@@ -292,12 +292,18 @@ export function buildWeightEnvironmentalFromPayload(ambiente = {}, extras = {}) 
 function headerFromPayload(payload = {}, opts = {}) {
   const cliente = payload.cliente || {};
   const geral = payload.geral || {};
+  const firstItem = (payload.itens || []).find((it) => it && (
+    String(it.identification || "").trim()
+    || it.nominal_value != null
+    || it.uut_class
+  ));
+  const classFromItem = String(firstItem?.uut_class || "").trim();
   return {
     client_name: opts.clientName || String(cliente.solicitante || "").trim(),
     contractor_name: String(cliente.contratante || "").trim(),
     weight_tag: opts.weightTag || String(geral.identificacao || "").trim(),
     weight_serial: String(geral.serie || "").trim(),
-    weight_class: String(geral.classe || "").trim(),
+    weight_class: classFromItem || String(geral.classe || "").trim(),
     manufacturer: String(geral.fabricante || "").trim(),
     process_number: String(geral.processo_numero || "").trim(),
     commercial_proposal_ref: opts.commercialProposalRef || String(geral.processo_numero || "").trim(),

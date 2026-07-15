@@ -147,6 +147,7 @@ export default function WeightCertificateManualForm({
         reference_identification: "",
         reference_conventional_value: "",
         reference_uncertainty: "",
+        reference_material: "",
       });
       return;
     }
@@ -250,18 +251,6 @@ export default function WeightCertificateManualForm({
           />
         </div>
         <div>
-          <Label className="text-[11px]">Classe</Label>
-          <Select value={payload.geral?.classe || "__"} onValueChange={(v) => setGeral("classe", v === "__" ? "" : v)}>
-            <SelectTrigger className={fieldClass}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__">—</SelectItem>
-              {WEIGHT_CLASSES.map((c) => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
           <Label className="text-[11px]">Série</Label>
           <Input
             className={fieldClass}
@@ -358,7 +347,7 @@ export default function WeightCertificateManualForm({
                 </Select>
               </div>
               <div>
-                <Label className="text-[11px]">Classe</Label>
+                <Label className="text-[11px]">Classe (UUT)</Label>
                 <Select value={item.uut_class || "__"} onValueChange={(v) => updateItem(idx, { uut_class: v === "__" ? "" : v })}>
                   <SelectTrigger className={fieldClass}><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -381,6 +370,21 @@ export default function WeightCertificateManualForm({
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label className="text-[11px]">Material padrão</Label>
+                <Select
+                  value={item.reference_material || "__"}
+                  onValueChange={(v) => updateItem(idx, { reference_material: v === "__" ? "" : v })}
+                >
+                  <SelectTrigger className={fieldClass}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__">—</SelectItem>
+                    {MATERIALS.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="sm:col-span-3 space-y-2">
                 <Label className="text-[11px]">Referência (cadastro)</Label>
                 <StandardWeightPickerPanel
@@ -394,6 +398,9 @@ export default function WeightCertificateManualForm({
                   singleSelect
                   emptyMessage="Cadastre pesos padrão em PR-6.4 → Peso Padrão."
                 />
+                <p className="text-[10px] text-slate-500">
+                  Ao selecionar, VVC, Ue e material do padrão são preenchidos do cadastro (podem ser editados).
+                </p>
               </div>
               <div>
                 <Label className="text-[11px]">VVC ref.</Label>

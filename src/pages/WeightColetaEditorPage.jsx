@@ -198,7 +198,7 @@ function WeightItemCard({
       reference_identification: ref.identification || "",
       reference_conventional_value: ref.conventional_value || "",
       reference_uncertainty: ref.expanded_uncertainty || "",
-      reference_material: ref.material || ref.material_preset || item.reference_material || "",
+      reference_material: ref.material || ref.material_preset || "",
       nominal_unit: ref.unit || item.nominal_unit || "g",
     });
   };
@@ -259,7 +259,7 @@ function WeightItemCard({
                 </Select>
               </div>
               <div>
-                <Label className="text-[11px]">Classe UUT</Label>
+                <Label className="text-[11px]">Classe (UUT)</Label>
                 <Select value={item.uut_class || "__"} onValueChange={(v) => set({ uut_class: v === "__" ? "" : v })}>
                   <SelectTrigger className={fieldClass}><SelectValue placeholder="Classe" /></SelectTrigger>
                   <SelectContent>
@@ -811,18 +811,6 @@ export default function WeightColetaEditorPage() {
             <div>
               <Label className="text-[11px]">Série</Label>
               <Input className={fieldClass} value={payload.geral?.serie || ""} onChange={(e) => setGeral("serie", e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-[11px]">Classe</Label>
-              <Select value={payload.geral?.classe || "__"} onValueChange={(v) => setGeral("classe", v === "__" ? "" : v)}>
-                <SelectTrigger className={fieldClass}><SelectValue placeholder="Classe" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__">—</SelectItem>
-                  {WEIGHT_CLASSES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div>
               <Label className="text-[11px]">Qtde linhas exibição</Label>

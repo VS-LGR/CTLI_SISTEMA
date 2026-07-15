@@ -34,6 +34,8 @@ export function weightItemSearchHaystack(item) {
     item?.conventional_value,
     item?.certificate_number,
     item?.expanded_uncertainty,
+    item?.material,
+    item?.weight_class,
     isLoadBatchItem(item) ? "lote de carga" : "",
   ];
 }

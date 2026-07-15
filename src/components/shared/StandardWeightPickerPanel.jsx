@@ -128,6 +128,11 @@ function SelectedWeightPreview({ item, weightCerts }) {
           </div>
         ))}
       </dl>
+      {(!item.material && !item.material_preset) && (
+        <p className="text-[10px] text-amber-800">
+          Material não cadastrado neste peso — informe “Material padrão” no item ou edite em PR-6.4 → Peso Padrão.
+        </p>
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, PencilSimple, Trash, ArrowCounterClockwise } from "@phosphor-icons/react";
 import { sanitizeMassNumericInput } from "@/lib/massValueUtils";
 import { WEIGHT_ITEM_UNITS } from "@/lib/cadastroConstants";
+import { MATERIALS, WEIGHT_CLASSES } from "@/lib/weightCalibration/weightCertificateSchema";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import {
   filterCadastroByQuery,
@@ -57,6 +58,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   const [expandedUncertainty, setExpandedUncertainty] = useState("");
   const [certificateNumber, setCertificateNumber] = useState("");
   const [weightCertificateId, setWeightCertificateId] = useState("");
+  const [material, setMaterial] = useState("");
+  const [weightClass, setWeightClass] = useState("");
 
   const computedDrift = useMemo(
     () => calculateStandardDrift({
@@ -79,6 +82,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
       r.conventional_value,
       r.expanded_uncertainty,
       r.certificate_number,
+      r.material,
+      r.weight_class,
       weightItemCertNumber(r, weightCerts),
       isLoadBatchItem(r) ? "lote de carga" : "",
     ]);
@@ -96,6 +101,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setUnit("g");
     setCertificateNumber("");
     setWeightCertificateId("");
+    setMaterial("");
+    setWeightClass("");
   };
 
   const handleNovaCalibracao = () => {
@@ -152,6 +159,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
         previous_conventional_value: "",
         standard_drift: "",
         weight_status: "",
+        material: "",
+        weight_class: "",
         active: true,
         certificate_number: "",
         weight_certificate_id: null,
@@ -166,6 +175,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
         weight_status: weightStatus.trim(),
         expanded_uncertainty: expandedUncertainty.trim(),
         unit: unit || "g",
+        material: material.trim(),
+        weight_class: weightClass.trim(),
         is_load_batch: false,
         active: true,
         certificate_number: certificateNumber.trim(),
@@ -211,6 +222,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
     setUnit(r.unit || "g");
     setCertificateNumber(r.certificate_number || "");
     setWeightCertificateId(r.weight_certificate_id || "");
+    setMaterial(r.material || "");
+    setWeightClass(r.weight_class || "");
     setOpen(true);
   };
 
@@ -277,6 +290,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                 <th className="p-2">V.N / Vc</th>
                 <th className="p-2">V.V.C</th>
                 <th className="p-2">Ue</th>
+                <th className="p-2">Classe</th>
+                <th className="p-2">Material</th>
                 <th className="p-2">Nº certificado</th>
                 <th className="p-2">Situação</th>
                 <th className="p-2">V.V.C ant.</th>
@@ -287,7 +302,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={11} className="p-4 text-center text-slate-500">Nenhum registro encontrado.</td></tr>
+                <tr><td colSpan={13} className="p-4 text-center text-slate-500">Nenhum registro encontrado.</td></tr>
               )}
               {filtered.map((r) => {
                 const st = weightItemCertStatus(r, weightCerts);
@@ -314,6 +329,12 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                     </td>
                     <td className="p-2">{r.conventional_value || "—"} {r.conventional_value ? r.unit : ""}</td>
                     <td className="p-2">{r.expanded_uncertainty || "—"} {r.expanded_uncertainty ? r.unit : ""}</td>
+                    <td className="p-2">{lot ? "—" : (r.weight_class || "—")}</td>
+                    <td className="p-2 max-w-[7rem]">
+                      <EllipsisTooltip label={!lot ? (r.material || "") : ""} className="block">
+                        {lot ? "—" : (r.material || "—")}
+                      </EllipsisTooltip>
+                    </td>
                     <td className="p-2 max-w-[8rem]">
                       <EllipsisTooltip label={certNum || ""} className="block">
                         {certNum}
@@ -492,8 +513,37 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   </select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Classe</Label>
+                  <select
+                    value={weightClass}
+                    onChange={(e) => setWeightClass(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                  >
+                    <option value="">—</option>
+                    {WEIGHT_CLASSES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Material</Label>
+                  <select
+                    value={material}
+                    onChange={(e) => setMaterial(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                  >
+                    <option value="">—</option>
+                    {MATERIALS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <p className="text-xs text-slate-500">
                 Deriva: 1ª calibração = Ue; 2ª+ = V.V.C − V.V.C anterior.
+                Classe e material alimentam a calibração RE-5.4.2 (podem ser ajustados no item).
               </p>
               <div>
                 <Label>Certificado de conjunto (opcional)</Label>
