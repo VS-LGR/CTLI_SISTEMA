@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.send-calibration-certificate]
 verify_jwt = false
+
+[functions.send-weight-calibration-certificate]
+verify_jwt = false

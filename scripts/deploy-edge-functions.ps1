@@ -18,7 +18,8 @@ $functions = @(
   "tenant-manage-technician",
   "tenant-manage-user",
   "tenant-backup",
-  "send-calibration-certificate"
+  "send-calibration-certificate",
+  "send-weight-calibration-certificate"
 )
 
 Write-Host "ProcVault — deploy Edge Functions" -ForegroundColor Cyan
