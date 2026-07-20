@@ -53,7 +53,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
-import { PERSONNEL_REQ_ID, PERSONNEL_FOLDER_KEY } from "@/lib/personnelRegistrosRoutes";
+import {
+  PERSONNEL_REQ_ID,
+  PERSONNEL_FOLDER_KEY,
+  PERSONNEL_DEFAULT_REGISTRO_SECTION,
+  isPersonnelRegistroFolderSection,
+  personnelFolderSectionToTopic,
+} from "@/lib/personnelRegistrosRoutes";
 import {
   canAccessColeta,
   canAccessPersonnel,
@@ -517,9 +523,31 @@ const RequirementView = () => {
   const defaultSection = folderMode.defaultSection;
   const tabFromUrl = searchParams.get("tab");
   const section = useMemo(() => {
+    // Legado PR-6.2: aba única "registro" → primeira aba por tipo
+    if (
+      String(id) === PERSONNEL_REQ_ID
+      && folderKey === PERSONNEL_FOLDER_KEY
+      && tabFromUrl === "registro"
+    ) {
+      return PERSONNEL_DEFAULT_REGISTRO_SECTION;
+    }
     if (tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)) return tabFromUrl;
     return defaultSection;
-  }, [tabFromUrl, visibleSections, defaultSection]);
+  }, [tabFromUrl, visibleSections, defaultSection, id, folderKey]);
+
+  useEffect(() => {
+    if (
+      String(id) === PERSONNEL_REQ_ID
+      && folderKey === PERSONNEL_FOLDER_KEY
+      && tabFromUrl === "registro"
+    ) {
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        p.set("tab", PERSONNEL_DEFAULT_REGISTRO_SECTION);
+        return p;
+      }, { replace: true });
+    }
+  }, [id, folderKey, tabFromUrl, setSearchParams]);
 
   const [status, setStatus] = useState("vigente");
   const [docs, setDocs] = useState([]);
@@ -598,7 +626,11 @@ const RequirementView = () => {
   const isVerificacaoEquipamentoTab =
     String(id) === "6" && folderKey === "pr-6-4-12" && section === "verificacao_equipamento";
   const isPersonnelRegistro =
-    String(id) === PERSONNEL_REQ_ID && folderKey === PERSONNEL_FOLDER_KEY && section === "registro" && canAccessPersonnel(user?.role);
+    String(id) === PERSONNEL_REQ_ID
+    && folderKey === PERSONNEL_FOLDER_KEY
+    && isPersonnelRegistroFolderSection(section)
+    && canAccessPersonnel(user?.role);
+  const personnelLockedTopic = isPersonnelRegistro ? personnelFolderSectionToTopic(section) : null;
   const signatures = isSignaturesFolder(id, folderKey);
   const fileOnly = isFileOnlyFolder(id, folderKey);
   const purchaseOrdersTab = isPurchaseOrdersFolder(id, folderKey) && section === "pedidos_compra";
@@ -757,7 +789,7 @@ const RequirementView = () => {
             </Suspense>
           ) : isPersonnelRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar registros de pessoal…</div>}>
-              <PersonnelRegistrosPage embedded />
+              <PersonnelRegistrosPage embedded lockedTopic={personnelLockedTopic} />
             </Suspense>
           ) : loading ? (
             <div className="text-slate-600">Carregando…</div>

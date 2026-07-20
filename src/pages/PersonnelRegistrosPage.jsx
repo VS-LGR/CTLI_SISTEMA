@@ -67,12 +67,20 @@ function syncTopicsToSearchParams(topics, setSearchParams) {
   }, { replace: true });
 }
 
-export default function PersonnelRegistrosPage({ embedded = false }) {
+export default function PersonnelRegistrosPage({ embedded = false, lockedTopic = null }) {
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState(EMPTY_PERSONNEL_REGISTROS_FILTERS);
-  const [openTopics, setOpenTopics] = useState(DEFAULT_OPEN_TOPICS);
+  const [filters, setFilters] = useState(() => (
+    lockedTopic
+      ? { ...EMPTY_PERSONNEL_REGISTROS_FILTERS, topics: [lockedTopic] }
+      : EMPTY_PERSONNEL_REGISTROS_FILTERS
+  ));
+  const [openTopics, setOpenTopics] = useState(() => (
+    lockedTopic
+      ? { ...DEFAULT_OPEN_TOPICS, [lockedTopic]: true }
+      : DEFAULT_OPEN_TOPICS
+  ));
 
   const { compliance, loading: complianceLoading } = usePersonnelComplianceStats(currentTenantId);
   const { pipeline, loading: pipelineLoading } = usePersonnelPipeline(currentTenantId);
@@ -88,6 +96,11 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   );
 
   useEffect(() => {
+    if (lockedTopic) {
+      setFilters((prev) => ({ ...prev, topics: [lockedTopic] }));
+      setOpenTopics((prev) => ({ ...prev, [lockedTopic]: true }));
+      return;
+    }
     const topics = parsePersonnelTopicsParam(searchParams.get("topic"));
     if (topics.length > 0) {
       setFilters((prev) => ({ ...prev, topics }));
@@ -97,7 +110,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         return next;
       });
     }
-  }, [searchParams]);
+  }, [searchParams, lockedTopic]);
 
   const setTopics = useCallback((topics) => {
     setFilters((prev) => ({ ...prev, topics }));
@@ -186,19 +199,28 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
   }
 
   const clearFilters = () => {
-    setFilters(EMPTY_PERSONNEL_REGISTROS_FILTERS);
-    setSearchParams((prev) => {
-      const p = new URLSearchParams(prev);
-      p.delete("topic");
-      return p;
-    }, { replace: true });
+    setFilters(lockedTopic
+      ? { ...EMPTY_PERSONNEL_REGISTROS_FILTERS, topics: [lockedTopic] }
+      : EMPTY_PERSONNEL_REGISTROS_FILTERS);
+    if (!lockedTopic) {
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete("topic");
+        return p;
+      }, { replace: true });
+    }
   };
+
+  const lockedTopicMeta = lockedTopic ? getPersonnelTopicById(lockedTopic) : null;
+  const filtersActiveForUi = lockedTopic
+    ? Boolean(filters.query.trim() || filters.date)
+    : filtersActive;
 
   const renderTopicPanel = (topic) => {
     const Panel = PANEL_BY_TOPIC[topic.id];
     if (!Panel) return null;
 
-    const loadEnabled = openTopics[topic.id] !== false;
+    const loadEnabled = lockedTopic ? true : openTopics[topic.id] !== false;
 
     return (
       <Panel
@@ -232,10 +254,13 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
 
       {embedded && (
         <p className="text-sm text-slate-600">
-          Registros do módulo 6.2 Pessoal — cargos, adequações, monitoramentos, avaliações, seleções e listas de presença.
+          {lockedTopicMeta
+            ? `${lockedTopicMeta.label} — ${currentTenant?.name || "ambiente"}.`
+            : "Registros do módulo 6.2 Pessoal — cargos, adequações, monitoramentos, avaliações, seleções e listas de presença."}
         </p>
       )}
 
+      {!lockedTopic && (
       <div className="space-y-3" data-testid="personnel-topic-totals">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
@@ -295,7 +320,9 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
           </div>
         )}
       </div>
+      )}
 
+      {!lockedTopic && (
       <div className="space-y-3" data-testid="personnel-env-kpis">
         <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
           Indicadores do ambiente
@@ -343,6 +370,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
           />
         </div>
       </div>
+      )}
 
       <div
         className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm"
@@ -363,17 +391,19 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
             />
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center shrink-0">
-            <Select onValueChange={onSelectTopicAdd}>
-              <SelectTrigger className={`${filterFieldClass} w-full sm:w-[16rem]`}>
-                <span className="truncate text-left">{selectTopicLabel}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tópicos</SelectItem>
-                {PERSONNEL_REGISTRO_TOPICS.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!lockedTopic && (
+              <Select onValueChange={onSelectTopicAdd}>
+                <SelectTrigger className={`${filterFieldClass} w-full sm:w-[16rem]`}>
+                  <span className="truncate text-left">{selectTopicLabel}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tópicos</SelectItem>
+                  {PERSONNEL_REGISTRO_TOPICS.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Input
               type="date"
               value={filters.date}
@@ -381,7 +411,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
               className={`${filterFieldClass} w-full sm:w-[11.5rem] text-slate-600 ${!filters.date ? "text-slate-400" : ""}`}
               title="Filtrar por data do registo"
             />
-            {filtersActive && (
+            {filtersActiveForUi && (
               <Button
                 type="button"
                 variant="outline"
@@ -396,7 +426,7 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
             )}
           </div>
         </div>
-        {filtersActive && (
+        {filtersActiveForUi && (
           <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
             <p className="text-xs text-slate-500">
               {totalFiltered} registo(s) após filtros
@@ -406,41 +436,51 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
       </div>
 
       <div className="space-y-4">
-        {visibleTopics.map((topic) => (
-          <Collapsible
-            key={topic.id}
-            open={openTopics[topic.id] !== false}
-            onOpenChange={(open) => setOpenTopics((prev) => ({ ...prev, [topic.id]: open }))}
-          >
-            <Card className="border-slate-200 overflow-hidden" data-testid={`personnel-topic-panel-${topic.id}`}>
-              <CollapsibleTrigger asChild>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
-                >
-                  <div className="min-w-0">
-                    <h2 className="font-semibold text-slate-900">{topic.label}</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {topic.code}
-                      {!topicStatsLoading && topicStats[topic.id]?.total != null && (
-                        <span className="ml-2">· {topicStats[topic.id].total} registo(s)</span>
-                      )}
-                    </p>
-                  </div>
-                  <CaretDown
-                    size={18}
-                    className={`shrink-0 text-slate-500 transition-transform ${openTopics[topic.id] !== false ? "rotate-180" : ""}`}
-                  />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="px-4 pb-4 pt-0 border-t border-slate-100">
-                  {renderTopicPanel(topic)}
-                </CardContent>
-              </CollapsibleContent>
+        {lockedTopic ? (
+          visibleTopics.map((topic) => (
+            <Card key={topic.id} className="border-slate-200 overflow-hidden" data-testid={`personnel-topic-panel-${topic.id}`}>
+              <CardContent className="p-4">
+                {renderTopicPanel(topic)}
+              </CardContent>
             </Card>
-          </Collapsible>
-        ))}
+          ))
+        ) : (
+          visibleTopics.map((topic) => (
+            <Collapsible
+              key={topic.id}
+              open={openTopics[topic.id] !== false}
+              onOpenChange={(open) => setOpenTopics((prev) => ({ ...prev, [topic.id]: open }))}
+            >
+              <Card className="border-slate-200 overflow-hidden" data-testid={`personnel-topic-panel-${topic.id}`}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-slate-900">{topic.label}</h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {topic.code}
+                        {!topicStatsLoading && topicStats[topic.id]?.total != null && (
+                          <span className="ml-2">· {topicStats[topic.id].total} registo(s)</span>
+                        )}
+                      </p>
+                    </div>
+                    <CaretDown
+                      size={18}
+                      className={`shrink-0 text-slate-500 transition-transform ${openTopics[topic.id] !== false ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="px-4 pb-4 pt-0 border-t border-slate-100">
+                    {renderTopicPanel(topic)}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          ))
+        )}
         {visibleTopics.length === 0 && (
           <Card className="border-slate-200">
             <CardContent className="p-8 text-center text-slate-500 text-sm">
@@ -450,9 +490,11 @@ export default function PersonnelRegistrosPage({ embedded = false }) {
         )}
       </div>
 
-      <div className="mt-6" data-testid="personnel-onboarding-pipeline">
-        <PersonnelOnboardingPipeline pipeline={pipeline} loading={pipelineLoading} />
-      </div>
+      {!lockedTopic && (
+        <div className="mt-6" data-testid="personnel-onboarding-pipeline">
+          <PersonnelOnboardingPipeline pipeline={pipeline} loading={pipelineLoading} />
+        </div>
+      )}
     </div>
   );
 }

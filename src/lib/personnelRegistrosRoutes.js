@@ -6,7 +6,24 @@ export const PERSONNEL_REQ_ID = "6";
 export const PERSONNEL_FOLDER_KEY = "pr-6-2";
 
 export const PERSONNEL_DASHBOARD_PATH = `/requirement/${PERSONNEL_REQ_ID}/${PERSONNEL_FOLDER_KEY}`;
-export const PERSONNEL_REGISTROS_PATH = `${PERSONNEL_DASHBOARD_PATH}?tab=registro`;
+
+/** Aba de pasta (documentFolderConfig) ↔ tópico de registro (personnelRegistrosConfig). */
+export const PERSONNEL_SECTION_TO_TOPIC = {
+  registro_6_2a: "re-62a",
+  registro_6_2b: "re-62b",
+  registro_6_2c: "re-62c",
+  registro_6_2d: "re-62d",
+  registro_6_2e: "re-62e",
+  registro_6_2f: "re-62f",
+};
+
+export const PERSONNEL_TOPIC_TO_SECTION = Object.fromEntries(
+  Object.entries(PERSONNEL_SECTION_TO_TOPIC).map(([section, topic]) => [topic, section]),
+);
+
+export const PERSONNEL_DEFAULT_REGISTRO_SECTION = "registro_6_2a";
+
+export const PERSONNEL_REGISTROS_PATH = `${PERSONNEL_DASHBOARD_PATH}?tab=${PERSONNEL_DEFAULT_REGISTRO_SECTION}`;
 export const PERSONNEL_PROCEDIMENTOS_PATH = `${PERSONNEL_DASHBOARD_PATH}?tab=procedimento`;
 
 const TOPIC_ALIASES = { "pr-62f": "re-62f" };
@@ -27,12 +44,25 @@ export function formatPersonnelTopicsParam(topics) {
   return topics.join(",");
 }
 
+export function personnelTopicToFolderSection(topicId) {
+  return PERSONNEL_TOPIC_TO_SECTION[topicId] || PERSONNEL_DEFAULT_REGISTRO_SECTION;
+}
+
+export function personnelFolderSectionToTopic(sectionId) {
+  return PERSONNEL_SECTION_TO_TOPIC[sectionId] || null;
+}
+
+export function isPersonnelRegistroFolderSection(sectionId) {
+  return Boolean(PERSONNEL_SECTION_TO_TOPIC[sectionId]);
+}
+
 export function personnelRegistrosPath({ topic, topics } = {}) {
   const list = topics?.length
     ? topics
     : (topic && topic !== "all" ? [topic] : []);
   if (!list.length) return PERSONNEL_REGISTROS_PATH;
-  return `${PERSONNEL_REGISTROS_PATH}&topic=${encodeURIComponent(list.join(","))}`;
+  const section = personnelTopicToFolderSection(list[0]);
+  return `${PERSONNEL_DASHBOARD_PATH}?tab=${section}`;
 }
 
 /** Mapeamento de rotas legadas /pessoal/:section → tópico de filtro */

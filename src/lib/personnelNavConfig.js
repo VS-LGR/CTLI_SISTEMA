@@ -3,6 +3,8 @@ import {
   PERSONNEL_DASHBOARD_PATH,
   PERSONNEL_REGISTROS_PATH,
   PERSONNEL_LEGACY_SECTION_TOPIC,
+  PERSONNEL_SECTION_TO_TOPIC,
+  personnelRegistrosPath,
 } from "@/lib/personnelRegistrosRoutes";
 import { PERSONNEL_LISTAS_PATH } from "@/lib/personnelRoutes";
 
@@ -20,9 +22,15 @@ export function getVisiblePersonnelNavItems(role) {
   );
 }
 
+function hasPersonnelRegistroTab(pathnameAndSearch) {
+  return Object.keys(PERSONNEL_SECTION_TO_TOPIC).some((section) =>
+    pathnameAndSearch.includes(`tab=${section}`),
+  ) || /[?&]tab=registro(?:&|$)/.test(pathnameAndSearch);
+}
+
 export function isPersonnelNavActive(pathnameAndSearch, item) {
   const pathOnly = pathnameAndSearch.split("?")[0];
-  const hasRegistroTab = pathnameAndSearch.includes("tab=registro");
+  const hasRegistroTab = hasPersonnelRegistroTab(pathnameAndSearch);
 
   if (item.id === "dashboard") {
     const onPr62 = pathOnly === PERSONNEL_DASHBOARD_PATH || pathOnly.startsWith("/requirement/6/pr-6-2");
@@ -45,5 +53,5 @@ export { PERSONNEL_LEGACY_SECTION_TOPIC };
 export function legacySectionToRegistrosPath(section) {
   const topic = PERSONNEL_LEGACY_SECTION_TOPIC[section];
   if (!topic) return PERSONNEL_REGISTROS_PATH;
-  return `${PERSONNEL_REGISTROS_PATH}&topic=${encodeURIComponent(topic)}`;
+  return personnelRegistrosPath({ topic });
 }
