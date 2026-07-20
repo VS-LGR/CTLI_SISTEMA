@@ -10,6 +10,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { isCtliAdmin } from "@/lib/roles";
 import {
   createMasterDocument,
   updateMasterDocument,
@@ -49,6 +51,8 @@ const EMPTY = {
 };
 
 export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId, document, onSaved }) {
+  const { user } = useAuth();
+  const showTemplateFields = isCtliAdmin(user?.role);
   const [form, setForm] = useState(EMPTY);
   const [namingRules, setNamingRules] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -178,31 +182,35 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
               <Label>Data de emissão</Label>
               <Input type="date" value={form.current_issue_date || ""} onChange={(e) => set("current_issue_date", e.target.value)} />
             </div>
-            <div>
-              <Label>Módulo vinculado</Label>
-              <Input value={form.linked_module} onChange={(e) => set("linked_module", e.target.value)} />
-            </div>
-          </div>
           <div>
-            <Label>Template key</Label>
-            <Input value={form.template_key} onChange={(e) => set("template_key", e.target.value)} placeholder="re-62a-adequacao-competencia-pdf" />
+            <Label>Módulo vinculado</Label>
+            <Input value={form.linked_module} onChange={(e) => set("linked_module", e.target.value)} />
           </div>
-          <div>
-            <Label>Regra de nome do arquivo</Label>
-            <Select value={form.file_naming_rule || "_"} onValueChange={(v) => onNamingRuleChange(v === "_" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Selecionar regra" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_">—</SelectItem>
-                {namingRules.map((r) => (
-                  <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
-          <div>
-            <Label>Padrão de exportação</Label>
-            <Input value={form.export_file_name_pattern} onChange={(e) => set("export_file_name_pattern", e.target.value)} className="font-mono text-xs" />
-          </div>
+          {showTemplateFields && (
+            <>
+              <div>
+                <Label>Template key</Label>
+                <Input value={form.template_key} onChange={(e) => set("template_key", e.target.value)} placeholder="re-62a-adequacao-competencia-pdf" />
+              </div>
+              <div>
+                <Label>Regra de nome do arquivo</Label>
+                <Select value={form.file_naming_rule || "_"} onValueChange={(v) => onNamingRuleChange(v === "_" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar regra" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_">—</SelectItem>
+                    {namingRules.map((r) => (
+                      <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Padrão de exportação</Label>
+                <Input value={form.export_file_name_pattern} onChange={(e) => set("export_file_name_pattern", e.target.value)} className="font-mono text-xs" />
+              </div>
+            </>
+          )}
           <div>
             <Label>Retenção (anos)</Label>
             <Input type="number" value={form.retention_time ?? ""} onChange={(e) => set("retention_time", e.target.value)} />

@@ -80,7 +80,7 @@ function isSendableRow(row) {
   return ["aprovado", "emitido", "enviado"].includes(row.status);
 }
 
-export default function WeightCertificateListPage() {
+export default function WeightCertificateListPage({ embedded = false, approvalMode = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -88,7 +88,7 @@ export default function WeightCertificateListPage() {
   const [rows, setRows] = useState([]);
   const [endCustomers, setEndCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") || "all");
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") || (approvalMode ? "aguardando_aprovacao" : "all"));
   const [query, setQuery] = useState("");
   const [logoDataUrl, setLogoDataUrl] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -100,8 +100,8 @@ export default function WeightCertificateListPage() {
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
 
   const canApprove = canApproveCalibrationCertificate(user?.role);
-  const canSend = canSendCertificateEmail(user?.role);
-  const canCreate = canEditCalibrationCertificate(user?.role);
+  const canSend = canSendCertificateEmail(user?.role) && !approvalMode;
+  const canCreate = canEditCalibrationCertificate(user?.role) && !approvalMode;
 
   const load = useCallback(async () => {
     if (!currentTenantId) return;
@@ -295,21 +295,32 @@ export default function WeightCertificateListPage() {
 
   return (
     <div className="space-y-6 min-w-0" data-testid="weight-certificate-list">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-5.4.2B</p>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
-            Certificados de pesos-padrão
-          </h1>
+      {!embedded && (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-5.4.2B</p>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+              Certificados de pesos-padrão
+            </h1>
+          </div>
+          {canCreate && (
+            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+              <Link to={WEIGHT_CERTIFICATE_NEW_PATH}>
+                <Plus size={18} className="mr-1" /> Nova
+              </Link>
+            </Button>
+          )}
         </div>
-        {canCreate && (
+      )}
+      {embedded && canCreate && (
+        <div className="flex justify-end">
           <Button asChild className="bg-blue-600 hover:bg-blue-700">
             <Link to={WEIGHT_CERTIFICATE_NEW_PATH}>
               <Plus size={18} className="mr-1" /> Nova
             </Link>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1">

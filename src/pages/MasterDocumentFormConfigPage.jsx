@@ -11,10 +11,14 @@ const CONFIG_META = {
   "re-72a": {
     title: "Config. RE-7.2A",
     subtitle: "Formulário de coleta de dados e metadados do laboratório",
+    parentLabel: "Lista Mestra",
+    parentPath: LISTA_MESTRA_PATH,
   },
   "re-71a": {
-    title: "Config. RE-7.1A",
+    title: "Configurações da Proposta",
     subtitle: "Textos institucionais da proposta comercial",
+    parentLabel: "PR-7.1",
+    parentPath: "/requirement/7/pr-7-1",
   },
 };
 
@@ -29,7 +33,7 @@ export default function MasterDocumentFormConfigPage() {
   }
 
   if (!meta || !currentTenantId) {
-    return <Navigate to={LISTA_MESTRA_PATH} replace />;
+    return <Navigate to={meta?.parentPath || LISTA_MESTRA_PATH} replace />;
   }
 
   return (
@@ -38,7 +42,7 @@ export default function MasterDocumentFormConfigPage() {
         <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
           <Link to="/dashboard" className="hover:text-blue-600">Início</Link>
           <span>/</span>
-          <Link to={LISTA_MESTRA_PATH} className="hover:text-blue-600">Lista Mestra</Link>
+          <Link to={meta.parentPath} className="hover:text-blue-600">{meta.parentLabel}</Link>
           <span>/</span>
           <span className="text-slate-700 font-medium">{meta.title}</span>
         </div>

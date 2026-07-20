@@ -5,6 +5,16 @@ import { usesRestrictedNav, usesClientSidebarNav, restrictedNavHomePath } from "
 import { isClientAllowedPath } from "@/lib/clientNavConfig";
 import { isColetaPath } from "@/lib/coletaRoutes";
 import { isCertificatePath } from "@/lib/certificateRoutes";
+import { APPROVAL_HUB_PATH } from "@/lib/approvalRoutes";
+import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
+
+function isSignatoryAllowedPath(pathname) {
+  if (!pathname) return false;
+  if (pathname === APPROVAL_HUB_PATH || pathname.startsWith(`${APPROVAL_HUB_PATH}/`)) return true;
+  if (isCertificatePath(pathname)) return true;
+  if (pathname.startsWith(WEIGHT_CERTIFICATE_LIST_PATH)) return true;
+  return false;
+}
 
 /**
  * Redireciona técnicos para coleta, signatários para aprovação e utilizadores cliente para rotas permitidas.
@@ -22,7 +32,7 @@ export default function RoleRouteGuard({ currentTenant, outletContext }) {
       return <Navigate to={restrictedNavHomePath(user.role, currentTenant)} replace />;
     }
 
-    if (user.role === "signatario" && !isCertificatePath(loc.pathname)) {
+    if (user.role === "signatario" && !isSignatoryAllowedPath(loc.pathname)) {
       return <Navigate to={restrictedNavHomePath(user.role, currentTenant)} replace />;
     }
 

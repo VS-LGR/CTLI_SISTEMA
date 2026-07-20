@@ -5,7 +5,9 @@ export const MASTER_DOCUMENT_DEFAULT_TAB = "lista_mestra_internos";
 export const LISTA_MESTRA_PATH = `/requirement/${MASTER_DOCUMENT_REQ_ID}/${MASTER_DOCUMENT_FOLDER_KEY}?tab=${MASTER_DOCUMENT_DEFAULT_TAB}`;
 export const LISTA_MESTRA_SHORT_PATH = "/lista-mestra";
 export const RE_72A_CONFIG_PATH = `/requirement/${MASTER_DOCUMENT_REQ_ID}/${MASTER_DOCUMENT_FOLDER_KEY}/config/re-72a`;
-export const RE_71A_CONFIG_PATH = `/requirement/${MASTER_DOCUMENT_REQ_ID}/${MASTER_DOCUMENT_FOLDER_KEY}/config/re-71a`;
+/** Configurações da Proposta (RE-7.1A) — vive no PR-7.1 */
+export const RE_71A_CONFIG_PATH = "/requirement/7/pr-7-1/config/re-71a";
+export const RE_71A_CONFIG_LEGACY_PATH = `/requirement/${MASTER_DOCUMENT_REQ_ID}/${MASTER_DOCUMENT_FOLDER_KEY}/config/re-71a`;
 export function masterDocumentDetailPath(id) {
   return `/lista-mestra/${id}`;
 }

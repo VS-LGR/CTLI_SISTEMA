@@ -12,7 +12,6 @@ const LISTA_MESTRA_TAB_IDS = [
   "lista_mestra_externos",
   "lista_mestra_revisoes",
   "lista_mestra_distribuicao",
-  "lista_mestra_templates",
   "lista_mestra_gerados",
   "lista_mestra_alertas",
 ];

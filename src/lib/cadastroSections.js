@@ -4,14 +4,14 @@ import { canAccessCadastroSection } from "@/lib/tenantAccess";
 /** Secções de cadastro redistribuídas por pasta de requisito (PR). */
 
 export const CADASTRO_SECTIONS = [
-  { id: "fornecedores", label: "Fornecedores — 6.6", reqId: "6", folderKey: "pr-6-6" },
-  { id: "clientes", label: "Clientes — 7.1", reqId: "7", folderKey: "pr-7-1" },
-  { id: "colaboradores", label: "Colaboradores — 6.2", reqId: "6", folderKey: "pr-6-2" },
-  { id: "cert-peso", label: "Inventário de certificados — 6.4", reqId: "6", folderKey: "pr-6-4" },
-  { id: "pesos", label: "Peso Padrão — 6.4", reqId: "6", folderKey: "pr-6-4" },
-  { id: "balancas", label: "Balanças — 7.1", reqId: "7", folderKey: "pr-7-1" },
-  { id: "thermo", label: "Termobarohigrômetro — 6.4", reqId: "6", folderKey: "pr-6-4" },
-  { id: "tecnicos", label: "Técnicos de campo — 6.2", reqId: "6", folderKey: "pr-6-2", techniciansOnly: true },
+  { id: "fornecedores", label: "Fornecedores", reqId: "6", folderKey: "pr-6-6" },
+  { id: "clientes", label: "Clientes", reqId: "7", folderKey: "pr-7-1" },
+  { id: "colaboradores", label: "Colaboradores", reqId: "6", folderKey: "pr-6-2" },
+  { id: "cert-peso", label: "Certificados de Calibração dos Equipamentos", reqId: "6", folderKey: "pr-6-4" },
+  { id: "pesos", label: "Peso Padrão", reqId: "6", folderKey: "pr-6-4" },
+  { id: "balancas", label: "Balanças", reqId: "7", folderKey: "pr-7-1" },
+  { id: "thermo", label: "Termobarohigrômetro", reqId: "6", folderKey: "pr-6-4" },
+  { id: "tecnicos", label: "Técnicos de campo", reqId: "6", folderKey: "pr-6-2", techniciansOnly: true },
 ];
 
 const CADASTRO_PATH_RE = /^\/requirement\/(\d+)\/([^/]+)\/cadastro\/([^/]+)/;

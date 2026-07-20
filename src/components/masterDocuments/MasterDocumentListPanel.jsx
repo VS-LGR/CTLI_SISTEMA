@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, PencilSimple, Eye, Copy, Prohibit, Trash } from "@phosphor-icons/react";
+import { PencilSimple, Eye, Copy, Prohibit, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   listMasterDocuments,
@@ -164,9 +164,6 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => { setEditDoc(null); setFormOpen(true); }}>
-          <Plus size={16} className="mr-1" /> Novo documento
-        </Button>
       </div>
 
       <Card className="border-slate-200 overflow-hidden">

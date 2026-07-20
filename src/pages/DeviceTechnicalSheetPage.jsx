@@ -29,7 +29,7 @@ const STATUS_TONE = {
   A_VERIFICAR: "bg-amber-100 text-amber-900",
 };
 
-export default function DeviceTechnicalSheetPage() {
+export default function DeviceTechnicalSheetPage({ embedded = false }) {
   const { currentTenantId, currentTenant } = useOutletContext();
   const [weightItems, setWeightItems] = useState([]);
   const [weightCerts, setWeightCerts] = useState([]);
@@ -114,24 +114,36 @@ export default function DeviceTechnicalSheetPage() {
 
   return (
     <div className="space-y-6 max-w-[1400px] w-full min-w-0" data-testid="device-technical-sheet-page">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4 · RE-6.4B</div>
-          <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Ficha Técnica de Dispositivos</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Visão consolidada dos pesos padrão e termo-baro-higrômetros cadastrados.
-          </p>
+      {!embedded && (
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4 · RE-6.4B</div>
+            <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Ficha Técnica de Dispositivos</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Visão consolidada dos pesos padrão e termo-baro-higrômetros cadastrados.
+            </p>
+          </div>
+          <Button type="button" onClick={handlePdf} disabled={busyPdf || loading || !filtered.length}>
+            <FilePdf size={16} className="mr-1" />
+            Exportar PDF (RE-6.4B)
+          </Button>
         </div>
-        <Button type="button" onClick={handlePdf} disabled={busyPdf || loading || !filtered.length}>
-          <FilePdf size={16} className="mr-1" />
-          Exportar PDF (RE-6.4B)
-        </Button>
-      </div>
+      )}
+      {embedded && (
+        <div className="flex justify-end">
+          <Button type="button" onClick={handlePdf} disabled={busyPdf || loading || !filtered.length}>
+            <FilePdf size={16} className="mr-1" />
+            Exportar PDF
+          </Button>
+        </div>
+      )}
 
-      <RequirementFolderQuickAccess
-        requirementId={DEVICE_SHEET_REQ_ID}
-        folderKey={DEVICE_SHEET_FOLDER_KEY}
-      />
+      {!embedded && (
+        <RequirementFolderQuickAccess
+          requirementId={DEVICE_SHEET_REQ_ID}
+          folderKey={DEVICE_SHEET_FOLDER_KEY}
+        />
+      )}
 
       <div className="flex flex-col gap-3">
         <div className="relative flex-1 max-w-xl">

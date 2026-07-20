@@ -30,7 +30,7 @@ import {
 import { fmtDmyShort } from "@/lib/dateFormat";
 import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
 
-export default function EquipmentVerificationListPage() {
+export default function EquipmentVerificationListPage({ embedded = false }) {
   const { currentTenantId, currentTenant } = useOutletContext();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -110,23 +110,34 @@ export default function EquipmentVerificationListPage() {
 
   return (
     <div className="space-y-6 max-w-5xl w-full min-w-0" data-testid="equipment-verification-list">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4.12 · RE-6.4.12B</div>
-          <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Verificação de Equipamentos</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Checklists anuais por tipo. Vincule vários equipamentos em cada verificação.
-          </p>
+      {!embedded && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4.12 · RE-6.4.12B</div>
+            <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Verificação de Equipamento</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Checklists anuais por tipo. Vincule vários equipamentos em cada verificação.
+            </p>
+          </div>
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus size={16} className="mr-1" /> Nova verificação
+          </Button>
         </div>
-        <Button type="button" onClick={() => setCreateOpen(true)}>
-          <Plus size={16} className="mr-1" /> Nova verificação
-        </Button>
-      </div>
+      )}
+      {embedded && (
+        <div className="flex justify-end">
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus size={16} className="mr-1" /> Nova verificação
+          </Button>
+        </div>
+      )}
 
-      <RequirementFolderQuickAccess
-        requirementId={EQUIPMENT_VERIFICATION_REQ_ID}
-        folderKey={EQUIPMENT_VERIFICATION_FOLDER_KEY}
-      />
+      {!embedded && (
+        <RequirementFolderQuickAccess
+          requirementId={EQUIPMENT_VERIFICATION_REQ_ID}
+          folderKey={EQUIPMENT_VERIFICATION_FOLDER_KEY}
+        />
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Select value={kindFilter} onValueChange={setKindFilter}>

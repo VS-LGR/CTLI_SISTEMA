@@ -11,6 +11,17 @@ export const DOCUMENT_SECTIONS = {
   pedidos_compra: { id: "pedidos_compra", label: "Pedidos de compra" },
   solicitacoes_orcamento: { id: "solicitacoes_orcamento", label: "Solicitações de orçamento" },
   propostas_comerciais: { id: "propostas_comerciais", label: "Propostas Comerciais" },
+  coleta_dados: { id: "coleta_dados", label: "Coleta de Dados" },
+  emissao_cert_balancas: {
+    id: "emissao_cert_balancas",
+    label: "Emissão de Certificado de Calibração de Balanças",
+  },
+  emissao_cert_peso_padrao: {
+    id: "emissao_cert_peso_padrao",
+    label: "Emissão de Certificados de Calibração de Peso Padrão",
+  },
+  ficha_tecnica: { id: "ficha_tecnica", label: "Ficha Técnica" },
+  verificacao_equipamento: { id: "verificacao_equipamento", label: "Verificação de Equipamento" },
   lista_mestra_internos: { id: "lista_mestra_internos", label: "Documentos Internos" },
   lista_mestra_externos: { id: "lista_mestra_externos", label: "Documentos Externos" },
   lista_mestra_revisoes: { id: "lista_mestra_revisoes", label: "Histórico de Revisões" },
@@ -35,6 +46,21 @@ const FOLDER_MODES = {
     defaultSection: "procedimento",
     richEditor: true,
     commercialProposals: true,
+  },
+  "pr-7-2": {
+    sections: ["procedimento", "coleta_dados", "emissao_cert_balancas", "emissao_cert_peso_padrao"],
+    defaultSection: "procedimento",
+    richEditor: true,
+  },
+  "pr-6-4": {
+    sections: ["procedimento", "ficha_tecnica"],
+    defaultSection: "procedimento",
+    richEditor: true,
+  },
+  "pr-6-4-12": {
+    sections: ["procedimento", "verificacao_equipamento"],
+    defaultSection: "procedimento",
+    richEditor: true,
   },
   "pr-6-2": {
     sections: ["procedimento", "registro"],
@@ -76,15 +102,26 @@ const DEFAULT_MODE = {
   richEditor: true,
 };
 
+const SPECIAL_FOLDER_REQ = {
+  "pr-6-2": "6",
+  "pr-6-4": "6",
+  "pr-6-4-12": "6",
+  "pr-6-6": "6",
+  "pr-7-1": "7",
+  "pr-7-2": "7",
+  "pr-8-3": "8",
+  "manual-qualidade": "5",
+  "documentacao-legal": "5",
+  "estrutura-organizacional": "5",
+  "politica-qualidade": "5",
+  assinaturas: "5",
+};
+
 export function getFolderDocumentMode(requirementId, folderKey) {
   const rid = String(requirementId);
   if (folderKey && FOLDER_MODES[folderKey]) {
-    if (
-      rid === "5"
-      || (rid === "6" && (folderKey === "pr-6-6" || folderKey === "pr-6-2"))
-      || (rid === "7" && folderKey === "pr-7-1")
-      || (rid === "8" && folderKey === "pr-8-3")
-    ) {
+    const expectedReq = SPECIAL_FOLDER_REQ[folderKey];
+    if (expectedReq ? rid === expectedReq : rid === "5") {
       return { ...FOLDER_MODES[folderKey] };
     }
   }

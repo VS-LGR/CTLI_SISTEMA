@@ -87,7 +87,7 @@ function isApprovableRow(row) {
   return row.status === "aguardando_aprovacao";
 }
 
-export default function CertificateListPage() {
+export default function CertificateListPage({ embedded = false, approvalMode = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -95,7 +95,7 @@ export default function CertificateListPage() {
   const [rows, setRows] = useState([]);
   const [endCustomers, setEndCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") || "all");
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") || (approvalMode ? "aguardando_aprovacao" : "all"));
   const [emailFilter, setEmailFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [logoDataUrl, setLogoDataUrl] = useState(null);
@@ -111,8 +111,8 @@ export default function CertificateListPage() {
   const [downloadClientId, setDownloadClientId] = useState("");
 
   const canApprove = canApproveCalibrationCertificate(user?.role);
-  const canSend = canSendCertificateEmail(user?.role);
-  const canCreate = canEditCalibrationCertificate(user?.role);
+  const canSend = canSendCertificateEmail(user?.role) && !approvalMode;
+  const canCreate = canEditCalibrationCertificate(user?.role) && !approvalMode;
 
   const load = useCallback(async () => {
     if (!currentTenantId) return;
@@ -482,22 +482,33 @@ export default function CertificateListPage() {
 
   return (
     <div className="space-y-6 max-w-6xl w-full min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-xl font-semibold text-slate-900">Certificados de Calibração</h1>
-          <p className="text-sm text-slate-500 mt-1">RE-7.2B — aprovação, emissão e envio ao cliente</p>
+      {!embedded && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="font-display text-xl font-semibold text-slate-900">Certificados de Calibração</h1>
+            <p className="text-sm text-slate-500 mt-1">RE-7.2B — aprovação, emissão e envio ao cliente</p>
+          </div>
+          {canCreate && (
+            <Button asChild>
+              <Link to={CERTIFICATE_NEW_PATH}><Plus size={18} className="mr-1" /> Novo certificado</Link>
+            </Button>
+          )}
         </div>
-        {canCreate && (
+      )}
+      {embedded && canCreate && (
+        <div className="flex justify-end">
           <Button asChild>
             <Link to={CERTIFICATE_NEW_PATH}><Plus size={18} className="mr-1" /> Novo certificado</Link>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
-      <RequirementFolderQuickAccess
-        requirementId={CERTIFICATE_REQ_ID}
-        folderKey={CERTIFICATE_FOLDER_KEY}
-      />
+      {!embedded && !approvalMode && (
+        <RequirementFolderQuickAccess
+          requirementId={CERTIFICATE_REQ_ID}
+          folderKey={CERTIFICATE_FOLDER_KEY}
+        />
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">

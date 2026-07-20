@@ -54,7 +54,13 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
 import { PERSONNEL_REQ_ID, PERSONNEL_FOLDER_KEY } from "@/lib/personnelRegistrosRoutes";
-import { canAccessColeta, canAccessPersonnel, canAccessMasterDocuments } from "@/lib/roles";
+import {
+  canAccessColeta,
+  canAccessPersonnel,
+  canAccessMasterDocuments,
+  canAccessCalibrationCertificates,
+  isCtliAdmin,
+} from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import PermanentDeleteDialog from "@/components/ui/PermanentDeleteDialog";
@@ -64,6 +70,10 @@ import { findMasterDocumentByCode } from "@/lib/masterDocuments/masterDocumentsA
 import { inferProcedureCodeFromFolder } from "@/lib/masterDocuments/masterDocumentRoutes";
 
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
+const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
+const WeightCertificateListPage = lazy(() => import("@/pages/WeightCertificateListPage"));
+const DeviceTechnicalSheetPage = lazy(() => import("@/pages/DeviceTechnicalSheetPage"));
+const EquipmentVerificationListPage = lazy(() => import("@/pages/EquipmentVerificationListPage"));
 const PersonnelRegistrosPage = lazy(() => import("@/pages/PersonnelRegistrosPage"));
 const MasterDocumentHub = lazy(() => import("@/components/masterDocuments/MasterDocumentHub"));
 
@@ -497,7 +507,13 @@ const RequirementView = () => {
   const { currentTenantId, currentTenant } = useOutletContext();
   const folderMode = useMemo(() => getFolderDocumentMode(id, folderKey), [id, folderKey]);
   const hideSectionTabs = folderMode.hideSectionTabs === true;
-  const visibleSections = useMemo(() => getVisibleSections(id, folderKey), [id, folderKey]);
+  const visibleSections = useMemo(() => {
+    const sections = getVisibleSections(id, folderKey);
+    if (String(id) === "8" && folderKey === "pr-8-3" && !isCtliAdmin(user?.role)) {
+      return sections.filter((s) => s.id !== "lista_mestra_templates");
+    }
+    return sections;
+  }, [id, folderKey, user?.role]);
   const defaultSection = folderMode.defaultSection;
   const tabFromUrl = searchParams.get("tab");
   const section = useMemo(() => {
@@ -564,7 +580,23 @@ const RequirementView = () => {
     : null;
   const reqTitle = REQ_NAMES[String(id)];
   const isColetaRegistro =
-    String(id) === COLETA_REQ_ID && folderKey === COLETA_FOLDER_KEY && section === "registro" && canAccessColeta(user?.role);
+    String(id) === COLETA_REQ_ID
+    && folderKey === COLETA_FOLDER_KEY
+    && (section === "coleta_dados" || section === "registro")
+    && canAccessColeta(user?.role);
+  const isCertBalancasTab =
+    String(id) === COLETA_REQ_ID
+    && folderKey === COLETA_FOLDER_KEY
+    && section === "emissao_cert_balancas"
+    && canAccessCalibrationCertificates(user?.role);
+  const isCertPesoTab =
+    String(id) === COLETA_REQ_ID
+    && folderKey === COLETA_FOLDER_KEY
+    && section === "emissao_cert_peso_padrao"
+    && canAccessCalibrationCertificates(user?.role);
+  const isFichaTecnicaTab = String(id) === "6" && folderKey === "pr-6-4" && section === "ficha_tecnica";
+  const isVerificacaoEquipamentoTab =
+    String(id) === "6" && folderKey === "pr-6-4-12" && section === "verificacao_equipamento";
   const isPersonnelRegistro =
     String(id) === PERSONNEL_REQ_ID && folderKey === PERSONNEL_FOLDER_KEY && section === "registro" && canAccessPersonnel(user?.role);
   const signatures = isSignaturesFolder(id, folderKey);
@@ -573,7 +605,14 @@ const RequirementView = () => {
   const quotationRequestsTab = isPurchaseOrdersFolder(id, folderKey) && section === "solicitacoes_orcamento";
   const commercialProposalsTab = isCommercialProposalsFolder(id, folderKey) && section === "propostas_comerciais";
   const masterDocumentTab = isMasterDocumentListFolder(id, folderKey) && section.startsWith("lista_mestra_");
-  const moduleTab = purchaseOrdersTab || quotationRequestsTab || commercialProposalsTab || masterDocumentTab;
+  const moduleTab = purchaseOrdersTab
+    || quotationRequestsTab
+    || commercialProposalsTab
+    || masterDocumentTab
+    || isCertBalancasTab
+    || isCertPesoTab
+    || isFichaTecnicaTab
+    || isVerificacaoEquipamentoTab;
   const variant = status === "vigente" ? "vigente" : "obsoleto";
   const currentSectionMeta = visibleSections.find((s) => s.id === section);
 
@@ -699,6 +738,22 @@ const RequirementView = () => {
           ) : isColetaRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta…</div>}>
               <ColetaPage embedded />
+            </Suspense>
+          ) : isCertBalancasTab ? (
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar certificados…</div>}>
+              <CertificateListPage embedded />
+            </Suspense>
+          ) : isCertPesoTab ? (
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar certificados…</div>}>
+              <WeightCertificateListPage embedded />
+            </Suspense>
+          ) : isFichaTecnicaTab ? (
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar ficha técnica…</div>}>
+              <DeviceTechnicalSheetPage embedded />
+            </Suspense>
+          ) : isVerificacaoEquipamentoTab ? (
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar verificações…</div>}>
+              <EquipmentVerificationListPage embedded />
             </Suspense>
           ) : isPersonnelRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar registros de pessoal…</div>}>

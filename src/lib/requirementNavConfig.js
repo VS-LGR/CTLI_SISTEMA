@@ -5,17 +5,14 @@
 
 import { COLETA_LIST_PATH, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "./coletaRoutes";
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "./certificateRoutes";
-import { WEIGHT_COLETA_LIST_PATH } from "./weightCalibration/weightColetaRoutes";
-import { WEIGHT_CERTIFICATE_LIST_PATH } from "./weightCalibration/weightCertificateRoutes";
-import { PROPOSAL_LIST_PATH } from "./commercialProposals/commercialProposalRoutes";
 import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
-import { LISTA_MESTRA_PATH, RE_71A_CONFIG_PATH, RE_72A_CONFIG_PATH } from "./masterDocuments/masterDocumentRoutes";
+import { RE_71A_CONFIG_PATH } from "./masterDocuments/masterDocumentRoutes";
 import { DEVICE_SHEET_LIST_PATH } from "./deviceTechnicalSheetRoutes";
 import { EQUIPMENT_VERIFICATION_LIST_PATH } from "./equipmentVerificationRoutes";
 import { cadastroSectionPath } from "./cadastroSections";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
 import { canAccessRequirement, canAccessRequirementFolder, canAccessCadastroSection } from "./tenantAccess";
-import { canManageTechnicians, isCtliAdmin } from "./roles";
+import { isCtliAdmin } from "./roles";
 
 export const REQ_NAMES = {
   "4": "Requisitos Gerais",
@@ -58,14 +55,14 @@ const FOLDERS = {
         },
         {
           key: "cad-colaboradores",
-          label: "Colaboradores — 6.2",
+          label: "Colaboradores",
           to: cadastroSectionPath("colaboradores"),
           cadastroSectionId: "colaboradores",
           kind: "cadastro",
         },
         {
           key: "cad-tecnicos",
-          label: "Técnicos de campo — 6.2",
+          label: "Técnicos de campo",
           to: cadastroSectionPath("tecnicos"),
           cadastroSectionId: "tecnicos",
           requiresTechnicians: true,
@@ -76,27 +73,22 @@ const FOLDERS = {
     { folderKey: "pr-6-4", label: "PR-6.4 Equipamentos",
       children: [
         {
-          key: "fichas",
-          label: "Ficha Técnica (RE-6.4B)",
-          to: DEVICE_SHEET_LIST_PATH,
-        },
-        {
           key: "cad-cert-peso",
-          label: "Inventário de certificados — 6.4",
+          label: "Certificados de Calibração dos Equipamentos",
           to: cadastroSectionPath("cert-peso"),
           cadastroSectionId: "cert-peso",
           kind: "cadastro",
         },
         {
           key: "cad-pesos",
-          label: "Peso Padrão — 6.4",
+          label: "Peso Padrão",
           to: cadastroSectionPath("pesos"),
           cadastroSectionId: "pesos",
           kind: "cadastro",
         },
         {
           key: "cad-thermo",
-          label: "Termobarohigrômetro — 6.4",
+          label: "Termobarohigrômetro",
           to: cadastroSectionPath("thermo"),
           cadastroSectionId: "thermo",
           kind: "cadastro",
@@ -104,21 +96,13 @@ const FOLDERS = {
       ],
     },
     { folderKey: "pr-6-4-10", label: "PR-6.4.10 Checagens Intermediárias" },
-    { folderKey: "pr-6-4-12", label: "PR-6.4.12 Manutenção de Equipamentos",
-      children: [
-        {
-          key: "verificacoes",
-          label: "Verificação (RE-6.4.12B)",
-          to: EQUIPMENT_VERIFICATION_LIST_PATH,
-        },
-      ],
-    },
+    { folderKey: "pr-6-4-12", label: "PR-6.4.12 Manutenção de Equipamentos" },
     { folderKey: "pr-6-5", label: "PR-6.5 Rastreabilidade Metrológica" },
     { folderKey: "pr-6-6", label: "PR-6.6 Produtos e Serviços Providos Externamente",
       children: [
         {
           key: "cad-fornecedores",
-          label: "Fornecedores — 6.6",
+          label: "Fornecedores",
           to: cadastroSectionPath("fornecedores"),
           cadastroSectionId: "fornecedores",
           kind: "cadastro",
@@ -130,24 +114,24 @@ const FOLDERS = {
     { folderKey: "pr-7-1", label: "PR-7.1 Análise Crítica de Pedidos, Propostas e Contratos",
       children: [
         {
-          key: "propostas",
-          label: "Propostas Comerciais (RE-7.1A)",
-          to: PROPOSAL_LIST_PATH,
-          requiresCommercialProposals: true,
-        },
-        {
           key: "cad-clientes",
-          label: "Clientes — 7.1",
+          label: "Clientes",
           to: cadastroSectionPath("clientes"),
           cadastroSectionId: "clientes",
           kind: "cadastro",
         },
         {
           key: "cad-balancas",
-          label: "Balanças — 7.1",
+          label: "Balanças",
           to: cadastroSectionPath("balancas"),
           cadastroSectionId: "balancas",
           kind: "cadastro",
+        },
+        {
+          key: "config-re-71a",
+          label: "Configurações da Proposta",
+          to: RE_71A_CONFIG_PATH,
+          requiresCtliAdmin: true,
         },
       ],
     },
@@ -157,32 +141,6 @@ const FOLDERS = {
     {
       folderKey: "pr-7-2",
       label: "PR-7.2 Calibração de Balanças",
-      children: [
-        {
-          key: "coleta",
-          label: "Coleta de dados (RE-7.2A)",
-          to: COLETA_LIST_PATH,
-          requiresColeta: true,
-        },
-        {
-          key: "certificados",
-          label: "Certificados de Calibração (RE-7.2B)",
-          to: CERTIFICATE_LIST_PATH,
-          requiresCalibrationCertificates: true,
-        },
-        {
-          key: "coleta-pesos",
-          label: "Coleta de dados — Pesos (RE-5.4.2A)",
-          to: WEIGHT_COLETA_LIST_PATH,
-          requiresColeta: true,
-        },
-        {
-          key: "certificados-pesos",
-          label: "Certificados — Pesos (RE-5.4.2B)",
-          to: WEIGHT_CERTIFICATE_LIST_PATH,
-          requiresCalibrationCertificates: true,
-        },
-      ],
     },
     { folderKey: "pr-7-2-2", label: "PR-7.2.2 Validação de Métodos" },
     { folderKey: "pr-7-4", label: "PR-7.4 Manuseio de Itens de Calibração" },
@@ -195,27 +153,8 @@ const FOLDERS = {
     {
       folderKey: "pr-8-3",
       label: "PR-8.3 Emissão e Controle de Documentos",
-      children: [
-        {
-          key: "lista-mestra",
-          label: "Lista Mestra de Documentos",
-          to: LISTA_MESTRA_PATH,
-          requiresMasterDocuments: true,
-        },
-        {
-          key: "config-re-72a",
-          label: "Config. RE-7.2A",
-          to: RE_72A_CONFIG_PATH,
-          requiresCtliAdmin: true,
-        },
-        {
-          key: "config-re-71a",
-          label: "Config. RE-7.1A",
-          to: RE_71A_CONFIG_PATH,
-          requiresCtliAdmin: true,
-        },
-      ],
     },
+
     { folderKey: "pr-8-4", label: "PR-8.4 Controle de Registros" },
     { folderKey: "pr-8-5", label: "PR-8.5 Análise de Riscos e Oportunidades" },
     { folderKey: "pr-8-6-2", label: "PR-8.6.2 Monitoramento da Satisfação dos Clientes" },

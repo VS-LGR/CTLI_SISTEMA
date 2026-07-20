@@ -15,7 +15,7 @@ import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH, CERTIFICATE_PENDING_APPROV
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
-import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH, RE_71A_CONFIG_PATH, RE_72A_CONFIG_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
+import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH, RE_71A_CONFIG_PATH, RE_71A_CONFIG_LEGACY_PATH, RE_72A_CONFIG_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 import { DEVICE_SHEET_LIST_PATH } from "@/lib/deviceTechnicalSheetRoutes";
 import { EQUIPMENT_VERIFICATION_LIST_PATH } from "@/lib/equipmentVerificationRoutes";
 import TenantModuleGate, { RequirementAccessGate, CadastroSectionGate } from "@/components/tenant/TenantModuleGate";
@@ -34,6 +34,7 @@ const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
 const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
 const CertificateNewPage = lazy(() => import("@/pages/CertificateNewPage"));
 const CertificateEditorPage = lazy(() => import("@/pages/CertificateEditorPage"));
+const ApprovalHubPage = lazy(() => import("@/pages/ApprovalHubPage"));
 const WeightColetaPage = lazy(() => import("@/pages/WeightColetaPage"));
 const WeightColetaEditorPage = lazy(() => import("@/pages/WeightColetaEditorPage"));
 const WeightCertificateListPage = lazy(() => import("@/pages/WeightCertificateListPage"));
@@ -146,6 +147,14 @@ const App = () => (
               element={(
                 <Suspense fallback={pageSuspenseFallback}>
                   <Dashboard />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/aprovacao"
+              element={(
+                <Suspense fallback={pageSuspenseFallback}>
+                  <ApprovalHubPage />
                 </Suspense>
               )}
             />
@@ -368,6 +377,10 @@ const App = () => (
                   </Suspense>
                 </RequirementAccessGate>
               )}
+            />
+            <Route
+              path={RE_71A_CONFIG_LEGACY_PATH}
+              element={<Navigate to={RE_71A_CONFIG_PATH} replace />}
             />
             <Route
               path="/requirement/:id/:folderKey/config/:configKey"
