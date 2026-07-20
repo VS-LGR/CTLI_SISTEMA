@@ -1,19 +1,28 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, PencilSimple, Copy, Trash } from "@phosphor-icons/react";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
+import { Plus, PencilSimple, Copy, Trash, FilePdf, FileDoc } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { listSelections, duplicateSelection, deleteSelection } from "@/lib/personnelSelectionsApi";
 import { exportSelectionPdf, exportSelectionDocx } from "@/lib/personnelExport";
-import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { selectionEditorPath } from "@/lib/personnelRoutes";
 import { selectionOpinionLabel } from "@/lib/personnelDisplayLabels";
 
 function fmtDate(d) {
   if (!d) return "—";
   return d.slice(0, 10).split("-").reverse().join("/");
+}
+
+async function runExport(fn, format) {
+  try {
+    await fn();
+    toast.success(format === "pdf" ? "PDF gerado" : "Word gerado");
+  } catch (e) {
+    toast.error(e.message || "Falha na exportação");
+  }
 }
 
 export default function SelectionsListPanel({
@@ -67,7 +76,7 @@ export default function SelectionsListPanel({
                 <th className="p-2">Condutor</th>
                 <th className="p-2">Parecer</th>
                 <th className="p-2">Responsável</th>
-                <th className="p-2 w-36">Ações</th>
+                <th className="p-2 text-right w-[7.5rem]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -82,28 +91,57 @@ export default function SelectionsListPanel({
                   <td className="p-2">{r.selection_conductor_name || "—"}</td>
                   <td className="p-2">{selectionOpinionLabel(r.conclusive_opinion_approved)}</td>
                   <td className="p-2">{r.analysis_approval_responsible_name || "—"}</td>
-                  <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar seleção"><Link to={selectionEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar seleção" onClick={async () => {
-                      try {
-                        const c = await duplicateSelection(r.id, tenantId);
-                        onRecordsChange?.();
-                        navigate(selectionEditorPath(c.id));
-                      } catch (e) { toast.error(e.message); }
-                    }}><Copy size={16} /></Button>
-                    <PersonnelExportMenu
+                  <td className="p-2 text-right">
+                    <ListRowActionsMenu
                       disabled={busy}
-                      onExportPdf={() => exportSelectionPdf(r.id, tenant)}
-                      onExportDocx={() => exportSelectionDocx(r.id, tenant)}
+                      items={[
+                        {
+                          key: "edit",
+                          label: "Editar",
+                          icon: PencilSimple,
+                          onSelect: () => navigate(selectionEditorPath(r.id)),
+                        },
+                        {
+                          key: "dup",
+                          label: "Duplicar",
+                          icon: Copy,
+                          onSelect: async () => {
+                            try {
+                              const c = await duplicateSelection(r.id, tenantId);
+                              onRecordsChange?.();
+                              navigate(selectionEditorPath(c.id));
+                            } catch (e) { toast.error(e.message); }
+                          },
+                        },
+                        {
+                          key: "pdf",
+                          label: "Exportar PDF",
+                          icon: FilePdf,
+                          onSelect: () => runExport(() => exportSelectionPdf(r.id, tenant), "pdf"),
+                        },
+                        {
+                          key: "docx",
+                          label: "Exportar Word",
+                          icon: FileDoc,
+                          onSelect: () => runExport(() => exportSelectionDocx(r.id, tenant), "docx"),
+                        },
+                        {
+                          key: "delete",
+                          label: "Excluir",
+                          icon: Trash,
+                          destructive: true,
+                          separatorBefore: true,
+                          onSelect: async () => {
+                            if (!window.confirm("Excluir esta seleção?")) return;
+                            try {
+                              await deleteSelection(r.id);
+                              toast.success("Excluída");
+                              await reload();
+                            } catch (e) { toast.error(e.message); }
+                          },
+                        },
+                      ]}
                     />
-                    <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir seleção" onClick={async () => {
-                      if (!window.confirm("Excluir esta seleção?")) return;
-                      try {
-                        await deleteSelection(r.id);
-                        toast.success("Excluída");
-                        await reload();
-                      } catch (e) { toast.error(e.message); }
-                    }}><Trash size={16} /></Button>
                   </td>
                 </tr>
               ))}

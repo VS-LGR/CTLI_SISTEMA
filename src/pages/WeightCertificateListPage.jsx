@@ -15,8 +15,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, MagnifyingGlass, Archive, FilePdf, EnvelopeSimple, Trash } from "@phosphor-icons/react";
+import { Plus, MagnifyingGlass, Archive, FilePdf, EnvelopeSimple, Trash, PencilSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
 import {
   WEIGHT_CERTIFICATE_NEW_PATH,
   weightCertificateEditorPath,
@@ -394,7 +395,7 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
                 <th className="text-left p-3 font-medium">Tipo</th>
                 <th className="text-left p-3 font-medium">Data</th>
                 <th className="text-left p-3 font-medium">Status</th>
-                <th className="p-3 w-36" />
+                <th className="p-3 text-right w-[7.5rem]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -427,46 +428,44 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
                       {certificateStatusLabel(row.status)}
                     </Badge>
                   </td>
-                  <td className="p-3">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(weightCertificateEditorPath(row.id))}
-                      >
-                        Abrir
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handlePdf(row)} title="PDF">
-                        <FilePdf size={16} />
-                      </Button>
-                      {canSend && isSendableRow(row) && (
-                        <Button variant="ghost" size="sm" onClick={() => handleEmail(row)} title="E-mail">
-                          <EnvelopeSimple size={16} />
-                        </Button>
-                      )}
-                      {canCreate && canMarkCertificateObsolete(row.status) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-amber-700 hover:text-amber-900 hover:bg-amber-50"
-                          onClick={() => openObsolete(row)}
-                          title="Marcar obsoleto"
-                        >
-                          <Archive size={16} />
-                        </Button>
-                      )}
-                      {canCreate && canDeleteCertificate(row.status) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                          onClick={() => openDelete(row)}
-                          title="Remover permanentemente"
-                        >
-                          <Trash size={16} />
-                        </Button>
-                      )}
-                    </div>
+                  <td className="p-3 text-right">
+                    <ListRowActionsMenu
+                      items={[
+                        {
+                          key: "edit",
+                          label: "Abrir / editar",
+                          icon: PencilSimple,
+                          onSelect: () => navigate(weightCertificateEditorPath(row.id)),
+                        },
+                        {
+                          key: "pdf",
+                          label: "Prévia PDF",
+                          icon: FilePdf,
+                          onSelect: () => handlePdf(row),
+                        },
+                        canSend && isSendableRow(row) && {
+                          key: "email",
+                          label: "Enviar por e-mail",
+                          icon: EnvelopeSimple,
+                          onSelect: () => handleEmail(row),
+                        },
+                        canCreate && canMarkCertificateObsolete(row.status) && {
+                          key: "obsolete",
+                          label: "Marcar obsoleto",
+                          icon: Archive,
+                          separatorBefore: true,
+                          onSelect: () => openObsolete(row),
+                        },
+                        canCreate && canDeleteCertificate(row.status) && {
+                          key: "delete",
+                          label: "Remover permanentemente",
+                          icon: Trash,
+                          destructive: true,
+                          separatorBefore: !(canCreate && canMarkCertificateObsolete(row.status)),
+                          onSelect: () => openDelete(row),
+                        },
+                      ].filter(Boolean)}
+                    />
                   </td>
                 </tr>
               ))}

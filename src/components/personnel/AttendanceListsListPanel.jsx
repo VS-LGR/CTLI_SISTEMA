@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, PencilSimple, Copy, Trash } from "@phosphor-icons/react";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
+import { Plus, PencilSimple, Copy, Trash, FilePdf, FileDoc } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   listAttendanceLists,
@@ -11,12 +12,20 @@ import {
   deleteAttendanceList,
 } from "@/lib/personnelAttendanceListsApi";
 import { exportAttendanceListPdf, exportAttendanceListDocx } from "@/lib/personnelExport";
-import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { attendanceListEditorPath } from "@/lib/personnelRoutes";
 
 function fmtDate(d) {
   if (!d) return "—";
   return d.slice(0, 10).split("-").reverse().join("/");
+}
+
+async function runExport(fn, format) {
+  try {
+    await fn();
+    toast.success(format === "pdf" ? "PDF gerado" : "Word gerado");
+  } catch (e) {
+    toast.error(e.message || "Falha na exportação");
+  }
 }
 
 export default function AttendanceListsListPanel({
@@ -71,7 +80,7 @@ export default function AttendanceListsListPanel({
                 <th className="p-2">Participantes</th>
                 <th className="p-2">Aprovados</th>
                 <th className="p-2">Reprovados</th>
-                <th className="p-2 w-36">Ações</th>
+                <th className="p-2 text-right w-[7.5rem]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -87,28 +96,57 @@ export default function AttendanceListsListPanel({
                   <td className="p-2">{r.concludes_count > 0 ? r.concludes_count : "—"}</td>
                   <td className="p-2">{r.approved_count}</td>
                   <td className="p-2">{r.reproved_count}</td>
-                  <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar lista de presença"><Link to={attendanceListEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar lista de presença" onClick={async () => {
-                      try {
-                        const c = await duplicateAttendanceList(r.id, tenantId);
-                        onRecordsChange?.();
-                        navigate(attendanceListEditorPath(c.id));
-                      } catch (e) { toast.error(e.message); }
-                    }}><Copy size={16} /></Button>
-                    <PersonnelExportMenu
+                  <td className="p-2 text-right">
+                    <ListRowActionsMenu
                       disabled={busy}
-                      onExportPdf={() => exportAttendanceListPdf(r.id, tenant)}
-                      onExportDocx={() => exportAttendanceListDocx(r.id, tenant)}
+                      items={[
+                        {
+                          key: "edit",
+                          label: "Editar",
+                          icon: PencilSimple,
+                          onSelect: () => navigate(attendanceListEditorPath(r.id)),
+                        },
+                        {
+                          key: "dup",
+                          label: "Duplicar",
+                          icon: Copy,
+                          onSelect: async () => {
+                            try {
+                              const c = await duplicateAttendanceList(r.id, tenantId);
+                              onRecordsChange?.();
+                              navigate(attendanceListEditorPath(c.id));
+                            } catch (e) { toast.error(e.message); }
+                          },
+                        },
+                        {
+                          key: "pdf",
+                          label: "Exportar PDF",
+                          icon: FilePdf,
+                          onSelect: () => runExport(() => exportAttendanceListPdf(r.id, tenant), "pdf"),
+                        },
+                        {
+                          key: "docx",
+                          label: "Exportar Word",
+                          icon: FileDoc,
+                          onSelect: () => runExport(() => exportAttendanceListDocx(r.id, tenant), "docx"),
+                        },
+                        {
+                          key: "delete",
+                          label: "Excluir",
+                          icon: Trash,
+                          destructive: true,
+                          separatorBefore: true,
+                          onSelect: async () => {
+                            if (!window.confirm("Excluir esta lista?")) return;
+                            try {
+                              await deleteAttendanceList(r.id);
+                              toast.success("Excluída");
+                              await reload();
+                            } catch (e) { toast.error(e.message); }
+                          },
+                        },
+                      ]}
                     />
-                    <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir lista de presença" onClick={async () => {
-                      if (!window.confirm("Excluir esta lista?")) return;
-                      try {
-                        await deleteAttendanceList(r.id);
-                        toast.success("Excluída");
-                        await reload();
-                      } catch (e) { toast.error(e.message); }
-                    }}><Trash size={16} /></Button>
                   </td>
                 </tr>
               ))}

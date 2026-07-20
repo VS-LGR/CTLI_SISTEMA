@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, PencilSimple } from "@phosphor-icons/react";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
+import { Plus, PencilSimple, Trash, CalendarCheck } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { listExternalDocuments, saveExternalDocument, deleteExternalDocument } from "@/lib/masterDocuments/masterDocumentsApi";
 import { externalValidityLabel } from "@/lib/masterDocuments/masterDocumentConstants";
@@ -63,7 +64,7 @@ export default function ExternalDocumentsPanel({ tenantId }) {
               <th className="px-3 py-2 text-left">Última consulta</th>
               <th className="px-3 py-2 text-left">Próxima</th>
               <th className="px-3 py-2 text-left">Status</th>
-              <th className="px-3 py-2 text-right">Ações</th>
+              <th className="px-3 py-2 text-right w-[7.5rem]">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -85,10 +86,31 @@ export default function ExternalDocumentsPanel({ tenantId }) {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs">{externalValidityLabel(r.validity_status)}</td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap">
-                    <Button variant="outline" size="sm" className="mr-1" onClick={() => { setConsultRow(r); setConsultOpen(true); }}>Consulta</Button>
-                    <Button variant="ghost" size="sm" onClick={() => { setEditRow(r); setFormOpen(true); }}><PencilSimple size={16} /></Button>
-                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDelete(r.id)}>Excluir</Button>
+                  <td className="px-3 py-2 text-right">
+                    <ListRowActionsMenu
+                      items={[
+                        {
+                          key: "consult",
+                          label: "Consulta",
+                          icon: CalendarCheck,
+                          onSelect: () => { setConsultRow(r); setConsultOpen(true); },
+                        },
+                        {
+                          key: "edit",
+                          label: "Editar",
+                          icon: PencilSimple,
+                          onSelect: () => { setEditRow(r); setFormOpen(true); },
+                        },
+                        {
+                          key: "delete",
+                          label: "Excluir",
+                          icon: Trash,
+                          destructive: true,
+                          separatorBefore: true,
+                          onSelect: () => handleDelete(r.id),
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               );

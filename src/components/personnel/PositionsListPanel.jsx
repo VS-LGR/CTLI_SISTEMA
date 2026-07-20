@@ -2,11 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { filterPersonnelTopicRows } from "@/lib/personnelRegistrosListUtils";
 import { personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
 import { computePersonnelTopicStats } from "@/lib/personnelRegistrosListUtils";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, PencilSimple, Copy, Prohibit, ArrowCounterClockwise, Trash } from "@phosphor-icons/react";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
+import {
+  Plus, PencilSimple, Copy, Prohibit, ArrowCounterClockwise, Trash, FilePdf, FileDoc,
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   listPositions,
@@ -17,13 +20,21 @@ import {
   getPositionUsageCounts,
 } from "@/lib/personnelPositionsApi";
 import { exportPositionCompetencyPdf, exportPositionCompetencyDocx } from "@/lib/personnelExport";
-import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { positionEditorPath } from "@/lib/personnelRoutes";
 import PersonnelDeleteConfirmDialog from "@/components/personnel/PersonnelDeleteConfirmDialog";
 
 function fmtDate(d) {
   if (!d) return "—";
   return d.slice(0, 10).split("-").reverse().join("/");
+}
+
+async function runExport(fn, format) {
+  try {
+    await fn();
+    toast.success(format === "pdf" ? "PDF gerado" : "Word gerado");
+  } catch (e) {
+    toast.error(e.message || "Falha na exportação");
+  }
 }
 
 function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab }) {
@@ -55,7 +66,7 @@ function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab })
               <th className="p-2">Última atualização</th>
               <th className="p-2">Responsável</th>
               {tab === "ativos" && <th className="p-2">Status</th>}
-              <th className="p-2 w-44">Ações</th>
+              <th className="p-2 text-right w-[7.5rem]">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -74,56 +85,94 @@ function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab })
                 <td className="p-2">{fmtDate(r.last_update_date)}</td>
                 <td className="p-2">{r.analysis_approval_responsible?.full_name || "—"}</td>
                 {tab === "ativos" && <td className="p-2 capitalize">{r.status}</td>}
-                <td className="p-2">
-                  <div className="flex flex-wrap gap-1">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={positionEditorPath(r.id)}><PencilSimple size={16} /></Link>
-                    </Button>
-                    {tab === "ativos" && (
-                      <>
-                        <Button variant="ghost" size="sm" disabled={busy} onClick={async () => {
-                          try {
-                            const c = await duplicatePosition(r.id, tenantId);
-                            toast.success("Duplicado");
-                            navigate(positionEditorPath(c.id));
-                          } catch (e) { toast.error(e.message); }
-                        }}><Copy size={16} /></Button>
-                        <PersonnelExportMenu
-                          disabled={busy}
-                          onExportPdf={() => exportPositionCompetencyPdf(r.id, tenant)}
-                          onExportDocx={() => exportPositionCompetencyDocx(r.id, tenant)}
-                        />
-                        <Button variant="ghost" size="sm" className="text-amber-700" onClick={async () => {
-                          if (!window.confirm("Inativar este cargo? Ele será movido para Cargos obsoletos.")) return;
-                          try {
-                            await inactivatePosition(r.id);
-                            toast.success("Cargo inativado");
-                            onReload();
-                          } catch (e) { toast.error(e.message); }
-                        }}><Prohibit size={16} /></Button>
-                      </>
-                    )}
-                    {tab === "obsoletos" && (
-                      <>
-                        <PersonnelExportMenu
-                          disabled={busy}
-                          onExportPdf={() => exportPositionCompetencyPdf(r.id, tenant)}
-                          onExportDocx={() => exportPositionCompetencyDocx(r.id, tenant)}
-                        />
-                        <Button variant="ghost" size="sm" className="text-green-700" title="Reativar" onClick={async () => {
-                          if (!window.confirm(`Reativar o cargo "${r.title}"?`)) return;
-                          try {
-                            await reactivatePosition(r.id);
-                            toast.success("Cargo reativado");
-                            onReload();
-                          } catch (e) { toast.error(e.message); }
-                        }}><ArrowCounterClockwise size={16} /></Button>
-                        <Button variant="ghost" size="sm" className="text-red-700" title="Excluir permanentemente" onClick={() => openDeleteDialog(r)}>
-                          <Trash size={16} />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                <td className="p-2 text-right">
+                  <ListRowActionsMenu
+                    disabled={busy}
+                    items={[
+                      {
+                        key: "edit",
+                        label: "Editar",
+                        icon: PencilSimple,
+                        onSelect: () => navigate(positionEditorPath(r.id)),
+                      },
+                      ...(tab === "ativos"
+                        ? [
+                            {
+                              key: "dup",
+                              label: "Duplicar",
+                              icon: Copy,
+                              onSelect: async () => {
+                                try {
+                                  const c = await duplicatePosition(r.id, tenantId);
+                                  toast.success("Duplicado");
+                                  navigate(positionEditorPath(c.id));
+                                } catch (e) { toast.error(e.message); }
+                              },
+                            },
+                            {
+                              key: "pdf",
+                              label: "Exportar PDF",
+                              icon: FilePdf,
+                              onSelect: () => runExport(() => exportPositionCompetencyPdf(r.id, tenant), "pdf"),
+                            },
+                            {
+                              key: "docx",
+                              label: "Exportar Word",
+                              icon: FileDoc,
+                              onSelect: () => runExport(() => exportPositionCompetencyDocx(r.id, tenant), "docx"),
+                            },
+                            {
+                              key: "inactivate",
+                              label: "Inativar",
+                              icon: Prohibit,
+                              separatorBefore: true,
+                              onSelect: async () => {
+                                if (!window.confirm("Inativar este cargo? Ele será movido para Cargos obsoletos.")) return;
+                                try {
+                                  await inactivatePosition(r.id);
+                                  toast.success("Cargo inativado");
+                                  onReload();
+                                } catch (e) { toast.error(e.message); }
+                              },
+                            },
+                          ]
+                        : [
+                            {
+                              key: "pdf",
+                              label: "Exportar PDF",
+                              icon: FilePdf,
+                              onSelect: () => runExport(() => exportPositionCompetencyPdf(r.id, tenant), "pdf"),
+                            },
+                            {
+                              key: "docx",
+                              label: "Exportar Word",
+                              icon: FileDoc,
+                              onSelect: () => runExport(() => exportPositionCompetencyDocx(r.id, tenant), "docx"),
+                            },
+                            {
+                              key: "reactivate",
+                              label: "Reativar",
+                              icon: ArrowCounterClockwise,
+                              separatorBefore: true,
+                              onSelect: async () => {
+                                if (!window.confirm(`Reativar o cargo "${r.title}"?`)) return;
+                                try {
+                                  await reactivatePosition(r.id);
+                                  toast.success("Cargo reativado");
+                                  onReload();
+                                } catch (e) { toast.error(e.message); }
+                              },
+                            },
+                            {
+                              key: "delete",
+                              label: "Excluir permanentemente",
+                              icon: Trash,
+                              destructive: true,
+                              onSelect: () => openDeleteDialog(r),
+                            },
+                          ]),
+                    ]}
+                  />
                 </td>
               </tr>
             ))}

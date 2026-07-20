@@ -616,7 +616,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
                 <th className="p-3">Tipo</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">E-mail</th>
-                <th className="p-3 sticky right-0 z-20 bg-slate-50 min-w-[11.5rem] shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.18)]">
+                <th className="p-3 sticky right-0 z-20 bg-slate-50 min-w-[7.5rem] text-right shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.18)]">
                   Ações
                 </th>
               </tr>
@@ -664,7 +664,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
                         {r.client_email_sent_to || (r.status === "enviado" ? "—" : "Não enviado")}
                       </EllipsisTooltip>
                     </td>
-                    <td className="p-3 sticky right-0 z-10 bg-white group-hover:bg-slate-50/80 min-w-[11.5rem] shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)]">
+                    <td className="p-3 sticky right-0 z-10 bg-white group-hover:bg-slate-50/80 min-w-[7.5rem] text-right shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)]">
                       <CertificateRowActions
                         row={r}
                         canSend={canSend}

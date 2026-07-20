@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PencilSimple, Eye, Copy, Prohibit, Trash } from "@phosphor-icons/react";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
 import { toast } from "sonner";
 import {
   listMasterDocuments,
@@ -35,6 +36,7 @@ import MasterDocumentFormDialog from "./MasterDocumentFormDialog";
 import ObsoleteDocumentDialog from "./ObsoleteDocumentDialog";
 
 export default function MasterDocumentListPanel({ tenantId, filters: extraFilters = {} }) {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -180,7 +182,7 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Módulo</th>
                 <th className="px-3 py-2">Próx. análise</th>
-                <th className="px-3 py-2 text-right">Ações</th>
+                <th className="px-3 py-2 text-right w-[7.5rem]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -213,25 +215,43 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" asChild title="Ver">
-                        <Link to={masterDocumentDetailPath(row.id)}><Eye size={16} /></Link>
-                      </Button>
-                      <Button variant="ghost" size="sm" title="Editar" onClick={() => { setEditDoc(row); setFormOpen(true); }}>
-                        <PencilSimple size={16} />
-                      </Button>
-                      <Button variant="ghost" size="sm" title="Duplicar" onClick={() => handleDuplicate(row)}>
-                        <Copy size={16} />
-                      </Button>
-                      {row.status === "ativo" && (
-                        <Button variant="ghost" size="sm" title="Obsoleto" onClick={() => setObsoleteDoc(row)}>
-                          <Prohibit size={16} className="text-amber-600" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" title="Excluir" onClick={() => openDelete(row)}>
-                        <Trash size={16} className="text-red-600" />
-                      </Button>
-                    </div>
+                    <ListRowActionsMenu
+                      items={[
+                        {
+                          key: "view",
+                          label: "Ver",
+                          icon: Eye,
+                          onSelect: () => navigate(masterDocumentDetailPath(row.id)),
+                        },
+                        {
+                          key: "edit",
+                          label: "Editar",
+                          icon: PencilSimple,
+                          onSelect: () => { setEditDoc(row); setFormOpen(true); },
+                        },
+                        {
+                          key: "dup",
+                          label: "Duplicar",
+                          icon: Copy,
+                          onSelect: () => handleDuplicate(row),
+                        },
+                        row.status === "ativo" && {
+                          key: "obsolete",
+                          label: "Marcar obsoleto",
+                          icon: Prohibit,
+                          separatorBefore: true,
+                          onSelect: () => setObsoleteDoc(row),
+                        },
+                        {
+                          key: "delete",
+                          label: "Excluir",
+                          icon: Trash,
+                          destructive: true,
+                          separatorBefore: row.status !== "ativo",
+                          onSelect: () => openDelete(row),
+                        },
+                      ].filter(Boolean)}
+                    />
                   </td>
                 </tr>
               ))}

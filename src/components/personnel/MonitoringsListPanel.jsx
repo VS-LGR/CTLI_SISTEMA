@@ -1,19 +1,28 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, PencilSimple, Copy } from "@phosphor-icons/react";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
+import { Plus, PencilSimple, Copy, FilePdf, FileDoc } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { listMonitorings, duplicateMonitoring } from "@/lib/personnelMonitoringsApi";
 import { exportMonitoringPdf, exportMonitoringDocx } from "@/lib/personnelExport";
-import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { monitoringEditorPath } from "@/lib/personnelRoutes";
 import { isMonitoringOverdue } from "@/lib/personnelDisplayLabels";
 
 function fmtDate(d) {
   if (!d) return "—";
   return d.slice(0, 10).split("-").reverse().join("/");
+}
+
+async function runExport(fn, format) {
+  try {
+    await fn();
+    toast.success(format === "pdf" ? "PDF gerado" : "Word gerado");
+  } catch (e) {
+    toast.error(e.message || "Falha na exportação");
+  }
 }
 
 export default function MonitoringsListPanel({
@@ -65,7 +74,7 @@ export default function MonitoringsListPanel({
                 <th className="p-2">Responsável</th>
                 <th className="p-2">Próximo monitoramento</th>
                 <th className="p-2">Adequado</th>
-                <th className="p-2 w-32">Ações</th>
+                <th className="p-2 text-right w-[7.5rem]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -88,19 +97,41 @@ export default function MonitoringsListPanel({
                     )}
                   </td>
                   <td className="p-2 text-xs">{r.employee_remains_suitable || "—"}</td>
-                  <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar monitoramento"><Link to={monitoringEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" title="Duplicar" aria-label="Duplicar monitoramento" onClick={async () => {
-                      try {
-                        const c = await duplicateMonitoring(r.id, tenantId);
-                        onRecordsChange?.();
-                        navigate(monitoringEditorPath(c.id));
-                      } catch (e) { toast.error(e.message); }
-                    }}><Copy size={16} /></Button>
-                    <PersonnelExportMenu
+                  <td className="p-2 text-right">
+                    <ListRowActionsMenu
                       disabled={busy}
-                      onExportPdf={() => exportMonitoringPdf(r.id, tenant)}
-                      onExportDocx={() => exportMonitoringDocx(r.id, tenant)}
+                      items={[
+                        {
+                          key: "edit",
+                          label: "Editar",
+                          icon: PencilSimple,
+                          onSelect: () => navigate(monitoringEditorPath(r.id)),
+                        },
+                        {
+                          key: "dup",
+                          label: "Duplicar",
+                          icon: Copy,
+                          onSelect: async () => {
+                            try {
+                              const c = await duplicateMonitoring(r.id, tenantId);
+                              onRecordsChange?.();
+                              navigate(monitoringEditorPath(c.id));
+                            } catch (e) { toast.error(e.message); }
+                          },
+                        },
+                        {
+                          key: "pdf",
+                          label: "Exportar PDF",
+                          icon: FilePdf,
+                          onSelect: () => runExport(() => exportMonitoringPdf(r.id, tenant), "pdf"),
+                        },
+                        {
+                          key: "docx",
+                          label: "Exportar Word",
+                          icon: FileDoc,
+                          onSelect: () => runExport(() => exportMonitoringDocx(r.id, tenant), "docx"),
+                        },
+                      ]}
                     />
                   </td>
                 </tr>

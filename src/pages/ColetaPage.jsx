@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useOutletContext } from "react-router-dom";
+import { Link, Navigate, useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
@@ -11,11 +11,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Plus, PencilSimple, Trash, FilePdf, FileText, CaretDown, Scales, CheckCircle, Clock, MagnifyingGlass, Certificate,
+  Plus, PencilSimple, Trash, FilePdf, FileText, Scales, CheckCircle, Clock, MagnifyingGlass, Certificate,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { COLETA_NEW_PATH, coletaEditorPath, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
@@ -109,6 +107,7 @@ function ExportDownloadBadge({ row }) {
 
 const ColetaPage = ({ embedded = false }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { currentTenantId, currentTenant } = useOutletContext();
   const tenantName = currentTenant?.name || "";
 
@@ -398,7 +397,7 @@ const ColetaPage = ({ embedded = false }) => {
                 <th className="text-left p-3 font-medium">Status</th>
                 <th className="text-left p-3 font-medium">Exportação</th>
                 <th className="text-left p-3 font-medium">Atualizado</th>
-                <th className="p-3 w-40" />
+                <th className="text-right p-3 font-medium w-[7.5rem]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -439,30 +438,37 @@ const ColetaPage = ({ embedded = false }) => {
                   <td className="p-3 text-slate-500 text-xs">
                     {row.updated_at ? new Date(row.updated_at).toLocaleString("pt-BR") : "—"}
                   </td>
-                  <td className="p-3">
-                    <div className="flex justify-end items-center gap-1">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to={coletaEditorPath(row.id)}><PencilSimple size={16} /></Link>
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" type="button">
-                            <CaretDown size={14} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => exportRow(row, "pdf")}>
-                            <FilePdf size={16} className="mr-2" /> PDF
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => exportRow(row, "tsv")}>
-                            <FileText size={16} className="mr-2" /> TXT (VBA)
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => remove(row)}>
-                        <Trash size={16} />
-                      </Button>
-                    </div>
+                  <td className="p-3 text-right">
+                    <ListRowActionsMenu
+                      items={[
+                        {
+                          key: "edit",
+                          label: "Editar",
+                          icon: PencilSimple,
+                          onSelect: () => navigate(coletaEditorPath(row.id)),
+                        },
+                        {
+                          key: "pdf",
+                          label: "Exportar PDF",
+                          icon: FilePdf,
+                          onSelect: () => exportRow(row, "pdf"),
+                        },
+                        {
+                          key: "tsv",
+                          label: "Exportar TXT (VBA)",
+                          icon: FileText,
+                          onSelect: () => exportRow(row, "tsv"),
+                        },
+                        {
+                          key: "delete",
+                          label: "Excluir",
+                          icon: Trash,
+                          destructive: true,
+                          separatorBefore: true,
+                          onSelect: () => remove(row),
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

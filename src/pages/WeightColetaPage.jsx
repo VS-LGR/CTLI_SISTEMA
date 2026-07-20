@@ -6,6 +6,7 @@ import { canAccessColeta, canAccessCalibrationCertificates } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
 import { Plus, PencilSimple, Trash, MagnifyingGlass, Certificate } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
@@ -194,7 +195,7 @@ export default function WeightColetaPage() {
                 <th className="text-left p-3 font-medium">Data</th>
                 <th className="text-left p-3 font-medium">Status</th>
                 <th className="text-left p-3 font-medium">Atualizado</th>
-                <th className="p-3 w-48" />
+                <th className="text-right p-3 font-medium w-[7.5rem]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -215,42 +216,40 @@ export default function WeightColetaPage() {
                   <td className="p-3 text-slate-500 text-xs">
                     {row.updated_at ? new Date(row.updated_at).toLocaleString("pt-BR") : "—"}
                   </td>
-                  <td className="p-3">
-                    <div className="flex justify-end items-center gap-1">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to={weightColetaEditorPath(row.id)}>
-                          <PencilSimple size={16} />
-                        </Link>
-                      </Button>
-                      {canAccessCalibrationCertificates(user?.role)
-                        && row.workflow_status !== "certificado_gerado" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          title="Gerar certificado"
-                          disabled={generatingId === row.id}
-                          onClick={() => generateCertificate(row)}
-                        >
-                          <Certificate size={16} />
-                        </Button>
-                      )}
-                      {row.certificate_id && (
-                        <Button asChild variant="ghost" size="sm" title="Ver certificado">
-                          <Link to={weightCertificateEditorPath(row.certificate_id)}>
-                            <Certificate size={16} className="text-emerald-700" />
-                          </Link>
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-600"
-                        onClick={() => setDeleteTarget(row)}
-                      >
-                        <Trash size={16} />
-                      </Button>
-                    </div>
+                  <td className="p-3 text-right">
+                    <ListRowActionsMenu
+                      disabled={generatingId === row.id}
+                      items={[
+                        {
+                          key: "edit",
+                          label: "Editar",
+                          icon: PencilSimple,
+                          onSelect: () => navigate(weightColetaEditorPath(row.id)),
+                        },
+                        canAccessCalibrationCertificates(user?.role)
+                          && row.workflow_status !== "certificado_gerado"
+                          && {
+                            key: "generate",
+                            label: "Gerar certificado",
+                            icon: Certificate,
+                            onSelect: () => generateCertificate(row),
+                          },
+                        row.certificate_id && {
+                          key: "view-cert",
+                          label: "Ver certificado",
+                          icon: Certificate,
+                          onSelect: () => navigate(weightCertificateEditorPath(row.certificate_id)),
+                        },
+                        {
+                          key: "delete",
+                          label: "Excluir",
+                          icon: Trash,
+                          destructive: true,
+                          separatorBefore: true,
+                          onSelect: () => setDeleteTarget(row),
+                        },
+                      ].filter(Boolean)}
+                    />
                   </td>
                 </tr>
               ))}

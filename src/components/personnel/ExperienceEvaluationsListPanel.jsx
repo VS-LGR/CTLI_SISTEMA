@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useFilteredPersonnelRows, usePersonnelTopicStatsEffect, personnelPanelCardClass } from "@/lib/personnelListPanelHelpers";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, PencilSimple, Copy, Trash } from "@phosphor-icons/react";
+import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
+import { Plus, PencilSimple, Copy, Trash, FilePdf, FileDoc } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   listExperienceEvaluations,
@@ -11,7 +12,6 @@ import {
   deleteExperienceEvaluation,
 } from "@/lib/personnelExperienceEvaluationsApi";
 import { exportExperienceEvaluationPdf, exportExperienceEvaluationDocx } from "@/lib/personnelExport";
-import PersonnelExportMenu from "@/components/personnel/PersonnelExportMenu";
 import { experienceEvaluationEditorPath } from "@/lib/personnelRoutes";
 import {
   EXPERIENCE_OPINION_LABELS,
@@ -22,6 +22,15 @@ import {
 function fmtDate(d) {
   if (!d) return "—";
   return d.slice(0, 10).split("-").reverse().join("/");
+}
+
+async function runExport(fn, format) {
+  try {
+    await fn();
+    toast.success(format === "pdf" ? "PDF gerado" : "Word gerado");
+  } catch (e) {
+    toast.error(e.message || "Falha na exportação");
+  }
 }
 
 export default function ExperienceEvaluationsListPanel({
@@ -77,7 +86,7 @@ export default function ExperienceEvaluationsListPanel({
                 <th className="p-2">Média</th>
                 <th className="p-2">Parecer</th>
                 <th className="p-2">Avaliador</th>
-                <th className="p-2 w-36">Ações</th>
+                <th className="p-2 text-right w-[7.5rem]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -109,28 +118,57 @@ export default function ExperienceEvaluationsListPanel({
                     ) : "—"}
                   </td>
                   <td className="p-2">{r.evaluator_name || "—"}</td>
-                  <td className="p-2">
-                    <Button variant="ghost" size="sm" asChild title="Editar" aria-label="Editar avaliação de experiência"><Link to={experienceEvaluationEditorPath(r.id)}><PencilSimple size={16} /></Link></Button>
-                    <Button variant="ghost" size="sm" disabled={busy} title="Duplicar" aria-label="Duplicar avaliação de experiência" onClick={async () => {
-                      try {
-                        const c = await duplicateExperienceEvaluation(r.id, tenantId);
-                        onRecordsChange?.();
-                        navigate(experienceEvaluationEditorPath(c.id));
-                      } catch (e) { toast.error(e.message); }
-                    }}><Copy size={16} /></Button>
-                    <PersonnelExportMenu
+                  <td className="p-2 text-right">
+                    <ListRowActionsMenu
                       disabled={busy}
-                      onExportPdf={() => exportExperienceEvaluationPdf(r.id, tenant)}
-                      onExportDocx={() => exportExperienceEvaluationDocx(r.id, tenant)}
+                      items={[
+                        {
+                          key: "edit",
+                          label: "Editar",
+                          icon: PencilSimple,
+                          onSelect: () => navigate(experienceEvaluationEditorPath(r.id)),
+                        },
+                        {
+                          key: "dup",
+                          label: "Duplicar",
+                          icon: Copy,
+                          onSelect: async () => {
+                            try {
+                              const c = await duplicateExperienceEvaluation(r.id, tenantId);
+                              onRecordsChange?.();
+                              navigate(experienceEvaluationEditorPath(c.id));
+                            } catch (e) { toast.error(e.message); }
+                          },
+                        },
+                        {
+                          key: "pdf",
+                          label: "Exportar PDF",
+                          icon: FilePdf,
+                          onSelect: () => runExport(() => exportExperienceEvaluationPdf(r.id, tenant), "pdf"),
+                        },
+                        {
+                          key: "docx",
+                          label: "Exportar Word",
+                          icon: FileDoc,
+                          onSelect: () => runExport(() => exportExperienceEvaluationDocx(r.id, tenant), "docx"),
+                        },
+                        {
+                          key: "delete",
+                          label: "Excluir",
+                          icon: Trash,
+                          destructive: true,
+                          separatorBefore: true,
+                          onSelect: async () => {
+                            if (!window.confirm("Excluir esta avaliação?")) return;
+                            try {
+                              await deleteExperienceEvaluation(r.id);
+                              toast.success("Excluída");
+                              await reload();
+                            } catch (e) { toast.error(e.message); }
+                          },
+                        },
+                      ]}
                     />
-                    <Button variant="ghost" size="sm" disabled={busy} title="Excluir" aria-label="Excluir avaliação de experiência" onClick={async () => {
-                      if (!window.confirm("Excluir esta avaliação?")) return;
-                      try {
-                        await deleteExperienceEvaluation(r.id);
-                        toast.success("Excluída");
-                        await reload();
-                      } catch (e) { toast.error(e.message); }
-                    }}><Trash size={16} /></Button>
                   </td>
                 </tr>
               ))}
