@@ -145,3 +145,11 @@ code, pre, .font-mono {
 @layer base {
     [data-debug-wrapper="true"] { display: contents !important; }
 }
+
+/* Tutorial: botão destacado fica acima do dim e permanece clicável */
+.tour-spotlight-target {
+    position: relative !important;
+    z-index: 62 !important;
+    box-shadow: 0 0 0 3px #60a5fa, 0 0 0 6px rgba(37, 99, 235, 0.35) !important;
+    border-radius: 0.5rem;
+}

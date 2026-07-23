@@ -248,7 +248,7 @@ export default function CommercialProposalEditorPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white" data-tour="tour-propostas-guardar">
           <FloppyDisk size={18} className="mr-1" /> {saving ? "Guardando…" : "Guardar"}
         </Button>
         {proposalId && (

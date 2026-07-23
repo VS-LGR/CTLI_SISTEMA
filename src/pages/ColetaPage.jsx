@@ -256,13 +256,13 @@ const ColetaPage = ({ embedded = false }) => {
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           {canAccessCalibrationCertificates(user?.role) && (
             <Button asChild variant="outline">
-              <Link to={CERTIFICATE_LIST_PATH}>
+              <Link to={CERTIFICATE_LIST_PATH} data-tour="tour-coleta-certificados">
                 <Certificate size={18} className="mr-1" /> Certificados
               </Link>
             </Button>
           )}
           <Button asChild className="bg-blue-600 hover:bg-blue-700">
-            <Link to={COLETA_NEW_PATH}>
+            <Link to={COLETA_NEW_PATH} data-tour="tour-coleta-nova">
               <Plus size={18} className="mr-1" /> Nova coleta
             </Link>
           </Button>

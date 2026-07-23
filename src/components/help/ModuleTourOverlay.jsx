@@ -10,6 +10,25 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { HELP_PATH } from "@/lib/help/helpModules";
+import TourSpotlight from "@/components/help/TourSpotlight";
+
+function useHighlightAvailable(highlightId, open, stepIndex) {
+  const [available, setAvailable] = React.useState(false);
+  React.useLayoutEffect(() => {
+    if (!open || !highlightId) {
+      setAvailable(false);
+      return undefined;
+    }
+    const check = () => {
+      const el = document.querySelector(`[data-tour="${highlightId}"]`);
+      setAvailable(Boolean(el));
+    };
+    check();
+    const t = window.setTimeout(check, 350);
+    return () => window.clearTimeout(t);
+  }, [open, highlightId, stepIndex]);
+  return available;
+}
 
 export default function ModuleTourOverlay({
   open,
@@ -18,13 +37,33 @@ export default function ModuleTourOverlay({
   onStepChange,
   onDismiss,
 }) {
-  if (!module) return null;
-
-  const steps = module.steps || [];
+  const steps = module?.steps || [];
   const total = steps.length;
   const step = steps[stepIndex] || steps[0];
   const isLast = stepIndex >= total - 1;
   const isFirst = stepIndex <= 0;
+  const highlightId = step?.highlight || null;
+  const highlightReady = useHighlightAvailable(highlightId, open && Boolean(module), stepIndex);
+
+  if (!module) return null;
+
+  if (open && highlightId && highlightReady) {
+    return (
+      <TourSpotlight
+        open={open}
+        highlightId={highlightId}
+        title={module.title}
+        stepTitle={step.title}
+        stepBody={step.body}
+        stepIndex={stepIndex}
+        total={total}
+        isFirst={isFirst}
+        isLast={isLast}
+        onStepChange={onStepChange}
+        onDismiss={onDismiss}
+      />
+    );
+  }
 
   return (
     <Dialog
@@ -47,6 +86,11 @@ export default function ModuleTourOverlay({
           <div className="min-w-0 space-y-2 rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
             <h3 className="text-sm font-semibold text-slate-900 break-words">{step.title}</h3>
             <p className="text-sm text-slate-600 leading-relaxed break-words">{step.body}</p>
+            {highlightId && (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5">
+                Abra a página deste módulo para ver o botão destacado nesta etapa.
+              </p>
+            )}
           </div>
         )}
 

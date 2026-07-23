@@ -105,12 +105,13 @@ describe("tenantAccess", () => {
     expect(shortcuts.every((s) => s.id === "coleta")).toBe(true);
   });
 
-  test("dashboard shortcuts utilizador cliente — só propostas, coleta e certificados", () => {
+  test("dashboard shortcuts utilizador cliente — propostas, coleta e certificados (balança e peso)", () => {
     for (const role of ["client", "signatario", "diretor", "gerente_qualidade"]) {
       const shortcuts = getVisibleDashboardShortcuts(role, portalTenant, clientUser);
       expect(shortcuts.length).toBeGreaterThan(0);
-      expect(shortcuts.length).toBeLessThanOrEqual(3);
-      expect(shortcuts.every((s) => ["propostas", "coleta", "cert-balanca"].includes(s.id))).toBe(true);
+      expect(shortcuts.length).toBeLessThanOrEqual(4);
+      expect(shortcuts.every((s) => ["propostas", "coleta", "cert-balanca", "cert-peso"].includes(s.id))).toBe(true);
+      expect(shortcuts.some((s) => s.id === "cert-peso")).toBe(true);
       expect(shortcuts.every((s) => s.active)).toBe(true);
     }
   });

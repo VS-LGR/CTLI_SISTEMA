@@ -68,6 +68,7 @@ export default function HelpPage() {
                       variant="outline"
                       size="sm"
                       className="w-full sm:w-auto"
+                      data-tour="tour-help-ver-tutorial"
                       onClick={() => openTour(mod.moduleKey)}
                     >
                       <Play size={16} className="mr-1.5 shrink-0" /> Ver tutorial

@@ -1,10 +1,11 @@
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
+import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
 
 /**
  * Catálogo de módulos com passos de tutorial / ajuda.
- * `matchPath` identifica a página atual; o primeiro match na ordem do array ganha.
+ * `highlight` = valor de data-tour no botão a iluminar nesta etapa.
  */
 export const HELP_MODULES = [
   {
@@ -15,10 +16,12 @@ export const HELP_MODULES = [
       {
         title: "Centro de ajuda",
         body: "Aqui encontra o passo a passo de criação de cada tipo de documento e dos cadastros principais.",
+        highlight: "tour-nav-help",
       },
       {
         title: "Rever um tutorial",
-        body: "Em cada módulo, use “Ver tutorial” para reabrir o overlay explicativo na página correspondente.",
+        body: "Em cada módulo abaixo, use “Ver tutorial” para reabrir o overlay com o botão destacado.",
+        highlight: "tour-help-ver-tutorial",
       },
       {
         title: "Primeira visita",
@@ -34,20 +37,22 @@ export const HELP_MODULES = [
       || pathname.includes("/pr-7-1"),
     steps: [
       {
-        title: "Abrir propostas",
-        body: "Acesse Propostas (PR-7.1) pela lista ou pelo menu. Use “Nova proposta” para começar.",
+        title: "Criar nova proposta",
+        body: "Comece aqui: toque no botão iluminado “Nova proposta” para abrir o formulário.",
+        highlight: "tour-propostas-nova",
       },
       {
         title: "Cliente e balanças",
-        body: "Selecione o cliente do cadastro (ou preencha o snapshot). Adicione balanças — pode escolher uma já cadastrada ou preencher e cadastrar depois.",
+        body: "No formulário, selecione o cliente do cadastro e adicione balanças (pode escolher uma já cadastrada).",
       },
       {
-        title: "Pontos e valor",
-        body: "Indique pontos de calibração solicitados, unidade e valor unitário. Guarde a proposta.",
+        title: "Guardar",
+        body: "Depois de preencher pontos e valor, use “Guardar” (botão azul no topo do editor).",
+        highlight: "tour-propostas-guardar",
       },
       {
-        title: "Próximos passos",
-        body: "Exporte para cadastro (cliente/balanças) e gere a coleta de dados por balança quando estiver pronto.",
+        title: "Gerar coleta",
+        body: "Com a proposta guardada, gere a coleta de dados por balança no cartão de coletas da proposta.",
       },
     ],
   },
@@ -56,23 +61,26 @@ export const HELP_MODULES = [
     title: "Coleta de dados",
     matchPath: (pathname) =>
       pathname.startsWith(COLETA_LIST_PATH)
-      || (pathname.includes("/pr-7-2/") && pathname.includes("/coleta")),
+      || (pathname.includes("/pr-7-2/") && pathname.includes("/coleta") && !pathname.includes("/pesos/")),
     steps: [
       {
         title: "Nova coleta",
-        body: "Crie uma coleta em branco ou a partir de uma balança da proposta (dados pré-preenchidos).",
+        body: "Toque no botão iluminado “Nova coleta” para começar (ou abra a partir da proposta).",
+        highlight: "tour-coleta-nova",
       },
       {
         title: "Cliente e balança",
-        body: "Vincule o cliente e selecione uma balança cadastrada ou preencha manualmente. Pode cadastrar a balança no cliente após o preenchimento.",
+        body: "Na secção 1 e 2, escolha o cliente e a balança cadastrada (ou preencha e cadastre).",
       },
       {
-        title: "Ensaios",
-        body: "Preencha ambiente, excentricidade, pontos de calibração (com pesos padrão) e o verso quando aplicável.",
+        title: "Ver certificados",
+        body: "Quando precisar, use o botão “Certificados” para ir à lista de emissão.",
+        highlight: "tour-coleta-certificados",
       },
       {
-        title: "Guardar e avançar",
-        body: "Guarde a coleta. Quando conferida, gere o certificado de calibração a partir desta página.",
+        title: "Guardar",
+        body: "Preencha os ensaios e use “Guardar”. Depois pode gerar o certificado.",
+        highlight: "tour-coleta-guardar",
       },
     ],
   },
@@ -81,25 +89,43 @@ export const HELP_MODULES = [
     title: "Certificados de calibração",
     matchPath: (pathname) =>
       pathname.startsWith(CERTIFICATE_LIST_PATH)
-      || pathname.includes("/pr-7-2/certificados")
-      || pathname.includes("/pr-7-2/pesos/certificados")
+      || (pathname.includes("/pr-7-2/certificados") && !pathname.includes("/pesos/"))
       || pathname.startsWith("/aprovacao"),
     steps: [
       {
-        title: "Origem do certificado",
-        body: "O caminho recomendado é gerar a partir de uma coleta concluída. Também existe emissão manual quando necessário.",
+        title: "Novo certificado",
+        body: "Toque no botão iluminado para criar um certificado (preferencialmente a partir de uma coleta).",
+        highlight: "tour-cert-balanca-novo",
       },
       {
-        title: "Dados da balança",
-        body: "Confirme o vínculo à balança cadastrada (tolerâncias e casas decimais vêm do cadastro quando ligado).",
-      },
-      {
-        title: "Cálculos e conformidade",
-        body: "Revise pontos calculados, padrões e declaração de conformidade antes de avançar no fluxo.",
+        title: "Dados e cálculos",
+        body: "Confirme balança, pontos e conformidade antes de avançar no workflow.",
       },
       {
         title: "Aprovação e PDF",
-        body: "Siga o workflow até aprovação/assinatura e exporte o PDF do certificado.",
+        body: "Siga aprovação/assinatura e exporte o PDF quando estiver pronto.",
+      },
+    ],
+  },
+  {
+    moduleKey: "certificados-peso",
+    title: "Certificados de peso padrão",
+    matchPath: (pathname) =>
+      pathname.startsWith(WEIGHT_CERTIFICATE_LIST_PATH)
+      || pathname.includes("/pr-7-2/pesos/certificados"),
+    steps: [
+      {
+        title: "Novo certificado de peso",
+        body: "Toque no botão iluminado “Nova” para emitir um certificado de calibração de peso padrão.",
+        highlight: "tour-cert-peso-novo",
+      },
+      {
+        title: "Preencher e calcular",
+        body: "Complete os itens, rastreabilidade e revise os resultados calculados.",
+      },
+      {
+        title: "Workflow e PDF",
+        body: "Avance no fluxo de aprovação e exporte o PDF do certificado.",
       },
     ],
   },
@@ -110,15 +136,11 @@ export const HELP_MODULES = [
     steps: [
       {
         title: "Onde cadastrar",
-        body: "Os cadastros ficam nas pastas dos requisitos (atalhos “Cadastros”). Exemplos: clientes, balanças, pesos padrão, provedores.",
+        body: "Os cadastros ficam nas pastas dos requisitos. Exemplos: clientes, balanças, pesos padrão, provedores.",
       },
       {
         title: "Cliente e balança",
-        body: "Cadastre o cliente final e, em seguida, as balanças vinculadas a ele — usadas em propostas, coletas e certificados.",
-      },
-      {
-        title: "Padrões e sensores",
-        body: "Mantenha pesos padrão, certificados de peso e termo-baro-higrômetros atualizados para as coletas.",
+        body: "Cadastre o cliente final e as balanças vinculadas — usadas em propostas, coletas e certificados.",
       },
       {
         title: "Provedores",
@@ -131,7 +153,7 @@ export const HELP_MODULES = [
     title: "Pedidos de compra",
     matchPath: (pathname) =>
       pathname.startsWith("/pedidos-compra")
-      || pathname.includes("/pr-6-6"),
+      || (pathname.includes("/pr-6-6") && !pathname.includes("/cadastro/")),
     steps: [
       {
         title: "Criar pedido",
@@ -139,7 +161,7 @@ export const HELP_MODULES = [
       },
       {
         title: "Fluxo de status",
-        body: "Avance aprovação técnica, envio ao provedor e recebimento conforme o workflow do documento.",
+        body: "Avance aprovação técnica, envio ao provedor e recebimento conforme o workflow.",
       },
       {
         title: "Inspeção",
@@ -180,11 +202,11 @@ export const HELP_MODULES = [
       },
       {
         title: "Consultar e gerar",
-        body: "Use as abas para localizar modelos ativos e documentos gerados. Mantenha revisões alinhadas ao procedimento.",
+        body: "Use as abas para localizar modelos ativos e documentos gerados.",
       },
       {
         title: "Alertas",
-        body: "Acompanhe alertas de validade/revisão na área correspondente da Lista Mestra.",
+        body: "Acompanhe alertas de validade/revisão na área correspondente.",
       },
     ],
   },
@@ -194,16 +216,19 @@ export const HELP_MODULES = [
     matchPath: (pathname) => pathname === "/dashboard" || pathname === "/",
     steps: [
       {
-        title: "Bem-vindo",
-        body: "A dashboard resume atalhos e estado do seu ambiente. Use o menu lateral para abrir cada módulo.",
+        title: "Atalhos principais",
+        body: "Use os cartões iluminados da dashboard para abrir Propostas, Coleta ou Certificados.",
+        highlight: "tour-dashboard-atalhos",
       },
       {
-        title: "Fluxo típico",
-        body: "Proposta → Coleta → Certificado. Cadastre clientes e balanças antes ou durante o processo.",
+        title: "Certificado de peso padrão",
+        body: "Ambientes cliente também acedem à emissão de certificados de peso padrão (se o seu papel tiver permissão).",
+        highlight: "tour-dashboard-cert-peso",
       },
       {
-        title: "Ajuda sempre disponível",
+        title: "Ajuda",
         body: "No canto inferior do menu, abra Ajuda para rever qualquer passo a passo.",
+        highlight: "tour-nav-help",
       },
     ],
   },

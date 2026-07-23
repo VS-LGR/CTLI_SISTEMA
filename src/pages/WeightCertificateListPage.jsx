@@ -306,7 +306,7 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
           </div>
           {canCreate && (
             <Button asChild className="bg-blue-600 hover:bg-blue-700">
-              <Link to={WEIGHT_CERTIFICATE_NEW_PATH}>
+              <Link to={WEIGHT_CERTIFICATE_NEW_PATH} data-tour="tour-cert-peso-novo">
                 <Plus size={18} className="mr-1" /> Nova
               </Link>
             </Button>
@@ -316,7 +316,7 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
       {embedded && canCreate && (
         <div className="flex justify-end">
           <Button asChild className="bg-blue-600 hover:bg-blue-700">
-            <Link to={WEIGHT_CERTIFICATE_NEW_PATH}>
+            <Link to={WEIGHT_CERTIFICATE_NEW_PATH} data-tour="tour-cert-peso-novo">
               <Plus size={18} className="mr-1" /> Nova
             </Link>
           </Button>

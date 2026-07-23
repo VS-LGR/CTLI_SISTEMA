@@ -1,5 +1,6 @@
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
+import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { DOCUMENT_SECTIONS } from "@/lib/documentFolderConfig";
 import { masterDocumentListPath } from "@/lib/masterDocuments/masterDocumentRoutes";
@@ -45,7 +46,8 @@ export const CLIENT_TOP_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", to: "/dashboard" },
   { id: "propostas", label: "Propostas", to: PROPOSAL_LIST_PATH, requiresCommercialProposals: true },
   { id: "coleta", label: "Coleta de dados", to: COLETA_LIST_PATH, requiresColeta: true },
-  { id: "certificados", label: "Certificados", to: CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
+  { id: "certificados", label: "Cert. balanças", to: CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
+  { id: "certificados-peso", label: "Cert. pesos", to: WEIGHT_CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
   { id: "manual-qualidade", label: "Manual da Qualidade", to: MANUAL_QUALIDADE_PATH },
 ];
 
@@ -55,6 +57,7 @@ const ALLOWED_PATH_PREFIXES = [
   PROPOSAL_LIST_PATH,
   COLETA_LIST_PATH,
   CERTIFICATE_LIST_PATH,
+  WEIGHT_CERTIFICATE_LIST_PATH,
   MANUAL_QUALIDADE_PATH,
   "/requirement/5/manual-qualidade",
   "/requirement/7/pr-7-1",

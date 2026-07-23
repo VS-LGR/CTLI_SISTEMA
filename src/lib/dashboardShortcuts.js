@@ -104,8 +104,8 @@ export const DASHBOARD_SHORTCUTS = HERO_SHORTCUTS;
 /** @deprecated use HERO_SHORTCUTS */
 export const CLIENT_PORTAL_SHORTCUTS = HERO_SHORTCUTS;
 
-/** Atalhos operacionais alinhados ao menu cliente. */
-const CLIENT_ENV_SHORTCUT_IDS = new Set(["propostas", "coleta", "cert-balanca"]);
+/** Atalhos operacionais alinhados ao menu cliente (inclui certificados de peso). */
+const CLIENT_ENV_SHORTCUT_IDS = new Set(["propostas", "coleta", "cert-balanca", "cert-peso"]);
 
 function mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }) {
   if (item.module && !canAccessModule({ tenant, role, module: item.module, user })) {

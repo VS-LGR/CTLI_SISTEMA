@@ -7,7 +7,7 @@ import {
   House, SignOut, CaretDown,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
   Buildings, CaretRight, ClipboardText, List, X,
-  FileText, Certificate, BookOpen, FolderSimple, Question,
+  FileText, Certificate, BookOpen, FolderSimple, Question, Scales,
 } from "@phosphor-icons/react";
 import AppBrand from "@/components/branding/AppBrand";
 import {
@@ -47,6 +47,7 @@ const CLIENT_NAV_ICONS = {
   propostas: FileText,
   coleta: ClipboardText,
   certificados: Certificate,
+  "certificados-peso": Scales,
   "manual-qualidade": BookOpen,
 };
 const REQ_ICONS = {
@@ -363,6 +364,7 @@ const Layout = () => {
         to={HELP_PATH}
         className={navLinkClass}
         data-testid="nav-help"
+        data-tour="tour-nav-help"
         onClick={onNavigate}
       >
         <Question size={18} weight="duotone" />

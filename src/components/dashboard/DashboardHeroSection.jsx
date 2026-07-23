@@ -33,6 +33,7 @@ function HeroButton({ shortcut }) {
         to={shortcut.to}
         className={className}
         data-testid={`dashboard-shortcut-${shortcut.id}`}
+        data-tour={shortcut.id === "cert-peso" ? "tour-dashboard-cert-peso" : undefined}
       >
         {content}
       </Link>
@@ -56,7 +57,7 @@ export default function DashboardHeroSection({ shortcuts = [], greetingName }) {
   if (!shortcuts.length) return null;
 
   return (
-    <div className="space-y-3 min-w-0" data-testid="dashboard-hero">
+    <div className="space-y-3 min-w-0" data-testid="dashboard-hero" data-tour="tour-dashboard-atalhos">
       {greetingName && (
         <p className="text-base sm:text-lg font-medium text-slate-800">
           Olá, {greetingName}!

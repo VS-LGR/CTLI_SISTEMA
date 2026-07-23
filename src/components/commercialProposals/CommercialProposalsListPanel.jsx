@@ -118,7 +118,7 @@ export default function CommercialProposalsListPanel({ tenantId, tenant }) {
           <p className="text-sm text-slate-600 mt-0.5">Cadastro multi-balança, exportação PDF e geração de coletas.</p>
         </div>
         <Button asChild>
-          <Link to={PROPOSAL_NEW_PATH}><Plus size={18} className="mr-1" /> Nova proposta</Link>
+          <Link to={PROPOSAL_NEW_PATH} data-tour="tour-propostas-nova"><Plus size={18} className="mr-1" /> Nova proposta</Link>
         </Button>
       </div>
 

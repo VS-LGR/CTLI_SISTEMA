@@ -398,7 +398,7 @@ const ColetaEditorPage = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700" data-tour="tour-coleta-guardar">
             <FloppyDisk size={18} className="mr-1" />
             {saving ? "A guardar…" : "Guardar"}
           </Button>

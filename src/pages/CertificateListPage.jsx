@@ -490,7 +490,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
           </div>
           {canCreate && (
             <Button asChild>
-              <Link to={CERTIFICATE_NEW_PATH}><Plus size={18} className="mr-1" /> Novo certificado</Link>
+              <Link to={CERTIFICATE_NEW_PATH} data-tour="tour-cert-balanca-novo"><Plus size={18} className="mr-1" /> Novo certificado</Link>
             </Button>
           )}
         </div>
@@ -498,7 +498,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
       {embedded && canCreate && (
         <div className="flex justify-end">
           <Button asChild>
-            <Link to={CERTIFICATE_NEW_PATH}><Plus size={18} className="mr-1" /> Novo certificado</Link>
+            <Link to={CERTIFICATE_NEW_PATH} data-tour="tour-cert-balanca-novo"><Plus size={18} className="mr-1" /> Novo certificado</Link>
           </Button>
         </div>
       )}
