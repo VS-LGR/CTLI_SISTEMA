@@ -58,6 +58,7 @@ export function scaleToBalanca(scale) {
     tag: scale.tag || "",
     capacidade: scale.capacity || "",
     resolucao: scale.resolution || "",
+    unidade: scale.unit || "g",
   };
 }
 

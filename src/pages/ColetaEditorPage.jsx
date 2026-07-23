@@ -41,6 +41,7 @@ const ColetaEditorPage = () => {
   const [commercialProposalRef, setCommercialProposalRef] = useState("");
   const [commercialProposalId, setCommercialProposalId] = useState(null);
   const [commercialProposalScaleId, setCommercialProposalScaleId] = useState(null);
+  const [scaleRegistrationId, setScaleRegistrationId] = useState(null);
   const [collectionNumber, setCollectionNumber] = useState(null);
   const [collectionYear, setCollectionYear] = useState(null);
   const [workflowStatus, setWorkflowStatus] = useState("rascunho");
@@ -52,6 +53,7 @@ const ColetaEditorPage = () => {
   const [weightItems, setWeightItems] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [endCustomers, setEndCustomers] = useState([]);
+  const [registeredScales, setRegisteredScales] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [logoDataUrl, setLogoDataUrl] = useState(null);
 
@@ -73,6 +75,17 @@ const ColetaEditorPage = () => {
       .eq("tenant_id", currentTenantId)
       .order("name");
     if (!error) setEndCustomers(data || []);
+  }, [currentTenantId]);
+
+  const loadRegisteredScales = useCallback(async () => {
+    if (!currentTenantId) return;
+    const { data, error } = await supabase
+      .from("scale_registrations")
+      .select("*")
+      .eq("tenant_id", currentTenantId)
+      .eq("active", true)
+      .order("serial_number");
+    if (!error) setRegisteredScales(data || []);
   }, [currentTenantId]);
 
   const loadCerts = useCallback(async () => {
@@ -116,11 +129,40 @@ const ColetaEditorPage = () => {
               "@/lib/commercialProposals/commercialProposalToColeta"
             );
             const { formatProposalRef } = await import("@/lib/commercialProposals/commercialProposalSchema");
-            const prefill = buildColetaPayloadFromProposalScale(
-              { ...scaleRow.proposal, scales: [{ ...scaleRow, calibration_points: points || [] }] },
-              { ...scaleRow, calibration_points: points || [] },
+            const { balanceSnapshotFromScaleRegistration } = await import(
+              "@/lib/scaleRegistrations/scaleRegistrationUtils"
             );
+            let enrichedScale = { ...scaleRow, calibration_points: points || [] };
+            let linkedRegistrationId = scaleRow.scale_registration_id || null;
+            if (linkedRegistrationId) {
+              const { data: reg } = await supabase
+                .from("scale_registrations")
+                .select("*")
+                .eq("id", linkedRegistrationId)
+                .maybeSingle();
+              if (reg) {
+                enrichedScale = {
+                  ...enrichedScale,
+                  manufacturer: enrichedScale.manufacturer || reg.manufacturer || "",
+                  model: enrichedScale.model || reg.model || "",
+                  tag: enrichedScale.tag || reg.tag || "",
+                  serial_number: enrichedScale.serial_number || reg.serial_number || "",
+                  capacity: enrichedScale.capacity || reg.capacity_1 || "",
+                  resolution: enrichedScale.resolution || reg.resolution_1 || "",
+                  unit: enrichedScale.unit || reg.unit || "g",
+                  _balanceFromCadastro: balanceSnapshotFromScaleRegistration(reg),
+                };
+              }
+            }
+            const prefill = buildColetaPayloadFromProposalScale(
+              scaleRow.proposal,
+              enrichedScale,
+            );
+            if (enrichedScale._balanceFromCadastro) {
+              prefill.balanca = { ...prefill.balanca, ...enrichedScale._balanceFromCadastro };
+            }
             setPayload(mergeColetaPayload(prefill));
+            setScaleRegistrationId(linkedRegistrationId);
             setCommercialProposalRef(formatProposalRef(scaleRow.proposal.proposal_number, scaleRow.proposal.proposal_year));
             setCommercialProposalId(scaleRow.proposal.id);
             setCommercialProposalScaleId(scaleRow.id);
@@ -161,6 +203,7 @@ const ColetaEditorPage = () => {
       setCommercialProposalRef(data.commercial_proposal_ref || "");
       setCommercialProposalId(data.commercial_proposal_id || null);
       setCommercialProposalScaleId(data.commercial_proposal_scale_id || null);
+      setScaleRegistrationId(data.scale_registration_id || null);
       setWorkflowStatus(data.workflow_status || "rascunho");
       setCertificateId(data.certificate_id || null);
       setCollectionNumber(data.collection_number ?? null);
@@ -173,6 +216,7 @@ const ColetaEditorPage = () => {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadCerts(); }, [loadCerts]);
   useEffect(() => { loadEndCustomers(); }, [loadEndCustomers]);
+  useEffect(() => { loadRegisteredScales(); }, [loadRegisteredScales]);
   useEffect(() => { loadEmployees(); }, [loadEmployees]);
   useEffect(() => { loadLogo(); }, [loadLogo]);
 
@@ -191,6 +235,7 @@ const ColetaEditorPage = () => {
       commercial_proposal_ref: denorm.commercial_proposal_ref,
       commercial_proposal_id: commercialProposalId || null,
       commercial_proposal_scale_id: commercialProposalScaleId || null,
+      scale_registration_id: scaleRegistrationId || null,
       payload: denorm.payload,
       client_name: denorm.client_name,
       responsible_name: denorm.responsible_name,
@@ -406,6 +451,18 @@ const ColetaEditorPage = () => {
           envCerts={envCerts}
           endCustomers={endCustomers}
           employees={employees}
+          registeredScales={registeredScales}
+          scaleRegistrationId={scaleRegistrationId}
+          onScaleRegistrationChange={setScaleRegistrationId}
+          onRegisteredScaleCreated={(saved) => {
+            setRegisteredScales((prev) => {
+              if (prev.some((s) => s.id === saved.id)) return prev;
+              return [...prev, saved].sort((a, b) =>
+                String(a.serial_number || "").localeCompare(String(b.serial_number || "")),
+              );
+            });
+          }}
+          tenantId={currentTenantId}
           isNew={isNew}
           collectionNumber={collectionNumber}
           collectionYear={collectionYear}

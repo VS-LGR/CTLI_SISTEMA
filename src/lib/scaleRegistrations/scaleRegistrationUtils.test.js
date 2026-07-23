@@ -5,6 +5,8 @@ import {
   loadMaxTolerancesFromForm,
   countScaleRanges,
   formatScaleRangesSummary,
+  mapCadastroPlatformToColeta,
+  mapColetaPlatformToCadastro,
 } from "./scaleRegistrationUtils";
 
 describe("buildScaleRegistrationFromBalance", () => {
@@ -23,7 +25,7 @@ describe("buildScaleRegistrationFromBalance", () => {
         divisao_verificacao: "0,0001",
         unidade: "g",
         tipo_balanca: "industrial",
-        tipo_plataforma: "quadrada",
+        tipo_plataforma: "retangular_quadrada",
         etiqueta_ipem: "123456-7",
       },
       legalMetrology: true,
@@ -36,6 +38,7 @@ describe("buildScaleRegistrationFromBalance", () => {
     expect(payload.resolution_1).toBe("0,0001");
     expect(payload.decimal_places_p1).toBe(4);
     expect(payload.portaria_inmetro).toBe("Portaria INMETRO nº 157/2022");
+    expect(payload.platform_type).toBe("quadrada");
   });
 
   it("roundtrip com balanceSnapshotFromScaleRegistration", () => {
@@ -49,16 +52,17 @@ describe("buildScaleRegistrationFromBalance", () => {
         capacidade: "100",
         resolucao: "0,05",
         unidade: "kg",
-        tipo_plataforma: "redonda",
+        tipo_plataforma: "redondo",
         point_max_tolerances: [
           { nominal_value: "300", unit: "kg", max_tolerance: "0,6" },
         ],
       },
     });
+    expect(scale.platform_type).toBe("redonda");
     const snap = balanceSnapshotFromScaleRegistration(scale);
     expect(snap.serie).toBe("ABC");
     expect(snap.capacidade).toBe("100");
-    expect(snap.tipo_plataforma).toBe("redonda");
+    expect(snap.tipo_plataforma).toBe("redondo");
     expect(snap.decimal_places.p1).toBe(2);
     expect(snap.point_max_tolerances[0].nominal_value).toBe("300");
   });
@@ -108,6 +112,16 @@ describe("buildScaleRegistrationFromBalance", () => {
     const snap = balanceSnapshotFromScaleRegistration(scale);
     expect(snap.unidade).toBe("mg");
     expect(formatScaleRangesSummary(snap)).toContain("até 500 mg");
+  });
+});
+
+describe("platform type mapping", () => {
+  it("mapeia cadastro → coleta e coleta → cadastro", () => {
+    expect(mapCadastroPlatformToColeta("quadrada")).toBe("retangular_quadrada");
+    expect(mapCadastroPlatformToColeta("redonda")).toBe("redondo");
+    expect(mapColetaPlatformToCadastro("retangular_quadrada")).toBe("quadrada");
+    expect(mapColetaPlatformToCadastro("redondo")).toBe("redonda");
+    expect(mapColetaPlatformToCadastro("")).toBe("quadrada");
   });
 });
 

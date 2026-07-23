@@ -69,6 +69,7 @@ export default function CommercialProposalEditorPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [endCustomers, setEndCustomers] = useState([]);
+  const [registeredScales, setRegisteredScales] = useState([]);
   const [exportOpen, setExportOpen] = useState(false);
   const [fullProposal, setFullProposal] = useState(null);
   const [masterMeta, setMasterMeta] = useState(null);
@@ -81,6 +82,17 @@ export default function CommercialProposalEditorPage() {
       .eq("tenant_id", currentTenantId)
       .order("name");
     setEndCustomers(data || []);
+  }, [currentTenantId]);
+
+  const loadRegisteredScales = useCallback(async () => {
+    if (!currentTenantId) return;
+    const { data } = await supabase
+      .from("scale_registrations")
+      .select("*")
+      .eq("tenant_id", currentTenantId)
+      .eq("active", true)
+      .order("serial_number");
+    setRegisteredScales(data || []);
   }, [currentTenantId]);
 
   const loadNew = useCallback(async () => {
@@ -126,6 +138,7 @@ export default function CommercialProposalEditorPage() {
   }, [id, nav]);
 
   useEffect(() => { loadCustomers(); }, [loadCustomers]);
+  useEffect(() => { loadRegisteredScales(); }, [loadRegisteredScales]);
   useEffect(() => {
     if (isNew) loadNew();
     else loadExisting();
@@ -281,7 +294,21 @@ export default function CommercialProposalEditorPage() {
 
       <Card className="border-slate-200">
         <CardContent className="p-4">
-          <ProposalScalesTable scales={form.scales} onChange={(scales) => setForm({ ...form, scales })} />
+          <ProposalScalesTable
+            scales={form.scales}
+            onChange={(scales) => setForm({ ...form, scales })}
+            endCustomerId={form.end_customer_id}
+            registeredScales={registeredScales}
+            tenantId={currentTenantId}
+            onRegisteredScaleCreated={(saved) => {
+              setRegisteredScales((prev) => {
+                if (prev.some((s) => s.id === saved.id)) return prev;
+                return [...prev, saved].sort((a, b) =>
+                  String(a.serial_number || "").localeCompare(String(b.serial_number || "")),
+                );
+              });
+            }}
+          />
         </CardContent>
       </Card>
 

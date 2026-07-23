@@ -65,6 +65,41 @@ export function formValuesFromPointMaxTolerances(raw) {
   return { point_max_tolerances: formRowsFromPointMaxTolerances(raw) };
 }
 
+/**
+ * Mapeia platform_type do cadastro (quadrada/redonda/…) para os valores
+ * usados em coleta/certificado (retangular_quadrada/redondo/…).
+ */
+export function mapCadastroPlatformToColeta(platformType) {
+  const raw = String(platformType || "").trim();
+  if (!raw) return "";
+  const map = {
+    quadrada: "retangular_quadrada",
+    redonda: "redondo",
+    rodoviaria: "rodoviaria",
+    retangular_quadrada: "retangular_quadrada",
+    redondo: "redondo",
+    ferroviaria: "ferroviaria",
+    excentricidade_na: "excentricidade_na",
+  };
+  return map[raw] || raw;
+}
+
+/** Mapeia tipo_plataforma da coleta para platform_type do cadastro. */
+export function mapColetaPlatformToCadastro(platformType) {
+  const raw = String(platformType || "").trim();
+  if (!raw) return "quadrada";
+  const map = {
+    retangular_quadrada: "quadrada",
+    redondo: "redonda",
+    rodoviaria: "rodoviaria",
+    ferroviaria: "rodoviaria",
+    excentricidade_na: "quadrada",
+    quadrada: "quadrada",
+    redonda: "redonda",
+  };
+  return map[raw] || raw;
+}
+
 export function balanceSnapshotFromScaleRegistration(scale) {
   if (!scale) return {};
   const unit = normalizeMassUnit(scale.unit, "g");
@@ -94,7 +129,7 @@ export function balanceSnapshotFromScaleRegistration(scale) {
     classe: scale.instrument_class || "",
     ponto_trabalho: scale.working_point || "",
     unidade: unit,
-    tipo_plataforma: scale.platform_type || "quadrada",
+    tipo_plataforma: mapCadastroPlatformToColeta(scale.platform_type) || "",
     decimal_places: {
       p1: scale.decimal_places_p1 ?? 2,
       p2: scale.decimal_places_p2 ?? 2,
@@ -157,7 +192,7 @@ export function buildScaleRegistrationFromBalance({
     instrument_class: String(balanca.classe || "").trim(),
     working_point: String(balanca.ponto_trabalho || "").trim(),
     unit,
-    platform_type: balanca.tipo_plataforma || "quadrada",
+    platform_type: mapColetaPlatformToCadastro(balanca.tipo_plataforma),
     decimal_places_p1: pointDecimals(1),
     decimal_places_p2: pointDecimals(2),
     decimal_places_p3: pointDecimals(3),

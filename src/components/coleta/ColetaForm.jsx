@@ -1,10 +1,13 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Button } from "@/components/ui/button";
+import { FloppyDisk } from "@phosphor-icons/react";
+import { toast } from "sonner";
 import {
   TIPO_BALANCA_OPTIONS,
   TIPO_PLATAFORMA_OPTIONS,
@@ -31,6 +34,8 @@ import { formatColetaProposalLine, formatColetaOsTitle } from "@/lib/coletaOsMet
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import FormRowCard from "@/components/forms/FormRowCard";
 import FormRowsTableShell, { FormRowsTableHead, FormRowsTableBody } from "@/components/forms/FormRowsTableShell";
+import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
+import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
 
 function Field({ label, children, className = "" }) {
   return (
@@ -84,6 +89,11 @@ export default function ColetaForm({
   envCerts = [],
   endCustomers = [],
   employees = [],
+  registeredScales = [],
+  scaleRegistrationId = null,
+  onScaleRegistrationChange,
+  onRegisteredScaleCreated,
+  tenantId = "",
   isNew = false,
   collectionNumber = null,
   collectionYear = null,
@@ -92,6 +102,11 @@ export default function ColetaForm({
   const selectedEndCustomerId = resolveEndCustomerId(payload, endCustomers);
   const autoFilledSingleClient = useRef(false);
   const defaultUnit = payload.balanca?.unidade || "g";
+  const [savingScale, setSavingScale] = useState(false);
+
+  const scaleList = selectedEndCustomerId
+    ? registeredScales.filter((s) => s.end_customer_id === selectedEndCustomerId || !s.end_customer_id)
+    : registeredScales;
 
   useEffect(() => {
     if (!isNew || endCustomers.length !== 1 || autoFilledSingleClient.current) return;
@@ -111,6 +126,44 @@ export default function ColetaForm({
     }
     const ec = endCustomers.find((c) => c.id === id);
     if (ec) onChange(applyEndCustomerToCliente(payload, ec));
+  };
+
+  const applyScaleRegistration = (registrationId) => {
+    if (registrationId === "__manual__" || !registrationId) {
+      onScaleRegistrationChange?.(null);
+      return;
+    }
+    const reg = registeredScales.find((s) => s.id === registrationId);
+    if (!reg) return;
+    const snap = balanceSnapshotFromScaleRegistration(reg);
+    onChange({
+      ...payload,
+      balanca: { ...payload.balanca, ...snap },
+    });
+    onScaleRegistrationChange?.(registrationId);
+  };
+
+  const registerScale = async () => {
+    if (!tenantId) return toast.error("Selecione um ambiente");
+    if (!selectedEndCustomerId) return toast.error("Selecione um cliente para vincular a balança");
+    if (!String(payload.balanca?.serie || "").trim()) {
+      return toast.error("Informe o número de série da balança");
+    }
+    setSavingScale(true);
+    try {
+      const saved = await createScaleRegistrationFromBalance({
+        tenantId,
+        endCustomerId: selectedEndCustomerId,
+        balanca: payload.balanca,
+      });
+      onRegisteredScaleCreated?.(saved);
+      onScaleRegistrationChange?.(saved.id);
+      toast.success("Balança cadastrada no cliente");
+    } catch (e) {
+      toast.error(e.message || "Falha ao cadastrar balança");
+    } finally {
+      setSavingScale(false);
+    }
   };
 
   const setCliente = (k, v) => onChange({ ...payload, cliente: { ...payload.cliente, [k]: v } });
@@ -240,6 +293,31 @@ export default function ColetaForm({
       </SectionCard>
 
       <SectionCard num="2" title="Informações da Balança">
+        {onScaleRegistrationChange && (
+          <Field label="Balança (cadastro)">
+            <select
+              value={scaleRegistrationId || "__manual__"}
+              onChange={(e) => applyScaleRegistration(e.target.value)}
+              className="w-full border rounded-md h-10 px-3 text-sm bg-white"
+            >
+              <option value="__manual__">— Preencher manualmente —</option>
+              {scaleList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.serial_number || s.tag || "Sem série"} — {s.manufacturer} {s.model}
+                </option>
+              ))}
+            </select>
+            {!registeredScales.length && (
+              <p className="text-xs text-amber-700 mt-1">
+                Cadastre balanças em{" "}
+                <Link to={cadastroSectionPath("balancas")} className="underline">
+                  PR-7.1 → Balanças
+                </Link>{" "}
+                para selecionar aqui.
+              </p>
+            )}
+          </Field>
+        )}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             ["Fabricante", "fabricante"],
@@ -249,9 +327,11 @@ export default function ColetaForm({
             ["Local da Calibração", "local"],
             ["Etiqueta IPEM", "etiqueta_ipem"],
             ["Portaria Inmetro", "portaria_inmetro"],
+            ["Classe do instrumento", "classe"],
+            ["Ponto de trabalho", "ponto_trabalho"],
           ].map(([lbl, key]) => (
             <Field key={key} label={lbl}>
-              <Input value={payload.balanca[key]} onChange={(e) => setBalanca(key, e.target.value)} />
+              <Input value={payload.balanca[key] || ""} onChange={(e) => setBalanca(key, e.target.value)} />
             </Field>
           ))}
         </div>
@@ -260,7 +340,7 @@ export default function ColetaForm({
             variant="balance"
             values={payload.balanca}
             unit={payload.balanca.unidade || "g"}
-            includeVerificationDivision={false}
+            includeVerificationDivision
             onChange={(key, value) => setBalanca(key, value)}
           />
           <Field label="Unidade" className="max-w-[12rem]">
@@ -297,6 +377,23 @@ export default function ColetaForm({
           value={payload.balanca.tipo_plataforma}
           onChange={(v) => setBalanca("tipo_plataforma", v)}
         />
+        {onScaleRegistrationChange && !scaleRegistrationId && (
+          <div className="space-y-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={savingScale}
+              onClick={registerScale}
+            >
+              <FloppyDisk size={16} className="mr-1.5" />
+              {savingScale ? "A cadastrar…" : "Cadastrar balança no cliente"}
+            </Button>
+            {!selectedEndCustomerId && (
+              <p className="text-xs text-amber-700">Selecione o cliente para cadastrar a balança.</p>
+            )}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard num="3" title="Condições Ambientais Durante a Calibração">

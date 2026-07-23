@@ -199,6 +199,8 @@ export function emptyColetaPayload() {
       tipo_balanca: "",
       tipo_balanca_outros: "",
       tipo_plataforma: "",
+      classe: "",
+      ponto_trabalho: "",
     },
     ambiente: {
       thermo_cert_id: "",

@@ -32,6 +32,7 @@ export function emptyScale(itemNumber = 1) {
     unit: "g",
     unit_value: "",
     client_requested_points: "",
+    scale_registration_id: "",
     calibration_points: Array.from({ length: 10 }, (_, i) => emptyCalPoint(i + 1, "g")),
   };
 }
