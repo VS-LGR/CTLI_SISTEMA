@@ -35,7 +35,7 @@ export const PURCHASE_ORDER_STATUSES = [
   { id: "rascunho", label: "Rascunho" },
   { id: "aguardando_aprovacao_tecnica", label: "Aguardando aprovação técnica" },
   { id: "aprovado_tecnicamente", label: "Aprovado tecnicamente" },
-  { id: "enviado_fornecedor", label: "Enviado ao fornecedor" },
+  { id: "enviado_fornecedor", label: "Enviado ao provedor" },
   { id: "aguardando_recebimento", label: "Aguardando recebimento" },
   { id: "recebido_parcialmente", label: "Recebido parcialmente" },
   { id: "recebido", label: "Recebido" },

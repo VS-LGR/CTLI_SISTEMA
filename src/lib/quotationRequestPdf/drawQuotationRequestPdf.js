@@ -94,7 +94,7 @@ export function drawQuotationRequestPdf(request, { logoDataUrl, documentMeta, fi
   ]);
 
   y = ensureSpace(doc, y, 40, model, logoDataUrl);
-  y = drawSectionTitle(doc, y, "Fornecedor");
+  y = drawSectionTitle(doc, y, "Provedor");
   y = drawKeyValueTable(doc, y, [
     ["Empresa", model.supplier.company],
     ["Endereço", model.supplier.address],

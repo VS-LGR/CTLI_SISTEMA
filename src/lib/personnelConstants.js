@@ -138,7 +138,7 @@ export const PERSONNEL_DEFAULT_OPTIONS = {
     "Monitorar e registrar condições ambientais necessárias para calibração",
     "Participar das comparações interlaboratoriais e intralaboratoriais",
     "Programar a execução dos serviços de calibração",
-    "Qualificar fornecedores para o Laboratório",
+    "Qualificar provedores para o Laboratório",
     "Qualificar provedores para o Laboratório",
     "Selecionar, desenvolver (quando necessário) e validar métodos",
     "Validar a planilha de cálculo e proteger contra alterações indevidas",

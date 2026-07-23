@@ -56,7 +56,7 @@ export function drawTbhCorrectionPdf(doc, vm) {
       autoTable(doc, {
         startY: startY + 3,
         margin: { left: ML },
-        head: [["Indicado pelo equipamento", "Indicado pelo fornecedor"]],
+        head: [["Indicado pelo equipamento", "Indicado pelo provedor"]],
         body: body.length ? body : [["—", "—"]],
         styles: TABLE_STYLES,
         headStyles: { fillColor: [217, 119, 6], textColor: TEXT, fontStyle: "bold" },

@@ -329,7 +329,7 @@ export async function convertQuotationToPurchaseOrders(quotationId, { userId } =
     throw new Error("A conversão só é permitida para solicitações com status Aprovada.");
   }
   if (!quotation.supplier_id) {
-    throw new Error("Informe o fornecedor na solicitação antes de converter.");
+    throw new Error("Informe o provedor na solicitação antes de converter.");
   }
   if (!conversionState.pending.length) {
     throw new Error("Não há tipos pendentes de conversão nesta solicitação.");

@@ -54,7 +54,7 @@ function validateItem(typeId, item, idx) {
 
 export function validateQuotationRequest(form, sections, items, { forExport = false } = {}) {
   if (!form.client_environment_id) return "Selecione o cliente/ambiente";
-  if (!form.supplier_id) return "Selecione o fornecedor";
+  if (!form.supplier_id) return "Selecione o provedor";
   if (!form.request_date) return "Informe a data da solicitação";
   if (!form.request_number) return "Informe o número da solicitação";
   if (!form.sent_by_id) return "Selecione quem envia (colaborador)";

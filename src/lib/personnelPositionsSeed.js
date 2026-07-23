@@ -201,7 +201,7 @@ Responsabilidades da função:
 
 As principais inter-relações do Gerente da Qualidade são com vendas, compras, Diretoria, CGCRE, clientes e setor Técnico.`,
     technical_authorities: L([
-      "Qualificar fornecedores para o Laboratório",
+      "Qualificar provedores para o Laboratório",
       "Aprovar os dados técnicos de produtos e serviços providos externamente",
       "Fazer inspeção de recebimento dos produtos e serviços adquiridos",
       "Decidir sobre produtos adquiridos não-conforme",

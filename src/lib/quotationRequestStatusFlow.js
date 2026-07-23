@@ -10,9 +10,9 @@ export const QUOTATION_FLOW_STEPS = [
 
 const STATUS_HELP = {
   rascunho: "Solicitação em elaboração. Preencha os dados e exporte o PDF quando estiver pronta.",
-  aguardando_envio: "Pronta para envio ao fornecedor.",
-  enviada_fornecedor: "Enviada ao fornecedor. Aguarde o retorno do orçamento.",
-  orcamento_recebido: "Orçamento recebido do fornecedor.",
+  aguardando_envio: "Pronta para envio ao provedor.",
+  enviada_fornecedor: "Enviada ao provedor. Aguarde o retorno do orçamento.",
+  orcamento_recebido: "Orçamento recebido do provedor.",
   em_analise: "Orçamento em análise interna.",
   aprovada: "Solicitação aprovada.",
   reprovada: "Solicitação reprovada.",
@@ -22,7 +22,7 @@ const STATUS_HELP = {
 
 const ACTION_LABELS = {
   aguardando_envio: "Marcar aguardando envio",
-  enviada_fornecedor: "Registrar envio ao fornecedor",
+  enviada_fornecedor: "Registrar envio ao provedor",
   orcamento_recebido: "Registrar orçamento recebido",
   em_analise: "Marcar em análise",
   aprovada: "Aprovar solicitação",

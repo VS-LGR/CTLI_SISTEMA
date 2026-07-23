@@ -321,7 +321,7 @@ function SupplierSection({ rows, tenantId, onRefresh }) {
   };
 
   const remove = async (r) => {
-    if (!window.confirm("Excluir fornecedor?")) return;
+    if (!window.confirm("Excluir provedor?")) return;
     const { error } = await supabase.from("supplier_registrations").delete().eq("id", r.id);
     if (error) toast.error(error.message);
     else { toast.success("Removido"); onRefresh(); }
@@ -331,7 +331,7 @@ function SupplierSection({ rows, tenantId, onRefresh }) {
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end">
-          <Button onClick={openNew} size="sm" className="bg-blue-600 text-white"><Plus size={16} className="mr-1" /> Novo fornecedor</Button>
+          <Button onClick={openNew} size="sm" className="bg-blue-600 text-white"><Plus size={16} className="mr-1" /> Novo provedor</Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
@@ -347,7 +347,7 @@ function SupplierSection({ rows, tenantId, onRefresh }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-slate-500 text-center">Nenhum fornecedor.</td></tr>
+                <tr><td colSpan={6} className="p-4 text-slate-500 text-center">Nenhum provedor.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
@@ -367,7 +367,7 @@ function SupplierSection({ rows, tenantId, onRefresh }) {
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editing ? "Editar fornecedor" : "Novo fornecedor"}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editing ? "Editar provedor" : "Novo provedor"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nome *</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
               <div><Label>Endereço completo</Label><Input value={fullAddress} onChange={(e) => setFullAddress(e.target.value)} /></div>

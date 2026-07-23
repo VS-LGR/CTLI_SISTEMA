@@ -55,7 +55,7 @@ function PointsTable({ points, onChange }) {
           <thead className="bg-amber-50 text-slate-600">
             <tr>
               <th className="p-2 text-left">Indicado pelo equipamento</th>
-              <th className="p-2 text-left">Indicado pelo fornecedor</th>
+              <th className="p-2 text-left">Indicado pelo provedor</th>
               <th className="p-2 w-10" />
             </tr>
           </thead>
@@ -75,7 +75,7 @@ function PointsTable({ points, onChange }) {
                     value={row.supplier ?? ""}
                     onChange={(e) => updateRow(i, "supplier", e.target.value)}
                     className="h-8 text-xs"
-                    placeholder="Fornecedor"
+                    placeholder="Provedor"
                   />
                 </td>
                 <td className="p-1 text-center">

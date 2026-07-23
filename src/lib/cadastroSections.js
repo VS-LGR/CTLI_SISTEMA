@@ -4,7 +4,7 @@ import { canAccessCadastroSection } from "@/lib/tenantAccess";
 /** Secções de cadastro redistribuídas por pasta de requisito (PR). */
 
 export const CADASTRO_SECTIONS = [
-  { id: "fornecedores", label: "Fornecedores", reqId: "6", folderKey: "pr-6-6" },
+  { id: "fornecedores", label: "Provedores", reqId: "6", folderKey: "pr-6-6" },
   { id: "clientes", label: "Clientes", reqId: "7", folderKey: "pr-7-1" },
   { id: "colaboradores", label: "Colaboradores", reqId: "6", folderKey: "pr-6-2" },
   { id: "cert-peso", label: "Certificados de Calibração dos Equipamentos", reqId: "6", folderKey: "pr-6-4" },

@@ -23,6 +23,7 @@ import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroS
 import "@/App.css";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const HelpPage = lazy(() => import("@/pages/HelpPage"));
 const RequirementView = lazy(() => import("@/pages/RequirementView"));
 const DocumentEditor = lazyWithRetry(() => import("@/pages/DocumentEditor"));
 const AdminClients = lazy(() => import("@/pages/AdminClients"));
@@ -147,6 +148,14 @@ const App = () => (
               element={(
                 <Suspense fallback={pageSuspenseFallback}>
                   <Dashboard />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/ajuda"
+              element={(
+                <Suspense fallback={pageSuspenseFallback}>
+                  <HelpPage />
                 </Suspense>
               )}
             />

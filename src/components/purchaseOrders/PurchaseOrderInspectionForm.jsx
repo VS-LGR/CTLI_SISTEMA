@@ -95,8 +95,8 @@ export default function PurchaseOrderInspectionForm({
           <>
             <BoolSelect
               label={type === "ensaio_proficiencia"
-                ? "O fornecedor enviou relatório do PEP?"
-                : "O fornecedor enviou relatório de auditoria?"}
+                ? "O provedor enviou relatório do PEP?"
+                : "O provedor enviou relatório de auditoria?"}
               value={inspection?.supplier_sent_report}
               onChange={(v) => set({ supplier_sent_report: v })}
               disabled={readOnly}
@@ -140,7 +140,7 @@ export default function PurchaseOrderInspectionForm({
           >
             <option value="">—</option>
             <option value="aceito">Aceito</option>
-            <option value="reprovado">Reprovado, devolver para o fornecedor</option>
+            <option value="reprovado">Reprovado, devolver para o provedor</option>
           </select>
         </div>
 

@@ -51,6 +51,7 @@ export const CLIENT_TOP_NAV_ITEMS = [
 
 const ALLOWED_PATH_PREFIXES = [
   "/dashboard",
+  "/ajuda",
   PROPOSAL_LIST_PATH,
   COLETA_LIST_PATH,
   CERTIFICATE_LIST_PATH,

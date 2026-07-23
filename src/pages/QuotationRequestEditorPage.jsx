@@ -413,17 +413,17 @@ export default function QuotationRequestEditorPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="border-slate-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Fornecedor e envio</CardTitle>
+                <CardTitle className="text-base">Provedor e envio</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-xs text-slate-500">Fornecedor *</Label>
+                  <Label className="text-xs text-slate-500">Provedor *</Label>
                   <select
                     className={`${selectClass} mt-1.5`}
                     value={form.supplier_id || ""}
                     onChange={(e) => onSupplierChange(e.target.value)}
                   >
-                    <option value="">Selecione o fornecedor…</option>
+                    <option value="">Selecione o provedor…</option>
                     {cadastro.suppliers.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
@@ -469,7 +469,7 @@ export default function QuotationRequestEditorPage() {
               {form.supplier_id && (
                 <PartyPreview
                   icon={Truck}
-                  title="Fornecedor (pré-visualização)"
+                  title="Provedor (pré-visualização)"
                   lines={[
                     { label: "Empresa", value: supplier.company },
                     { label: "CNPJ", value: supplier.cnpj },

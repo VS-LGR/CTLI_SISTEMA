@@ -49,7 +49,7 @@ export const QUOTATION_REQUEST_TYPES = [
 export const QUOTATION_REQUEST_STATUSES = [
   { id: "rascunho", label: "Rascunho" },
   { id: "aguardando_envio", label: "Aguardando envio" },
-  { id: "enviada_fornecedor", label: "Enviada ao fornecedor" },
+  { id: "enviada_fornecedor", label: "Enviada ao provedor" },
   { id: "orcamento_recebido", label: "Orçamento recebido" },
   { id: "em_analise", label: "Em análise" },
   { id: "aprovada", label: "Aprovada" },

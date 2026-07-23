@@ -7,7 +7,7 @@ import {
   House, SignOut, CaretDown,
   ListChecks, Briefcase, Toolbox, GearSix, Database,
   Buildings, CaretRight, ClipboardText, List, X,
-  FileText, Certificate, BookOpen, FolderSimple,
+  FileText, Certificate, BookOpen, FolderSimple, Question,
 } from "@phosphor-icons/react";
 import AppBrand from "@/components/branding/AppBrand";
 import {
@@ -32,6 +32,8 @@ import {
 import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
+import { ModuleTourProvider } from "@/components/help/ModuleTourProvider";
+import { HELP_PATH } from "@/lib/help/helpModules";
 
 function resolveNavGroupFromPath(pathname) {
   if (pathname.startsWith("/requirement/8/pr-8-3") || pathname.startsWith("/lista-mestra")) return "lista-mestra";
@@ -355,8 +357,17 @@ const Layout = () => {
     )
   );
 
-  const renderUserMenu = () => (
-    <div className="p-3 border-t border-slate-800 shrink-0">
+  const renderUserMenu = (onNavigate) => (
+    <div className="p-3 border-t border-slate-800 shrink-0 space-y-1">
+      <NavLink
+        to={HELP_PATH}
+        className={navLinkClass}
+        data-testid="nav-help"
+        onClick={onNavigate}
+      >
+        <Question size={18} weight="duotone" />
+        <span className="flex-1 min-w-0">Ajuda</span>
+      </NavLink>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button type="button" className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 transition" data-testid="user-menu-trigger">
@@ -385,7 +396,7 @@ const Layout = () => {
   <>
     <SidebarBrand />
     {renderNav(onNavigate)}
-    {renderUserMenu()}
+    {renderUserMenu(onNavigate)}
   </>
   );
 
@@ -393,6 +404,7 @@ const Layout = () => {
 
   return (
     <TooltipProvider delayDuration={200}>
+    <ModuleTourProvider>
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       {/* Desktop sidebar — fixo quando expandido; overlay quando recolhido */}
       <aside
@@ -544,6 +556,7 @@ const Layout = () => {
         />
       )}
     </div>
+    </ModuleTourProvider>
     </TooltipProvider>
   );
 };

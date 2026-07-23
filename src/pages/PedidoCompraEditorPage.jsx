@@ -176,7 +176,7 @@ export default function PedidoCompraEditorPage() {
 
   const validateBeforeSave = () => {
     if (!form.type) return "Selecione o tipo de pedido";
-    if (!form.supplier_id) return "Selecione o fornecedor";
+    if (!form.supplier_id) return "Selecione o provedor";
     if (!items.length) return "Adicione pelo menos um item";
     if (!form.order_date) return "Informe a data do pedido";
     if (!form.payment_terms?.trim()) return "Informe as condições de pagamento";
@@ -427,7 +427,7 @@ export default function PedidoCompraEditorPage() {
 
             <div className="grid lg:grid-cols-2 gap-4">
               <Card className="border-slate-200">
-                <CardHeader><CardTitle className="text-base">Fornecedor</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">Provedor</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <select
                     className="w-full border rounded-md h-10 px-3 text-sm"

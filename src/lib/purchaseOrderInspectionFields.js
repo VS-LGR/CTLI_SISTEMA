@@ -10,7 +10,7 @@ export function formatBoolAnswer(value) {
 
 const RESULT_LABELS = {
   aceito: "Aceito",
-  reprovado: "Reprovado, devolver para o fornecedor",
+  reprovado: "Reprovado, devolver para o provedor",
 };
 
 function isCertType(type) {
@@ -53,8 +53,8 @@ export function buildInspectionPdfLines(type, inspection, employees = []) {
   if (isReportType(type)) {
     pushAlways(
       type === "ensaio_proficiencia"
-        ? "O fornecedor enviou relatório do PEP?"
-        : "O fornecedor enviou relatório de auditoria?",
+        ? "O provedor enviou relatório do PEP?"
+        : "O provedor enviou relatório de auditoria?",
       formatBoolAnswer(inspection.supplier_sent_report),
     );
     if (type === "ensaio_proficiencia") {

@@ -200,7 +200,7 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
               <tr>
                 <th className="p-3">Nº</th>
                 <th className="p-3">Tipo</th>
-                <th className="p-3">Fornecedor</th>
+                <th className="p-3">Provedor</th>
                 <th className="p-3">Data</th>
                 <th className="p-3">Valor</th>
                 <th className="p-3">Status</th>

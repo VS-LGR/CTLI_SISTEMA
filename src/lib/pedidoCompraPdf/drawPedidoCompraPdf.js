@@ -156,7 +156,7 @@ export function drawPedidoCompraPdf(order, { logoDataUrl, employees = [], docume
   y = drawTwoColBlock(
     doc,
     y,
-    "Fornecedor",
+    "Provedor",
     [
       `Empresa: ${model.supplier.company}`,
       `At.: ${model.supplier.contact}`,

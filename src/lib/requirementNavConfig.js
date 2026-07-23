@@ -102,7 +102,7 @@ const FOLDERS = {
       children: [
         {
           key: "cad-fornecedores",
-          label: "Fornecedores",
+          label: "Provedores",
           to: cadastroSectionPath("fornecedores"),
           cadastroSectionId: "fornecedores",
           kind: "cadastro",

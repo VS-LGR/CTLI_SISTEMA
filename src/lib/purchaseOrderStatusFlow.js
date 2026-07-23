@@ -13,8 +13,8 @@ export const PURCHASE_ORDER_FLOW_STEPS = [
 const STATUS_HELP = {
   rascunho: "Pedido em elaboração. Revise os dados e submeta para aprovação técnica.",
   aguardando_aprovacao_tecnica: "Aguardando validação do gerente técnico.",
-  aprovado_tecnicamente: "Aprovado tecnicamente. Pode enviar ao fornecedor.",
-  enviado_fornecedor: "Pedido enviado ao fornecedor. Aguarde o recebimento dos itens.",
+  aprovado_tecnicamente: "Aprovado tecnicamente. Pode enviar ao provedor.",
+  enviado_fornecedor: "Pedido enviado ao provedor. Aguarde o recebimento dos itens.",
   aguardando_recebimento: "Itens a caminho ou aguardando conferência. Preencha a inspeção antes de encerrar.",
   recebido_parcialmente: "Parte dos itens recebida. Conclua ou reprove conforme necessário.",
   recebido: "Pedido concluído. Pode reabrir para aguardando recebimento se precisar corrigir.",
@@ -25,7 +25,7 @@ const STATUS_HELP = {
 const ACTION_LABELS = {
   aguardando_aprovacao_tecnica: "Submeter para aprovação técnica",
   aprovado_tecnicamente: "Marcar como aprovado tecnicamente",
-  enviado_fornecedor: "Marcar como enviado ao fornecedor",
+  enviado_fornecedor: "Marcar como enviado ao provedor",
   aguardando_recebimento: "Marcar como aguardando recebimento",
   recebido: "Marcar como recebido",
   recebido_parcialmente: "Marcar como recebido parcialmente",

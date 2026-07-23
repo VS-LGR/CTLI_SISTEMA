@@ -152,7 +152,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Solicitações de Orçamento</h2>
-          <p className="text-sm text-slate-500 mt-0.5">RE-6.6C · Gestão de cotações com fornecedores</p>
+          <p className="text-sm text-slate-500 mt-0.5">RE-6.6C · Gestão de cotações com provedores</p>
         </div>
         <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white shrink-0">
           <Link to={QUOTATION_NEW_PATH}><Plus size={16} className="mr-1.5" /> Nova solicitação</Link>
@@ -194,7 +194,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
               </select>
             </div>
             <div>
-              <Label className="text-xs text-slate-500 mb-1 block">Fornecedor</Label>
+              <Label className="text-xs text-slate-500 mb-1 block">Provedor</Label>
               <select className={selectClass} value={filters.supplierId} onChange={(e) => setFilters((f) => ({ ...f, supplierId: e.target.value }))}>
                 <option value="">Todos</option>
                 {(cadastro.suppliers || []).map((s) => (
@@ -212,7 +212,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
             <tr>
               <th className="p-3 text-left font-semibold">Nº</th>
               <th className="p-3 text-left font-semibold">Data</th>
-              <th className="p-3 text-left font-semibold">Fornecedor</th>
+              <th className="p-3 text-left font-semibold">Provedor</th>
               <th className="p-3 text-left font-semibold hidden md:table-cell">Enviado por</th>
               <th className="p-3 text-left font-semibold">Status</th>
               <th className="p-3 text-right font-semibold">Ações</th>
