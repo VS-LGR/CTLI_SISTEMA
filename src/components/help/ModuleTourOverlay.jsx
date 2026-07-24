@@ -53,15 +53,9 @@ function useHighlightReady(highlightId, open, stepIndex) {
 
     const delays = [100, 250, 500, 900, 1500, 2500];
     const timers = delays.map((ms) => window.setTimeout(check, ms));
-    // Reabrir menu em retries (sheet/sidebar animam)
     const navTimers = isTourNavHighlight(highlightId)
       ? [80, 300, 700].map((ms) => window.setTimeout(() => requestTourNavOpen(), ms))
       : [];
-
-    const mo = typeof MutationObserver !== "undefined"
-      ? new MutationObserver(() => { check(); })
-      : null;
-    mo?.observe(document.body, { childList: true, subtree: true });
 
     const giveUp = window.setTimeout(() => {
       if (!cancelled) setWaiting(false);
@@ -72,7 +66,6 @@ function useHighlightReady(highlightId, open, stepIndex) {
       timers.forEach((t) => window.clearTimeout(t));
       navTimers.forEach((t) => window.clearTimeout(t));
       window.clearTimeout(giveUp);
-      mo?.disconnect();
     };
   }, [open, highlightId, stepIndex]);
 

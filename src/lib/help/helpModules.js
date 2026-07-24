@@ -166,21 +166,18 @@ export const HELP_MODULES = [
     steps: [
       {
         title: "Cadastrar cliente",
-        body: "Use o botão iluminado para adicionar um cliente final do ambiente.",
+        body: "Use o botão iluminado “Novo cliente” para adicionar um cliente final do ambiente.",
         highlight: "tour-cadastro-novo",
-        tourPath: cadastroSectionPath("clientes"),
       },
       {
-        title: "Balanças",
-        body: "Cadastre balanças vinculadas ao cliente — usadas em propostas, coletas e certificados.",
+        title: "Balanças e provedores",
+        body: "No mesmo estilo, em PR-7.1 abre o cadastro de Balanças e em PR-6.6 o de Provedores — cada secção tem o seu botão “Novo”.",
         highlight: "tour-cadastro-novo",
-        tourPath: cadastroSectionPath("balancas"),
       },
       {
-        title: "Provedores",
-        body: "Cadastre provedores em PR-6.6 para pedidos de compra e orçamentos.",
-        highlight: "tour-cadastro-novo",
-        tourPath: cadastroSectionPath("fornecedores"),
+        title: "Ajuda",
+        body: "Pode rever este e outros tutoriais a qualquer momento em Ajuda, no fundo do menu.",
+        highlight: "tour-nav-help",
       },
     ],
   },

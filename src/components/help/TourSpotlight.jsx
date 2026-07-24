@@ -11,12 +11,12 @@ function measure(el) {
   const r = el.getBoundingClientRect();
   if (r.width < 2 && r.height < 2) return null;
   return {
-    top: Math.max(0, r.top - PAD),
-    left: Math.max(0, r.left - PAD),
-    width: Math.min(window.innerWidth, r.width + PAD * 2),
-    height: r.height + PAD * 2,
-    bottom: r.bottom + PAD,
-    right: r.right + PAD,
+    top: Math.round(Math.max(0, r.top - PAD)),
+    left: Math.round(Math.max(0, r.left - PAD)),
+    width: Math.round(Math.min(window.innerWidth, r.width + PAD * 2)),
+    height: Math.round(r.height + PAD * 2),
+    bottom: Math.round(r.bottom + PAD),
+    right: Math.round(r.right + PAD),
   };
 }
 
@@ -46,7 +46,6 @@ function findTourTarget(highlightId) {
 
 /**
  * Destaca um botão/área da página (data-tour) e mostra o cartão do passo.
- * Sem alvo: só escurece o ecrã (sem card no canto); com alvo: card junto ao botão / base no mobile.
  */
 export default function TourSpotlight({
   open,
@@ -78,6 +77,7 @@ export default function TourSpotlight({
     let targetEl = null;
     let ro = null;
     let scrolledOnce = false;
+    let rafId = 0;
     const mq = window.matchMedia("(max-width: 639px)");
     const onMq = () => setIsMobile(mq.matches);
     mq.addEventListener?.("change", onMq);
@@ -102,7 +102,13 @@ export default function TourSpotlight({
         targetEl.classList.add("tour-spotlight-target");
       }
       if (!ro && typeof ResizeObserver !== "undefined") {
-        ro = new ResizeObserver(update);
+        ro = new ResizeObserver(() => {
+          if (rafId) return;
+          rafId = window.requestAnimationFrame(() => {
+            rafId = 0;
+            update();
+          });
+        });
         ro.observe(targetEl);
       }
       const next = measure(targetEl);
@@ -119,33 +125,35 @@ export default function TourSpotlight({
     };
 
     scrollAndUpdate();
-    const t1 = window.setTimeout(update, 120);
-    const t2 = window.setTimeout(update, 400);
-    const t3 = window.setTimeout(update, 900);
-    // Só mostrar card “à procura…” depois de um atraso (evita flash no canto)
-    const tWait = window.setTimeout(() => setShowCardWithoutTarget(true), 600);
+    const t1 = window.setTimeout(update, 150);
+    const t2 = window.setTimeout(update, 450);
+    const t3 = window.setTimeout(update, 1000);
+    const tWait = window.setTimeout(() => setShowCardWithoutTarget(true), 700);
 
-    const mo = typeof MutationObserver !== "undefined"
-      ? new MutationObserver(() => update())
-      : null;
-    mo?.observe(document.body, { childList: true, subtree: true });
+    const onScrollOrResize = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        update();
+      });
+    };
 
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", onScrollOrResize);
+    window.addEventListener("scroll", onScrollOrResize, true);
 
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
       window.clearTimeout(t3);
       window.clearTimeout(tWait);
+      if (rafId) window.cancelAnimationFrame(rafId);
       document.querySelectorAll(".tour-spotlight-target").forEach((el) => {
         el.classList.remove("tour-spotlight-target");
       });
-      mo?.disconnect();
       ro?.disconnect();
       mq.removeEventListener?.("change", onMq);
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("scroll", onScrollOrResize, true);
     };
   }, [open, highlightId, stepIndex]);
 
@@ -163,7 +171,6 @@ export default function TourSpotlight({
   const hole = rect;
   const showCard = Boolean(hole) || showCardWithoutTarget;
 
-  // Sempre fixed — nunca absolute sem coordenadas (card no canto superior)
   const cardClass = hole && !isMobile
     ? "fixed z-[61] w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-4 shadow-xl pointer-events-auto"
     : "fixed left-3 right-3 bottom-3 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[min(20rem,calc(100vw-3rem))] z-[61] max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-xl pointer-events-auto";
@@ -226,11 +233,6 @@ export default function TourSpotlight({
           />
           <div
             className="pointer-events-none absolute rounded-lg ring-4 ring-blue-400"
-            style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute rounded-lg outline outline-2 outline-offset-2 outline-white/90"
             style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
             aria-hidden
           />
