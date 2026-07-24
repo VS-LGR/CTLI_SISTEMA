@@ -8,6 +8,13 @@ describe("helpModules", () => {
     expect(resolveHelpModule(HELP_PATH)?.moduleKey).toBe("ajuda");
   });
 
+  it("resolveHelpModule não confunde cadastros com propostas (pr-7-1)", () => {
+    expect(resolveHelpModule("/requirement/7/pr-7-1/cadastro/clientes")?.moduleKey).toBe("cadastros");
+    expect(resolveHelpModule("/requirement/7/pr-7-1/cadastro/balancas")?.moduleKey).toBe("cadastros");
+    expect(resolveHelpModule("/requirement/6/pr-6-6/cadastro/fornecedores")?.moduleKey).toBe("cadastros");
+    expect(resolveHelpModule("/requirement/7/pr-7-1")?.moduleKey).toBe("propostas");
+  });
+
   it("catálogo não inclui a entrada ajuda", () => {
     expect(getHelpCatalogModules().some((m) => m.moduleKey === "ajuda")).toBe(false);
     expect(getHelpCatalogModules().length).toBeGreaterThan(3);

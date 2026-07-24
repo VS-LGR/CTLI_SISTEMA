@@ -1,5 +1,21 @@
 import React from "react";
 import TourSpotlight from "@/components/help/TourSpotlight";
+import { isTourNavHighlight, requestTourNavOpen } from "@/lib/help/tourNavBridge";
+
+function isElementOnScreen(el) {
+  if (!el || typeof window === "undefined") return false;
+  if (el.closest('[aria-hidden="true"]')) return false;
+  const style = window.getComputedStyle(el);
+  if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+    return false;
+  }
+  const r = el.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return false;
+  if (r.right < 8 || r.bottom < 8 || r.left > window.innerWidth - 8 || r.top > window.innerHeight - 8) {
+    return false;
+  }
+  return true;
+}
 
 function useHighlightReady(highlightId, open, stepIndex) {
   const [ready, setReady] = React.useState(false);
@@ -16,12 +32,15 @@ function useHighlightReady(highlightId, open, stepIndex) {
     setReady(false);
     let cancelled = false;
 
+    if (isTourNavHighlight(highlightId)) {
+      requestTourNavOpen();
+    }
+
     const check = () => {
       if (cancelled) return false;
       const nodes = document.querySelectorAll(`[data-tour="${highlightId}"]`);
       for (const el of nodes) {
-        const r = el.getBoundingClientRect();
-        if (r.width >= 2 && r.height >= 2) {
+        if (isElementOnScreen(el)) {
           setReady((prev) => (prev ? prev : true));
           setWaiting(false);
           return true;
@@ -34,6 +53,10 @@ function useHighlightReady(highlightId, open, stepIndex) {
 
     const delays = [100, 250, 500, 900, 1500, 2500];
     const timers = delays.map((ms) => window.setTimeout(check, ms));
+    // Reabrir menu em retries (sheet/sidebar animam)
+    const navTimers = isTourNavHighlight(highlightId)
+      ? [80, 300, 700].map((ms) => window.setTimeout(() => requestTourNavOpen(), ms))
+      : [];
 
     const mo = typeof MutationObserver !== "undefined"
       ? new MutationObserver(() => { check(); })
@@ -47,6 +70,7 @@ function useHighlightReady(highlightId, open, stepIndex) {
     return () => {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
+      navTimers.forEach((t) => window.clearTimeout(t));
       window.clearTimeout(giveUp);
       mo?.disconnect();
     };

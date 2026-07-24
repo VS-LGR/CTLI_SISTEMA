@@ -34,6 +34,7 @@ import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
 import { ModuleTourProvider } from "@/components/help/ModuleTourProvider";
 import { HELP_PATH } from "@/lib/help/helpModules";
+import { TOUR_ENSURE_NAV_EVENT } from "@/lib/help/tourNavBridge";
 
 function resolveNavGroupFromPath(pathname) {
   if (pathname.startsWith("/requirement/8/pr-8-3") || pathname.startsWith("/lista-mestra")) return "lista-mestra";
@@ -86,6 +87,7 @@ const Layout = () => {
     overlayOpen: desktopSidebarOverlay,
     toggleDesktopMenu,
     closeOverlay: closeDesktopSidebarOverlay,
+    expandSidebar,
   } = useSidebarCollapsed();
 
   const loadTenants = useCallback(async () => {
@@ -117,6 +119,18 @@ const Layout = () => {
     setMobileNavOpen(false);
     closeDesktopSidebarOverlay();
   }, [location.pathname, closeDesktopSidebarOverlay]);
+
+  useEffect(() => {
+    const openNavForTour = () => {
+      if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
+        expandSidebar();
+      } else {
+        setMobileNavOpen(true);
+      }
+    };
+    window.addEventListener(TOUR_ENSURE_NAV_EVENT, openNavForTour);
+    return () => window.removeEventListener(TOUR_ENSURE_NAV_EVENT, openNavForTour);
+  }, [expandSidebar]);
 
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";

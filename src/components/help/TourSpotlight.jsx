@@ -20,14 +20,29 @@ function measure(el) {
   };
 }
 
+function isElementOnScreen(el) {
+  if (!el || typeof window === "undefined") return false;
+  if (el.closest('[aria-hidden="true"]')) return false;
+  const style = window.getComputedStyle(el);
+  if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+    return false;
+  }
+  const r = el.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return false;
+  // Menu recolhido fica off-screen com translate; não usar como alvo
+  if (r.right < 8 || r.bottom < 8 || r.left > window.innerWidth - 8 || r.top > window.innerHeight - 8) {
+    return false;
+  }
+  return true;
+}
+
 function findTourTarget(highlightId) {
   if (!highlightId) return null;
   const nodes = document.querySelectorAll(`[data-tour="${highlightId}"]`);
   for (const el of nodes) {
-    const r = el.getBoundingClientRect();
-    if (r.width >= 2 && r.height >= 2) return el;
+    if (isElementOnScreen(el)) return el;
   }
-  return nodes[0] || null;
+  return null;
 }
 
 /**

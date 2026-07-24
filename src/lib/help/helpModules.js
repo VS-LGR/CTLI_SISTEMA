@@ -47,7 +47,7 @@ export const HELP_MODULES = [
     tourPath: PROPOSAL_LIST_PATH,
     matchPath: (pathname) =>
       pathname.startsWith(PROPOSAL_LIST_PATH)
-      || pathname.includes("/pr-7-1"),
+      || (pathname.includes("/pr-7-1") && !pathname.includes("/cadastro/")),
     steps: [
       {
         title: "Criar nova proposta",
