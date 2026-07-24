@@ -30,11 +30,18 @@ describe("certificate email roles", () => {
     expect(isDirectorOnlyNav("diretor")).toBe(true);
   });
 
-  test("toggles de coleta", () => {
-    expect(canAccessColeta("gerente_tecnico")).toBe(false);
-    expect(canAccessColeta("gerente_tecnico", { access_coleta: true })).toBe(true);
-    expect(canAccessColeta("tecnico_campo")).toBe(true);
-    expect(canAccessCalibrationCertificates("administrativo_vendas")).toBe(false);
-    expect(canAccessCalibrationCertificates("administrativo_vendas", { access_certificados: true })).toBe(true);
+  test("ACL version 1 controla edição de certificados", () => {
+    expect(
+      canEditCalibrationCertificate("gerente_qualidade", {
+        access_acl: { version: 1, modules: ["certificados"], folders: {} },
+        access_certificados: false,
+      }),
+    ).toBe(true);
+    expect(
+      canEditCalibrationCertificate("gerente_qualidade", {
+        access_acl: { version: 1, modules: ["coleta"], folders: {} },
+        access_certificados: true,
+      }),
+    ).toBe(false);
   });
 });

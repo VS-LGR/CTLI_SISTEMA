@@ -76,6 +76,104 @@ describe("helpModules", () => {
     const signatario = getHelpCatalogModulesForUser({ role: "signatario", user: { tenant_id: "t1" } });
     expect(signatario.every((m) => m.moduleKey.startsWith("certificados"))).toBe(true);
   });
+
+  it("filtra catálogo pela ACL granular da conta", () => {
+    const userAcl = {
+      tenant_id: "t1",
+      access_acl: {
+        version: 1,
+        modules: ["coleta", "propostas"],
+        folders: { "7": ["pr-7-1", "pr-7-2"] },
+      },
+    };
+    const keys = getHelpCatalogModulesForUser({
+      role: "gerente_qualidade",
+      user: userAcl,
+    }).map((m) => m.moduleKey);
+
+    expect(keys).toContain("dashboard");
+    expect(keys).toContain("coleta");
+    expect(keys).toContain("propostas");
+    expect(keys).not.toContain("lista-mestra");
+    expect(keys).not.toContain("pedidos-compra");
+    expect(keys).not.toContain("certificados");
+  });
+
+  it("ACL só lista mestra não inclui coleta nem propostas no tutorial", () => {
+    const keys = getHelpCatalogModulesForUser({
+      role: "administrativo_vendas",
+      user: {
+        tenant_id: "t1",
+        access_acl: {
+          version: 1,
+          modules: ["lista_mestra"],
+          folders: { "8": ["pr-8-3"] },
+        },
+      },
+    }).map((m) => m.moduleKey);
+
+    expect(keys).toEqual(expect.arrayContaining(["dashboard", "lista-mestra"]));
+    expect(keys).not.toContain("propostas");
+    expect(keys).not.toContain("coleta");
+    expect(keys).not.toContain("cadastros");
+  });
+
+  it("legado sem ACL mantém tutoriais do papel", () => {
+    const keys = getHelpCatalogModulesForUser({
+      role: "administrativo_compras",
+      user: { tenant_id: "t1", access_acl: {} },
+    }).map((m) => m.moduleKey);
+
+    expect(keys).toContain("pedidos-compra");
+    expect(keys).toContain("solicitacoes-orcamento");
+    expect(keys).not.toContain("propostas");
+  });
+
+  it("dashboard adapta texto dos atalhos à ACL", () => {
+    const dash = adaptHelpModuleForUser(getHelpModuleByKey("dashboard"), {
+      role: "gerente_tecnico",
+      user: {
+        tenant_id: "t1",
+        access_acl: {
+          version: 1,
+          modules: ["coleta"],
+          folders: { "7": ["pr-7-2"] },
+        },
+      },
+    });
+    const atalhos = dash?.steps?.find((s) => s.highlight === "tour-dashboard-atalhos");
+    expect(atalhos?.body).toMatch(/Coleta/);
+    expect(atalhos?.body).not.toMatch(/Propostas/);
+    expect(dash?.steps?.some((s) => s.highlight === "tour-dashboard-cert-peso")).toBe(false);
+  });
+
+  it("cadastros com ACL só na pasta correta", () => {
+    expect(
+      resolveCadastrosTourPath({
+        role: "gerente_qualidade",
+        user: {
+          access_acl: {
+            version: 1,
+            modules: ["cadastros"],
+            folders: { "6": ["pr-6-6"] },
+          },
+        },
+      }),
+    ).toBe(cadastroSectionPath("fornecedores"));
+
+    expect(
+      resolveCadastrosTourPath({
+        role: "gerente_qualidade",
+        user: {
+          access_acl: {
+            version: 1,
+            modules: ["cadastros"],
+            folders: { "8": ["pr-8-3"] },
+          },
+        },
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("tourStorage", () => {

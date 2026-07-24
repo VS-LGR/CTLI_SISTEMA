@@ -15,6 +15,7 @@ import {
   canAccessModule,
   canAccessRequirement,
   canAccessRequirementFolder,
+  canAccessCadastroSection,
 } from "@/lib/tenantAccess";
 import {
   isDirectorRole,
@@ -29,7 +30,8 @@ const CADASTROS_TOUR_SECTION_ORDER = ["clientes", "balancas", "fornecedores", "c
 
 function getAccessibleCadastroSectionsForTour({ tenant = null, role = null, user = null } = {}) {
   return getVisibleCadastroSections(role, tenant, user).filter((s) => (
-    canAccessRequirement({ tenant, role, requirementId: s.reqId, user })
+    canAccessCadastroSection({ tenant, role, sectionId: s.id, user })
+    && canAccessRequirement({ tenant, role, requirementId: s.reqId, user })
     && canAccessRequirementFolder({
       tenant,
       role,
@@ -294,12 +296,13 @@ export const HELP_MODULES = [
     steps: [
       {
         title: "Atalhos principais",
-        body: "Use os cartões iluminados da dashboard para abrir Propostas, Coleta ou Certificados.",
+        body: "Use os cartões iluminados da dashboard para abrir as áreas operacionais disponíveis.",
         highlight: "tour-dashboard-atalhos",
+        requiresDashboardShortcuts: true,
       },
       {
         title: "Certificado de peso padrão",
-        body: "O atalho iluminado abre a emissão de certificados de peso padrão (se o seu papel tiver permissão).",
+        body: "O atalho iluminado abre a emissão de certificados de peso padrão (se o seu acesso tiver permissão).",
         highlight: "tour-dashboard-cert-peso",
         requiresCertAccess: true,
       },
@@ -360,18 +363,46 @@ function canSeeHelpModule(mod, { tenant, role, user }) {
   return canAccessModule({ tenant, role, module: mod.accessModule, user });
 }
 
+/** Áreas operacionais com atalho na dashboard (para texto/filtro do tour). */
+function getDashboardTourAreas({ tenant, role, user }) {
+  const areas = [];
+  if (canAccessModule({ tenant, role, module: "propostas", user })) areas.push("Propostas");
+  if (canAccessModule({ tenant, role, module: "coleta", user })) areas.push("Coleta");
+  if (canAccessCalibrationCertificates(role, user)) areas.push("Certificados");
+  if (canAccessModule({ tenant, role, module: "pessoal", user })) areas.push("Pessoal");
+  if (canAccessModule({ tenant, role, module: "cadastros", user })) areas.push("Cadastros");
+  return areas;
+}
+
 function adaptSteps(mod, role, user, tenant = null) {
   if (isDirectorRole(role) && mod.directorSteps) return mod.directorSteps;
   if (isSignatoryRole(role) && mod.signatorySteps) return mod.signatorySteps;
 
+  const ctx = { tenant, role, user };
   const canCert = canAccessCalibrationCertificates(role, user);
   const canEdit = canEditCalibrationCertificate(role, user);
+  const dashboardAreas = mod.moduleKey === "dashboard" ? getDashboardTourAreas(ctx) : [];
 
   let steps = (mod.steps || []).filter((step) => {
     if (step.requiresCertAccess && !canCert) return false;
     if (step.requiresCertEdit && !canEdit) return false;
+    if (step.requiresModule && !canAccessModule({ ...ctx, module: step.requiresModule })) return false;
+    if (step.requiresDashboardShortcuts && !dashboardAreas.length) return false;
     return true;
   });
+
+  if (mod.moduleKey === "dashboard" && steps.length) {
+    steps = steps.map((step) => {
+      if (step.highlight !== "tour-dashboard-atalhos" || !dashboardAreas.length) return step;
+      const list = dashboardAreas.length === 1
+        ? dashboardAreas[0]
+        : `${dashboardAreas.slice(0, -1).join(", ")} ou ${dashboardAreas[dashboardAreas.length - 1]}`;
+      return {
+        ...step,
+        body: `Use os cartões iluminados da dashboard para abrir ${list}.`,
+      };
+    });
+  }
 
   if (mod.moduleKey === "cadastros" && steps.length) {
     const sectionId = resolveCadastrosTourSectionId({ tenant, role, user });

@@ -93,6 +93,9 @@ export const canApproveCalibrationCertificate = (role) =>
 /** Papéis que podem emitir certificado oficial. */
 export const canEmitCalibrationCertificate = (role, user = null) => {
   if (isSignatoryRole(role) || isDirectorRole(role) || isFieldTechnicianRole(role)) return false;
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("certificados");
+  }
   if (isCtliAdmin(role) || role === "client" || isGerenteGeralRole(role)) return true;
   if (roleAllowsAccessToggles(role)) return flagTrue(user, "access_certificados");
   return false;
@@ -105,6 +108,9 @@ export const canSendCertificateEmail = (role, user = null) =>
 /** Edição / criação técnica de certificados — exclui signatário, técnico e diretor. */
 export const canEditCalibrationCertificate = (role, user = null) => {
   if (isSignatoryRole(role) || isFieldTechnicianRole(role) || isDirectorRole(role)) return false;
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("certificados");
+  }
   if (isCtliAdmin(role) || role === "client" || isGerenteGeralRole(role)) return true;
   if (roleAllowsAccessToggles(role)) return flagTrue(user, "access_certificados");
   return false;
