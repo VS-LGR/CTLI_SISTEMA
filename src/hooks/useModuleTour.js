@@ -42,6 +42,7 @@ export function useModuleTour({ currentTenant = null } = {}) {
   const [stepIndex, setStepIndex] = useState(0);
   const [pendingOpen, setPendingOpen] = useState(null);
   const lastNavigatedPathRef = useRef(null);
+  const navLockRef = useRef(false);
 
   const resolvedModule = useMemo(() => {
     if (forcedModuleKey) {
@@ -56,8 +57,9 @@ export function useModuleTour({ currentTenant = null } = {}) {
   const neededPath = resolvedModule
     ? getTourPathForStep(resolvedModule, currentStep)
     : null;
+  const pathReady = Boolean(neededPath) && pathMatchesTour(location.pathname, neededPath);
 
-  // Após navegação pedida pelo tour, abrir o overlay
+  // Após navegação pedida pelo tour, abrir o overlay só na rota certa
   useEffect(() => {
     if (!pendingOpen) return;
     const { moduleKey, step } = pendingOpen;
@@ -69,7 +71,6 @@ export function useModuleTour({ currentTenant = null } = {}) {
     const stepDef = mod.steps?.[step] || mod.steps?.[0];
     const target = getTourPathForStep(mod, stepDef);
     if (!pathMatchesTour(location.pathname, target)) {
-      // RoleRouteGuard (ou similar) mandou para home — não ficar em loop de navigate
       const onHome = location.pathname === "/dashboard" || location.pathname === "/";
       if (onHome && !pathMatchesTour("/dashboard", target)) {
         setPendingOpen(null);
@@ -82,6 +83,7 @@ export function useModuleTour({ currentTenant = null } = {}) {
     setOpen(true);
     setPendingOpen(null);
     lastNavigatedPathRef.current = null;
+    navLockRef.current = false;
   }, [pendingOpen, location.pathname, accessCtx]);
 
   // Primeira visita automática — não interfere com tour forçado / pendente
@@ -99,17 +101,19 @@ export function useModuleTour({ currentTenant = null } = {}) {
     setStepIndex(0);
   }, [isAdmin, userId, moduleFromPath, forcedModuleKey, pendingOpen]);
 
-  // Se o passo exige outra rota, navegar uma vez (sem loop)
+  // Navegar para a rota do passo (uma vez; sem loop)
   useEffect(() => {
-    if (!open || !resolvedModule || !neededPath) return;
+    if (!open || !neededPath || pendingOpen) return;
     if (pathMatchesTour(location.pathname, neededPath)) {
       lastNavigatedPathRef.current = null;
+      navLockRef.current = false;
       return;
     }
-    if (lastNavigatedPathRef.current === neededPath) return;
+    if (navLockRef.current || lastNavigatedPathRef.current === neededPath) return;
+    navLockRef.current = true;
     lastNavigatedPathRef.current = neededPath;
     navigate(neededPath);
-  }, [open, resolvedModule, neededPath, location.pathname, navigate]);
+  }, [open, neededPath, location.pathname, navigate, pendingOpen]);
 
   const dismiss = useCallback(() => {
     const key = resolvedModule?.moduleKey;
@@ -119,6 +123,7 @@ export function useModuleTour({ currentTenant = null } = {}) {
     setOpen(false);
     setStepIndex(0);
     lastNavigatedPathRef.current = null;
+    navLockRef.current = false;
   }, [resolvedModule, userId]);
 
   const openTour = useCallback((moduleKey) => {
@@ -130,10 +135,14 @@ export function useModuleTour({ currentTenant = null } = {}) {
     const first = mod.steps[0];
     const target = getTourPathForStep(mod, first);
     lastNavigatedPathRef.current = null;
+    navLockRef.current = false;
+
+    // Sempre fechar overlay na Ajuda / página atual antes de navegar
+    setForcedModuleKey(null);
+    setOpen(false);
+    setStepIndex(0);
 
     if (!pathMatchesTour(location.pathname, target)) {
-      setForcedModuleKey(null);
-      setOpen(false);
       setPendingOpen({ moduleKey, step: 0 });
       navigate(target);
       return;
@@ -147,21 +156,24 @@ export function useModuleTour({ currentTenant = null } = {}) {
 
   const setStepIndexSafe = useCallback((next) => {
     lastNavigatedPathRef.current = null;
+    navLockRef.current = false;
     setStepIndex((prev) => {
       const value = typeof next === "function" ? next(prev) : next;
       return typeof value === "number" && value >= 0 ? value : prev;
     });
   }, []);
 
-  const pathReady = Boolean(neededPath) && pathMatchesTour(location.pathname, neededPath);
+  // Overlay só quando a rota do passo já carregou (evita card fantasma na Ajuda / durante navigate)
+  const overlayOpen = open && Boolean(resolvedModule) && pathReady && !pendingOpen;
 
   return {
-    open: open && Boolean(resolvedModule) && pathReady,
+    open: overlayOpen,
     module: resolvedModule,
     stepIndex: safeStepIndex,
     setStepIndex: setStepIndexSafe,
     dismiss,
     openTour,
     isForced: Boolean(forcedModuleKey),
+    pathReady,
   };
 }

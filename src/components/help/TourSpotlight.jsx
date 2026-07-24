@@ -29,7 +29,6 @@ function isElementOnScreen(el) {
   }
   const r = el.getBoundingClientRect();
   if (r.width < 2 || r.height < 2) return false;
-  // Menu recolhido fica off-screen com translate; não usar como alvo
   if (r.right < 8 || r.bottom < 8 || r.left > window.innerWidth - 8 || r.top > window.innerHeight - 8) {
     return false;
   }
@@ -47,7 +46,7 @@ function findTourTarget(highlightId) {
 
 /**
  * Destaca um botão/área da página (data-tour) e mostra o cartão do passo.
- * No mobile o cartão fica fixo na base; o buraco no dim permite clicar no botão.
+ * Sem alvo: só escurece o ecrã (sem card no canto); com alvo: card junto ao botão / base no mobile.
  */
 export default function TourSpotlight({
   open,
@@ -64,6 +63,7 @@ export default function TourSpotlight({
   waiting = false,
 }) {
   const [rect, setRect] = useState(null);
+  const [showCardWithoutTarget, setShowCardWithoutTarget] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches,
   );
@@ -71,6 +71,7 @@ export default function TourSpotlight({
   useLayoutEffect(() => {
     if (!open) {
       setRect(null);
+      setShowCardWithoutTarget(false);
       return undefined;
     }
 
@@ -121,8 +122,9 @@ export default function TourSpotlight({
     const t1 = window.setTimeout(update, 120);
     const t2 = window.setTimeout(update, 400);
     const t3 = window.setTimeout(update, 900);
+    // Só mostrar card “à procura…” depois de um atraso (evita flash no canto)
+    const tWait = window.setTimeout(() => setShowCardWithoutTarget(true), 600);
 
-    // Só childList: observar attributes reagia ao próprio overlay (loop de setState).
     const mo = typeof MutationObserver !== "undefined"
       ? new MutationObserver(() => update())
       : null;
@@ -135,6 +137,7 @@ export default function TourSpotlight({
       window.clearTimeout(t1);
       window.clearTimeout(t2);
       window.clearTimeout(t3);
+      window.clearTimeout(tWait);
       document.querySelectorAll(".tour-spotlight-target").forEach((el) => {
         el.classList.remove("tour-spotlight-target");
       });
@@ -158,11 +161,14 @@ export default function TourSpotlight({
   if (!open) return null;
 
   const hole = rect;
-  const cardClass = isMobile
-    ? "fixed left-3 right-3 bottom-3 z-[61] max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-xl pointer-events-auto"
-    : "absolute z-[61] w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-4 shadow-xl pointer-events-auto";
+  const showCard = Boolean(hole) || showCardWithoutTarget;
 
-  const cardStyle = !isMobile && hole
+  // Sempre fixed — nunca absolute sem coordenadas (card no canto superior)
+  const cardClass = hole && !isMobile
+    ? "fixed z-[61] w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-4 shadow-xl pointer-events-auto"
+    : "fixed left-3 right-3 bottom-3 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[min(20rem,calc(100vw-3rem))] z-[61] max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-xl pointer-events-auto";
+
+  const cardStyle = hole && !isMobile
     ? (() => {
       const spaceBelow = window.innerHeight - hole.bottom;
       const placeAbove = spaceBelow < 240 && hole.top > 240;
@@ -170,17 +176,20 @@ export default function TourSpotlight({
         ? {
           bottom: `${window.innerHeight - hole.top + 12}px`,
           left: `${Math.min(Math.max(12, hole.left), window.innerWidth - 320)}px`,
+          top: "auto",
+          right: "auto",
         }
         : {
           top: `${Math.min(hole.bottom + 12, window.innerHeight - 200)}px`,
           left: `${Math.min(Math.max(12, hole.left), window.innerWidth - 320)}px`,
+          bottom: "auto",
+          right: "auto",
         };
     })()
     : undefined;
 
   return createPortal(
     <div className="fixed inset-0 z-[60]" data-testid="tour-spotlight" role="dialog" aria-modal="true">
-      {/* Dim com “buraco” clicável no alvo */}
       {hole ? (
         <>
           <button
@@ -229,47 +238,49 @@ export default function TourSpotlight({
       ) : (
         <button
           type="button"
-          className="absolute inset-0 bg-slate-900/65 cursor-default border-0"
-          aria-label="Fechar tutorial"
+          className="absolute inset-0 bg-slate-900/40 cursor-wait border-0"
+          aria-label="A carregar tutorial"
           onClick={() => onDismiss?.()}
         />
       )}
 
-      <div className={cardClass} style={cardStyle}>
-        <p className="text-[10px] uppercase tracking-wide text-blue-700 font-semibold">
-          {title} · passo {stepIndex + 1} de {total}
-        </p>
-        <h3 className="mt-1 text-base font-semibold text-slate-900 break-words">{stepTitle}</h3>
-        <p className="mt-1.5 text-sm text-slate-600 leading-relaxed break-words">{stepBody}</p>
-        {waiting && !hole ? (
-          <p className="mt-2 text-xs text-slate-500">A localizar o botão nesta página…</p>
-        ) : (
-          <p className="mt-2 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5">
-            Toque ou clique no botão iluminado para seguir o processo.
+      {showCard && (
+        <div className={cardClass} style={cardStyle}>
+          <p className="text-[10px] uppercase tracking-wide text-blue-700 font-semibold">
+            {title} · passo {stepIndex + 1} de {total}
           </p>
-        )}
-        <div className="mt-3 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between sm:items-center">
-          <Button asChild variant="link" className="h-auto p-0 text-xs text-slate-600">
-            <Link to={HELP_PATH} onClick={() => onDismiss?.()}>Ver na Ajuda</Link>
-          </Button>
-          <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
-            {!isFirst && (
-              <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto min-h-10" onClick={() => onStepChange?.(stepIndex - 1)}>
-                Anterior
-              </Button>
-            )}
-            {!isLast ? (
-              <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onStepChange?.(stepIndex + 1)}>
-                Seguinte
-              </Button>
-            ) : (
-              <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onDismiss?.()}>
-                Entendi
-              </Button>
-            )}
+          <h3 className="mt-1 text-base font-semibold text-slate-900 break-words">{stepTitle}</h3>
+          <p className="mt-1.5 text-sm text-slate-600 leading-relaxed break-words">{stepBody}</p>
+          {waiting && !hole ? (
+            <p className="mt-2 text-xs text-slate-500">A localizar o botão nesta página…</p>
+          ) : (
+            <p className="mt-2 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5">
+              Toque ou clique no botão iluminado para seguir o processo.
+            </p>
+          )}
+          <div className="mt-3 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between sm:items-center">
+            <Button asChild variant="link" className="h-auto p-0 text-xs text-slate-600">
+              <Link to={HELP_PATH} onClick={() => onDismiss?.()}>Ver na Ajuda</Link>
+            </Button>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
+              {!isFirst && (
+                <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto min-h-10" onClick={() => onStepChange?.(stepIndex - 1)}>
+                  Anterior
+                </Button>
+              )}
+              {!isLast ? (
+                <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onStepChange?.(stepIndex + 1)}>
+                  Seguinte
+                </Button>
+              ) : (
+                <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onDismiss?.()}>
+                  Entendi
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>,
     document.body,
   );
