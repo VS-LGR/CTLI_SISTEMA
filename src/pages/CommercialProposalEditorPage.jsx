@@ -175,7 +175,7 @@ export default function CommercialProposalEditorPage() {
     [form, masterMeta],
   );
 
-  if (!canAccessCommercialProposals(user?.role) || !isSupabaseAuthMode) {
+  if (!canAccessCommercialProposals(user?.role, user) || !isSupabaseAuthMode) {
     return <div className="text-slate-600 text-sm p-6">Sem permissão ou modo indisponível.</div>;
   }
 

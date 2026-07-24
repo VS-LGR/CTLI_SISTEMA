@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getServiceRoleKey } from "../_shared/env.ts";
+import { resolveAccessAclFromBody } from "../_shared/accessAcl.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -31,22 +32,6 @@ const CTLI_CREATABLE_ROLES = new Set([
   "administrativo_vendas",
   "administrativo_compras",
 ]);
-
-const ROLES_WITH_ACCESS_TOGGLES = new Set([
-  "gerente_qualidade",
-  "gerente_tecnico",
-  "administrativo_vendas",
-]);
-
-function resolveAccessFlags(role: string, body: Record<string, unknown>) {
-  if (!ROLES_WITH_ACCESS_TOGGLES.has(role)) {
-    return { access_coleta: false, access_certificados: false };
-  }
-  return {
-    access_coleta: Boolean(body.access_coleta),
-    access_certificados: Boolean(body.access_certificados),
-  };
-}
 
 function allowedRolesForProvisioner(role: string): Set<string> {
   if (role === "admin") return CTLI_CREATABLE_ROLES;
@@ -162,7 +147,7 @@ serve(async (req) => {
         employee_registration_id,
       } = body;
       const tenant_id = resolveTenantId(profile, bodyTenantId);
-      const flags = resolveAccessFlags(role, body);
+      const access = resolveAccessAclFromBody(role, body);
 
       if (!email || !password || !full_name || !role) {
         return new Response(
@@ -212,8 +197,9 @@ serve(async (req) => {
         email,
         role,
         tenant_id,
-        access_coleta: flags.access_coleta,
-        access_certificados: flags.access_certificados,
+        access_coleta: access.access_coleta,
+        access_certificados: access.access_certificados,
+        access_acl: access.access_acl,
         updated_at: new Date().toISOString(),
       };
       if (employee_registration_id) profilePatch.employee_registration_id = employee_registration_id;
@@ -266,7 +252,7 @@ serve(async (req) => {
       }
 
       const nextRole = role || target.role;
-      const flags = resolveAccessFlags(nextRole, body);
+      const access = resolveAccessAclFromBody(nextRole, body);
       try {
         assertRoleAllowed(profile.role, nextRole);
       } catch (e) {
@@ -305,8 +291,9 @@ serve(async (req) => {
 
       const patch: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
-        access_coleta: flags.access_coleta,
-        access_certificados: flags.access_certificados,
+        access_coleta: access.access_coleta,
+        access_certificados: access.access_certificados,
+        access_acl: access.access_acl,
       };
       if (full_name !== undefined) patch.full_name = full_name;
       if (email) patch.email = email;

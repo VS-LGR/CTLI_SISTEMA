@@ -186,7 +186,7 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
     return `${filters.topics.length} tópicos selecionados`;
   }, [filters.topics]);
 
-  if (!canAccessPersonnel(user?.role)) {
+  if (!canAccessPersonnel(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
 

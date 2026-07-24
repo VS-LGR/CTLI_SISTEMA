@@ -629,7 +629,7 @@ const RequirementView = () => {
     String(id) === PERSONNEL_REQ_ID
     && folderKey === PERSONNEL_FOLDER_KEY
     && isPersonnelRegistroFolderSection(section)
-    && canAccessPersonnel(user?.role);
+    && canAccessPersonnel(user?.role, user);
   const personnelLockedTopic = isPersonnelRegistro ? personnelFolderSectionToTopic(section) : null;
   const signatures = isSignaturesFolder(id, folderKey);
   const fileOnly = isFileOnlyFolder(id, folderKey);
@@ -698,13 +698,15 @@ const RequirementView = () => {
       )}
 
       <Tabs value={section} onValueChange={onTabChange}>
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-3 min-w-0">
           {!hideSectionTabs && (
-          <TabsList className="bg-white border border-slate-200">
-            {visibleSections.map((s) => (
-              <TabsTrigger key={s.id} value={s.id} data-testid={`tab-${s.id}`}>{s.label}</TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="min-w-0 max-w-full flex-1 overflow-x-auto">
+            <TabsList className="bg-white border border-slate-200 w-max max-w-none justify-start">
+              {visibleSections.map((s) => (
+                <TabsTrigger key={s.id} value={s.id} data-testid={`tab-${s.id}`}>{s.label}</TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
           )}
 
           {!hideSectionTabs && !isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
@@ -757,7 +759,7 @@ const RequirementView = () => {
         )}
 
         <TabsContent value={section} className="mt-4">
-          {masterDocumentTab && canAccessMasterDocuments(user?.role) ? (
+          {masterDocumentTab && canAccessMasterDocuments(user?.role, user) ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar Lista Mestra…</div>}>
               <MasterDocumentHub tenantId={currentTenantId} tenant={currentTenant} section={section} />
             </Suspense>

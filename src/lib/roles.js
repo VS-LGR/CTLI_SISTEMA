@@ -56,8 +56,11 @@ function flagTrue(user, key) {
   return Boolean(user?.[key]);
 }
 
-/** Coleta / OS — papel base ou toggle. */
+/** Coleta / OS — papel base, toggle ou ACL. */
 export const canAccessColeta = (role, user = null) => {
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("coleta");
+  }
   if (isCtliAdmin(role) || role === "client" || isGerenteGeralRole(role) || isFieldTechnicianRole(role)) {
     return true;
   }
@@ -70,6 +73,9 @@ export const canAccessColeta = (role, user = null) => {
 
 /** Painel / lista de certificados (inclui aprovação). */
 export const canAccessCalibrationCertificates = (role, user = null) => {
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("certificados");
+  }
   if (isFieldTechnicianRole(role) || isDirectorRole(role) || role === "administrativo_compras") {
     return false;
   }
@@ -105,50 +111,73 @@ export const canEditCalibrationCertificate = (role, user = null) => {
 };
 
 /** Pedidos de compra / orçamentos (PR-6.6). */
-export const canAccessPurchaseOrders = (role) =>
-  [
+export const canAccessPurchaseOrders = (role, user = null) => {
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("pedidos_compra");
+  }
+  return [
     "admin",
     "client",
     "gerente_geral",
     "gerente_qualidade",
     "administrativo_compras",
   ].includes(role);
+};
 
 /** Solicitações de orçamento — mesmos papéis que pedidos de compra. */
-export const canAccessQuotationRequests = canAccessPurchaseOrders;
+export const canAccessQuotationRequests = (role, user = null) => {
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules)
+      && (user.access_acl.modules.includes("solicitacao_orcamento")
+        || user.access_acl.modules.includes("pedidos_compra"));
+  }
+  return canAccessPurchaseOrders(role, user);
+};
 
 /** Propostas comerciais RE-7.1A. */
-export const canAccessCommercialProposals = (role) =>
-  [
+export const canAccessCommercialProposals = (role, user = null) => {
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("propostas");
+  }
+  return [
     "admin",
     "client",
     "gerente_geral",
     "gerente_tecnico",
     "administrativo_vendas",
   ].includes(role);
+};
 
 /** Módulo 6.2 Pessoal. */
-export const canAccessPersonnel = (role) =>
-  [
+export const canAccessPersonnel = (role, user = null) => {
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("pessoal");
+  }
+  return [
     "admin",
     "client",
     "gerente_geral",
     "gerente_qualidade",
     "gerente_tecnico",
   ].includes(role);
+};
 
 /** Edição de listas padrão do módulo Pessoal. */
-export const canEditPersonnelStandardOptions = (role) =>
-  ["admin", "client", "gerente_geral", "gerente_qualidade", "gerente_tecnico"].includes(role);
+export const canEditPersonnelStandardOptions = (role, user = null) =>
+  canAccessPersonnel(role, user);
 
 /** Lista Mestra de Documentos (PR-8.3). */
-export const canAccessMasterDocuments = (role) =>
-  [
+export const canAccessMasterDocuments = (role, user = null) => {
+  if (user?.access_acl && Number(user.access_acl.version) === 1) {
+    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("lista_mestra");
+  }
+  return [
     "admin",
     "client",
     "gerente_geral",
     "gerente_qualidade",
   ].includes(role);
+};
 
 export const canManageTechnicians = (role) =>
   role === "admin" || role === "client" || role === "gerente_geral";

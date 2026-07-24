@@ -197,7 +197,7 @@ const Layout = () => {
 
   const isClientNavItemVisible = (item) => {
     if (item.requiresColeta && !canAccessColeta(user?.role, user)) return false;
-    if (item.requiresCommercialProposals && !canAccessCommercialProposals(user?.role)) return false;
+    if (item.requiresCommercialProposals && !canAccessCommercialProposals(user?.role, user)) return false;
     if (item.requiresCalibrationCertificates && !canAccessCalibrationCertificates(user?.role, user)) return false;
     return true;
   };
@@ -229,7 +229,7 @@ const Layout = () => {
         );
       })}
 
-      {canAccessMasterDocuments(user?.role) && (
+      {canAccessMasterDocuments(user?.role, user) && (
         <Collapsible
           open={openNavGroup === "lista-mestra"}
           onOpenChange={handleNavGroupOpenChange("lista-mestra")}

@@ -5,6 +5,11 @@ import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposal
 import { DOCUMENT_SECTIONS } from "@/lib/documentFolderConfig";
 import { masterDocumentListPath } from "@/lib/masterDocuments/masterDocumentRoutes";
 import { usesClientSidebarNav } from "@/lib/roleNav";
+import {
+  isAclActive,
+  aclAllowsModule,
+  aclAllowedRequirementPathPrefixes,
+} from "@/lib/accessAcl";
 
 export const MANUAL_QUALIDADE_PATH = "/requirement/5/manual-qualidade";
 
@@ -66,22 +71,55 @@ const ALLOWED_PATH_PREFIXES = [
   "/lista-mestra",
 ];
 
-function matchesAllowedPrefix(pathname) {
-  return ALLOWED_PATH_PREFIXES.some(
+function matchesAllowedPrefix(pathname, prefixes = ALLOWED_PATH_PREFIXES) {
+  return prefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 }
 
 /**
  * Rotas permitidas para utilizadores com menu cliente (bloqueio por URL).
+ * Com ACL ativa, pastas/módulos vêm da seleção da conta.
  */
-export function isClientAllowedPath(pathname) {
+export function isClientAllowedPath(pathname, user = null) {
   if (!pathname) return false;
   if (pathname === "/login") return true;
 
-  if (pathname.startsWith("/cadastros")) return false;
   if (pathname.startsWith("/backup")) return false;
   if (pathname.startsWith("/admin")) return false;
+
+  const acl = user?.access_acl;
+  if (isAclActive(acl)) {
+    if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return true;
+    if (pathname === "/ajuda" || pathname.startsWith("/ajuda/")) return true;
+
+    if (pathname.startsWith(PROPOSAL_LIST_PATH) || pathname.includes("/pr-7-1")) {
+      return aclAllowsModule(acl, "propostas")
+        || matchesAllowedPrefix(pathname, aclAllowedRequirementPathPrefixes(acl));
+    }
+    if (pathname.startsWith(COLETA_LIST_PATH) || (pathname.includes("/pr-7-2") && pathname.includes("/coleta"))) {
+      return aclAllowsModule(acl, "coleta");
+    }
+    if (pathname.startsWith(CERTIFICATE_LIST_PATH) || pathname.startsWith(WEIGHT_CERTIFICATE_LIST_PATH)) {
+      return aclAllowsModule(acl, "certificados");
+    }
+    if (pathname.startsWith("/pedidos-compra")) return aclAllowsModule(acl, "pedidos_compra");
+    if (pathname.startsWith("/solicitacoes-orcamento")) return aclAllowsModule(acl, "solicitacao_orcamento");
+    if (pathname.startsWith("/lista-mestra") || pathname.includes("/pr-8-3")) {
+      return aclAllowsModule(acl, "lista_mestra")
+        || matchesAllowedPrefix(pathname, aclAllowedRequirementPathPrefixes(acl));
+    }
+    if (pathname.includes("/cadastro/")) {
+      return aclAllowsModule(acl, "cadastros")
+        && matchesAllowedPrefix(pathname, aclAllowedRequirementPathPrefixes(acl));
+    }
+    if (pathname.startsWith("/requirement/")) {
+      return matchesAllowedPrefix(pathname, aclAllowedRequirementPathPrefixes(acl));
+    }
+    return false;
+  }
+
+  if (pathname.startsWith("/cadastros")) return false;
   if (pathname.startsWith("/pedidos-compra")) return false;
   if (pathname.startsWith("/solicitacoes-orcamento")) return false;
 

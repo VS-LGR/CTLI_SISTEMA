@@ -90,7 +90,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
 
   useEffect(() => { load(); }, [load]);
 
-  if (!canAccessQuotationRequests(user?.role)) {
+  if (!canAccessQuotationRequests(user?.role, user)) {
     return <div className="text-slate-600 text-sm">Sem permissão para solicitações de orçamento.</div>;
   }
   if (!isSupabaseAuthMode) {

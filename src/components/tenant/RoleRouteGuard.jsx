@@ -86,7 +86,7 @@ export default function RoleRouteGuard({ currentTenant, outletContext }) {
     return <Outlet context={outletContext} />;
   }
 
-  if (usesClientSidebarNav(user.role, currentTenant, user) && !isClientAllowedPath(loc.pathname)) {
+  if (usesClientSidebarNav(user.role, currentTenant, user) && !isClientAllowedPath(loc.pathname, user)) {
     return <Navigate to="/dashboard" replace />;
   }
 

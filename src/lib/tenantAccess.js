@@ -22,6 +22,13 @@ import {
   CLIENT_ENV_REQ8_FOLDERS,
   isClientEnvironmentUser,
 } from "@/lib/clientNavConfig";
+import {
+  isAclActive,
+  aclAllowsModule,
+  aclAllowsRequirement,
+  aclAllowsFolder,
+  aclAllowsCadastroSection,
+} from "@/lib/accessAcl";
 
 export const DEPLOYMENT_MODELS = {
   FULL: "full",
@@ -141,14 +148,33 @@ export function canAccessModule({ tenant, role, module, user = null }) {
     return false;
   }
 
+  // ACL granular por conta (quando ativa)
+  if (isAclActive(user?.access_acl)) {
+    if (module === "coleta") return aclAllowsModule(user.access_acl, "coleta");
+    if (module === "certificados") return aclAllowsModule(user.access_acl, "certificados");
+    if (module === "propostas") return aclAllowsModule(user.access_acl, "propostas");
+    if (module === "pessoal") return aclAllowsModule(user.access_acl, "pessoal");
+    if (module === "lista_mestra") return aclAllowsModule(user.access_acl, "lista_mestra");
+    if (module === "pedidos_compra" || module === "solicitacao_orcamento") {
+      return aclAllowsModule(user.access_acl, module);
+    }
+    if (module === "cadastros" || module === "thermo" || module === "pesos" || module === "balancas") {
+      return aclAllowsModule(user.access_acl, "cadastros");
+    }
+    if (module === "req4" || module === "req5" || module === "req6" || module === "req7" || module === "req8") {
+      return aclAllowsModule(user.access_acl, module);
+    }
+    return aclAllowsModule(user.access_acl, module);
+  }
+
   if (isGerenteGeralRole(role)) {
     if (module === "coleta") return canAccessColeta(role, user);
-    if (module === "propostas") return canAccessCommercialProposals(role);
+    if (module === "propostas") return canAccessCommercialProposals(role, user);
     if (module === "certificados") return canAccessCalibrationCertificates(role, user);
-    if (module === "pessoal") return canAccessPersonnel(role);
-    if (module === "lista_mestra") return canAccessMasterDocuments(role);
+    if (module === "pessoal") return canAccessPersonnel(role, user);
+    if (module === "lista_mestra") return canAccessMasterDocuments(role, user);
     if (module === "pedidos_compra" || module === "solicitacao_orcamento") {
-      return canAccessPurchaseOrders(role);
+      return canAccessPurchaseOrders(role, user);
     }
     if (module === "cadastros" || module === "thermo" || module === "pesos" || module === "balancas") {
       return true;
@@ -159,23 +185,23 @@ export function canAccessModule({ tenant, role, module, user = null }) {
     return CLIENT_PORTAL_MODULES.has(module);
   }
 
-  // Conta cliente (portal enxuto)
+  // Conta cliente (portal enxuto) — legado sem ACL
   if (isClientEnvironmentUser(role, user, tenant)) {
     if (module === "coleta") return canAccessColeta(role, user);
-    if (module === "propostas") return canAccessCommercialProposals(role);
+    if (module === "propostas") return canAccessCommercialProposals(role, user);
     if (module === "certificados") return canAccessCalibrationCertificates(role, user);
-    if (module === "lista_mestra") return canAccessMasterDocuments(role);
+    if (module === "lista_mestra") return canAccessMasterDocuments(role, user);
     if (module === "req5" || module === "req7" || module === "req8") return true;
     return false;
   }
 
   if (module === "coleta") return canAccessColeta(role, user);
   if (module === "certificados") return canAccessCalibrationCertificates(role, user);
-  if (module === "propostas") return canAccessCommercialProposals(role);
-  if (module === "pessoal") return canAccessPersonnel(role);
-  if (module === "lista_mestra") return canAccessMasterDocuments(role);
+  if (module === "propostas") return canAccessCommercialProposals(role, user);
+  if (module === "pessoal") return canAccessPersonnel(role, user);
+  if (module === "lista_mestra") return canAccessMasterDocuments(role, user);
   if (module === "pedidos_compra" || module === "solicitacao_orcamento") {
-    return canAccessPurchaseOrders(role);
+    return canAccessPurchaseOrders(role, user);
   }
   if (module === "cadastros") return canAccessCadastrosMenu(role);
   if (module === "thermo" || module === "pesos" || module === "balancas") {
@@ -202,11 +228,17 @@ export function canAccessModule({ tenant, role, module, user = null }) {
 
 export function canAccessRequirement({ tenant, role, requirementId, user = null }) {
   const rid = String(requirementId);
-  if (isCtliAdmin(role) || isGerenteGeralRole(role)) return true;
+  if (isCtliAdmin(role)) return true;
 
   if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
     return false;
   }
+
+  if (isAclActive(user?.access_acl)) {
+    return aclAllowsRequirement(user.access_acl, rid);
+  }
+
+  if (isGerenteGeralRole(role)) return true;
 
   if (isClientEnvironmentUser(role, user, tenant)) {
     return CLIENT_ENV_REQ_IDS.has(rid);
@@ -230,11 +262,17 @@ export function canAccessRequirement({ tenant, role, requirementId, user = null 
 }
 
 export function canAccessRequirementFolder({ tenant, role, requirementId, folderKey, user = null }) {
-  if (isCtliAdmin(role) || isGerenteGeralRole(role)) return true;
+  if (isCtliAdmin(role)) return true;
 
   if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
     return false;
   }
+
+  if (isAclActive(user?.access_acl)) {
+    return aclAllowsFolder(user.access_acl, requirementId, folderKey);
+  }
+
+  if (isGerenteGeralRole(role)) return true;
 
   if (isClientEnvironmentUser(role, user, tenant)) {
     const rid = String(requirementId);
@@ -274,7 +312,13 @@ export function canAccessCadastroSection({ tenant, role, sectionId, user = null 
   if (sectionId === "usuarios") return isCtliAdmin(role);
   if (sectionId === "config-coleta" || sectionId === "config-proposta") return false;
   if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) return false;
-  if (isCtliAdmin(role) || isGerenteGeralRole(role)) return true;
+  if (isCtliAdmin(role)) return true;
+
+  if (isAclActive(user?.access_acl)) {
+    return aclAllowsCadastroSection(user.access_acl, sectionId);
+  }
+
+  if (isGerenteGeralRole(role)) return true;
 
   if (isClientEnvironmentUser(role, user, tenant)) return false;
 

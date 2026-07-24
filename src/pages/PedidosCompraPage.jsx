@@ -12,7 +12,7 @@ export default function PedidosCompraPage() {
   const { user } = useAuth();
   const { currentTenantId, currentTenant } = useOutletContext();
 
-  if (!canAccessPurchaseOrders(user?.role)) {
+  if (!canAccessPurchaseOrders(user?.role, user)) {
     return <div className="text-slate-600">Sem permissão para pedidos de compra.</div>;
   }
   if (!isSupabaseAuthMode) {

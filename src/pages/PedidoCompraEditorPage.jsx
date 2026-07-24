@@ -295,7 +295,7 @@ export default function PedidoCompraEditorPage() {
   const fieldCfg = form?.type ? getServiceFieldConfig(form.type) : null;
   const employees = cadastro.employees || [];
 
-  if (!canAccessPurchaseOrders(user?.role)) {
+  if (!canAccessPurchaseOrders(user?.role, user)) {
     return <div className="text-slate-600">Sem permissão.</div>;
   }
   if (!isSupabaseAuthMode || !currentTenantId) {

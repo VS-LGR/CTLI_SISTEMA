@@ -7,9 +7,16 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { invokeSupabaseEdgeFunction } from "@/lib/supabaseFunctions";
-import { ROLES, roleShort, roleAllowsAccessToggles } from "@/lib/roles";
+import { ROLES, roleShort } from "@/lib/roles";
 import { TENANT_ADMIN_CREATABLE_ROLES } from "@/lib/tenantAccess";
 import { useAuth } from "@/context/AuthContext";
+import AccessAclPicker from "@/components/access/AccessAclPicker";
+import {
+  accessFlagsFromAcl,
+  isAclActive,
+  normalizeAccessAcl,
+  presetAccessAclForRole,
+} from "@/lib/accessAcl";
 
 const ASSIGNABLE_ROLES = ROLES.filter((r) => TENANT_ADMIN_CREATABLE_ROLES.includes(r.value));
 
@@ -24,15 +31,14 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("gerente_qualidade");
   const [employeeId, setEmployeeId] = useState("");
-  const [accessColeta, setAccessColeta] = useState(false);
-  const [accessCertificados, setAccessCertificados] = useState(false);
+  const [accessAcl, setAccessAcl] = useState(() => presetAccessAclForRole("gerente_qualidade"));
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!tenantId) return;
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, email, full_name, role, employee_registration_id, access_coleta, access_certificados")
+      .select("id, email, full_name, role, employee_registration_id, access_coleta, access_certificados, access_acl")
       .eq("tenant_id", tenantId)
       .neq("role", "admin")
       .order("full_name");
@@ -60,8 +66,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
     setPassword("");
     setRole("gerente_qualidade");
     setEmployeeId("");
-    setAccessColeta(false);
-    setAccessCertificados(false);
+    setAccessAcl(presetAccessAclForRole("gerente_qualidade"));
   };
 
   const openCreate = () => {
@@ -77,8 +82,11 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
     setPassword("");
     setRole(row.role || "gerente_qualidade");
     setEmployeeId(row.employee_registration_id || "");
-    setAccessColeta(Boolean(row.access_coleta));
-    setAccessCertificados(Boolean(row.access_certificados));
+    setAccessAcl(
+      isAclActive(row.access_acl)
+        ? normalizeAccessAcl(row.access_acl)
+        : presetAccessAclForRole(row.role),
+    );
     setOpen(true);
   };
 
@@ -94,9 +102,12 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
     if (role === "signatario" && !employeeId) return toast.error("Selecione o colaborador signatário");
     setSaving(true);
     try {
-      const flags = {
-        access_coleta: accessColeta,
-        access_certificados: accessCertificados,
+      const aclPayload = normalizeAccessAcl(accessAcl);
+      const flags = accessFlagsFromAcl(aclPayload);
+      const payload = {
+        access_coleta: flags.access_coleta,
+        access_certificados: flags.access_certificados,
+        access_acl: aclPayload,
       };
       if (editing) {
         await invoke({
@@ -107,7 +118,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
           role,
           ...(password ? { password } : {}),
           ...(role === "signatario" ? { employee_registration_id: employeeId } : {}),
-          ...flags,
+          ...payload,
         });
         toast.success("Usuário atualizado");
       } else {
@@ -118,7 +129,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
           password,
           role,
           ...(role === "signatario" ? { employee_registration_id: employeeId } : {}),
-          ...flags,
+          ...payload,
         });
         toast.success("Usuário criado");
       }
@@ -197,7 +208,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
       </div>
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar usuário" : "Novo usuário"}</DialogTitle>
           </DialogHeader>
@@ -207,12 +218,10 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
               <select
                 value={role}
                 onChange={(e) => {
-                  setRole(e.target.value);
-                  if (e.target.value !== "signatario") setEmployeeId("");
-                  if (!roleAllowsAccessToggles(e.target.value)) {
-                    setAccessColeta(false);
-                    setAccessCertificados(false);
-                  }
+                  const next = e.target.value;
+                  setRole(next);
+                  if (next !== "signatario") setEmployeeId("");
+                  setAccessAcl(presetAccessAclForRole(next));
                 }}
                 className="w-full border rounded-md h-10 px-3 mt-1 text-sm"
               >
@@ -221,27 +230,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
                 ))}
               </select>
             </div>
-            {roleAllowsAccessToggles(role) && (
-              <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs font-medium text-slate-700">Acessos adicionais</p>
-                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={accessColeta}
-                    onChange={(e) => setAccessColeta(e.target.checked)}
-                  />
-                  Acesso à coleta / OS
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={accessCertificados}
-                    onChange={(e) => setAccessCertificados(e.target.checked)}
-                  />
-                  Acesso à emissão de certificados
-                </label>
-              </div>
-            )}
+            <AccessAclPicker value={accessAcl} onChange={setAccessAcl} />
             {role === "signatario" && (
               <div>
                 <Label>Colaborador signatário</Label>

@@ -1,18 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getServiceRoleKey } from "../_shared/env.ts";
+import { resolveAccessAclFromBody } from "../_shared/accessAcl.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-const ROLES_WITH_ACCESS_TOGGLES = new Set([
-  "gerente_qualidade",
-  "gerente_tecnico",
-  "administrativo_vendas",
-]);
 
 async function requireAdmin(req: Request) {
   const authHeader = req.headers.get("Authorization");
@@ -35,16 +30,6 @@ async function requireAdmin(req: Request) {
   }
 
   return { userClient, supabaseUrl, user };
-}
-
-function resolveAccessFlags(role: string, body: Record<string, unknown>) {
-  if (!ROLES_WITH_ACCESS_TOGGLES.has(role)) {
-    return { access_coleta: false, access_certificados: false };
-  }
-  return {
-    access_coleta: Boolean(body.access_coleta),
-    access_certificados: Boolean(body.access_certificados),
-  };
 }
 
 serve(async (req) => {
@@ -77,7 +62,7 @@ serve(async (req) => {
       });
     }
 
-    const flags = resolveAccessFlags(role, body);
+    const access = resolveAccessAclFromBody(role, body);
 
     const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
       email,
@@ -102,8 +87,9 @@ serve(async (req) => {
       email,
       role,
       tenant_id: role === "admin" ? null : tenant_id,
-      access_coleta: flags.access_coleta,
-      access_certificados: flags.access_certificados,
+      access_coleta: access.access_coleta,
+      access_certificados: access.access_certificados,
+      access_acl: access.access_acl,
       updated_at: new Date().toISOString(),
     };
     if (employee_registration_id) profilePatch.employee_registration_id = employee_registration_id;

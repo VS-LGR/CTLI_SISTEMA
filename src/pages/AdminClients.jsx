@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Buildings, UserPlus, Trash, Users, PencilSimple } from "@phosphor-icons/react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ROLES, RESPONSIBLE_ROLES, roleShort, roleAllowsAccessToggles } from "@/lib/roles";
+import { ROLES, RESPONSIBLE_ROLES, roleShort } from "@/lib/roles";
 import { DEPLOYMENT_MODEL_OPTIONS, deploymentModelLabel } from "@/lib/tenantAccess";
 import { TENANT_BRANDING_BUCKET, tenantLogoStoragePath } from "@/lib/tenantBranding";
 import {
@@ -21,6 +21,13 @@ import {
 } from "@/lib/coletaDocMeta";
 import { invokeSupabaseEdgeFunction, toastSupabaseAccessError } from "@/lib/supabaseFunctions";
 import TenantUsersPanel from "@/components/cadastros/TenantUsersPanel";
+import AccessAclPicker from "@/components/access/AccessAclPicker";
+import {
+  accessFlagsFromAcl,
+  isAclActive,
+  normalizeAccessAcl,
+  presetAccessAclForRole,
+} from "@/lib/accessAcl";
 
 const isDocumentResponsibleRole = (role) =>
   RESPONSIBLE_ROLES.some((r) => r.value === role);
@@ -84,8 +91,7 @@ const AdminClients = () => {
   const [uRole, setURole] = useState("gerente_qualidade");
   const [uEmployeeId, setUEmployeeId] = useState("");
   const [uPortalAccess, setUPortalAccess] = useState(true);
-  const [uAccessColeta, setUAccessColeta] = useState(false);
-  const [uAccessCertificados, setUAccessCertificados] = useState(false);
+  const [uAccessAcl, setUAccessAcl] = useState(() => presetAccessAclForRole("gerente_qualidade"));
   const [tenantSignatories, setTenantSignatories] = useState([]);
 
   const resetTenantForm = () => {
@@ -137,8 +143,7 @@ const AdminClients = () => {
     setURole("gerente_qualidade");
     setUEmployeeId("");
     setUPortalAccess(true);
-    setUAccessColeta(false);
-    setUAccessCertificados(false);
+    setUAccessAcl(presetAccessAclForRole("gerente_qualidade"));
   };
 
   const loadSupabase = async () => {
@@ -173,6 +178,7 @@ const AdminClients = () => {
         employee_registration_id: p.employee_registration_id,
         access_coleta: Boolean(p.access_coleta),
         access_certificados: Boolean(p.access_certificados),
+        access_acl: p.access_acl && typeof p.access_acl === "object" ? p.access_acl : {},
       }));
 
       const { data: respRows, error: re } = await supabase
@@ -413,6 +419,13 @@ const AdminClients = () => {
       }
 
       try {
+        const aclPayload = uRole === "admin"
+          ? {}
+          : normalizeAccessAcl(uAccessAcl);
+        const flags = uRole === "admin"
+          ? { access_coleta: false, access_certificados: false }
+          : accessFlagsFromAcl(aclPayload);
+
         if (isSupabaseAuthMode) {
           if (editingUserId) {
             await invokeSupabaseEdgeFunction("admin-update-user", {
@@ -422,8 +435,9 @@ const AdminClients = () => {
               tenant_id: uRole === "admin" ? null : uTenant,
               email: uEmail.trim(),
               employee_registration_id: uRole === "signatario" ? uEmployeeId : null,
-              access_coleta: uAccessColeta,
-              access_certificados: uAccessCertificados,
+              access_coleta: flags.access_coleta,
+              access_certificados: flags.access_certificados,
+              access_acl: aclPayload,
             });
             toast.success("Utilizador atualizado");
           } else {
@@ -434,8 +448,9 @@ const AdminClients = () => {
               role: uRole,
               tenant_id: uRole === "admin" ? null : uTenant,
               employee_registration_id: uRole === "signatario" ? uEmployeeId : undefined,
-              access_coleta: uAccessColeta,
-              access_certificados: uAccessCertificados,
+              access_coleta: flags.access_coleta,
+              access_certificados: flags.access_certificados,
+              access_acl: aclPayload,
             });
             toast.success("Utilizador criado");
           }
@@ -513,8 +528,11 @@ const AdminClients = () => {
     setUTenant(u.role === "admin" ? "" : tenantIdForScope || u.tenant_id || "");
     setUEmployeeId(u.employee_registration_id || "");
     setUPortalAccess(true);
-    setUAccessColeta(Boolean(u.access_coleta));
-    setUAccessCertificados(Boolean(u.access_certificados));
+    setUAccessAcl(
+      isAclActive(u.access_acl)
+        ? normalizeAccessAcl(u.access_acl)
+        : presetAccessAclForRole(u.role),
+    );
     setOpenUser(true);
   };
 
@@ -648,11 +666,11 @@ const AdminClients = () => {
                   <select
                     value={uRole}
                     onChange={(e) => {
-                      setURole(e.target.value);
-                      if (e.target.value !== "signatario") setUEmployeeId("");
-                      if (!roleAllowsAccessToggles(e.target.value)) {
-                        setUAccessColeta(false);
-                        setUAccessCertificados(false);
+                      const nextRole = e.target.value;
+                      setURole(nextRole);
+                      if (nextRole !== "signatario") setUEmployeeId("");
+                      if (nextRole !== "admin") {
+                        setUAccessAcl(presetAccessAclForRole(nextRole));
                       }
                     }}
                     className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
@@ -665,28 +683,8 @@ const AdminClients = () => {
                     ))}
                   </select>
                 </div>
-                {uPortalAccess && roleAllowsAccessToggles(uRole) && (
-                  <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-xs font-medium text-slate-700">Acessos adicionais</p>
-                    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={uAccessColeta}
-                        onChange={(e) => setUAccessColeta(e.target.checked)}
-                        data-testid="user-access-coleta"
-                      />
-                      Acesso à coleta / OS
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={uAccessCertificados}
-                        onChange={(e) => setUAccessCertificados(e.target.checked)}
-                        data-testid="user-access-certificados"
-                      />
-                      Acesso à emissão de certificados
-                    </label>
-                  </div>
+                {uPortalAccess && uRole !== "admin" && (
+                  <AccessAclPicker value={uAccessAcl} onChange={setUAccessAcl} />
                 )}
                 {uPortalAccess && uRole === "signatario" && (
                   <div>

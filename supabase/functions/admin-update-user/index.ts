@@ -1,18 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getServiceRoleKey } from "../_shared/env.ts";
+import { resolveAccessAclFromBody } from "../_shared/accessAcl.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-const ROLES_WITH_ACCESS_TOGGLES = new Set([
-  "gerente_qualidade",
-  "gerente_tecnico",
-  "administrativo_vendas",
-]);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -93,13 +88,10 @@ serve(async (req) => {
       patch.employee_registration_id = employee_registration_id || null;
     }
 
-    if (ROLES_WITH_ACCESS_TOGGLES.has(effectiveRole)) {
-      patch.access_coleta = Boolean(body.access_coleta);
-      patch.access_certificados = Boolean(body.access_certificados);
-    } else {
-      patch.access_coleta = false;
-      patch.access_certificados = false;
-    }
+    const access = resolveAccessAclFromBody(String(effectiveRole || ""), body);
+    patch.access_coleta = access.access_coleta;
+    patch.access_certificados = access.access_certificados;
+    patch.access_acl = access.access_acl;
 
     const { error: upErr } = await adminClient.from("profiles").update(patch).eq("id", user_id);
     if (upErr) {

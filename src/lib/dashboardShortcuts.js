@@ -123,11 +123,11 @@ function mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }) {
     return { id: item.id, label: item.label, bgClass: item.bgClass, icon: item.icon, active: false, disabledReason: "Sem permissão para aceder à coleta" };
   }
 
-  if (item.requiresCommercialProposals && !canAccessCommercialProposals(role)) {
+  if (item.requiresCommercialProposals && !canAccessCommercialProposals(role, user)) {
     return { id: item.id, label: item.label, bgClass: item.bgClass, icon: item.icon, active: false, disabledReason: "Sem permissão para propostas comerciais" };
   }
 
-  if (item.requiresPersonnel && !canAccessPersonnel(role)) {
+  if (item.requiresPersonnel && !canAccessPersonnel(role, user)) {
     return { id: item.id, label: item.label, bgClass: item.bgClass, icon: item.icon, active: false, disabledReason: "Sem permissão para pessoal" };
   }
 

@@ -77,7 +77,7 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
     load();
   }, [load]);
 
-  if (!canAccessPurchaseOrders(user?.role)) {
+  if (!canAccessPurchaseOrders(user?.role, user)) {
     return <div className="text-slate-600 text-sm">Sem permissão para pedidos de compra.</div>;
   }
   if (!isSupabaseAuthMode) {

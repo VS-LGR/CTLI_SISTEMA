@@ -164,6 +164,11 @@ const FOLDERS = {
   ],
 };
 
+/** Catálogo completo de pastas por requisito (para ACL / UI). */
+export function getRequirementFolderCatalog() {
+  return FOLDERS;
+}
+
 export function requiresFolderNav(requirementId) {
   return Object.prototype.hasOwnProperty.call(FOLDERS, String(requirementId));
 }

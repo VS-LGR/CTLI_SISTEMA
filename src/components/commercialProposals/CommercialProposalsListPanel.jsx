@@ -100,7 +100,7 @@ export default function CommercialProposalsListPanel({ tenantId, tenant }) {
     }
   };
 
-  if (!canAccessCommercialProposals(user?.role)) {
+  if (!canAccessCommercialProposals(user?.role, user)) {
     return <div className="text-slate-600 text-sm">Sem permissão para propostas comerciais.</div>;
   }
   if (!isSupabaseAuthMode) {

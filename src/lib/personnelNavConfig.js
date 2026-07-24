@@ -15,8 +15,8 @@ export const PERSONNEL_NAV_ITEMS = [
   { id: "listas", label: "Níveis e Listas Padrão", to: PERSONNEL_LISTAS_PATH, requiresStandardOptions: true },
 ];
 
-export function getVisiblePersonnelNavItems(role) {
-  if (!canAccessPersonnel(role)) return [];
+export function getVisiblePersonnelNavItems(role, user = null) {
+  if (!canAccessPersonnel(role, user)) return [];
   return PERSONNEL_NAV_ITEMS.filter(
     (item) => !item.requiresStandardOptions || canEditPersonnelStandardOptions(role),
   );

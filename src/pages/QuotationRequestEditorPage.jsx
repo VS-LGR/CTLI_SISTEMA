@@ -289,7 +289,7 @@ export default function QuotationRequestEditorPage() {
     }
   };
 
-  if (!canAccessQuotationRequests(user?.role)) {
+  if (!canAccessQuotationRequests(user?.role, user)) {
     return <div className="p-8 text-slate-600">Sem permissão.</div>;
   }
   if (loading || !form) {

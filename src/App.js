@@ -105,19 +105,19 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, certificat
   if (certificatesOnly && !canAccessCalibrationCertificates(user.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (purchaseOrdersOnly && !canAccessPurchaseOrders(user.role)) {
+  if (purchaseOrdersOnly && !canAccessPurchaseOrders(user.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (quotationRequestsOnly && !canAccessQuotationRequests(user.role)) {
+  if (quotationRequestsOnly && !canAccessQuotationRequests(user.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (commercialProposalsOnly && !canAccessCommercialProposals(user.role)) {
+  if (commercialProposalsOnly && !canAccessCommercialProposals(user.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (personnelOnly && !canAccessPersonnel(user.role)) {
+  if (personnelOnly && !canAccessPersonnel(user.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (masterDocumentsOnly && !canAccessMasterDocuments(user.role)) {
+  if (masterDocumentsOnly && !canAccessMasterDocuments(user.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
