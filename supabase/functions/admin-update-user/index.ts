@@ -8,6 +8,12 @@ const corsHeaders: Record<string, string> = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const ROLES_WITH_ACCESS_TOGGLES = new Set([
+  "gerente_qualidade",
+  "gerente_tecnico",
+  "administrativo_vendas",
+]);
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -85,6 +91,14 @@ serve(async (req) => {
 
     if (employee_registration_id !== undefined) {
       patch.employee_registration_id = employee_registration_id || null;
+    }
+
+    if (ROLES_WITH_ACCESS_TOGGLES.has(effectiveRole)) {
+      patch.access_coleta = Boolean(body.access_coleta);
+      patch.access_certificados = Boolean(body.access_certificados);
+    } else {
+      patch.access_coleta = false;
+      patch.access_certificados = false;
     }
 
     const { error: upErr } = await adminClient.from("profiles").update(patch).eq("id", user_id);

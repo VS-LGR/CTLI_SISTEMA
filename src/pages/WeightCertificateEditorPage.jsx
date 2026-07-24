@@ -126,10 +126,10 @@ export default function WeightCertificateEditorPage() {
   const [obsoleteOpen, setObsoleteOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const canEdit = canEditCalibrationCertificate(user?.role);
+  const canEdit = canEditCalibrationCertificate(user?.role, user);
   const canApprove = canApproveCalibrationCertificate(user?.role);
-  const canEmit = canEmitCalibrationCertificate(user?.role);
-  const canSend = canSendCertificateEmail(user?.role);
+  const canEmit = canEmitCalibrationCertificate(user?.role, user);
+  const canSend = canSendCertificateEmail(user?.role, user);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -184,7 +184,7 @@ export default function WeightCertificateEditorPage() {
     });
   }, [currentTenantId]);
 
-  if (!canAccessCalibrationCertificates(user?.role)) {
+  if (!canAccessCalibrationCertificates(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (!isSupabaseAuthMode || !currentTenantId) {
@@ -325,11 +325,15 @@ export default function WeightCertificateEditorPage() {
   };
 
   const handleReprove = async () => {
+    if (!approvalNotes.trim()) {
+      toast.error("Informe o motivo da reprovação");
+      return;
+    }
     setBusy(true);
     try {
       const updated = await transitionWeightCertificateStatus(cert.id, "reprovado", {
         userId: user.id,
-        notes: approvalNotes,
+        notes: approvalNotes.trim(),
       });
       setCert(updated);
       toast.success("Certificado reprovado");
@@ -769,7 +773,7 @@ export default function WeightCertificateEditorPage() {
                 </Button>
                 <Input
                   className={`max-w-xs ${fieldClass}`}
-                  placeholder="Notas da aprovação"
+                  placeholder="Motivo da reprovação (obrigatório)"
                   value={approvalNotes}
                   onChange={(e) => setApprovalNotes(e.target.value)}
                 />

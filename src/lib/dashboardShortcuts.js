@@ -119,7 +119,7 @@ function mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }) {
     };
   }
 
-  if (item.requiresColeta && !canAccessColeta(role)) {
+  if (item.requiresColeta && !canAccessColeta(role, user)) {
     return { id: item.id, label: item.label, bgClass: item.bgClass, icon: item.icon, active: false, disabledReason: "Sem permissão para aceder à coleta" };
   }
 
@@ -131,7 +131,7 @@ function mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }) {
     return { id: item.id, label: item.label, bgClass: item.bgClass, icon: item.icon, active: false, disabledReason: "Sem permissão para pessoal" };
   }
 
-  if (item.requiresCalibrationCertificates && !canAccessCalibrationCertificates(role)) {
+  if (item.requiresCalibrationCertificates && !canAccessCalibrationCertificates(role, user)) {
     return { id: item.id, label: item.label, bgClass: item.bgClass, icon: item.icon, active: false, disabledReason: "Sem permissão para certificados" };
   }
 
@@ -156,6 +156,17 @@ export function getVisibleDashboardShortcuts(role, tenant = null, user = null) {
   if (isFieldTechnicianRole(role)) {
     return HERO_SHORTCUTS
       .filter((item) => item.module === "coleta")
+      .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() }))
+      .filter((s) => s.active);
+  }
+
+  if (role === "diretor") {
+    return [];
+  }
+
+  if (role === "signatario") {
+    return HERO_SHORTCUTS
+      .filter((item) => item.module === "certificados")
       .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() }))
       .filter((s) => s.active);
   }

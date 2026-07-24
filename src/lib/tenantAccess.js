@@ -2,6 +2,9 @@ import {
   ROLES,
   isCtliAdmin,
   isFieldTechnicianRole,
+  isSignatoryRole,
+  isDirectorRole,
+  isGerenteGeralRole,
   canAccessColeta,
   canAccessCalibrationCertificates,
   canAccessCommercialProposals,
@@ -9,7 +12,8 @@ import {
   canAccessMasterDocuments,
   canAccessPurchaseOrders,
   canManageTechnicians,
-  isClientPortalOperationsRole,
+  canAccessCadastrosMenu,
+  canManageTenantUsers,
 } from "@/lib/roles";
 import {
   CLIENT_ENV_REQ_IDS,
@@ -28,8 +32,10 @@ export const TENANT_ADMIN_CREATABLE_ROLES = [
   "tecnico_campo",
   "signatario",
   "administrativo_vendas",
+  "administrativo_compras",
   "gerente_qualidade",
   "gerente_tecnico",
+  "gerente_geral",
   "diretor",
 ];
 
@@ -49,6 +55,7 @@ export const CLIENT_PORTAL_CADASTRO_SECTIONS = new Set([
   "thermo",
   "tecnicos",
   "clientes",
+  "fornecedores",
 ]);
 
 export const CLIENT_PORTAL_MODULES = new Set([
@@ -70,6 +77,20 @@ export const CLIENT_PORTAL_MODULES = new Set([
   "req8",
   "tenant_users",
 ]);
+
+/** Pastas liberadas por papel (matriz RBAC). */
+const ROLE_REQ_ACCESS = {
+  gerente_qualidade: { reqs: new Set(["4", "6", "8"]), folders: null },
+  gerente_tecnico: { reqs: new Set(["7"]), folders: null },
+  administrativo_vendas: {
+    reqs: new Set(["7"]),
+    folders: { "7": new Set(["pr-7-1", "pr-7-1-7"]) },
+  },
+  administrativo_compras: {
+    reqs: new Set(["6"]),
+    folders: { "6": new Set(["pr-6-6"]) },
+  },
+};
 
 export function normalizeDeploymentModel(tenant) {
   const m = tenant?.deployment_model;
@@ -94,91 +115,127 @@ export function isEffectiveClientPortal(tenant, role) {
   return effectiveDeploymentModel(tenant, role) === DEPLOYMENT_MODELS.CLIENT_PORTAL;
 }
 
+function isCtliOnlyModule(module) {
+  return module === "backup" || module === "admin_clients";
+}
+
 export function canAccessModule({ tenant, role, module, user = null }) {
   if (!module) return true;
   if (isCtliAdmin(role)) return true;
+
+  if (isCtliOnlyModule(module)) return false;
+
+  if (module === "tenant_users") {
+    return canManageTenantUsers(role);
+  }
 
   if (isFieldTechnicianRole(role)) {
     return module === "coleta";
   }
 
-  if (isClientEnvironmentUser(role, user, tenant)) {
-    if (module === "coleta") return canAccessColeta(role);
+  if (isSignatoryRole(role)) {
+    return module === "certificados";
+  }
+
+  if (isDirectorRole(role)) {
+    return false;
+  }
+
+  if (isGerenteGeralRole(role)) {
+    if (module === "coleta") return canAccessColeta(role, user);
     if (module === "propostas") return canAccessCommercialProposals(role);
-    if (module === "certificados") return canAccessCalibrationCertificates(role);
+    if (module === "certificados") return canAccessCalibrationCertificates(role, user);
+    if (module === "pessoal") return canAccessPersonnel(role);
+    if (module === "lista_mestra") return canAccessMasterDocuments(role);
+    if (module === "pedidos_compra" || module === "solicitacao_orcamento") {
+      return canAccessPurchaseOrders(role);
+    }
+    if (module === "cadastros" || module === "thermo" || module === "pesos" || module === "balancas") {
+      return true;
+    }
+    if (module === "req4" || module === "req5" || module === "req6" || module === "req7" || module === "req8") {
+      return true;
+    }
+    return CLIENT_PORTAL_MODULES.has(module);
+  }
+
+  // Conta cliente (portal enxuto)
+  if (isClientEnvironmentUser(role, user, tenant)) {
+    if (module === "coleta") return canAccessColeta(role, user);
+    if (module === "propostas") return canAccessCommercialProposals(role);
+    if (module === "certificados") return canAccessCalibrationCertificates(role, user);
     if (module === "lista_mestra") return canAccessMasterDocuments(role);
     if (module === "req5" || module === "req7" || module === "req8") return true;
     return false;
   }
 
-  const portal = isEffectiveClientPortal(tenant, role);
-
-  if (module === "backup" || module === "admin_clients") {
-    return isCtliAdmin(role);
-  }
-
-  if (module === "tenant_users") {
-    return isCtliAdmin(role);
-  }
-
-  if (module === "pedidos_compra" || module === "solicitacao_orcamento") {
-    return !portal && canAccessPurchaseOrders(role);
-  }
-
-  if (module === "req4") {
-    return !portal;
-  }
-
-  if (portal) {
-    if (module === "pedidos_compra" || module === "solicitacao_orcamento") return false;
-    if (module === "backup" || module === "admin_clients" || module === "req4") return false;
-    if (module === "tenant_users") return false;
-    if (isClientPortalOperationsRole(role) || role === "client") {
-      if (module === "coleta") return canAccessColeta(role);
-      if (module === "propostas") return canAccessCommercialProposals(role);
-      if (module === "certificados") return canAccessCalibrationCertificates(role);
-      if (module === "pessoal") return canAccessPersonnel(role);
-      if (module === "lista_mestra") return canAccessMasterDocuments(role);
-      if (module === "thermo" || module === "pesos" || module === "balancas") return true;
-      if (module === "req5" || module === "req6" || module === "req7" || module === "req8" || module === "cadastros") return true;
-      return CLIENT_PORTAL_MODULES.has(module);
-    }
-    if (module === "coleta") return canAccessColeta(role);
-    if (module === "propostas") return canAccessCommercialProposals(role);
-    if (module === "certificados") return canAccessCalibrationCertificates(role);
-    if (module === "pessoal") return canAccessPersonnel(role);
-    if (module === "thermo" || module === "pesos" || module === "balancas") return true;
-    if (module === "lista_mestra") return canAccessMasterDocuments(role);
-    if (module === "req5") return true;
-    if (module === "req6" || module === "req7" || module === "req8") return true;
-    if (module === "cadastros") return true;
-    return CLIENT_PORTAL_MODULES.has(module);
-  }
-
-  if (module === "coleta") return canAccessColeta(role);
-  if (module === "certificados") return canAccessCalibrationCertificates(role);
+  if (module === "coleta") return canAccessColeta(role, user);
+  if (module === "certificados") return canAccessCalibrationCertificates(role, user);
   if (module === "propostas") return canAccessCommercialProposals(role);
   if (module === "pessoal") return canAccessPersonnel(role);
   if (module === "lista_mestra") return canAccessMasterDocuments(role);
   if (module === "pedidos_compra" || module === "solicitacao_orcamento") {
     return canAccessPurchaseOrders(role);
   }
+  if (module === "cadastros") return canAccessCadastrosMenu(role);
+  if (module === "thermo" || module === "pesos" || module === "balancas") {
+    return canAccessCadastrosMenu(role);
+  }
+  if (module === "req4") {
+    return role === "gerente_qualidade" || isGerenteGeralRole(role);
+  }
+  if (module === "req5") {
+    return role === "client" || isGerenteGeralRole(role);
+  }
+  if (module === "req6") {
+    return ["gerente_qualidade", "administrativo_compras", "gerente_geral"].includes(role);
+  }
+  if (module === "req7") {
+    return ["gerente_tecnico", "administrativo_vendas", "gerente_geral", "client"].includes(role);
+  }
+  if (module === "req8") {
+    return ["gerente_qualidade", "gerente_geral", "client"].includes(role);
+  }
 
-  return true;
+  return false;
 }
 
 export function canAccessRequirement({ tenant, role, requirementId, user = null }) {
   const rid = String(requirementId);
-  if (isCtliAdmin(role)) return true;
+  if (isCtliAdmin(role) || isGerenteGeralRole(role)) return true;
+
+  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
+    return false;
+  }
+
   if (isClientEnvironmentUser(role, user, tenant)) {
     return CLIENT_ENV_REQ_IDS.has(rid);
   }
-  if (!isEffectiveClientPortal(tenant, role)) return true;
+
+  const matrix = ROLE_REQ_ACCESS[role];
+  if (matrix) return matrix.reqs.has(rid);
+
+  // Portal legado / client sem user context
+  if (role === "client") {
+    if (isEffectiveClientPortal(tenant, role)) return CLIENT_PORTAL_REQ_IDS.includes(rid);
+    return CLIENT_ENV_REQ_IDS.has(rid);
+  }
+
+  if (!isEffectiveClientPortal(tenant, role)) {
+    // Full tenant: papéis sem matriz restritiva
+    return true;
+  }
+
   return CLIENT_PORTAL_REQ_IDS.includes(rid);
 }
 
 export function canAccessRequirementFolder({ tenant, role, requirementId, folderKey, user = null }) {
-  if (isCtliAdmin(role)) return true;
+  if (isCtliAdmin(role) || isGerenteGeralRole(role)) return true;
+
+  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
+    return false;
+  }
+
   if (isClientEnvironmentUser(role, user, tenant)) {
     const rid = String(requirementId);
     if (rid === "5") return CLIENT_ENV_REQ5_FOLDERS.has(folderKey);
@@ -186,7 +243,25 @@ export function canAccessRequirementFolder({ tenant, role, requirementId, folder
     if (rid === "8") return CLIENT_ENV_REQ8_FOLDERS.has(folderKey);
     return false;
   }
+
+  const matrix = ROLE_REQ_ACCESS[role];
+  if (matrix) {
+    const rid = String(requirementId);
+    if (!matrix.reqs.has(rid)) return false;
+    if (matrix.folders?.[rid]) return matrix.folders[rid].has(folderKey);
+    return true;
+  }
+
+  if (role === "client") {
+    const rid = String(requirementId);
+    if (rid === "5") return CLIENT_ENV_REQ5_FOLDERS.has(folderKey);
+    if (rid === "7") return CLIENT_ENV_REQ7_FOLDERS.has(folderKey);
+    if (rid === "8") return CLIENT_ENV_REQ8_FOLDERS.has(folderKey);
+    return false;
+  }
+
   if (!isEffectiveClientPortal(tenant, role)) return true;
+
   const rid = String(requirementId);
   if (rid === "5") return true;
   if (rid === "6") return CLIENT_PORTAL_REQ6_FOLDERS.has(folderKey);
@@ -198,12 +273,21 @@ export function canAccessRequirementFolder({ tenant, role, requirementId, folder
 export function canAccessCadastroSection({ tenant, role, sectionId, user = null }) {
   if (sectionId === "usuarios") return isCtliAdmin(role);
   if (sectionId === "config-coleta" || sectionId === "config-proposta") return false;
-  if (isFieldTechnicianRole(role)) return false;
-  if (isCtliAdmin(role)) return true;
+  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) return false;
+  if (isCtliAdmin(role) || isGerenteGeralRole(role)) return true;
+
   if (isClientEnvironmentUser(role, user, tenant)) return false;
-  if (!isEffectiveClientPortal(tenant, role)) return true;
-  if (sectionId === "tecnicos") return canManageTechnicians(role);
-  return CLIENT_PORTAL_CADASTRO_SECTIONS.has(sectionId);
+
+  if (!canAccessCadastrosMenu(role)) return false;
+
+  if (sectionId === "tecnicos") return canManageTechnicians(role) || canAccessCadastrosMenu(role);
+
+  // Secções de cadastro alinhadas às pastas do papel
+  if (role === "administrativo_compras") {
+    return sectionId === "fornecedores" || CLIENT_PORTAL_CADASTRO_SECTIONS.has(sectionId);
+  }
+
+  return true;
 }
 
 export function getCreatableRolesForProvisioner(provisionerRole) {

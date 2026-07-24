@@ -59,10 +59,10 @@ export default function WeightCertificateNewPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (!canAccessCalibrationCertificates(user?.role)) {
+  if (!canAccessCalibrationCertificates(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (!canEditCalibrationCertificate(user?.role)) {
+  if (!canEditCalibrationCertificate(user?.role, user)) {
     return <Navigate to={WEIGHT_CERTIFICATE_LIST_PATH} replace />;
   }
   if (!isSupabaseAuthMode || !currentTenantId) {

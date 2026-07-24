@@ -65,7 +65,7 @@ export default function WeightColetaPage() {
     return () => clearTimeout(t);
   }, [load, query]);
 
-  if (!canAccessColeta(user?.role)) {
+  if (!canAccessColeta(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -101,7 +101,7 @@ export default function WeightColetaPage() {
   };
 
   const generateCertificate = async (row) => {
-    if (!canAccessCalibrationCertificates(user?.role)) {
+    if (!canAccessCalibrationCertificates(user?.role, user)) {
       return toast.error("Sem permissão para gerar certificados");
     }
     setGeneratingId(row.id);
@@ -139,7 +139,7 @@ export default function WeightColetaPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {canAccessCalibrationCertificates(user?.role) && (
+          {canAccessCalibrationCertificates(user?.role, user) && (
             <Button asChild variant="outline">
               <Link to={WEIGHT_CERTIFICATE_LIST_PATH}>
                 <Certificate size={18} className="mr-1" /> Certificados
@@ -226,7 +226,7 @@ export default function WeightColetaPage() {
                           icon: PencilSimple,
                           onSelect: () => navigate(weightColetaEditorPath(row.id)),
                         },
-                        canAccessCalibrationCertificates(user?.role)
+                        canAccessCalibrationCertificates(user?.role, user)
                           && row.workflow_status !== "certificado_gerado"
                           && {
                             key: "generate",

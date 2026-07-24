@@ -1,6 +1,7 @@
 import {
   isTechnicianOnlyNav,
   isSignatoryOnlyNav,
+  isDirectorOnlyNav,
   usesRestrictedNav,
   usesClientSidebarNav,
   restrictedNavHomePath,
@@ -11,29 +12,23 @@ describe("roleNav", () => {
   const fullTenant = { deployment_model: "full" };
   const clientUser = { tenant_id: "tenant-1" };
 
-  test("usesClientSidebarNav — utilizadores com tenant fixo", () => {
+  test("usesClientSidebarNav — apenas conta client", () => {
     expect(usesClientSidebarNav("client", portalTenant, clientUser)).toBe(true);
-    expect(usesClientSidebarNav("gerente_qualidade", fullTenant, clientUser)).toBe(true);
+    expect(usesClientSidebarNav("gerente_qualidade", fullTenant, clientUser)).toBe(false);
     expect(usesClientSidebarNav("admin", portalTenant, clientUser)).toBe(false);
-    expect(usesClientSidebarNav("client", portalTenant, { tenant_id: null })).toBe(false);
     expect(usesClientSidebarNav("tecnico_campo", portalTenant, clientUser)).toBe(false);
-    expect(usesClientSidebarNav("signatario", fullTenant, clientUser)).toBe(false);
-    expect(usesClientSidebarNav("signatario", portalTenant, clientUser)).toBe(true);
+    expect(usesClientSidebarNav("signatario", portalTenant, clientUser)).toBe(false);
   });
 
-  test("portal desativa nav restrita para signatário", () => {
-    expect(isTechnicianOnlyNav("tecnico_campo", portalTenant)).toBe(true);
-    expect(isSignatoryOnlyNav("signatario", portalTenant)).toBe(false);
-    expect(usesRestrictedNav("tecnico_campo", portalTenant)).toBe(true);
-    expect(usesRestrictedNav("signatario", portalTenant)).toBe(false);
-    expect(restrictedNavHomePath("tecnico_campo", portalTenant)).toContain("coleta");
-    expect(restrictedNavHomePath("signatario", portalTenant)).toBe("/dashboard");
-  });
-
-  test("ambiente full mantém nav restrita", () => {
-    expect(isTechnicianOnlyNav("tecnico_campo", fullTenant)).toBe(true);
-    expect(isSignatoryOnlyNav("signatario", fullTenant)).toBe(true);
-    expect(restrictedNavHomePath("tecnico_campo", fullTenant)).toContain("coleta");
-    expect(restrictedNavHomePath("signatario", fullTenant)).toContain("aguardando_aprovacao");
+  test("nav restrita para técnico, signatário e diretor", () => {
+    expect(isTechnicianOnlyNav("tecnico_campo")).toBe(true);
+    expect(isSignatoryOnlyNav("signatario")).toBe(true);
+    expect(isDirectorOnlyNav("diretor")).toBe(true);
+    expect(usesRestrictedNav("tecnico_campo")).toBe(true);
+    expect(usesRestrictedNav("signatario")).toBe(true);
+    expect(usesRestrictedNav("diretor")).toBe(true);
+    expect(restrictedNavHomePath("tecnico_campo")).toContain("coleta");
+    expect(restrictedNavHomePath("signatario")).toContain("aprovacao");
+    expect(restrictedNavHomePath("diretor")).toBe("/dashboard");
   });
 });

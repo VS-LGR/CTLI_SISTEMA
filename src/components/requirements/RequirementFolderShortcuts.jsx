@@ -18,8 +18,8 @@ import RequirementShortcutTile from "@/components/requirements/RequirementShortc
 export default function RequirementFolderShortcuts({ requirementId, folder, role, tenant, user }) {
   const location = useLocation();
   const filterOpts = {
-    canColeta: canAccessColeta(role),
-    canCalibrationCertificates: canAccessCalibrationCertificates(role),
+    canColeta: canAccessColeta(role, user),
+    canCalibrationCertificates: canAccessCalibrationCertificates(role, user),
     canPersonnelStandardOptions: canEditPersonnelStandardOptions(role),
     canMasterDocuments: canAccessMasterDocuments(role),
     canCommercialProposals: canAccessCommercialProposals(role),

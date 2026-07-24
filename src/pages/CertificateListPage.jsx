@@ -112,7 +112,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
 
   const canApprove = canApproveCalibrationCertificate(user?.role);
   const canSend = canSendCertificateEmail(user?.role) && !approvalMode;
-  const canCreate = canEditCalibrationCertificate(user?.role) && !approvalMode;
+  const canCreate = canEditCalibrationCertificate(user?.role, user) && !approvalMode;
 
   const load = useCallback(async () => {
     if (!currentTenantId) return;
@@ -176,7 +176,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
     [endCustomers],
   );
 
-  if (!canAccessCalibrationCertificates(user?.role)) {
+  if (!canAccessCalibrationCertificates(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (!isSupabaseAuthMode || !currentTenantId) {

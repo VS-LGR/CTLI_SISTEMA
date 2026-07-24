@@ -1,4 +1,4 @@
-import { resolveHelpModule, getHelpCatalogModules, HELP_PATH } from "./helpModules";
+import { resolveHelpModule, getHelpCatalogModules, getHelpCatalogModulesForUser, HELP_PATH } from "./helpModules";
 import { hasSeenTour, markTourSeen, resetTour } from "./tourStorage";
 
 describe("helpModules", () => {
@@ -11,6 +11,17 @@ describe("helpModules", () => {
   it("catálogo não inclui a entrada ajuda", () => {
     expect(getHelpCatalogModules().some((m) => m.moduleKey === "ajuda")).toBe(false);
     expect(getHelpCatalogModules().length).toBeGreaterThan(3);
+  });
+
+  it("filtra catálogo por papel", () => {
+    const tecnico = getHelpCatalogModulesForUser({ role: "tecnico_campo", user: { tenant_id: "t1" } });
+    expect(tecnico.every((m) => m.moduleKey === "coleta")).toBe(true);
+
+    const diretor = getHelpCatalogModulesForUser({ role: "diretor", user: { tenant_id: "t1" } });
+    expect(diretor.map((m) => m.moduleKey)).toEqual(["dashboard"]);
+
+    const signatario = getHelpCatalogModulesForUser({ role: "signatario", user: { tenant_id: "t1" } });
+    expect(signatario.every((m) => m.moduleKey.startsWith("certificados"))).toBe(true);
   });
 });
 

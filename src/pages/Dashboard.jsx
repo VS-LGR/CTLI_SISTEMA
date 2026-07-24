@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { fetchDashboard } from "@/lib/dashboardApi";
-import { canManageDashboardReminders, isCtliAdmin, canApproveCalibrationCertificate } from "@/lib/roles";
+import { canManageDashboardReminders, isCtliAdmin, canApproveCalibrationCertificate, isDirectorRole } from "@/lib/roles";
 import { isEffectiveClientPortal } from "@/lib/tenantAccess";
 import ClientPortalDashboard from "@/components/dashboard/ClientPortalDashboard";
+import DirectorMetricsDashboard from "@/components/dashboard/DirectorMetricsDashboard";
 import { getVisibleDashboardShortcuts, firstNameFromUser } from "@/lib/dashboardShortcuts";
 import { Card, CardContent } from "@/components/ui/card";
 import { FolderSimple, X, Info } from "@phosphor-icons/react";
@@ -64,6 +65,15 @@ const Dashboard = () => {
 
   if (!currentTenantId) {
     return <div className="text-slate-600">Selecione um ambiente para visualizar o dashboard.</div>;
+  }
+
+  if (isDirectorRole(user?.role)) {
+    return (
+      <DirectorMetricsDashboard
+        tenantId={currentTenantId}
+        tenantName={currentTenant?.name}
+      />
+    );
   }
 
   if (loading && !data) return <div className="text-slate-600">Carregando dashboard…</div>;

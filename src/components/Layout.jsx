@@ -17,7 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, canAccessColeta, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, canApproveCalibrationCertificate } from "@/lib/roles";
+import { roleShort, isTechnicianOnlyNav, isSignatoryOnlyNav, isDirectorOnlyNav, canAccessColeta, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals, canApproveCalibrationCertificate } from "@/lib/roles";
 import { canAccessModule } from "@/lib/tenantAccess";
 import { usesClientSidebarNav } from "@/lib/roleNav";
 import { CLIENT_TOP_NAV_ITEMS, getClientListaMestraNavItems } from "@/lib/clientNavConfig";
@@ -120,9 +120,10 @@ const Layout = () => {
 
   const currentTenant = tenants.find((t) => t.id === currentTenantId);
   const isAdmin = user?.role === "admin";
-  const technicianNav = isTechnicianOnlyNav(user?.role, currentTenant);
-  const signatoryNav = isSignatoryOnlyNav(user?.role, currentTenant);
-  const restrictedNav = technicianNav || signatoryNav;
+  const technicianNav = isTechnicianOnlyNav(user?.role);
+  const signatoryNav = isSignatoryOnlyNav(user?.role);
+  const directorNav = isDirectorOnlyNav(user?.role);
+  const restrictedNav = technicianNav || signatoryNav || directorNav;
   const clientSidebarNav = usesClientSidebarNav(user?.role, currentTenant, user);
   const showApprovalNav = canApproveCalibrationCertificate(user?.role) && !restrictedNav && !clientSidebarNav;
 
@@ -164,8 +165,8 @@ const Layout = () => {
     return p === reqGroupPathPrefix(rid) || p.startsWith(`${reqGroupPathPrefix(rid)}/`);
   };
 
-  const reqMenuItems = getVisibleReqMenuItems(currentTenant, user?.role);
-  const showBackupNav = canAccessModule({ tenant: currentTenant, role: user?.role, module: "backup" });
+  const reqMenuItems = getVisibleReqMenuItems(currentTenant, user?.role, user);
+  const showBackupNav = canAccessModule({ tenant: currentTenant, role: user?.role, module: "backup", user });
 
   useEffect(() => {
     const group = resolveNavGroupFromPath(location.pathname);
@@ -181,9 +182,9 @@ const Layout = () => {
     || location.pathname.startsWith("/lista-mestra");
 
   const isClientNavItemVisible = (item) => {
-    if (item.requiresColeta && !canAccessColeta(user?.role)) return false;
+    if (item.requiresColeta && !canAccessColeta(user?.role, user)) return false;
     if (item.requiresCommercialProposals && !canAccessCommercialProposals(user?.role)) return false;
-    if (item.requiresCalibrationCertificates && !canAccessCalibrationCertificates(user?.role)) return false;
+    if (item.requiresCalibrationCertificates && !canAccessCalibrationCertificates(user?.role, user)) return false;
     return true;
   };
 
@@ -260,6 +261,12 @@ const Layout = () => {
         </NavLink>
       )}
 
+      {directorNav && (
+        <NavLink to="/dashboard" className={navLinkClass} data-testid="nav-dashboard" onClick={onNavigate}>
+          <House size={18} weight="duotone" /> Dashboard
+        </NavLink>
+      )}
+
       {showApprovalNav && (
         <NavLink to={CERTIFICATE_PENDING_APPROVAL_PATH} className={navLinkClass} data-testid="nav-certificates-approval" onClick={onNavigate}>
           <ClipboardText size={18} weight="duotone" /> Aprovação
@@ -295,7 +302,7 @@ const Layout = () => {
                 </NavLink>
               );
             }
-            const folders = getFoldersForRequirement(r.id, currentTenant, user?.role);
+            const folders = getFoldersForRequirement(r.id, currentTenant, user?.role, user);
             return (
               <Collapsible
                 key={r.id}
@@ -406,7 +413,7 @@ const Layout = () => {
 
   return (
     <TooltipProvider delayDuration={200}>
-    <ModuleTourProvider>
+    <ModuleTourProvider currentTenant={currentTenant}>
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       {/* Desktop sidebar — fixo quando expandido; overlay quando recolhido */}
       <aside

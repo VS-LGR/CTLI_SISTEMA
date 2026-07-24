@@ -12,8 +12,10 @@ const TENANT_ADMIN_CREATABLE_ROLES = new Set([
   "tecnico_campo",
   "signatario",
   "administrativo_vendas",
+  "administrativo_compras",
   "gerente_qualidade",
   "gerente_tecnico",
+  "gerente_geral",
   "diretor",
 ]);
 
@@ -25,8 +27,26 @@ const CTLI_CREATABLE_ROLES = new Set([
   "diretor",
   "gerente_qualidade",
   "gerente_tecnico",
+  "gerente_geral",
+  "administrativo_vendas",
+  "administrativo_compras",
+]);
+
+const ROLES_WITH_ACCESS_TOGGLES = new Set([
+  "gerente_qualidade",
+  "gerente_tecnico",
   "administrativo_vendas",
 ]);
+
+function resolveAccessFlags(role: string, body: Record<string, unknown>) {
+  if (!ROLES_WITH_ACCESS_TOGGLES.has(role)) {
+    return { access_coleta: false, access_certificados: false };
+  }
+  return {
+    access_coleta: Boolean(body.access_coleta),
+    access_certificados: Boolean(body.access_certificados),
+  };
+}
 
 function allowedRolesForProvisioner(role: string): Set<string> {
   if (role === "admin") return CTLI_CREATABLE_ROLES;
@@ -142,6 +162,7 @@ serve(async (req) => {
         employee_registration_id,
       } = body;
       const tenant_id = resolveTenantId(profile, bodyTenantId);
+      const flags = resolveAccessFlags(role, body);
 
       if (!email || !password || !full_name || !role) {
         return new Response(
@@ -191,6 +212,8 @@ serve(async (req) => {
         email,
         role,
         tenant_id,
+        access_coleta: flags.access_coleta,
+        access_certificados: flags.access_certificados,
         updated_at: new Date().toISOString(),
       };
       if (employee_registration_id) profilePatch.employee_registration_id = employee_registration_id;
@@ -243,6 +266,7 @@ serve(async (req) => {
       }
 
       const nextRole = role || target.role;
+      const flags = resolveAccessFlags(nextRole, body);
       try {
         assertRoleAllowed(profile.role, nextRole);
       } catch (e) {
@@ -279,7 +303,11 @@ serve(async (req) => {
         }
       }
 
-      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      const patch: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+        access_coleta: flags.access_coleta,
+        access_certificados: flags.access_certificados,
+      };
       if (full_name !== undefined) patch.full_name = full_name;
       if (email) patch.email = email;
       if (role) patch.role = role;

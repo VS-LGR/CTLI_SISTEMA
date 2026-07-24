@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import { Question, Play } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +9,18 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { CaretRight } from "@phosphor-icons/react";
-import { getHelpCatalogModules } from "@/lib/help/helpModules";
+import { getHelpCatalogModulesForUser } from "@/lib/help/helpModules";
 import { useModuleTourActions } from "@/components/help/ModuleTourProvider";
+import { useAuth } from "@/context/AuthContext";
 
 export default function HelpPage() {
-  const modules = getHelpCatalogModules();
+  const { user } = useAuth();
+  const { currentTenant } = useOutletContext() || {};
+  const modules = getHelpCatalogModulesForUser({
+    tenant: currentTenant,
+    role: user?.role,
+    user,
+  });
   const { openTour } = useModuleTourActions();
   const [openKey, setOpenKey] = useState(modules[0]?.moduleKey || null);
 
@@ -25,8 +32,8 @@ export default function HelpPage() {
           <h1 className="font-display text-xl sm:text-2xl font-semibold truncate">Ajuda</h1>
         </div>
         <p className="text-sm text-slate-600 break-words">
-          Passo a passo para criação de documentos e cadastros. Na primeira visita a cada módulo,
-          o tutorial também aparece automaticamente (exceto Administrador CTLI).
+          Passo a passo das funções disponíveis para o seu nível de acesso. Na primeira visita a cada
+          módulo, o tutorial também aparece automaticamente (exceto Administrador CTLI).
         </p>
       </div>
 
@@ -79,6 +86,9 @@ export default function HelpPage() {
             </Card>
           );
         })}
+        {!modules.length && (
+          <p className="text-sm text-slate-500">Não há tutoriais para o seu nível de acesso.</p>
+        )}
       </div>
 
       <p className="text-xs text-slate-500">

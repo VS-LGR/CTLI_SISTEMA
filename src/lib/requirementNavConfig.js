@@ -168,7 +168,7 @@ export function requiresFolderNav(requirementId) {
   return Object.prototype.hasOwnProperty.call(FOLDERS, String(requirementId));
 }
 
-export function getFoldersForRequirement(requirementId, tenant = null, role = null) {
+export function getFoldersForRequirement(requirementId, tenant = null, role = null, user = null) {
   const all = FOLDERS[String(requirementId)] || [];
   if (!tenant || !role || isCtliAdmin(role)) return all;
   return all.filter((f) => canAccessRequirementFolder({
@@ -176,13 +176,14 @@ export function getFoldersForRequirement(requirementId, tenant = null, role = nu
     role,
     requirementId,
     folderKey: f.folderKey,
+    user,
   }));
 }
 
-/** Itens de menu principal (sidebar) filtrados por modelo de ambiente. */
-export function getVisibleReqMenuItems(tenant = null, role = null) {
+/** Itens de menu principal (sidebar) filtrados por modelo de ambiente / matriz RBAC. */
+export function getVisibleReqMenuItems(tenant = null, role = null, user = null) {
   if (!tenant || !role) return REQ_MENU_ITEMS;
-  return REQ_MENU_ITEMS.filter((r) => canAccessRequirement({ tenant, role, requirementId: r.id }));
+  return REQ_MENU_ITEMS.filter((r) => canAccessRequirement({ tenant, role, requirementId: r.id, user }));
 }
 
 /** Atalhos operacionais dentro da pasta (ex.: coleta, certificados, fichas, cadastros). */

@@ -99,10 +99,10 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, certificat
   if (adminOnly && user.role !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }
-  if (coletaOnly && !canAccessColeta(user.role)) {
+  if (coletaOnly && !canAccessColeta(user.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (certificatesOnly && !canAccessCalibrationCertificates(user.role)) {
+  if (certificatesOnly && !canAccessCalibrationCertificates(user.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (purchaseOrdersOnly && !canAccessPurchaseOrders(user.role)) {
@@ -127,7 +127,7 @@ const HomeRedirect = () => {
   const { user } = useAuth();
   const { currentTenant } = useOutletContext() || {};
   if (!user) return <Navigate to="/dashboard" replace />;
-  return <Navigate to={restrictedNavHomePath(user.role, currentTenant)} replace />;
+  return <Navigate to={restrictedNavHomePath(user.role)} replace />;
 };
 
 const App = () => (

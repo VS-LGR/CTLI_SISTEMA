@@ -178,7 +178,7 @@ const ColetaPage = ({ embedded = false }) => {
     );
   }, []);
 
-  if (!canAccessColeta(user?.role)) {
+  if (!canAccessColeta(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -254,7 +254,7 @@ const ColetaPage = ({ embedded = false }) => {
           </div>
         )}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {canAccessCalibrationCertificates(user?.role) && (
+          {canAccessCalibrationCertificates(user?.role, user) && (
             <Button asChild variant="outline">
               <Link to={CERTIFICATE_LIST_PATH} data-tour="tour-coleta-certificados">
                 <Certificate size={18} className="mr-1" /> Certificados

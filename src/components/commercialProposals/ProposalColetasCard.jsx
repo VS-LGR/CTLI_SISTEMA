@@ -20,7 +20,7 @@ export default function ProposalColetasCard({ proposalId, scales = [], onGenerat
 
   const pending = scales.filter((s) => !s.collection_id);
   const created = scales.filter((s) => s.collection_id);
-  const canOpenColeta = canAccessColeta(user?.role);
+  const canOpenColeta = canAccessColeta(user?.role, user);
 
   const openColeta = (collectionId) => {
     if (!canOpenColeta) {

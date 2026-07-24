@@ -12,6 +12,8 @@ function mapProfileToUser(row, fallbackEmail) {
     email: row.email || fallbackEmail || "",
     role: row.role,
     tenant_id: row.tenant_id ?? null,
+    access_coleta: Boolean(row.access_coleta),
+    access_certificados: Boolean(row.access_certificados),
   };
 }
 
@@ -25,7 +27,7 @@ async function loadUserFromSupabaseSession(session) {
   const u = session.user;
   const { data: row, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, tenant_id")
+    .select("id, email, full_name, role, tenant_id, access_coleta, access_certificados")
     .eq("id", u.id)
     .maybeSingle();
   if (error) throw error;

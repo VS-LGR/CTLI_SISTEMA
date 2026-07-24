@@ -103,10 +103,15 @@ export default function ColetaForm({
   const autoFilledSingleClient = useRef(false);
   const defaultUnit = payload.balanca?.unidade || "g";
   const [savingScale, setSavingScale] = useState(false);
+  const [showAllScales, setShowAllScales] = useState(false);
 
-  const scaleList = selectedEndCustomerId
+  const filteredByClient = selectedEndCustomerId
     ? registeredScales.filter((s) => s.end_customer_id === selectedEndCustomerId || !s.end_customer_id)
     : registeredScales;
+  const scaleList = showAllScales || !selectedEndCustomerId ? registeredScales : filteredByClient;
+  const clientFilterEmpty = Boolean(
+    selectedEndCustomerId && !showAllScales && registeredScales.length > 0 && filteredByClient.length === 0,
+  );
 
   useEffect(() => {
     if (!isNew || endCustomers.length !== 1 || autoFilledSingleClient.current) return;
@@ -314,6 +319,31 @@ export default function ColetaForm({
                   PR-7.1 → Balanças
                 </Link>{" "}
                 para selecionar aqui.
+              </p>
+            )}
+            {clientFilterEmpty && (
+              <p className="text-xs text-amber-700 mt-1">
+                Nenhuma balança vinculada a este cliente.{" "}
+                <button
+                  type="button"
+                  className="underline font-medium"
+                  onClick={() => setShowAllScales(true)}
+                >
+                  Ver todas do ambiente
+                </button>
+                {" "}ou preencha manualmente e cadastre.
+              </p>
+            )}
+            {showAllScales && selectedEndCustomerId && (
+              <p className="text-xs text-slate-500 mt-1">
+                A mostrar todas as balanças do ambiente.{" "}
+                <button
+                  type="button"
+                  className="underline"
+                  onClick={() => setShowAllScales(false)}
+                >
+                  Filtrar pelo cliente
+                </button>
               </p>
             )}
           </Field>

@@ -1,13 +1,16 @@
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 
-/** Cargos com acesso operacional completo no ambiente portal cliente. */
+/** Cargos com acesso operacional amplo no ambiente (legado / referência). */
 export const CLIENT_PORTAL_OPERATIONS_ROLES = [
   "tecnico_campo",
   "signatario",
   "diretor",
   "gerente_qualidade",
   "gerente_tecnico",
+  "gerente_geral",
+  "administrativo_vendas",
+  "administrativo_compras",
 ];
 
 export function isClientPortalOperationsRole(role) {
@@ -18,36 +21,39 @@ export function isClientPortalTenantModel(tenant) {
   return tenant?.deployment_model === "client_portal";
 }
 
-/** Nav restrita — técnico de campo (portal e full) ou signatário (só full). */
-export function usesRestrictedNav(role, tenant = null) {
-  if (role === "tecnico_campo") return true;
-  if (isClientPortalTenantModel(tenant)) return false;
-  return role === "signatario";
+/** Nav restrita — técnico, signatário ou diretor. */
+export function usesRestrictedNav(role) {
+  return role === "tecnico_campo" || role === "signatario" || role === "diretor";
 }
 
-export function isTechnicianOnlyNav(role, tenant = null) {
+export function isTechnicianOnlyNav(role) {
   return role === "tecnico_campo";
 }
 
-export function isSignatoryOnlyNav(role, tenant = null) {
-  if (isClientPortalTenantModel(tenant)) return false;
+export function isSignatoryOnlyNav(role) {
   return role === "signatario";
 }
 
-export function restrictedNavHomePath(role, tenant = null) {
-  if (!usesRestrictedNav(role, tenant)) return "/dashboard";
+export function isDirectorOnlyNav(role) {
+  return role === "diretor";
+}
+
+export function restrictedNavHomePath(role) {
   if (role === "tecnico_campo") return COLETA_LIST_PATH;
-  return CERTIFICATE_PENDING_APPROVAL_PATH;
+  if (role === "signatario") return CERTIFICATE_PENDING_APPROVAL_PATH;
+  if (role === "diretor") return "/dashboard";
+  return "/dashboard";
 }
 
-/** Menu enxuto do anexo — utilizadores com tenant fixo (exceto admin CTLI e nav restrita). */
-export function usesClientSidebarNav(role, tenant = null, user = null) {
-  if (role === "admin") return false;
-  if (usesRestrictedNav(role, tenant)) return false;
-  return Boolean(user?.tenant_id);
+/**
+ * Menu enxuto do portal — apenas conta `client` (dono do ambiente).
+ * Outros papéis usam a árvore de requisitos filtrada pela matriz RBAC.
+ */
+export function usesClientSidebarNav(role, _tenant = null, _user = null) {
+  return role === "client";
 }
 
-/** Cadastros de campo para técnico em ambiente full (CTLI/interno). */
+/** Cadastros de campo para técnico em ambiente full (CTLI/interno) — referência. */
 export const TECNICO_FIELD_CADASTRO_SECTIONS = new Set([
   "pesos",
   "balancas",

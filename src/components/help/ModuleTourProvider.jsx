@@ -4,8 +4,8 @@ import ModuleTourOverlay from "@/components/help/ModuleTourOverlay";
 
 const ModuleTourContext = createContext(null);
 
-export function ModuleTourProvider({ children }) {
-  const tour = useModuleTour();
+export function ModuleTourProvider({ children, currentTenant = null }) {
+  const tour = useModuleTour({ currentTenant });
 
   const value = useMemo(
     () => ({ openTour: tour.openTour }),

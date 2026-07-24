@@ -1,50 +1,60 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { getHelpModuleByKey, resolveHelpModule } from "@/lib/help/helpModules";
+import {
+  adaptHelpModuleForUser,
+  getHelpModuleByKey,
+  resolveHelpModule,
+} from "@/lib/help/helpModules";
 import { hasSeenTour, markTourSeen, resetTour } from "@/lib/help/tourStorage";
 
 /**
  * Controla o overlay de tutorial na primeira visita (não-admin).
  * `openTour(moduleKey)` reabre a partir da página Ajuda.
  */
-export function useModuleTour() {
+export function useModuleTour({ currentTenant = null } = {}) {
   const { user } = useAuth();
   const location = useLocation();
   const isAdmin = user?.role === "admin";
   const userId = user?.id || user?.email || null;
 
-  const moduleFromPath = useMemo(
-    () => resolveHelpModule(location.pathname),
-    [location.pathname],
+  const accessCtx = useMemo(
+    () => ({ tenant: currentTenant, role: user?.role, user }),
+    [currentTenant, user],
   );
+
+  const moduleFromPath = useMemo(() => {
+    const raw = resolveHelpModule(location.pathname);
+    return adaptHelpModuleForUser(raw, accessCtx);
+  }, [location.pathname, accessCtx]);
 
   const [open, setOpen] = useState(false);
   const [forcedModuleKey, setForcedModuleKey] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
 
   const resolvedModule = useMemo(() => {
-    if (forcedModuleKey) return getHelpModuleByKey(forcedModuleKey);
+    if (forcedModuleKey) {
+      return adaptHelpModuleForUser(getHelpModuleByKey(forcedModuleKey), accessCtx);
+    }
     return moduleFromPath;
-  }, [forcedModuleKey, moduleFromPath]);
+  }, [forcedModuleKey, moduleFromPath, accessCtx]);
 
   useEffect(() => {
     setStepIndex(0);
     if (forcedModuleKey) {
-      setOpen(Boolean(getHelpModuleByKey(forcedModuleKey)));
+      setOpen(Boolean(adaptHelpModuleForUser(getHelpModuleByKey(forcedModuleKey), accessCtx)));
       return;
     }
     if (isAdmin || !userId || !moduleFromPath) {
       setOpen(false);
       return;
     }
-    // Na própria página Ajuda não dispara overlay automático
     if (moduleFromPath.moduleKey === "ajuda") {
       setOpen(false);
       return;
     }
     setOpen(!hasSeenTour(userId, moduleFromPath.moduleKey));
-  }, [isAdmin, userId, moduleFromPath, forcedModuleKey, location.pathname]);
+  }, [isAdmin, userId, moduleFromPath, forcedModuleKey, location.pathname, accessCtx]);
 
   const dismiss = useCallback(() => {
     const key = resolvedModule?.moduleKey;

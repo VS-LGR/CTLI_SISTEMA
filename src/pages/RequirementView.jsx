@@ -611,17 +611,17 @@ const RequirementView = () => {
     String(id) === COLETA_REQ_ID
     && folderKey === COLETA_FOLDER_KEY
     && (section === "coleta_dados" || section === "registro")
-    && canAccessColeta(user?.role);
+    && canAccessColeta(user?.role, user);
   const isCertBalancasTab =
     String(id) === COLETA_REQ_ID
     && folderKey === COLETA_FOLDER_KEY
     && section === "emissao_cert_balancas"
-    && canAccessCalibrationCertificates(user?.role);
+    && canAccessCalibrationCertificates(user?.role, user);
   const isCertPesoTab =
     String(id) === COLETA_REQ_ID
     && folderKey === COLETA_FOLDER_KEY
     && section === "emissao_cert_peso_padrao"
-    && canAccessCalibrationCertificates(user?.role);
+    && canAccessCalibrationCertificates(user?.role, user);
   const isFichaTecnicaTab = String(id) === "6" && folderKey === "pr-6-4" && section === "ficha_tecnica";
   const isVerificacaoEquipamentoTab =
     String(id) === "6" && folderKey === "pr-6-4-12" && section === "verificacao_equipamento";

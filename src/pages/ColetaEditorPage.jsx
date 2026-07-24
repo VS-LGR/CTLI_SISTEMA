@@ -74,7 +74,13 @@ const ColetaEditorPage = () => {
       .select("id, name, representative_name")
       .eq("tenant_id", currentTenantId)
       .order("name");
-    if (!error) setEndCustomers(data || []);
+    if (error) {
+      console.error("[coleta] end_customer_registrations", error);
+      toast.error(error.message || "Falha ao carregar clientes");
+      setEndCustomers([]);
+      return;
+    }
+    setEndCustomers(data || []);
   }, [currentTenantId]);
 
   const loadRegisteredScales = useCallback(async () => {
@@ -85,7 +91,13 @@ const ColetaEditorPage = () => {
       .eq("tenant_id", currentTenantId)
       .eq("active", true)
       .order("serial_number");
-    if (!error) setRegisteredScales(data || []);
+    if (error) {
+      console.error("[coleta] scale_registrations", error);
+      toast.error(error.message || "Falha ao carregar balanças cadastradas");
+      setRegisteredScales([]);
+      return;
+    }
+    setRegisteredScales(data || []);
   }, [currentTenantId]);
 
   const loadCerts = useCallback(async () => {
@@ -220,7 +232,7 @@ const ColetaEditorPage = () => {
   useEffect(() => { loadEmployees(); }, [loadEmployees]);
   useEffect(() => { loadLogo(); }, [loadLogo]);
 
-  if (!canAccessColeta(user?.role)) {
+  if (!canAccessColeta(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -303,7 +315,7 @@ const ColetaEditorPage = () => {
   };
 
   const generateCertificate = async () => {
-    if (!canAccessCalibrationCertificates(user?.role)) {
+    if (!canAccessCalibrationCertificates(user?.role, user)) {
       toast.error("Sem permissão para gerar certificados");
       return;
     }
@@ -337,7 +349,7 @@ const ColetaEditorPage = () => {
 
   const showGenerateCert = !isNew
     && workflowStatus !== "certificado_gerado"
-    && canAccessCalibrationCertificates(user?.role);
+    && canAccessCalibrationCertificates(user?.role, user);
 
   if (loading) {
     return <p className="text-sm text-slate-500 py-12 text-center">A carregar formulário…</p>;
@@ -361,7 +373,7 @@ const ColetaEditorPage = () => {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          {canAccessCalibrationCertificates(user?.role) && (
+          {canAccessCalibrationCertificates(user?.role, user) && (
             <Button asChild variant="outline" type="button">
               <Link to={CERTIFICATE_LIST_PATH}>
                 <Certificate size={16} className="mr-1" /> Certificados
@@ -419,7 +431,7 @@ const ColetaEditorPage = () => {
         </div>
       )}
 
-      {!isNew && canAccessCalibrationCertificates(user?.role) && workflowStatus !== "certificado_gerado" && (
+      {!isNew && canAccessCalibrationCertificates(user?.role, user) && workflowStatus !== "certificado_gerado" && (
         <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
           <div>
             <Label>Tipo de certificado</Label>

@@ -207,7 +207,7 @@ export default function CertificateEditorPage() {
     return () => { cancelled = true; };
   }, [currentTenant]);
 
-  if (!canAccessCalibrationCertificates(user?.role)) {
+  if (!canAccessCalibrationCertificates(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (!isSupabaseAuthMode || !currentTenantId) {
@@ -218,7 +218,7 @@ export default function CertificateEditorPage() {
     return <p className="text-sm text-slate-500 py-12 text-center">A carregar certificado…</p>;
   }
 
-  const editable = isCertificateEditable(cert.status) && canEditCalibrationCertificate(user?.role);
+  const editable = isCertificateEditable(cert.status) && canEditCalibrationCertificate(user?.role, user);
   const isStandalone = !cert.collection_id;
   const expiredStandards = validateExpiredStandards(cert.standards, cert.calibration_date);
   const maxToleranceAlerts = maxToleranceAlertPointSet(cert.conformity?.max_tolerance_point_results);
@@ -430,13 +430,20 @@ export default function CertificateEditorPage() {
   };
 
   const canApprove = canApproveCalibrationCertificate(user?.role);
-  const canEmit = canEmitCalibrationCertificate(user?.role);
-  const canSendEmail = canSendCertificateEmail(user?.role);
+  const canEmit = canEmitCalibrationCertificate(user?.role, user);
+  const canSendEmail = canSendCertificateEmail(user?.role, user);
   const clientEmailResolved = cert ? resolveClientEmail(cert, endCustomers).email : "";
 
   const handleReprove = async () => {
+    if (!approvalNotes.trim()) {
+      toast.error("Informe o motivo da reprovação");
+      return;
+    }
     try {
-      const updated = await transitionCertificateStatus(cert.id, "reprovado", { userId: user.id });
+      const updated = await transitionCertificateStatus(cert.id, "reprovado", {
+        userId: user.id,
+        notes: approvalNotes.trim(),
+      });
       setCert(updated);
       toast.success("Certificado reprovado");
     } catch (e) {
@@ -1397,12 +1404,17 @@ export default function CertificateEditorPage() {
               {cert.status === "aguardando_aprovacao" && (
                 <div className="space-y-3">
                   <div>
-                    <Label>Notas da aprovação (opcional)</Label>
-                    <Textarea value={approvalNotes} onChange={(e) => setApprovalNotes(e.target.value)} className="mt-1" />
+                    <Label>Notas da aprovação / motivo da reprovação</Label>
+                    <Textarea
+                      value={approvalNotes}
+                      onChange={(e) => setApprovalNotes(e.target.value)}
+                      className="mt-1"
+                      placeholder="Obrigatório ao reprovar"
+                    />
                   </div>
                   <div className="flex gap-2">
                   <Button onClick={handleApprove} disabled={!canApprove}><CheckCircle size={16} className="mr-1" /> Aprovar</Button>
-                  <Button variant="outline" onClick={handleReprove}>
+                  <Button variant="outline" onClick={handleReprove} disabled={!canApprove}>
                     <XCircle size={16} className="mr-1" /> Reprovar
                   </Button>
                   </div>

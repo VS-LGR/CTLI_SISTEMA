@@ -2,7 +2,10 @@ import {
   canApproveCalibrationCertificate,
   canSendCertificateEmail,
   canEditCalibrationCertificate,
+  canAccessColeta,
+  canAccessCalibrationCertificates,
   isSignatoryOnlyNav,
+  isDirectorOnlyNav,
 } from "./roles";
 
 describe("certificate email roles", () => {
@@ -11,7 +14,6 @@ describe("certificate email roles", () => {
     expect(canSendCertificateEmail("signatario")).toBe(true);
     expect(canEditCalibrationCertificate("signatario")).toBe(false);
     expect(isSignatoryOnlyNav("signatario")).toBe(true);
-    expect(isSignatoryOnlyNav("signatario", { deployment_model: "client_portal" })).toBe(false);
   });
 
   test("tecnico_campo cannot approve or send certificates", () => {
@@ -20,10 +22,19 @@ describe("certificate email roles", () => {
     expect(canEditCalibrationCertificate("tecnico_campo")).toBe(false);
   });
 
-  test("gerentes and administrativo_vendas can send email", () => {
-    expect(canSendCertificateEmail("gerente_qualidade")).toBe(true);
-    expect(canSendCertificateEmail("gerente_tecnico")).toBe(true);
-    expect(canSendCertificateEmail("administrativo_vendas")).toBe(true);
-    expect(canSendCertificateEmail("diretor")).toBe(true);
+  test("gerentes precisam de toggle para certs; diretor não envia", () => {
+    expect(canSendCertificateEmail("gerente_qualidade")).toBe(false);
+    expect(canSendCertificateEmail("gerente_qualidade", { access_certificados: true })).toBe(true);
+    expect(canSendCertificateEmail("administrativo_vendas", { access_certificados: true })).toBe(true);
+    expect(canSendCertificateEmail("diretor")).toBe(false);
+    expect(isDirectorOnlyNav("diretor")).toBe(true);
+  });
+
+  test("toggles de coleta", () => {
+    expect(canAccessColeta("gerente_tecnico")).toBe(false);
+    expect(canAccessColeta("gerente_tecnico", { access_coleta: true })).toBe(true);
+    expect(canAccessColeta("tecnico_campo")).toBe(true);
+    expect(canAccessCalibrationCertificates("administrativo_vendas")).toBe(false);
+    expect(canAccessCalibrationCertificates("administrativo_vendas", { access_certificados: true })).toBe(true);
   });
 });

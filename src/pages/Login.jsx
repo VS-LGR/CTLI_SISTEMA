@@ -57,7 +57,7 @@ const Login = () => {
   const [error, setError] = useState("");
 
   if (user && user !== false) {
-    return <Navigate to={restrictedNavHomePath(user.role, null)} replace />;
+    return <Navigate to={restrictedNavHomePath(user.role)} replace />;
   }
 
   const submit = async (e) => {
@@ -71,7 +71,7 @@ const Login = () => {
       toast.error(res.error);
     } else {
       toast.success("Bem-vindo de volta!");
-      navigate(restrictedNavHomePath(res.user?.role, null));
+      navigate(restrictedNavHomePath(res.user?.role));
     }
   };
 

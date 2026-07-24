@@ -570,7 +570,7 @@ export default function WeightColetaEditorPage() {
     }));
   };
 
-  if (!canAccessColeta(user?.role)) {
+  if (!canAccessColeta(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
   }
   if (!isSupabaseAuthMode || !currentTenantId) {
@@ -622,7 +622,7 @@ export default function WeightColetaEditorPage() {
   };
 
   const generateCertificate = async () => {
-    if (!canAccessCalibrationCertificates(user?.role)) {
+    if (!canAccessCalibrationCertificates(user?.role, user)) {
       return toast.error("Sem permissão para gerar certificados");
     }
     if (isNew) return toast.error("Guarde a coleta antes de gerar o certificado");
@@ -665,7 +665,7 @@ export default function WeightColetaEditorPage() {
 
   const showGenerate = !isNew
     && workflowStatus !== "certificado_gerado"
-    && canAccessCalibrationCertificates(user?.role);
+    && canAccessCalibrationCertificates(user?.role, user);
 
   return (
     <div className="space-y-6 max-w-5xl w-full min-w-0">

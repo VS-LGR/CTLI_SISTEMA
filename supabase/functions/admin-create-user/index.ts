@@ -8,6 +8,12 @@ const corsHeaders: Record<string, string> = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const ROLES_WITH_ACCESS_TOGGLES = new Set([
+  "gerente_qualidade",
+  "gerente_tecnico",
+  "administrativo_vendas",
+]);
+
 async function requireAdmin(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return { error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }) };
@@ -31,6 +37,16 @@ async function requireAdmin(req: Request) {
   return { userClient, supabaseUrl, user };
 }
 
+function resolveAccessFlags(role: string, body: Record<string, unknown>) {
+  if (!ROLES_WITH_ACCESS_TOGGLES.has(role)) {
+    return { access_coleta: false, access_certificados: false };
+  }
+  return {
+    access_coleta: Boolean(body.access_coleta),
+    access_certificados: Boolean(body.access_certificados),
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -40,7 +56,7 @@ serve(async (req) => {
     const gate = await requireAdmin(req);
     if ("error" in gate && gate.error) return gate.error;
 
-    const { supabaseUrl, user } = gate;
+    const { supabaseUrl } = gate;
     const serviceKey = getServiceRoleKey();
     const adminClient = createClient(supabaseUrl, serviceKey);
 
@@ -61,6 +77,8 @@ serve(async (req) => {
       });
     }
 
+    const flags = resolveAccessFlags(role, body);
+
     const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -79,17 +97,27 @@ serve(async (req) => {
       });
     }
 
-    if (employee_registration_id) {
-      const { error: linkErr } = await adminClient
-        .from("profiles")
-        .update({ employee_registration_id })
-        .eq("id", newUser.user.id);
-      if (linkErr) {
-        return new Response(JSON.stringify({ error: linkErr.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const profilePatch: Record<string, unknown> = {
+      full_name,
+      email,
+      role,
+      tenant_id: role === "admin" ? null : tenant_id,
+      access_coleta: flags.access_coleta,
+      access_certificados: flags.access_certificados,
+      updated_at: new Date().toISOString(),
+    };
+    if (employee_registration_id) profilePatch.employee_registration_id = employee_registration_id;
+
+    const { error: upErr } = await adminClient
+      .from("profiles")
+      .update(profilePatch)
+      .eq("id", newUser.user.id);
+
+    if (upErr) {
+      return new Response(JSON.stringify({ error: upErr.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(

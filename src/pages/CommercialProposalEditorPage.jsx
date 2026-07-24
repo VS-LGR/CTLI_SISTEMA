@@ -86,12 +86,18 @@ export default function CommercialProposalEditorPage() {
 
   const loadRegisteredScales = useCallback(async () => {
     if (!currentTenantId) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("scale_registrations")
       .select("*")
       .eq("tenant_id", currentTenantId)
       .eq("active", true)
       .order("serial_number");
+    if (error) {
+      console.error("[proposta] scale_registrations", error);
+      toast.error(error.message || "Falha ao carregar balanças cadastradas");
+      setRegisteredScales([]);
+      return;
+    }
     setRegisteredScales(data || []);
   }, [currentTenantId]);
 
