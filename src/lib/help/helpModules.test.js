@@ -1,4 +1,13 @@
-import { resolveHelpModule, getHelpCatalogModules, getHelpCatalogModulesForUser, HELP_PATH } from "./helpModules";
+import {
+  resolveHelpModule,
+  getHelpCatalogModules,
+  getHelpCatalogModulesForUser,
+  resolveCadastrosTourPath,
+  adaptHelpModuleForUser,
+  getHelpModuleByKey,
+  HELP_PATH,
+} from "./helpModules";
+import { cadastroSectionPath } from "@/lib/cadastroSections";
 import { hasSeenTour, markTourSeen, resetTour } from "./tourStorage";
 
 describe("helpModules", () => {
@@ -13,6 +22,29 @@ describe("helpModules", () => {
     expect(resolveHelpModule("/requirement/7/pr-7-1/cadastro/balancas")?.moduleKey).toBe("cadastros");
     expect(resolveHelpModule("/requirement/6/pr-6-6/cadastro/fornecedores")?.moduleKey).toBe("cadastros");
     expect(resolveHelpModule("/requirement/7/pr-7-1")?.moduleKey).toBe("propostas");
+  });
+
+  it("resolveCadastrosTourPath usa secção acessível ao papel", () => {
+    // Gerente qualidade: reqs 4/6/8 — não pode ir a clientes (req 7)
+    expect(resolveCadastrosTourPath({ role: "gerente_qualidade" })).toBe(
+      cadastroSectionPath("fornecedores"),
+    );
+    // Gerente técnico: req 7 — clientes
+    expect(resolveCadastrosTourPath({ role: "gerente_tecnico" })).toBe(
+      cadastroSectionPath("clientes"),
+    );
+    // Adm compras: só pr-6-6
+    expect(resolveCadastrosTourPath({ role: "administrativo_compras" })).toBe(
+      cadastroSectionPath("fornecedores"),
+    );
+  });
+
+  it("adaptHelpModuleForUser define tourPath acessível em cadastros", () => {
+    const mod = adaptHelpModuleForUser(getHelpModuleByKey("cadastros"), {
+      role: "gerente_qualidade",
+    });
+    expect(mod?.tourPath).toBe(cadastroSectionPath("fornecedores"));
+    expect(mod?.steps?.[0]?.title).toMatch(/Provedores/i);
   });
 
   it("catálogo não inclui a entrada ajuda", () => {

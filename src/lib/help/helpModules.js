@@ -6,8 +6,16 @@ import { APPROVAL_HUB_PATH } from "@/lib/approvalRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
-import { cadastroSectionPath } from "@/lib/cadastroSections";
-import { canAccessModule } from "@/lib/tenantAccess";
+import {
+  cadastroSectionPath,
+  getCadastroSectionLabel,
+  getVisibleCadastroSections,
+} from "@/lib/cadastroSections";
+import {
+  canAccessModule,
+  canAccessRequirement,
+  canAccessRequirementFolder,
+} from "@/lib/tenantAccess";
 import {
   isDirectorRole,
   isFieldTechnicianRole,
@@ -15,6 +23,41 @@ import {
   canAccessCalibrationCertificates,
   canEditCalibrationCertificate,
 } from "@/lib/roles";
+
+/** Preferência de secção para o tour de cadastros (primeira visível nesta ordem). */
+const CADASTROS_TOUR_SECTION_ORDER = ["clientes", "balancas", "fornecedores", "colaboradores", "pesos", "thermo"];
+
+function getAccessibleCadastroSectionsForTour({ tenant = null, role = null, user = null } = {}) {
+  return getVisibleCadastroSections(role, tenant, user).filter((s) => (
+    canAccessRequirement({ tenant, role, requirementId: s.reqId, user })
+    && canAccessRequirementFolder({
+      tenant,
+      role,
+      requirementId: s.reqId,
+      folderKey: s.folderKey,
+      user,
+    })
+  ));
+}
+
+/** Rota de cadastro acessível ao papel (evita redirect para /dashboard). */
+export function resolveCadastrosTourPath({ tenant = null, role = null, user = null } = {}) {
+  const sections = getAccessibleCadastroSectionsForTour({ tenant, role, user });
+  if (!sections.length) return null;
+  for (const id of CADASTROS_TOUR_SECTION_ORDER) {
+    if (sections.some((s) => s.id === id)) return cadastroSectionPath(id);
+  }
+  return cadastroSectionPath(sections[0].id);
+}
+
+function resolveCadastrosTourSectionId({ tenant = null, role = null, user = null } = {}) {
+  const sections = getAccessibleCadastroSectionsForTour({ tenant, role, user });
+  if (!sections.length) return null;
+  for (const id of CADASTROS_TOUR_SECTION_ORDER) {
+    if (sections.some((s) => s.id === id)) return id;
+  }
+  return sections[0].id;
+}
 
 /**
  * Catálogo de módulos com passos de tutorial / ajuda.
@@ -165,13 +208,13 @@ export const HELP_MODULES = [
     matchPath: (pathname) => pathname.includes("/cadastro/"),
     steps: [
       {
-        title: "Cadastrar cliente",
-        body: "Use o botão iluminado “Novo cliente” para adicionar um cliente final do ambiente.",
+        title: "Novo registo",
+        body: "Use o botão iluminado “Novo …” para adicionar um registo nesta secção de cadastro.",
         highlight: "tour-cadastro-novo",
       },
       {
-        title: "Balanças e provedores",
-        body: "No mesmo estilo, em PR-7.1 abre o cadastro de Balanças e em PR-6.6 o de Provedores — cada secção tem o seu botão “Novo”.",
+        title: "Outras secções",
+        body: "Pelos atalhos da pasta ou pelo menu, abra Balanças, Provedores e outras secções — cada uma tem o seu botão “Novo”.",
         highlight: "tour-cadastro-novo",
       },
       {
@@ -310,32 +353,61 @@ function canSeeHelpModule(mod, { tenant, role, user }) {
     return mod.moduleKey === "certificados" || mod.moduleKey === "certificados-peso";
   }
   if (mod.moduleKey === "dashboard") return true;
+  if (mod.moduleKey === "cadastros") {
+    return Boolean(resolveCadastrosTourPath({ tenant, role, user }));
+  }
   if (!mod.accessModule) return true;
   return canAccessModule({ tenant, role, module: mod.accessModule, user });
 }
 
-function adaptSteps(mod, role, user) {
+function adaptSteps(mod, role, user, tenant = null) {
   if (isDirectorRole(role) && mod.directorSteps) return mod.directorSteps;
   if (isSignatoryRole(role) && mod.signatorySteps) return mod.signatorySteps;
 
   const canCert = canAccessCalibrationCertificates(role, user);
   const canEdit = canEditCalibrationCertificate(role, user);
 
-  return (mod.steps || []).filter((step) => {
+  let steps = (mod.steps || []).filter((step) => {
     if (step.requiresCertAccess && !canCert) return false;
     if (step.requiresCertEdit && !canEdit) return false;
     return true;
   });
+
+  if (mod.moduleKey === "cadastros" && steps.length) {
+    const sectionId = resolveCadastrosTourSectionId({ tenant, role, user });
+    const label = getCadastroSectionLabel(sectionId);
+    steps = steps.map((step, i) => {
+      if (i === 0) {
+        return {
+          ...step,
+          title: `Cadastrar — ${label}`,
+          body: `Use o botão iluminado para adicionar um novo registo em ${label}.`,
+        };
+      }
+      return step;
+    });
+  }
+
+  return steps;
 }
 
-/** Módulo adaptado ao papel (passos filtrados). */
+/** Módulo adaptado ao papel (passos filtrados + rota acessível). */
 export function adaptHelpModuleForUser(mod, { tenant = null, role = null, user = null } = {}) {
   if (!mod) return null;
   if (!canSeeHelpModule(mod, { tenant, role, user })) return null;
-  return {
+
+  const adapted = {
     ...mod,
-    steps: adaptSteps(mod, role, user),
+    steps: adaptSteps(mod, role, user, tenant),
   };
+
+  if (mod.moduleKey === "cadastros") {
+    const tourPath = resolveCadastrosTourPath({ tenant, role, user });
+    if (!tourPath) return null;
+    adapted.tourPath = tourPath;
+  }
+
+  return adapted;
 }
 
 /** Módulos listados na página Ajuda (exclui a própria entrada “ajuda”). */

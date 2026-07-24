@@ -15,10 +15,6 @@ function pathMatchesTour(pathname, tourPath) {
   return pathname === base || pathname.startsWith(`${base}/`);
 }
 
-function tenantKey(tenant) {
-  return tenant?.id || tenant?.code || null;
-}
-
 /**
  * Controla o overlay de tutorial na primeira visita (não-admin).
  * `openTour(moduleKey)` navega para a página do módulo e ilumina os botões reais.
@@ -30,13 +26,10 @@ export function useModuleTour({ currentTenant = null } = {}) {
   const isAdmin = user?.role === "admin";
   const userId = user?.id || user?.email || null;
   const role = user?.role ?? null;
-  const tenantId = tenantKey(currentTenant);
 
-  // Chaves estáveis: o Layout recria o objeto tenant a cada render
   const accessCtx = useMemo(
     () => ({ tenant: currentTenant, role, user }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- tenant/user por id
-    [tenantId, role, userId, user?.access_coleta, user?.access_certificados],
+    [currentTenant, role, user],
   );
 
   const moduleFromPath = useMemo(() => {
