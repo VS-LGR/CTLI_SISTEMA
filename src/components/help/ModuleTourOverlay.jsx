@@ -22,7 +22,7 @@ function useHighlightReady(highlightId, open, stepIndex) {
       for (const el of nodes) {
         const r = el.getBoundingClientRect();
         if (r.width >= 2 && r.height >= 2) {
-          setReady(true);
+          setReady((prev) => (prev ? prev : true));
           setWaiting(false);
           return true;
         }

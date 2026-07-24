@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -25,10 +25,11 @@ export function useModuleTour({ currentTenant = null } = {}) {
   const navigate = useNavigate();
   const isAdmin = user?.role === "admin";
   const userId = user?.id || user?.email || null;
+  const role = user?.role ?? null;
 
   const accessCtx = useMemo(
-    () => ({ tenant: currentTenant, role: user?.role, user }),
-    [currentTenant, user],
+    () => ({ tenant: currentTenant, role, user }),
+    [currentTenant, role, user],
   );
 
   const moduleFromPath = useMemo(() => {
@@ -40,6 +41,7 @@ export function useModuleTour({ currentTenant = null } = {}) {
   const [forcedModuleKey, setForcedModuleKey] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [pendingOpen, setPendingOpen] = useState(null);
+  const lastNavigatedPathRef = useRef(null);
 
   const resolvedModule = useMemo(() => {
     if (forcedModuleKey) {
@@ -48,7 +50,9 @@ export function useModuleTour({ currentTenant = null } = {}) {
     return moduleFromPath;
   }, [forcedModuleKey, moduleFromPath, accessCtx]);
 
-  const currentStep = resolvedModule?.steps?.[stepIndex] || resolvedModule?.steps?.[0];
+  const steps = resolvedModule?.steps || [];
+  const safeStepIndex = steps.length ? Math.min(stepIndex, steps.length - 1) : 0;
+  const currentStep = steps[safeStepIndex] || steps[0];
   const neededPath = resolvedModule
     ? getTourPathForStep(resolvedModule, currentStep)
     : null;
@@ -64,21 +68,25 @@ export function useModuleTour({ currentTenant = null } = {}) {
     }
     const stepDef = mod.steps?.[step] || mod.steps?.[0];
     const target = getTourPathForStep(mod, stepDef);
-    if (!pathMatchesTour(location.pathname, target)) return;
+    if (!pathMatchesTour(location.pathname, target)) {
+      // RoleRouteGuard (ou similar) mandou para home — não ficar em loop de navigate
+      const onHome = location.pathname === "/dashboard" || location.pathname === "/";
+      if (onHome && !pathMatchesTour("/dashboard", target)) {
+        setPendingOpen(null);
+      }
+      return;
+    }
 
     setForcedModuleKey(moduleKey);
     setStepIndex(step || 0);
     setOpen(true);
     setPendingOpen(null);
+    lastNavigatedPathRef.current = null;
   }, [pendingOpen, location.pathname, accessCtx]);
 
+  // Primeira visita automática — não interfere com tour forçado / pendente
   useEffect(() => {
-    if (pendingOpen) return;
-    setStepIndex(0);
-    if (forcedModuleKey) {
-      setOpen(Boolean(adaptHelpModuleForUser(getHelpModuleByKey(forcedModuleKey), accessCtx)));
-      return;
-    }
+    if (pendingOpen || forcedModuleKey) return;
     if (isAdmin || !userId || !moduleFromPath) {
       setOpen(false);
       return;
@@ -88,12 +96,18 @@ export function useModuleTour({ currentTenant = null } = {}) {
       return;
     }
     setOpen(!hasSeenTour(userId, moduleFromPath.moduleKey));
-  }, [isAdmin, userId, moduleFromPath, forcedModuleKey, location.pathname, accessCtx, pendingOpen]);
+    setStepIndex(0);
+  }, [isAdmin, userId, moduleFromPath, forcedModuleKey, pendingOpen]);
 
-  // Se o passo exige outra rota (ex.: editor), navegar ao mudar de passo
+  // Se o passo exige outra rota, navegar uma vez (sem loop)
   useEffect(() => {
     if (!open || !resolvedModule || !neededPath) return;
-    if (pathMatchesTour(location.pathname, neededPath)) return;
+    if (pathMatchesTour(location.pathname, neededPath)) {
+      lastNavigatedPathRef.current = null;
+      return;
+    }
+    if (lastNavigatedPathRef.current === neededPath) return;
+    lastNavigatedPathRef.current = neededPath;
     navigate(neededPath);
   }, [open, resolvedModule, neededPath, location.pathname, navigate]);
 
@@ -104,37 +118,47 @@ export function useModuleTour({ currentTenant = null } = {}) {
     setPendingOpen(null);
     setOpen(false);
     setStepIndex(0);
+    lastNavigatedPathRef.current = null;
   }, [resolvedModule, userId]);
 
   const openTour = useCallback((moduleKey) => {
     if (!moduleKey) return;
     const mod = adaptHelpModuleForUser(getHelpModuleByKey(moduleKey), accessCtx);
-    if (!mod) return;
+    if (!mod || !(mod.steps || []).length) return;
     if (userId) resetTour(userId, moduleKey);
 
-    const first = mod.steps?.[0];
+    const first = mod.steps[0];
     const target = getTourPathForStep(mod, first);
+    lastNavigatedPathRef.current = null;
 
     if (!pathMatchesTour(location.pathname, target)) {
-      setPendingOpen({ moduleKey, step: 0 });
+      setForcedModuleKey(null);
       setOpen(false);
+      setPendingOpen({ moduleKey, step: 0 });
       navigate(target);
       return;
     }
 
+    setPendingOpen(null);
     setForcedModuleKey(moduleKey);
     setStepIndex(0);
     setOpen(true);
   }, [userId, accessCtx, location.pathname, navigate]);
 
   const setStepIndexSafe = useCallback((next) => {
-    setStepIndex(typeof next === "function" ? next : next);
+    lastNavigatedPathRef.current = null;
+    setStepIndex((prev) => {
+      const value = typeof next === "function" ? next(prev) : next;
+      return typeof value === "number" && value >= 0 ? value : prev;
+    });
   }, []);
 
+  const pathReady = Boolean(neededPath) && pathMatchesTour(location.pathname, neededPath);
+
   return {
-    open: open && Boolean(resolvedModule) && pathMatchesTour(location.pathname, neededPath),
+    open: open && Boolean(resolvedModule) && pathReady,
     module: resolvedModule,
-    stepIndex,
+    stepIndex: safeStepIndex,
     setStepIndex: setStepIndexSafe,
     dismiss,
     openTour,

@@ -60,43 +60,58 @@ export default function TourSpotlight({
     }
 
     let targetEl = null;
+    let ro = null;
+    let scrolledOnce = false;
     const mq = window.matchMedia("(max-width: 639px)");
     const onMq = () => setIsMobile(mq.matches);
     mq.addEventListener?.("change", onMq);
     onMq();
 
+    const rectEqual = (a, b) =>
+      a === b
+      || (a
+        && b
+        && a.top === b.top
+        && a.left === b.left
+        && a.width === b.width
+        && a.height === b.height);
+
     const update = () => {
       targetEl = findTourTarget(highlightId);
       if (!targetEl) {
-        setRect(null);
+        setRect((prev) => (prev == null ? prev : null));
         return;
       }
-      targetEl.classList.add("tour-spotlight-target");
-      setRect(measure(targetEl));
+      if (!targetEl.classList.contains("tour-spotlight-target")) {
+        targetEl.classList.add("tour-spotlight-target");
+      }
+      if (!ro && typeof ResizeObserver !== "undefined") {
+        ro = new ResizeObserver(update);
+        ro.observe(targetEl);
+      }
+      const next = measure(targetEl);
+      setRect((prev) => (rectEqual(prev, next) ? prev : next));
     };
 
     const scrollAndUpdate = () => {
       targetEl = findTourTarget(highlightId);
-      if (targetEl) {
-        targetEl.scrollIntoView({ block: "center", behavior: "smooth", inline: "nearest" });
+      if (targetEl && !scrolledOnce) {
+        scrolledOnce = true;
+        targetEl.scrollIntoView({ block: "center", behavior: "auto", inline: "nearest" });
       }
       update();
     };
 
     scrollAndUpdate();
-    const t1 = window.setTimeout(scrollAndUpdate, 120);
-    const t2 = window.setTimeout(scrollAndUpdate, 400);
-    const t3 = window.setTimeout(scrollAndUpdate, 900);
+    const t1 = window.setTimeout(update, 120);
+    const t2 = window.setTimeout(update, 400);
+    const t3 = window.setTimeout(update, 900);
 
+    // Só childList: observar attributes reagia ao próprio overlay (loop de setState).
     const mo = typeof MutationObserver !== "undefined"
       ? new MutationObserver(() => update())
       : null;
-    mo?.observe(document.body, { childList: true, subtree: true, attributes: true });
-
-    const ro = typeof ResizeObserver !== "undefined" && targetEl
-      ? new ResizeObserver(update)
-      : null;
-    if (targetEl) ro?.observe(targetEl);
+    mo?.observe(document.body, { childList: true, subtree: true });
 
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
