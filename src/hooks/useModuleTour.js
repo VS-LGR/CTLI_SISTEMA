@@ -92,20 +92,21 @@ export function useModuleTour({ currentTenant = null } = {}) {
     navigateCountRef.current = 0;
   }, [pendingOpen, location.pathname, accessCtx]);
 
+  const moduleKeyFromPath = moduleFromPath?.moduleKey ?? null;
+
   useEffect(() => {
     if (pendingOpen || forcedModuleKey) return;
-    if (isAdmin || !userId || !moduleFromPath) {
+    if (isAdmin || !userId || !moduleKeyFromPath) {
       setOpen(false);
       return;
     }
-    if (moduleFromPath.moduleKey === "ajuda") {
+    if (moduleKeyFromPath === "ajuda") {
       setOpen(false);
       return;
     }
-    const moduleKey = moduleFromPath.moduleKey;
-    setOpen(!hasSeenTour(userId, moduleKey));
+    setOpen(!hasSeenTour(userId, moduleKeyFromPath));
     setStepIndex(0);
-  }, [isAdmin, userId, moduleFromPath?.moduleKey, forcedModuleKey, pendingOpen]);
+  }, [isAdmin, userId, moduleKeyFromPath, forcedModuleKey, pendingOpen]);
 
   // Navegar no máximo uma vez por neededPath; abortar se houver thrashing
   useEffect(() => {
