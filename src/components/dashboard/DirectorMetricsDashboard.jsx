@@ -48,7 +48,7 @@ export async function fetchDirectorMetrics(tenantId) {
     countTable("commercial_proposals", tenantId),
     supabase
       .from("commercial_proposals")
-      .select("total_value, proposal_date, status")
+      .select("total_value, proposal_date")
       .eq("tenant_id", tenantId)
       .then(({ data, error }) => {
         if (error) throw error;
@@ -159,7 +159,7 @@ export default function DirectorMetricsDashboard({ tenantId, tenantName }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3" data-tour="tour-diretor-kpis">
         {kpis.map((k) => (
           <Card key={k.label}>
             <CardContent className="p-4">
@@ -170,7 +170,7 @@ export default function DirectorMetricsDashboard({ tenantId, tenantName }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" data-tour="tour-diretor-graficos">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Composição do ambiente</CardTitle>

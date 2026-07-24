@@ -295,7 +295,7 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
     : "";
 
   return (
-    <div className="space-y-6 min-w-0" data-testid="weight-certificate-list">
+    <div className="space-y-6 min-w-0" data-testid="weight-certificate-list" data-tour="tour-cert-peso-lista">
       {!embedded && (
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

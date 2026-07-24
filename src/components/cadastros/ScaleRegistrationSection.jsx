@@ -169,7 +169,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-between gap-2">
           <p className="text-sm text-slate-600">Cadastro de balanças por cliente do ambiente (aba BALANÇAS da planilha matriz).</p>
-          <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}>
+          <Button size="sm" className="bg-blue-600 text-white" data-tour="tour-cadastro-novo" onClick={() => { reset(); setOpen(true); }}>
             <Plus size={16} className="mr-1" /> Nova balança
           </Button>
         </div>

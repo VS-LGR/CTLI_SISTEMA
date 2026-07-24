@@ -13,6 +13,20 @@ describe("helpModules", () => {
     expect(getHelpCatalogModules().length).toBeGreaterThan(3);
   });
 
+  it("cada passo do catálogo tem highlight", () => {
+    for (const mod of getHelpCatalogModules()) {
+      for (const step of mod.steps || []) {
+        expect(step.highlight).toBeTruthy();
+      }
+      for (const step of mod.signatorySteps || []) {
+        expect(step.highlight).toBeTruthy();
+      }
+      for (const step of mod.directorSteps || []) {
+        expect(step.highlight).toBeTruthy();
+      }
+    }
+  });
+
   it("filtra catálogo por papel", () => {
     const tecnico = getHelpCatalogModulesForUser({ role: "tecnico_campo", user: { tenant_id: "t1" } });
     expect(tecnico.every((m) => m.moduleKey === "coleta")).toBe(true);

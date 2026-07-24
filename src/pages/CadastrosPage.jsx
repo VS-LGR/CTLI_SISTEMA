@@ -331,7 +331,7 @@ function SupplierSection({ rows, tenantId, onRefresh }) {
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end">
-          <Button onClick={openNew} size="sm" className="bg-blue-600 text-white"><Plus size={16} className="mr-1" /> Novo provedor</Button>
+          <Button onClick={openNew} size="sm" className="bg-blue-600 text-white" data-tour="tour-cadastro-novo"><Plus size={16} className="mr-1" /> Novo provedor</Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
@@ -452,7 +452,7 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
     <Card className="border-slate-200">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end">
-          <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-blue-600 text-white"><Plus size={16} className="mr-1" /> Novo cliente</Button>
+          <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-blue-600 text-white" data-tour="tour-cadastro-novo"><Plus size={16} className="mr-1" /> Novo cliente</Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">

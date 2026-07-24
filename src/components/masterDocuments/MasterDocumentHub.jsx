@@ -9,24 +9,39 @@ import DocumentAlertsPanel from "./DocumentAlertsPanel";
 import MasterDocumentSettingsPanel from "./MasterDocumentSettingsPanel";
 
 export default function MasterDocumentHub({ tenantId, tenant, section }) {
+  let panel = null;
   switch (section) {
     case "lista_mestra_internos":
-      return <MasterDocumentListPanel tenantId={tenantId} filters={{ internalOnly: true, systemOnly: true }} />;
+      panel = <MasterDocumentListPanel tenantId={tenantId} filters={{ internalOnly: true, systemOnly: true }} />;
+      break;
     case "lista_mestra_externos":
-      return <ExternalDocumentsPanel tenantId={tenantId} />;
+      panel = <ExternalDocumentsPanel tenantId={tenantId} />;
+      break;
     case "lista_mestra_revisoes":
-      return <DocumentRevisionsPanel tenantId={tenantId} />;
+      panel = <DocumentRevisionsPanel tenantId={tenantId} />;
+      break;
     case "lista_mestra_distribuicao":
-      return <DocumentDistributionPanel tenantId={tenantId} />;
+      panel = <DocumentDistributionPanel tenantId={tenantId} />;
+      break;
     case "lista_mestra_templates":
-      return <DocumentTemplatesPanel tenantId={tenantId} />;
+      panel = <DocumentTemplatesPanel tenantId={tenantId} />;
+      break;
     case "lista_mestra_gerados":
-      return <DocumentSnapshotsPanel tenantId={tenantId} />;
+      panel = <DocumentSnapshotsPanel tenantId={tenantId} />;
+      break;
     case "lista_mestra_alertas":
-      return <DocumentAlertsPanel tenantId={tenantId} />;
+      panel = <DocumentAlertsPanel tenantId={tenantId} />;
+      break;
     case "lista_mestra_config":
-      return <MasterDocumentSettingsPanel tenantId={tenantId} tenant={tenant} />;
+      panel = <MasterDocumentSettingsPanel tenantId={tenantId} tenant={tenant} />;
+      break;
     default:
-      return <MasterDocumentListPanel tenantId={tenantId} />;
+      panel = <MasterDocumentListPanel tenantId={tenantId} />;
   }
+
+  return (
+    <div className="min-w-0" data-tour="tour-lista-mestra">
+      {panel}
+    </div>
+  );
 }

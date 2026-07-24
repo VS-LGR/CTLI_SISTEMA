@@ -155,11 +155,11 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-600">Formulários do PR-6.6 — produtos e serviços providos externamente.</p>
         <Button asChild className="bg-blue-600 hover:bg-blue-700 shrink-0">
-          <Link to={PEDIDOS_NEW_PATH}><Plus size={18} className="mr-1" /> Novo pedido</Link>
+          <Link to={PEDIDOS_NEW_PATH} data-tour="tour-pedidos-novo"><Plus size={18} className="mr-1" /> Novo pedido</Link>
         </Button>
       </div>
 
-      <Card className="border-slate-200">
+      <Card className="border-slate-200" data-tour="tour-pedidos-lista">
         <CardContent className="p-4 flex flex-wrap gap-3">
           <select
             className="border rounded-md h-10 px-3 text-sm"

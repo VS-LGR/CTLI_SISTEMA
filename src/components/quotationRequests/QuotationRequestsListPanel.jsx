@@ -155,11 +155,11 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
           <p className="text-sm text-slate-500 mt-0.5">RE-6.6C · Gestão de cotações com provedores</p>
         </div>
         <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white shrink-0">
-          <Link to={QUOTATION_NEW_PATH}><Plus size={16} className="mr-1.5" /> Nova solicitação</Link>
+          <Link to={QUOTATION_NEW_PATH} data-tour="tour-orcamento-nova"><Plus size={16} className="mr-1.5" /> Nova solicitação</Link>
         </Button>
       </div>
 
-      <Card className="border-slate-200">
+      <Card className="border-slate-200" data-tour="tour-orcamento-lista">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-slate-600 mb-3">
             <Funnel size={16} />

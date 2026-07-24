@@ -28,7 +28,7 @@ export default function ApprovalHubPage() {
   };
 
   return (
-    <div className="space-y-6 min-w-0 max-w-6xl" data-testid="approval-hub-page">
+    <div className="space-y-6 min-w-0 max-w-6xl" data-testid="approval-hub-page" data-tour="tour-aprovacao-hub">
       <div>
         <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Signatário</p>
         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
@@ -41,10 +41,18 @@ export default function ApprovalHubPage() {
 
       <Tabs value={tab} onValueChange={onTabChange}>
         <TabsList className="bg-white border border-slate-200 h-auto flex-wrap">
-          <TabsTrigger value={TAB_BALANCAS} className="whitespace-normal text-left max-w-[280px] sm:max-w-none">
+          <TabsTrigger
+            value={TAB_BALANCAS}
+            className="whitespace-normal text-left max-w-[280px] sm:max-w-none"
+            data-tour="tour-aprovacao-tab-balancas"
+          >
             Aprovação dos Certificados de Calibração de Balanças
           </TabsTrigger>
-          <TabsTrigger value={TAB_PESOS} className="whitespace-normal text-left max-w-[280px] sm:max-w-none">
+          <TabsTrigger
+            value={TAB_PESOS}
+            className="whitespace-normal text-left max-w-[280px] sm:max-w-none"
+            data-tour="tour-aprovacao-tab-pesos"
+          >
             Aprovação dos Certificados de Calibração de Peso Padrão
           </TabsTrigger>
         </TabsList>

@@ -481,7 +481,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
   const showApprovalBar = canApprove && (statusFilter === "aguardando_aprovacao" || filtered.some(isApprovableRow));
 
   return (
-    <div className="space-y-6 max-w-6xl w-full min-w-0">
+    <div className="space-y-6 max-w-6xl w-full min-w-0" data-tour="tour-cert-balanca-lista">
       {!embedded && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

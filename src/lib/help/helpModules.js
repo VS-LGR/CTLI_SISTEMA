@@ -1,7 +1,12 @@
-import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
-import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
-import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
-import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
+import { PROPOSAL_LIST_PATH, PROPOSAL_NEW_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
+import { COLETA_LIST_PATH, COLETA_NEW_PATH } from "@/lib/coletaRoutes";
+import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "@/lib/certificateRoutes";
+import { WEIGHT_CERTIFICATE_LIST_PATH, WEIGHT_CERTIFICATE_NEW_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
+import { APPROVAL_HUB_PATH } from "@/lib/approvalRoutes";
+import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
+import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
+import { LISTA_MESTRA_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
+import { cadastroSectionPath } from "@/lib/cadastroSections";
 import { canAccessModule } from "@/lib/tenantAccess";
 import {
   isDirectorRole,
@@ -13,13 +18,14 @@ import {
 
 /**
  * Catálogo de módulos com passos de tutorial / ajuda.
- * `highlight` = valor de data-tour no botão a iluminar nesta etapa.
- * `accessModule` = chave de canAccessModule.
+ * `highlight` = valor de data-tour no botão a iluminar (obrigatório em cada passo).
+ * `tourPath` = rota onde os botões com data-tour existem (navegação ao reabrir o tour).
  */
 export const HELP_MODULES = [
   {
     moduleKey: "ajuda",
     title: "Ajuda",
+    tourPath: "/ajuda",
     matchPath: (pathname) => pathname === "/ajuda" || pathname.startsWith("/ajuda/"),
     steps: [
       {
@@ -29,12 +35,8 @@ export const HELP_MODULES = [
       },
       {
         title: "Rever um tutorial",
-        body: "Em cada módulo abaixo, use “Ver tutorial” para reabrir o overlay com o botão destacado.",
+        body: "Em cada módulo abaixo, use “Ver tutorial” para ir à página e ver o botão real iluminado.",
         highlight: "tour-help-ver-tutorial",
-      },
-      {
-        title: "Primeira visita",
-        body: "Ao entrar pela primeira vez numa área (exceto Administrador CTLI), o sistema mostra automaticamente o tutorial desse módulo.",
       },
     ],
   },
@@ -42,27 +44,21 @@ export const HELP_MODULES = [
     moduleKey: "propostas",
     title: "Propostas comerciais",
     accessModule: "propostas",
+    tourPath: PROPOSAL_LIST_PATH,
     matchPath: (pathname) =>
       pathname.startsWith(PROPOSAL_LIST_PATH)
       || pathname.includes("/pr-7-1"),
     steps: [
       {
         title: "Criar nova proposta",
-        body: "Comece aqui: toque no botão iluminado “Nova proposta” para abrir o formulário.",
+        body: "Toque no botão iluminado “Nova proposta” para abrir o formulário.",
         highlight: "tour-propostas-nova",
       },
       {
-        title: "Cliente e balanças",
-        body: "No formulário, selecione o cliente do cadastro e adicione balanças (pode escolher uma já cadastrada).",
-      },
-      {
-        title: "Guardar",
-        body: "Depois de preencher pontos e valor, use “Guardar” (botão azul no topo do editor).",
+        title: "Preencher e guardar",
+        body: "No formulário, selecione o cliente, adicione balanças e use “Guardar” (botão azul no topo).",
         highlight: "tour-propostas-guardar",
-      },
-      {
-        title: "Gerar coleta",
-        body: "Com a proposta guardada, gere a coleta de dados por balança no cartão de coletas da proposta.",
+        tourPath: PROPOSAL_NEW_PATH,
       },
     ],
   },
@@ -70,18 +66,15 @@ export const HELP_MODULES = [
     moduleKey: "coleta",
     title: "Coleta de dados",
     accessModule: "coleta",
+    tourPath: COLETA_LIST_PATH,
     matchPath: (pathname) =>
       pathname.startsWith(COLETA_LIST_PATH)
       || (pathname.includes("/pr-7-2/") && pathname.includes("/coleta") && !pathname.includes("/pesos/")),
     steps: [
       {
         title: "Nova coleta",
-        body: "Toque no botão iluminado “Nova coleta” para começar (ou abra a partir da proposta).",
+        body: "Toque no botão iluminado “Nova coleta” para começar.",
         highlight: "tour-coleta-nova",
-      },
-      {
-        title: "Cliente e balança",
-        body: "Na secção 1 e 2, escolha o cliente e a balança cadastrada (ou preencha e cadastre).",
       },
       {
         title: "Ver certificados",
@@ -90,9 +83,10 @@ export const HELP_MODULES = [
         requiresCertAccess: true,
       },
       {
-        title: "Guardar",
-        body: "Preencha os ensaios e use “Guardar”. Depois pode gerar o certificado.",
+        title: "Guardar a coleta",
+        body: "No editor, preencha os ensaios e use o botão iluminado “Guardar”.",
         highlight: "tour-coleta-guardar",
+        tourPath: COLETA_NEW_PATH,
       },
     ],
   },
@@ -100,6 +94,7 @@ export const HELP_MODULES = [
     moduleKey: "certificados",
     title: "Certificados de calibração",
     accessModule: "certificados",
+    tourPath: CERTIFICATE_LIST_PATH,
     matchPath: (pathname) =>
       pathname.startsWith(CERTIFICATE_LIST_PATH)
       || (pathname.includes("/pr-7-2/certificados") && !pathname.includes("/pesos/"))
@@ -112,27 +107,30 @@ export const HELP_MODULES = [
         requiresCertEdit: true,
       },
       {
-        title: "Dados e cálculos",
-        body: "Confirme balança, pontos e conformidade antes de avançar no workflow.",
+        title: "Lista e workflow",
+        body: "Na lista, abra um certificado para calcular, enviar para aprovação e emitir o PDF.",
+        highlight: "tour-cert-balanca-lista",
         requiresCertEdit: true,
-      },
-      {
-        title: "Aprovação e PDF",
-        body: "Siga aprovação/assinatura e exporte o PDF quando estiver pronto.",
       },
     ],
     signatorySteps: [
       {
         title: "Painel de aprovação",
-        body: "Abra a lista de certificados aguardando aprovação. O seu papel não cria certificados — apenas aprova ou reprova.",
+        body: "Este é o painel de aprovação. O seu papel não cria certificados — apenas aprova ou reprova.",
+        highlight: "tour-aprovacao-hub",
+        tourPath: APPROVAL_HUB_PATH,
       },
       {
-        title: "Aprovar",
-        body: "Revise os dados e use Aprovar quando estiver conforme.",
+        title: "Aba balanças",
+        body: "Use a aba iluminada para ver certificados de balança aguardando aprovação.",
+        highlight: "tour-aprovacao-tab-balancas",
+        tourPath: APPROVAL_HUB_PATH,
       },
       {
-        title: "Reprovar com motivo",
-        body: "Se reprovar, indique obrigatoriamente o motivo da reprovação para o técnico corrigir.",
+        title: "Aba pesos",
+        body: "Use a aba iluminada para certificados de peso padrão. Ao reprovar, o motivo é obrigatório.",
+        highlight: "tour-aprovacao-tab-pesos",
+        tourPath: APPROVAL_HUB_PATH,
       },
     ],
   },
@@ -140,6 +138,7 @@ export const HELP_MODULES = [
     moduleKey: "certificados-peso",
     title: "Certificados de peso padrão",
     accessModule: "certificados",
+    tourPath: WEIGHT_CERTIFICATE_LIST_PATH,
     matchPath: (pathname) =>
       pathname.startsWith(WEIGHT_CERTIFICATE_LIST_PATH)
       || pathname.includes("/pr-7-2/pesos/certificados"),
@@ -151,13 +150,10 @@ export const HELP_MODULES = [
         requiresCertEdit: true,
       },
       {
-        title: "Preencher e calcular",
-        body: "Complete os itens, rastreabilidade e revise os resultados calculados.",
+        title: "Lista de certificados",
+        body: "Na lista iluminada, abra um certificado para calcular, aprovar e exportar o PDF.",
+        highlight: "tour-cert-peso-lista",
         requiresCertEdit: true,
-      },
-      {
-        title: "Workflow e PDF",
-        body: "Avance no fluxo de aprovação e exporte o PDF do certificado.",
       },
     ],
   },
@@ -165,19 +161,26 @@ export const HELP_MODULES = [
     moduleKey: "cadastros",
     title: "Cadastros",
     accessModule: "cadastros",
+    tourPath: cadastroSectionPath("clientes"),
     matchPath: (pathname) => pathname.includes("/cadastro/"),
     steps: [
       {
-        title: "Onde cadastrar",
-        body: "Os cadastros ficam nas pastas dos requisitos. Exemplos: clientes, balanças, pesos padrão, provedores.",
+        title: "Cadastrar cliente",
+        body: "Use o botão iluminado para adicionar um cliente final do ambiente.",
+        highlight: "tour-cadastro-novo",
+        tourPath: cadastroSectionPath("clientes"),
       },
       {
-        title: "Cliente e balança",
-        body: "Cadastre o cliente final e as balanças vinculadas — usadas em propostas, coletas e certificados.",
+        title: "Balanças",
+        body: "Cadastre balanças vinculadas ao cliente — usadas em propostas, coletas e certificados.",
+        highlight: "tour-cadastro-novo",
+        tourPath: cadastroSectionPath("balancas"),
       },
       {
         title: "Provedores",
-        body: "Cadastre provedores em PR-6.6 para pedidos de compra e solicitações de orçamento.",
+        body: "Cadastre provedores em PR-6.6 para pedidos de compra e orçamentos.",
+        highlight: "tour-cadastro-novo",
+        tourPath: cadastroSectionPath("fornecedores"),
       },
     ],
   },
@@ -185,21 +188,20 @@ export const HELP_MODULES = [
     moduleKey: "pedidos-compra",
     title: "Pedidos de compra",
     accessModule: "pedidos_compra",
+    tourPath: PEDIDOS_LIST_PATH,
     matchPath: (pathname) =>
       pathname.startsWith("/pedidos-compra")
       || (pathname.includes("/pr-6-6") && !pathname.includes("/cadastro/")),
     steps: [
       {
         title: "Criar pedido",
-        body: "Abra Pedidos de compra e inicie um novo pedido com itens e provedor.",
+        body: "Toque no botão iluminado “Novo pedido” para iniciar um pedido com itens e provedor.",
+        highlight: "tour-pedidos-novo",
       },
       {
-        title: "Fluxo de status",
-        body: "Avance aprovação técnica, envio ao provedor e recebimento conforme o workflow.",
-      },
-      {
-        title: "Inspeção",
-        body: "Registre a inspeção de recebimento e conclua o ciclo do pedido.",
+        title: "Lista de pedidos",
+        body: "Acompanhe o workflow (aprovação, envio, recebimento e inspeção) na lista iluminada.",
+        highlight: "tour-pedidos-lista",
       },
     ],
   },
@@ -207,19 +209,18 @@ export const HELP_MODULES = [
     moduleKey: "solicitacoes-orcamento",
     title: "Solicitações de orçamento",
     accessModule: "solicitacao_orcamento",
+    tourPath: QUOTATION_LIST_PATH,
     matchPath: (pathname) => pathname.startsWith("/solicitacoes-orcamento"),
     steps: [
       {
         title: "Nova solicitação",
-        body: "Crie a solicitação, escolha o provedor e descreva os itens a cotar.",
+        body: "Toque no botão iluminado para criar a solicitação e escolher o provedor.",
+        highlight: "tour-orcamento-nova",
       },
       {
-        title: "Envio e retorno",
-        body: "Marque o envio ao provedor e registre o orçamento recebido.",
-      },
-      {
-        title: "Converter",
-        body: "Quando aplicável, converta a solicitação em pedido de compra.",
+        title: "Lista de solicitações",
+        body: "Na lista, avance envio, retorno do orçamento e conversão em pedido de compra.",
+        highlight: "tour-orcamento-lista",
       },
     ],
   },
@@ -227,6 +228,7 @@ export const HELP_MODULES = [
     moduleKey: "lista-mestra",
     title: "Lista mestra",
     accessModule: "lista_mestra",
+    tourPath: LISTA_MESTRA_PATH,
     matchPath: (pathname) =>
       pathname.startsWith("/lista-mestra")
       || pathname.includes("/pr-8-3")
@@ -234,21 +236,20 @@ export const HELP_MODULES = [
     steps: [
       {
         title: "Documentos controlados",
-        body: "A Lista Mestra organiza documentos internos, externos, revisões e distribuição.",
+        body: "A Lista Mestra organiza documentos internos, externos, revisões e distribuição. Use a área iluminada.",
+        highlight: "tour-lista-mestra",
       },
       {
-        title: "Consultar e gerar",
-        body: "Use as abas para localizar modelos ativos e documentos gerados.",
-      },
-      {
-        title: "Alertas",
-        body: "Acompanhe alertas de validade/revisão na área correspondente.",
+        title: "Ajuda",
+        body: "Pode rever este e outros tutoriais a qualquer momento em Ajuda.",
+        highlight: "tour-nav-help",
       },
     ],
   },
   {
     moduleKey: "dashboard",
     title: "Dashboard",
+    tourPath: "/dashboard",
     matchPath: (pathname) => pathname === "/dashboard" || pathname === "/",
     steps: [
       {
@@ -258,7 +259,7 @@ export const HELP_MODULES = [
       },
       {
         title: "Certificado de peso padrão",
-        body: "Ambientes cliente também acedem à emissão de certificados de peso padrão (se o seu papel tiver permissão).",
+        body: "O atalho iluminado abre a emissão de certificados de peso padrão (se o seu papel tiver permissão).",
         highlight: "tour-dashboard-cert-peso",
         requiresCertAccess: true,
       },
@@ -270,13 +271,14 @@ export const HELP_MODULES = [
     ],
     directorSteps: [
       {
-        title: "Métricas da empresa",
-        body: "O dashboard mostra indicadores: provedores, clientes, certificados emitidos, propostas e receita.",
-        highlight: "tour-dashboard-atalhos",
+        title: "Indicadores",
+        body: "Os cartões iluminados mostram provedores, clientes, certificados, propostas e receita.",
+        highlight: "tour-diretor-kpis",
       },
       {
         title: "Gráficos",
-        body: "Use os gráficos de composição e de propostas/receita para acompanhar o desempenho do ambiente.",
+        body: "Os gráficos iluminados mostram a composição do ambiente e propostas/receita no tempo.",
+        highlight: "tour-diretor-graficos",
       },
       {
         title: "Ajuda",
@@ -296,6 +298,11 @@ export function resolveHelpModule(pathname) {
 
 export function getHelpModuleByKey(moduleKey) {
   return HELP_MODULES.find((m) => m.moduleKey === moduleKey) || null;
+}
+
+/** Rota onde o passo deve ser mostrado (highlight presente no DOM). */
+export function getTourPathForStep(module, step) {
+  return step?.tourPath || module?.tourPath || "/dashboard";
 }
 
 function canSeeHelpModule(mod, { tenant, role, user }) {

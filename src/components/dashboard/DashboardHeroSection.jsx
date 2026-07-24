@@ -33,7 +33,11 @@ function HeroButton({ shortcut }) {
         to={shortcut.to}
         className={className}
         data-testid={`dashboard-shortcut-${shortcut.id}`}
-        data-tour={shortcut.id === "cert-peso" ? "tour-dashboard-cert-peso" : undefined}
+        data-tour={
+          shortcut.id === "cert-peso"
+            ? "tour-dashboard-cert-peso"
+            : `tour-dashboard-${shortcut.id}`
+        }
       >
         {content}
       </Link>

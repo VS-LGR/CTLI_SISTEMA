@@ -4,24 +4,35 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { HELP_PATH } from "@/lib/help/helpModules";
 
-const PAD = 8;
+const PAD = 10;
 
 function measure(el) {
   if (!el) return null;
   const r = el.getBoundingClientRect();
   if (r.width < 2 && r.height < 2) return null;
   return {
-    top: r.top - PAD,
-    left: r.left - PAD,
-    width: r.width + PAD * 2,
+    top: Math.max(0, r.top - PAD),
+    left: Math.max(0, r.left - PAD),
+    width: Math.min(window.innerWidth, r.width + PAD * 2),
     height: r.height + PAD * 2,
     bottom: r.bottom + PAD,
     right: r.right + PAD,
   };
 }
 
+function findTourTarget(highlightId) {
+  if (!highlightId) return null;
+  const nodes = document.querySelectorAll(`[data-tour="${highlightId}"]`);
+  for (const el of nodes) {
+    const r = el.getBoundingClientRect();
+    if (r.width >= 2 && r.height >= 2) return el;
+  }
+  return nodes[0] || null;
+}
+
 /**
- * Destaca um botão/área da página (data-tour) e mostra o cartão do passo ao lado.
+ * Destaca um botão/área da página (data-tour) e mostra o cartão do passo.
+ * No mobile o cartão fica fixo na base; o buraco no dim permite clicar no botão.
  */
 export default function TourSpotlight({
   open,
@@ -35,41 +46,71 @@ export default function TourSpotlight({
   isLast,
   onStepChange,
   onDismiss,
+  waiting = false,
 }) {
   const [rect, setRect] = useState(null);
-  const [placement, setPlacement] = useState("below");
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches,
+  );
 
   useLayoutEffect(() => {
-    if (!open || !highlightId) {
-      setRect(null);
-      return undefined;
-    }
-    const el = document.querySelector(`[data-tour="${highlightId}"]`);
-    if (!el) {
+    if (!open) {
       setRect(null);
       return undefined;
     }
 
-    el.classList.add("tour-spotlight-target");
-    el.scrollIntoView({ block: "center", behavior: "smooth", inline: "nearest" });
+    let targetEl = null;
+    const mq = window.matchMedia("(max-width: 639px)");
+    const onMq = () => setIsMobile(mq.matches);
+    mq.addEventListener?.("change", onMq);
+    onMq();
 
     const update = () => {
-      const next = measure(el);
-      setRect(next);
-      if (next) {
-        const spaceBelow = window.innerHeight - next.bottom;
-        setPlacement(spaceBelow < 220 && next.top > 220 ? "above" : "below");
+      targetEl = findTourTarget(highlightId);
+      if (!targetEl) {
+        setRect(null);
+        return;
       }
+      targetEl.classList.add("tour-spotlight-target");
+      setRect(measure(targetEl));
     };
-    update();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
-    ro?.observe(el);
+
+    const scrollAndUpdate = () => {
+      targetEl = findTourTarget(highlightId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ block: "center", behavior: "smooth", inline: "nearest" });
+      }
+      update();
+    };
+
+    scrollAndUpdate();
+    const t1 = window.setTimeout(scrollAndUpdate, 120);
+    const t2 = window.setTimeout(scrollAndUpdate, 400);
+    const t3 = window.setTimeout(scrollAndUpdate, 900);
+
+    const mo = typeof MutationObserver !== "undefined"
+      ? new MutationObserver(() => update())
+      : null;
+    mo?.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+    const ro = typeof ResizeObserver !== "undefined" && targetEl
+      ? new ResizeObserver(update)
+      : null;
+    if (targetEl) ro?.observe(targetEl);
+
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
 
     return () => {
-      el.classList.remove("tour-spotlight-target");
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+      document.querySelectorAll(".tour-spotlight-target").forEach((el) => {
+        el.classList.remove("tour-spotlight-target");
+      });
+      mo?.disconnect();
       ro?.disconnect();
+      mq.removeEventListener?.("change", onMq);
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
@@ -84,75 +125,115 @@ export default function TourSpotlight({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onDismiss]);
 
-  if (!open || !rect) return null;
+  if (!open) return null;
 
-  const cardStyle = placement === "above"
-    ? {
-      bottom: `${window.innerHeight - rect.top + 12}px`,
-      left: `${Math.min(Math.max(12, rect.left), window.innerWidth - 320)}px`,
-    }
-    : {
-      top: `${rect.bottom + 12}px`,
-      left: `${Math.min(Math.max(12, rect.left), window.innerWidth - 320)}px`,
-    };
+  const hole = rect;
+  const cardClass = isMobile
+    ? "fixed left-3 right-3 bottom-3 z-[61] max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-xl pointer-events-auto"
+    : "absolute z-[61] w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-4 shadow-xl pointer-events-auto";
+
+  const cardStyle = !isMobile && hole
+    ? (() => {
+      const spaceBelow = window.innerHeight - hole.bottom;
+      const placeAbove = spaceBelow < 240 && hole.top > 240;
+      return placeAbove
+        ? {
+          bottom: `${window.innerHeight - hole.top + 12}px`,
+          left: `${Math.min(Math.max(12, hole.left), window.innerWidth - 320)}px`,
+        }
+        : {
+          top: `${Math.min(hole.bottom + 12, window.innerHeight - 200)}px`,
+          left: `${Math.min(Math.max(12, hole.left), window.innerWidth - 320)}px`,
+        };
+    })()
+    : undefined;
 
   return createPortal(
     <div className="fixed inset-0 z-[60]" data-testid="tour-spotlight" role="dialog" aria-modal="true">
-      <button
-        type="button"
-        className="absolute inset-0 bg-slate-900/65 cursor-default border-0"
-        aria-label="Fechar tutorial"
-        onClick={() => onDismiss?.()}
-      />
-      <div
-        className="pointer-events-none absolute rounded-lg ring-4 ring-blue-400 shadow-[0_0_0_9999px_rgba(15,23,42,0.65)]"
-        style={{
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute rounded-lg outline outline-2 outline-offset-2 outline-white/80 animate-pulse"
-        style={{
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-        }}
-        aria-hidden
-      />
+      {/* Dim com “buraco” clicável no alvo */}
+      {hole ? (
+        <>
+          <button
+            type="button"
+            className="absolute inset-x-0 top-0 border-0 bg-slate-900/65 cursor-default p-0"
+            style={{ height: Math.max(0, hole.top) }}
+            aria-label="Fechar tutorial"
+            onClick={() => onDismiss?.()}
+          />
+          <button
+            type="button"
+            className="absolute left-0 border-0 bg-slate-900/65 cursor-default p-0"
+            style={{ top: hole.top, height: hole.height, width: Math.max(0, hole.left) }}
+            aria-label="Fechar tutorial"
+            onClick={() => onDismiss?.()}
+          />
+          <button
+            type="button"
+            className="absolute right-0 border-0 bg-slate-900/65 cursor-default p-0"
+            style={{
+              top: hole.top,
+              height: hole.height,
+              width: Math.max(0, window.innerWidth - hole.left - hole.width),
+            }}
+            aria-label="Fechar tutorial"
+            onClick={() => onDismiss?.()}
+          />
+          <button
+            type="button"
+            className="absolute inset-x-0 bottom-0 border-0 bg-slate-900/65 cursor-default p-0"
+            style={{ height: Math.max(0, window.innerHeight - hole.top - hole.height) }}
+            aria-label="Fechar tutorial"
+            onClick={() => onDismiss?.()}
+          />
+          <div
+            className="pointer-events-none absolute rounded-lg ring-4 ring-blue-400"
+            style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute rounded-lg outline outline-2 outline-offset-2 outline-white/90"
+            style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
+            aria-hidden
+          />
+        </>
+      ) : (
+        <button
+          type="button"
+          className="absolute inset-0 bg-slate-900/65 cursor-default border-0"
+          aria-label="Fechar tutorial"
+          onClick={() => onDismiss?.()}
+        />
+      )}
 
-      <div
-        className="absolute z-[61] w-[min(20rem,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white p-4 shadow-xl pointer-events-auto"
-        style={cardStyle}
-      >
+      <div className={cardClass} style={cardStyle}>
         <p className="text-[10px] uppercase tracking-wide text-blue-700 font-semibold">
           {title} · passo {stepIndex + 1} de {total}
         </p>
         <h3 className="mt-1 text-base font-semibold text-slate-900 break-words">{stepTitle}</h3>
         <p className="mt-1.5 text-sm text-slate-600 leading-relaxed break-words">{stepBody}</p>
-        <p className="mt-2 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5">
-          Toque ou clique no botão iluminado para seguir o processo.
-        </p>
+        {waiting && !hole ? (
+          <p className="mt-2 text-xs text-slate-500">A localizar o botão nesta página…</p>
+        ) : (
+          <p className="mt-2 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5">
+            Toque ou clique no botão iluminado para seguir o processo.
+          </p>
+        )}
         <div className="mt-3 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between sm:items-center">
           <Button asChild variant="link" className="h-auto p-0 text-xs text-slate-600">
             <Link to={HELP_PATH} onClick={() => onDismiss?.()}>Ver na Ajuda</Link>
           </Button>
           <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
             {!isFirst && (
-              <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => onStepChange?.(stepIndex - 1)}>
+              <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto min-h-10" onClick={() => onStepChange?.(stepIndex - 1)}>
                 Anterior
               </Button>
             )}
             {!isLast ? (
-              <Button type="button" size="sm" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onStepChange?.(stepIndex + 1)}>
+              <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onStepChange?.(stepIndex + 1)}>
                 Seguinte
               </Button>
             ) : (
-              <Button type="button" size="sm" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onDismiss?.()}>
+              <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onDismiss?.()}>
                 Entendi
               </Button>
             )}
