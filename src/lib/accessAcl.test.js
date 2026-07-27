@@ -10,6 +10,7 @@ import {
   accessFlagsFromAcl,
   getAccessAclCatalog,
   aclAllowedRequirementPathPrefixes,
+  coerceAccessAcl,
   ACL_VERSION,
   ACL_OPERATIONAL_MODULES,
 } from "./accessAcl";
@@ -18,6 +19,16 @@ describe("accessAcl", () => {
   it("legado {} não está ativo", () => {
     expect(isAclActive({})).toBe(false);
     expect(isAclActive(null)).toBe(false);
+  });
+
+  it("coerceAccessAcl aceita JSON em string", () => {
+    const acl = coerceAccessAcl(JSON.stringify({
+      version: ACL_VERSION,
+      modules: ["coleta"],
+      folders: { "7": ["pr-7-2"] },
+    }));
+    expect(isAclActive(acl)).toBe(true);
+    expect(acl.modules).toEqual(["coleta"]);
   });
 
   it("normalize ativa version 1 e filtra pastas inválidas", () => {

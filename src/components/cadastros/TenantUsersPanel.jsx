@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,8 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
   const [role, setRole] = useState("gerente_qualidade");
   const [employeeId, setEmployeeId] = useState("");
   const [accessAcl, setAccessAcl] = useState(() => presetAccessAclForRole("gerente_qualidade"));
+  /** true = liberações personalizadas ou carregadas da BD — não sobrescrever ao mudar o nível. */
+  const aclDirtyRef = useRef(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -66,7 +68,18 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
     setPassword("");
     setRole("gerente_qualidade");
     setEmployeeId("");
+    aclDirtyRef.current = false;
     setAccessAcl(presetAccessAclForRole("gerente_qualidade"));
+  };
+
+  const applyRoleAclPreset = (roleValue = role) => {
+    aclDirtyRef.current = false;
+    setAccessAcl(presetAccessAclForRole(roleValue));
+  };
+
+  const handleAclChange = (next) => {
+    aclDirtyRef.current = true;
+    setAccessAcl(next);
   };
 
   const openCreate = () => {
@@ -82,6 +95,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
     setPassword("");
     setRole(row.role || "gerente_qualidade");
     setEmployeeId(row.employee_registration_id || "");
+    aclDirtyRef.current = true;
     setAccessAcl(
       isAclActive(row.access_acl)
         ? normalizeAccessAcl(row.access_acl)
@@ -214,14 +228,28 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Nível de acesso</Label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label>Nível de acesso</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => applyRoleAclPreset(role)}
+                  data-testid="tenant-user-acl-apply-preset"
+                >
+                  Padrão do nível
+                </Button>
+              </div>
               <select
                 value={role}
                 onChange={(e) => {
                   const next = e.target.value;
                   setRole(next);
                   if (next !== "signatario") setEmployeeId("");
-                  setAccessAcl(presetAccessAclForRole(next));
+                  if (!aclDirtyRef.current) {
+                    applyRoleAclPreset(next);
+                  }
                 }}
                 className="w-full border rounded-md h-10 px-3 mt-1 text-sm"
               >
@@ -230,7 +258,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
                 ))}
               </select>
             </div>
-            <AccessAclPicker value={accessAcl} onChange={setAccessAcl} />
+            <AccessAclPicker value={accessAcl} onChange={handleAclChange} />
             {role === "signatario" && (
               <div>
                 <Label>Colaborador signatário</Label>

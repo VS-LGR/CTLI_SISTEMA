@@ -97,6 +97,8 @@ export default function AccessAclPicker({
       </div>
       <p className="text-xs text-slate-500">
         Marque apenas os módulos e sub-procedimentos (ex.: PR-7.1, PR-6.2) que esta conta pode usar.
+        A seleção gravada prevalece sobre o padrão do nível; alterações manuais não são apagadas ao
+        mudar o nível (use “Padrão do nível” para repor).
       </p>
 
       <div className="max-h-[min(24rem,50vh)] overflow-y-auto overscroll-contain rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">

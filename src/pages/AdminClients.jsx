@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import api, { asArray, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
@@ -24,6 +24,7 @@ import TenantUsersPanel from "@/components/cadastros/TenantUsersPanel";
 import AccessAclPicker from "@/components/access/AccessAclPicker";
 import {
   accessFlagsFromAcl,
+  coerceAccessAcl,
   isAclActive,
   normalizeAccessAcl,
   presetAccessAclForRole,
@@ -92,6 +93,8 @@ const AdminClients = () => {
   const [uEmployeeId, setUEmployeeId] = useState("");
   const [uPortalAccess, setUPortalAccess] = useState(true);
   const [uAccessAcl, setUAccessAcl] = useState(() => presetAccessAclForRole("gerente_qualidade"));
+  /** true = liberações personalizadas ou carregadas da BD — não sobrescrever ao mudar o nível. */
+  const uAclDirtyRef = useRef(false);
   const [tenantSignatories, setTenantSignatories] = useState([]);
 
   const resetTenantForm = () => {
@@ -143,7 +146,18 @@ const AdminClients = () => {
     setURole("gerente_qualidade");
     setUEmployeeId("");
     setUPortalAccess(true);
+    uAclDirtyRef.current = false;
     setUAccessAcl(presetAccessAclForRole("gerente_qualidade"));
+  };
+
+  const applyRoleAclPreset = (roleValue = uRole) => {
+    uAclDirtyRef.current = false;
+    setUAccessAcl(roleValue === "admin" ? {} : presetAccessAclForRole(roleValue));
+  };
+
+  const handleUserAclChange = (next) => {
+    uAclDirtyRef.current = true;
+    setUAccessAcl(next);
   };
 
   const loadSupabase = async () => {
@@ -178,7 +192,7 @@ const AdminClients = () => {
         employee_registration_id: p.employee_registration_id,
         access_coleta: Boolean(p.access_coleta),
         access_certificados: Boolean(p.access_certificados),
-        access_acl: p.access_acl && typeof p.access_acl === "object" ? p.access_acl : {},
+        access_acl: coerceAccessAcl(p.access_acl),
       }));
 
       const { data: respRows, error: re } = await supabase
@@ -528,6 +542,8 @@ const AdminClients = () => {
     setUTenant(u.role === "admin" ? "" : tenantIdForScope || u.tenant_id || "");
     setUEmployeeId(u.employee_registration_id || "");
     setUPortalAccess(true);
+    // Conta existente: preservar ACL ao mudar nível (só “Padrão do nível” substitui).
+    uAclDirtyRef.current = true;
     setUAccessAcl(
       isAclActive(u.access_acl)
         ? normalizeAccessAcl(u.access_acl)
@@ -662,15 +678,30 @@ const AdminClients = () => {
                 </div>
 
                 <div>
-                  <Label>Nível de acesso</Label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label>Nível de acesso</Label>
+                    {uPortalAccess && uRole !== "admin" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => applyRoleAclPreset(uRole)}
+                        data-testid="user-acl-apply-preset"
+                      >
+                        Padrão do nível
+                      </Button>
+                    )}
+                  </div>
                   <select
                     value={uRole}
                     onChange={(e) => {
                       const nextRole = e.target.value;
                       setURole(nextRole);
                       if (nextRole !== "signatario") setUEmployeeId("");
-                      if (nextRole !== "admin") {
-                        setUAccessAcl(presetAccessAclForRole(nextRole));
+                      // Só aplica o preset se ainda não houve personalização / ACL carregada.
+                      if (!uAclDirtyRef.current) {
+                        applyRoleAclPreset(nextRole);
                       }
                     }}
                     className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
@@ -684,7 +715,7 @@ const AdminClients = () => {
                   </select>
                 </div>
                 {uPortalAccess && uRole !== "admin" && (
-                  <AccessAclPicker value={uAccessAcl} onChange={setUAccessAcl} />
+                  <AccessAclPicker value={uAccessAcl} onChange={handleUserAclChange} />
                 )}
                 {uPortalAccess && uRole === "signatario" && (
                   <div>

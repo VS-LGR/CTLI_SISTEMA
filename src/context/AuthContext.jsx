@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import api, { formatApiError, isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
+import { coerceAccessAcl } from "@/lib/accessAcl";
 
 const AuthCtx = createContext(null);
 
@@ -14,7 +15,7 @@ function mapProfileToUser(row, fallbackEmail) {
     tenant_id: row.tenant_id ?? null,
     access_coleta: Boolean(row.access_coleta),
     access_certificados: Boolean(row.access_certificados),
-    access_acl: row.access_acl && typeof row.access_acl === "object" ? row.access_acl : {},
+    access_acl: coerceAccessAcl(row.access_acl),
   };
 }
 

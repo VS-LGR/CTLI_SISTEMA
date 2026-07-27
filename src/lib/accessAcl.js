@@ -85,9 +85,23 @@ const CADASTRO_SECTION_FOLDER = {
 };
 
 /** ACL ativa (gravada na UI) — distingue legado `{}`. */
+export function coerceAccessAcl(raw) {
+  if (!raw) return {};
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) return raw;
+  return {};
+}
+
 export function isAclActive(acl) {
-  if (!acl || typeof acl !== "object") return false;
-  return Number(acl.version) === ACL_VERSION;
+  const obj = coerceAccessAcl(acl);
+  return Number(obj.version) === ACL_VERSION;
 }
 
 export function emptyAccessAcl() {
@@ -98,18 +112,19 @@ export function emptyAccessAcl() {
  * Normaliza e valida payload ACL (whitelist de módulos/pastas).
  */
 export function normalizeAccessAcl(raw, { activate = true } = {}) {
-  if (!activate && (!raw || typeof raw !== "object" || Number(raw.version) !== ACL_VERSION)) {
+  const source = coerceAccessAcl(raw);
+  if (!activate && Number(source.version) !== ACL_VERSION) {
     return {};
   }
 
-  const modulesIn = Array.isArray(raw?.modules) ? raw.modules : [];
+  const modulesIn = Array.isArray(source.modules) ? source.modules : [];
   const modules = [...new Set(
     modulesIn
       .map((m) => String(m || "").trim())
       .filter((m) => ALLOWED_MODULE_IDS.has(m)),
   )].sort();
 
-  const foldersIn = raw?.folders && typeof raw.folders === "object" ? raw.folders : {};
+  const foldersIn = source.folders && typeof source.folders === "object" ? source.folders : {};
   const folders = {};
   Object.keys(foldersIn).forEach((reqId) => {
     const rid = String(reqId);
