@@ -2,21 +2,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { listMasterDocumentChangeLogs } from "@/lib/masterDocuments/masterDocumentChangeLog";
+import { listMasterDocumentChangeLogs, MASTER_DOCUMENT_CHANGE_ACTION_LABELS } from "@/lib/masterDocuments/masterDocumentChangeLog";
 import { roleLabel } from "@/lib/roles";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 
-const ACTION_LABELS = {
-  create: "Criação",
-  update: "Alteração",
-  remap: "Remapeamento",
-  obsolete: "Obsoleto",
-  revision: "Revisão",
-  approve_revision: "Aprovação de revisão",
-  distribution: "Distribuição",
-  critical_analysis: "Análise crítica",
-  delete: "Exclusão",
-};
+const ACTION_LABELS = MASTER_DOCUMENT_CHANGE_ACTION_LABELS;
 
 function formatWhen(iso) {
   if (!iso) return "—";

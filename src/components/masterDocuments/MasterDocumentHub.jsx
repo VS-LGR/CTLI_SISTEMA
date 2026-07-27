@@ -9,12 +9,18 @@ import DocumentAlertsPanel from "./DocumentAlertsPanel";
 import MasterDocumentSettingsPanel from "./MasterDocumentSettingsPanel";
 import ControlledSoftwarePanel from "./ControlledSoftwarePanel";
 import DocumentChangeLogPanel from "./DocumentChangeLogPanel";
+import MasterDocumentActivityFeed from "./MasterDocumentActivityFeed";
 
 export default function MasterDocumentHub({ tenantId, tenant, section }) {
   let panel = null;
   switch (section) {
     case "lista_mestra_internos":
-      panel = <MasterDocumentListPanel tenantId={tenantId} filters={{ internalOnly: true, systemOnly: true }} />;
+      panel = (
+        <div className="space-y-6">
+          <MasterDocumentActivityFeed tenantId={tenantId} limit={6} compact />
+          <MasterDocumentListPanel tenantId={tenantId} filters={{ internalOnly: true, systemOnly: true }} />
+        </div>
+      );
       break;
     case "lista_mestra_externos":
       panel = <ExternalDocumentsPanel tenantId={tenantId} />;
@@ -25,12 +31,13 @@ export default function MasterDocumentHub({ tenantId, tenant, section }) {
     case "lista_mestra_revisoes":
       panel = (
         <div className="space-y-6">
+          <MasterDocumentActivityFeed tenantId={tenantId} limit={10} compact />
           <div>
             <h3 className="text-sm font-semibold text-slate-800 mb-2">Histórico documental (revisões)</h3>
             <DocumentRevisionsPanel tenantId={tenantId} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-800 mb-2">Histórico de alterações (conta / função)</h3>
+            <h3 className="text-sm font-semibold text-slate-800 mb-2">Histórico detalhado (conta / função)</h3>
             <DocumentChangeLogPanel tenantId={tenantId} limit={150} />
           </div>
         </div>

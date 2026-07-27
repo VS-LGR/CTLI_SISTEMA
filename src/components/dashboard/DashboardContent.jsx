@@ -10,6 +10,8 @@ import EquipmentExpiryAlerts from "@/components/dashboard/EquipmentExpiryAlerts"
 import DashboardRecentDocs from "@/components/dashboard/DashboardRecentDocs";
 import DashboardPinnedDocs from "@/components/dashboard/DashboardPinnedDocs";
 import DashboardReminders from "@/components/dashboard/DashboardReminders";
+import MasterDocumentActivityFeed from "@/components/masterDocuments/MasterDocumentActivityFeed";
+import { canAccessMasterDocuments } from "@/lib/roles";
 
 export default function DashboardContent({
   sectionLabel = "Visão geral",
@@ -33,6 +35,7 @@ export default function DashboardContent({
   const reminders = data?.reminders || [];
   const alertCount = documentAlerts?.totalCount || 0;
   const monthlyEmissions = data?.monthly_emissions;
+  const showListaMestraActivity = canAccessMasterDocuments(user?.role, user);
 
   return (
     <div className="space-y-8 min-w-0" data-testid="dashboard-content">
@@ -90,6 +93,10 @@ export default function DashboardContent({
           loading={loading}
         />
       </div>
+
+      {showListaMestraActivity && currentTenant?.id && (
+        <MasterDocumentActivityFeed tenantId={currentTenant.id} limit={8} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 items-start">
         <Card className="border-slate-200 min-w-0 lg:row-span-2">

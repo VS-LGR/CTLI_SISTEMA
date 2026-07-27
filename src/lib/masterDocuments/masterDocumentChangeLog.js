@@ -180,7 +180,7 @@ export async function listMasterDocumentChangeLogs(tenantId, filters = {}) {
   if (!tenantId || !isSupabaseAuthMode) return [];
   let q = supabase
     .from("master_document_change_logs")
-    .select("*")
+    .select("*, master_document:master_document_id(id, code, title)")
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
@@ -193,3 +193,15 @@ export async function listMasterDocumentChangeLogs(tenantId, filters = {}) {
   if (error) throw error;
   return data || [];
 }
+
+export const MASTER_DOCUMENT_CHANGE_ACTION_LABELS = {
+  create: "Criação",
+  update: "Alteração",
+  remap: "Remapeamento",
+  obsolete: "Obsoleto",
+  revision: "Revisão",
+  approve_revision: "Aprovação",
+  distribution: "Distribuição",
+  critical_analysis: "Análise crítica",
+  delete: "Exclusão",
+};
