@@ -17,6 +17,7 @@ import {
   normalizeAccessAcl,
   presetAccessAclForRole,
 } from "@/lib/accessAcl";
+import { ensureProfileAccessAcl } from "@/lib/accessAclPersist";
 
 const ASSIGNABLE_ROLES = ROLES.filter((r) => TENANT_ADMIN_CREATABLE_ROLES.includes(r.value));
 
@@ -134,9 +135,10 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
           ...(role === "signatario" ? { employee_registration_id: employeeId } : {}),
           ...payload,
         });
+        await ensureProfileAccessAcl(editing.id, aclPayload, flags);
         toast.success("Usuário atualizado");
       } else {
-        await invoke({
+        const created = await invoke({
           action: "create",
           full_name: name.trim(),
           email: email.trim(),
@@ -145,6 +147,9 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
           ...(role === "signatario" ? { employee_registration_id: employeeId } : {}),
           ...payload,
         });
+        if (created?.id) {
+          await ensureProfileAccessAcl(created.id, aclPayload, flags);
+        }
         toast.success("Usuário criado");
       }
       setOpen(false);

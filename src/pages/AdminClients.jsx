@@ -29,6 +29,7 @@ import {
   normalizeAccessAcl,
   presetAccessAclForRole,
 } from "@/lib/accessAcl";
+import { ensureProfileAccessAcl } from "@/lib/accessAclPersist";
 
 const isDocumentResponsibleRole = (role) =>
   RESPONSIBLE_ROLES.some((r) => r.value === role);
@@ -453,9 +454,12 @@ const AdminClients = () => {
               access_certificados: flags.access_certificados,
               access_acl: aclPayload,
             });
+            if (uRole !== "admin") {
+              await ensureProfileAccessAcl(editingUserId, aclPayload, flags);
+            }
             toast.success("Utilizador atualizado");
           } else {
-            await invokeSupabaseEdgeFunction("admin-create-user", {
+            const created = await invokeSupabaseEdgeFunction("admin-create-user", {
               email: uEmail.trim(),
               password: uPassword,
               full_name: uName.trim(),
@@ -466,6 +470,9 @@ const AdminClients = () => {
               access_certificados: flags.access_certificados,
               access_acl: aclPayload,
             });
+            if (uRole !== "admin" && created?.id) {
+              await ensureProfileAccessAcl(created.id, aclPayload, flags);
+            }
             toast.success("Utilizador criado");
           }
           if (uRole !== "admin" && uTenant) {

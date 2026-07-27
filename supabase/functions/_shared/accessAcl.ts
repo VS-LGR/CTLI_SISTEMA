@@ -87,6 +87,11 @@ export function accessFlagsFromAcl(acl: Record<string, unknown>) {
   };
 }
 
+export function isAclActive(acl: unknown): boolean {
+  if (!acl || typeof acl !== "object") return false;
+  return Number((acl as Record<string, unknown>).version) === ACL_VERSION;
+}
+
 /** Resolve ACL + flags a partir do body. Admin → ACL vazia sem version (legado full). */
 export function resolveAccessAclFromBody(role: string, body: Record<string, unknown>) {
   if (role === "admin") {
@@ -117,4 +122,64 @@ export function resolveAccessAclFromBody(role: string, body: Record<string, unkn
     access_coleta: flags.access_coleta,
     access_certificados: flags.access_certificados,
   };
+}
+
+/**
+ * Grava ACL no perfil com verificação.
+ * UPDATE que afeta 0 linhas (sem erro) era a causa de voltar ao preset do papel.
+ */
+export async function persistProfileAccess(
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
+  userId: string,
+  patch: Record<string, unknown>,
+  expectedAcl: Record<string, unknown>,
+) {
+  const { data: updated, error: upErr } = await adminClient
+    .from("profiles")
+    .update(patch)
+    .eq("id", userId)
+    .select("id, access_acl, access_coleta, access_certificados")
+    .maybeSingle();
+
+  if (upErr) {
+    const msg = upErr.message || String(upErr);
+    if (/access_acl|schema cache|column/i.test(msg)) {
+      return {
+        error:
+          `${msg} Aplique a migration profiles.access_acl no Supabase (SQL) e faça reload do schema.`,
+      };
+    }
+    return { error: msg };
+  }
+
+  let row = updated;
+  if (!row) {
+    const { data: upserted, error: upsErr } = await adminClient
+      .from("profiles")
+      .upsert({ id: userId, ...patch }, { onConflict: "id" })
+      .select("id, access_acl, access_coleta, access_certificados")
+      .maybeSingle();
+    if (upsErr) {
+      return { error: upsErr.message || String(upsErr) };
+    }
+    row = upserted;
+  }
+
+  if (!row) {
+    return { error: "Perfil não encontrado após gravar liberações de acesso." };
+  }
+
+  // Contas não-admin devem ficar com ACL versionada; senão o frontend cai no preset do papel.
+  if (expectedAcl && Number(expectedAcl.version) === ACL_VERSION) {
+    if (!isAclActive(row.access_acl)) {
+      return {
+        error:
+          "Liberações de acesso não foram gravadas (access_acl ficou vazio). "
+          + "Confirme a coluna profiles.access_acl e redeploy das edge functions.",
+      };
+    }
+  }
+
+  return { data: row };
 }

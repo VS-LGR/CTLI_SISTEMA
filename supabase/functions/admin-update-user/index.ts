@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getServiceRoleKey } from "../_shared/env.ts";
-import { resolveAccessAclFromBody } from "../_shared/accessAcl.ts";
+import { persistProfileAccess, resolveAccessAclFromBody } from "../_shared/accessAcl.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -93,15 +93,24 @@ serve(async (req) => {
     patch.access_certificados = access.access_certificados;
     patch.access_acl = access.access_acl;
 
-    const { error: upErr } = await adminClient.from("profiles").update(patch).eq("id", user_id);
-    if (upErr) {
-      return new Response(JSON.stringify({ error: upErr.message }), {
+    const persisted = await persistProfileAccess(
+      adminClient,
+      user_id,
+      patch,
+      access.access_acl as Record<string, unknown>,
+    );
+
+    if (persisted.error) {
+      return new Response(JSON.stringify({ error: persisted.error }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      access_acl: persisted.data?.access_acl ?? access.access_acl,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

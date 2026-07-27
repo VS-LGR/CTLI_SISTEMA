@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getServiceRoleKey } from "../_shared/env.ts";
-import { resolveAccessAclFromBody } from "../_shared/accessAcl.ts";
+import { persistProfileAccess, resolveAccessAclFromBody } from "../_shared/accessAcl.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -182,7 +182,14 @@ serve(async (req) => {
         email,
         password,
         email_confirm: true,
-        user_metadata: { full_name, role, tenant_id },
+        user_metadata: {
+          full_name,
+          role,
+          tenant_id,
+          access_acl: access.access_acl,
+          access_coleta: access.access_coleta,
+          access_certificados: access.access_certificados,
+        },
       });
 
       if (createErr) {
@@ -204,20 +211,26 @@ serve(async (req) => {
       };
       if (employee_registration_id) profilePatch.employee_registration_id = employee_registration_id;
 
-      const { error: upErr } = await adminClient
-        .from("profiles")
-        .update(profilePatch)
-        .eq("id", newUser.user.id);
+      const persisted = await persistProfileAccess(
+        adminClient,
+        newUser.user.id,
+        profilePatch,
+        access.access_acl as Record<string, unknown>,
+      );
 
-      if (upErr) {
-        return new Response(JSON.stringify({ error: upErr.message }), {
+      if (persisted.error) {
+        return new Response(JSON.stringify({ error: persisted.error }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
       return new Response(
-        JSON.stringify({ id: newUser.user.id, email: newUser.user.email }),
+        JSON.stringify({
+          id: newUser.user.id,
+          email: newUser.user.email,
+          access_acl: persisted.data?.access_acl ?? access.access_acl,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -303,15 +316,24 @@ serve(async (req) => {
       }
       if (nextRole !== "signatario") patch.employee_registration_id = null;
 
-      const { error: upErr } = await adminClient.from("profiles").update(patch).eq("id", user_id);
-      if (upErr) {
-        return new Response(JSON.stringify({ error: upErr.message }), {
+      const persisted = await persistProfileAccess(
+        adminClient,
+        user_id,
+        patch,
+        access.access_acl as Record<string, unknown>,
+      );
+
+      if (persisted.error) {
+        return new Response(JSON.stringify({ error: persisted.error }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({
+        ok: true,
+        access_acl: persisted.data?.access_acl ?? access.access_acl,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
