@@ -136,19 +136,8 @@ export function canAccessModule({ tenant, role, module, user = null }) {
     return canManageTenantUsers(role);
   }
 
-  if (isFieldTechnicianRole(role)) {
-    return module === "coleta";
-  }
-
-  if (isSignatoryRole(role)) {
-    return module === "certificados";
-  }
-
-  if (isDirectorRole(role)) {
-    return false;
-  }
-
-  // ACL granular por conta (quando ativa)
+  // ACL granular por conta (quando ativa) — tem prioridade sobre defaults do papel
+  // (funções extras ou remoção de acessos em contas novas).
   if (isAclActive(user?.access_acl)) {
     if (module === "coleta") return aclAllowsModule(user.access_acl, "coleta");
     if (module === "certificados") return aclAllowsModule(user.access_acl, "certificados");
@@ -165,6 +154,18 @@ export function canAccessModule({ tenant, role, module, user = null }) {
       return aclAllowsModule(user.access_acl, module);
     }
     return aclAllowsModule(user.access_acl, module);
+  }
+
+  if (isFieldTechnicianRole(role)) {
+    return module === "coleta";
+  }
+
+  if (isSignatoryRole(role)) {
+    return module === "certificados";
+  }
+
+  if (isDirectorRole(role)) {
+    return false;
   }
 
   if (isGerenteGeralRole(role)) {
@@ -230,12 +231,12 @@ export function canAccessRequirement({ tenant, role, requirementId, user = null 
   const rid = String(requirementId);
   if (isCtliAdmin(role)) return true;
 
-  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
-    return false;
-  }
-
   if (isAclActive(user?.access_acl)) {
     return aclAllowsRequirement(user.access_acl, rid);
+  }
+
+  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
+    return false;
   }
 
   if (isGerenteGeralRole(role)) return true;
@@ -264,12 +265,12 @@ export function canAccessRequirement({ tenant, role, requirementId, user = null 
 export function canAccessRequirementFolder({ tenant, role, requirementId, folderKey, user = null }) {
   if (isCtliAdmin(role)) return true;
 
-  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
-    return false;
-  }
-
   if (isAclActive(user?.access_acl)) {
     return aclAllowsFolder(user.access_acl, requirementId, folderKey);
+  }
+
+  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
+    return false;
   }
 
   if (isGerenteGeralRole(role)) return true;
@@ -311,12 +312,13 @@ export function canAccessRequirementFolder({ tenant, role, requirementId, folder
 export function canAccessCadastroSection({ tenant, role, sectionId, user = null }) {
   if (sectionId === "usuarios") return isCtliAdmin(role);
   if (sectionId === "config-coleta" || sectionId === "config-proposta") return false;
-  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) return false;
   if (isCtliAdmin(role)) return true;
 
   if (isAclActive(user?.access_acl)) {
     return aclAllowsCadastroSection(user.access_acl, sectionId);
   }
+
+  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) return false;
 
   if (isGerenteGeralRole(role)) return true;
 

@@ -118,6 +118,45 @@ describe("helpModules", () => {
     expect(keys).not.toContain("cadastros");
   });
 
+  it("ACL com função extra em papel restrito inclui o módulo no tutorial", () => {
+    const keys = getHelpCatalogModulesForUser({
+      role: "tecnico_campo",
+      user: {
+        tenant_id: "t1",
+        access_acl: {
+          version: 1,
+          modules: ["coleta", "propostas"],
+          folders: { "7": ["pr-7-1", "pr-7-2"] },
+        },
+      },
+    }).map((m) => m.moduleKey);
+
+    expect(keys).toContain("coleta");
+    expect(keys).toContain("propostas");
+    expect(keys).toContain("dashboard");
+    expect(keys).not.toContain("lista-mestra");
+  });
+
+  it("ACL remove acessos do papel no catálogo de tutorial", () => {
+    const keys = getHelpCatalogModulesForUser({
+      role: "gerente_tecnico",
+      user: {
+        tenant_id: "t1",
+        access_acl: {
+          version: 1,
+          modules: ["coleta"],
+          folders: { "7": ["pr-7-2"] },
+        },
+      },
+    }).map((m) => m.moduleKey);
+
+    expect(keys).toContain("coleta");
+    expect(keys).toContain("dashboard");
+    expect(keys).not.toContain("propostas");
+    expect(keys).not.toContain("certificados");
+    expect(keys).not.toContain("cadastros");
+  });
+
   it("legado sem ACL mantém tutoriais do papel", () => {
     const keys = getHelpCatalogModulesForUser({
       role: "administrativo_compras",

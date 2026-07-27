@@ -24,6 +24,7 @@ import {
   canAccessCalibrationCertificates,
   canEditCalibrationCertificate,
 } from "@/lib/roles";
+import { isAclActive } from "@/lib/accessAcl";
 
 /** Preferência de secção para o tour de cadastros (primeira visível nesta ordem). */
 const CADASTROS_TOUR_SECTION_ORDER = ["clientes", "balancas", "fornecedores", "colaboradores", "pesos", "thermo"];
@@ -350,6 +351,23 @@ export function getTourPathForStep(module, step) {
 
 function canSeeHelpModule(mod, { tenant, role, user }) {
   if (mod.moduleKey === "ajuda") return true;
+
+  // Conta com ACL ativa: tutorial segue apenas o que foi liberado/removido na conta.
+  if (isAclActive(user?.access_acl)) {
+    if (mod.moduleKey === "dashboard") {
+      if (isDirectorRole(role)) return true;
+      const modules = user.access_acl.modules || [];
+      // Dashboard como orientação quando há pelo menos uma função liberada.
+      return modules.length > 0;
+    }
+    if (mod.moduleKey === "cadastros") {
+      return Boolean(resolveCadastrosTourPath({ tenant, role, user }));
+    }
+    if (!mod.accessModule) return true;
+    return canAccessModule({ tenant, role, module: mod.accessModule, user });
+  }
+
+  // Legado sem ACL: defaults por papel.
   if (isDirectorRole(role)) return mod.moduleKey === "dashboard";
   if (isFieldTechnicianRole(role)) return mod.moduleKey === "coleta";
   if (isSignatoryRole(role)) {
@@ -375,8 +393,25 @@ function getDashboardTourAreas({ tenant, role, user }) {
 }
 
 function adaptSteps(mod, role, user, tenant = null) {
-  if (isDirectorRole(role) && mod.directorSteps) return mod.directorSteps;
-  if (isSignatoryRole(role) && mod.signatorySteps) return mod.signatorySteps;
+  const aclActive = isAclActive(user?.access_acl);
+  // Variantes por papel só no legado; com ACL usamos passos filtrados pelas permissões reais.
+  if (!aclActive && isDirectorRole(role) && mod.directorSteps) return mod.directorSteps;
+  if (!aclActive && isSignatoryRole(role) && mod.signatorySteps) return mod.signatorySteps;
+  if (aclActive && isDirectorRole(role) && mod.directorSteps && mod.moduleKey === "dashboard") {
+    return mod.directorSteps;
+  }
+  if (
+    aclActive
+    && isSignatoryRole(role)
+    && mod.signatorySteps
+    && (mod.moduleKey === "certificados" || mod.moduleKey === "certificados-peso")
+  ) {
+    return mod.signatorySteps.filter((step) => {
+      if (step.requiresCertAccess && !canAccessCalibrationCertificates(role, user)) return false;
+      if (step.requiresCertEdit && !canEditCalibrationCertificate(role, user)) return false;
+      return true;
+    });
+  }
 
   const ctx = { tenant, role, user };
   const canCert = canAccessCalibrationCertificates(role, user);

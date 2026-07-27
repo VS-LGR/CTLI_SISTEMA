@@ -105,6 +105,50 @@ describe("tenantAccess", () => {
     expect(shortcuts.every((s) => s.id === "coleta")).toBe(true);
   });
 
+  test("ACL ativa tem prioridade — função extra e remoção", () => {
+    const techWithExtra = {
+      tenant_id: "t1",
+      access_acl: {
+        version: 1,
+        modules: ["coleta", "propostas"],
+        folders: { "7": ["pr-7-1"] },
+      },
+    };
+    expect(canAccessModule({
+      tenant: portalTenant,
+      role: "tecnico_campo",
+      module: "propostas",
+      user: techWithExtra,
+    })).toBe(true);
+    expect(canAccessModule({
+      tenant: portalTenant,
+      role: "tecnico_campo",
+      module: "certificados",
+      user: techWithExtra,
+    })).toBe(false);
+
+    const gerenteRestricted = {
+      tenant_id: "t1",
+      access_acl: {
+        version: 1,
+        modules: ["lista_mestra"],
+        folders: { "8": ["pr-8-3"] },
+      },
+    };
+    expect(canAccessModule({
+      tenant: fullTenant,
+      role: "gerente_qualidade",
+      module: "lista_mestra",
+      user: gerenteRestricted,
+    })).toBe(true);
+    expect(canAccessModule({
+      tenant: fullTenant,
+      role: "gerente_qualidade",
+      module: "coleta",
+      user: gerenteRestricted,
+    })).toBe(false);
+  });
+
   test("diretor — sem atalhos operacionais", () => {
     expect(getVisibleDashboardShortcuts("diretor", portalTenant, clientUser)).toEqual([]);
     expect(canAccessModule({ tenant: portalTenant, role: "diretor", module: "coleta", user: clientUser })).toBe(false);
