@@ -29,6 +29,7 @@ import {
   requiresFolderNav,
   REQ_NAMES,
 } from "@/lib/requirementNavConfig";
+import { buildProcedureLabelMap } from "@/lib/masterDocuments/procedureLabelResolver";
 import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
@@ -78,6 +79,7 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [tenants, setTenants] = useState([]);
+  const [folderLabelMap, setFolderLabelMap] = useState({});
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [openNavGroup, setOpenNavGroup] = useState(
     () => resolveNavGroupFromPath(location.pathname),
@@ -114,6 +116,30 @@ const Layout = () => {
   useEffect(() => {
     if (user) loadTenants();
   }, [user, loadTenants]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadLabels() {
+      if (!currentTenantId || !isSupabaseAuthMode) {
+        setFolderLabelMap({});
+        return;
+      }
+      try {
+        const entries = ["4", "5", "6", "7", "8"].flatMap((rid) =>
+          getFoldersForRequirement(rid, null, null, null).map((f) => ({
+            folderKey: f.folderKey,
+            label: f.label,
+          })),
+        );
+        const map = await buildProcedureLabelMap(currentTenantId, entries);
+        if (!cancelled) setFolderLabelMap(map);
+      } catch {
+        if (!cancelled) setFolderLabelMap({});
+      }
+    }
+    loadLabels();
+    return () => { cancelled = true; };
+  }, [currentTenantId]);
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -336,19 +362,22 @@ const Layout = () => {
                   <CaretRight size={14} className="shrink-0 opacity-70" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1">
-                  {folders.map((f) => (
-                    <NavLink
-                      key={f.folderKey}
-                      to={`/requirement/${r.id}/${f.folderKey}`}
-                      className={subNavLinkClass}
-                      title={f.label}
-                      data-testid={`nav-req-${r.id}-${f.folderKey}`}
-                      onClick={onNavigate}
-                      isActive={({ location: loc }) => isFolderNavActive(loc, r.id, f.folderKey)}
-                    >
-                      <span className="truncate">{f.label}</span>
-                    </NavLink>
-                  ))}
+                  {folders.map((f) => {
+                    const label = folderLabelMap[f.folderKey] || f.label;
+                    return (
+                      <NavLink
+                        key={f.folderKey}
+                        to={`/requirement/${r.id}/${f.folderKey}`}
+                        className={subNavLinkClass}
+                        title={label}
+                        data-testid={`nav-req-${r.id}-${f.folderKey}`}
+                        onClick={onNavigate}
+                        isActive={({ location: loc }) => isFolderNavActive(loc, r.id, f.folderKey)}
+                      >
+                        <span className="truncate">{label}</span>
+                      </NavLink>
+                    );
+                  })}
                 </CollapsibleContent>
               </Collapsible>
             );

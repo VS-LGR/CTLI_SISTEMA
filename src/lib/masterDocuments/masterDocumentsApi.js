@@ -3,6 +3,7 @@ import { isSupabaseAuthMode } from "@/lib/api";
 import { clearMasterDocumentCache } from "./masterDocumentResolver";
 import { calculateNextCriticalAnalysisDate } from "./masterDocumentResolver";
 import { calculateNextExternalConsultationDate } from "./masterDocumentResolver";
+import { recordMasterDocumentChange } from "./masterDocumentChangeLog";
 
 export function assertSupabaseMasterDocuments() {
   if (!isSupabaseAuthMode) {
@@ -61,11 +62,24 @@ export async function getMasterDocument(tenantId, id) {
   return data;
 }
 
-export async function createMasterDocument(tenantId, payload) {
+export async function createMasterDocument(tenantId, payload, options = {}) {
   assertSupabaseMasterDocuments();
+  const code = payload.code || "";
+  let systemFolderKey = payload.system_folder_key || "";
+  if (!systemFolderKey) {
+    const ref = payload.reference || "";
+    const source = (payload.type === "procedimento" || payload.type === "manual" || payload.type === "politica")
+      ? code
+      : (ref || code);
+    const m = String(source).match(/^(?:PR|RE|MQ)-(.+)$/i);
+    if (m) {
+      systemFolderKey = `pr-${m[1].replace(/\./g, "-").toLowerCase()}`;
+    }
+  }
   const row = {
     tenant_id: tenantId,
     ...payload,
+    system_folder_key: systemFolderKey,
     next_critical_analysis_date: calculateNextCriticalAnalysisDate(
       payload.last_critical_analysis_date || payload.current_issue_date,
       payload.critical_analysis_period_months || 24,
@@ -78,11 +92,22 @@ export async function createMasterDocument(tenantId, payload) {
     .single();
   if (error) throw error;
   clearMasterDocumentCache(tenantId);
+  if (!options.skipAudit) {
+    await recordMasterDocumentChange({
+      tenantId,
+      masterDocumentId: data.id,
+      action: "create",
+      before: {},
+      after: data,
+      summary: `Criação de ${data.code || data.title || "documento"}`,
+    });
+  }
   return data;
 }
 
-export async function updateMasterDocument(tenantId, id, payload) {
+export async function updateMasterDocument(tenantId, id, payload, options = {}) {
   assertSupabaseMasterDocuments();
+  const before = options.before || await getMasterDocument(tenantId, id);
   const updates = { ...payload };
   if (payload.last_critical_analysis_date !== undefined) {
     updates.next_critical_analysis_date = calculateNextCriticalAnalysisDate(
@@ -99,11 +124,32 @@ export async function updateMasterDocument(tenantId, id, payload) {
     .single();
   if (error) throw error;
   clearMasterDocumentCache(tenantId);
+  if (!options.skipAudit) {
+    await recordMasterDocumentChange({
+      tenantId,
+      masterDocumentId: id,
+      action: options.auditAction || "update",
+      before: before || {},
+      after: data,
+      summary: options.auditSummary || "",
+    });
+  }
   return data;
 }
 
-export async function deleteMasterDocument(tenantId, id) {
+export async function deleteMasterDocument(tenantId, id, options = {}) {
   assertSupabaseMasterDocuments();
+  const before = options.before || await getMasterDocument(tenantId, id);
+  if (!options.skipAudit && before) {
+    await recordMasterDocumentChange({
+      tenantId,
+      masterDocumentId: id,
+      action: "delete",
+      before,
+      after: { ...before, status: "cancelado" },
+      summary: `Exclusão de ${before.code || before.title || id}`,
+    });
+  }
   const { error } = await supabase
     .from("master_documents")
     .delete()
@@ -138,6 +184,9 @@ export async function markDocumentObsolete(tenantId, id, obsoleteData) {
     retained_for_knowledge: !!obsoleteData.retained_for_knowledge,
     obsolete_identification_applied: !!obsoleteData.obsolete_identification_applied,
     obsolete_responsible_id: obsoleteData.obsolete_responsible_id || null,
+  }, {
+    auditAction: "obsolete",
+    auditSummary: `Documento marcado como obsoleto${obsoleteData.obsolete_reason ? `: ${obsoleteData.obsolete_reason}` : ""}`,
   });
 }
 
@@ -195,11 +244,29 @@ export async function createDocumentRevision(tenantId, masterDocumentId, payload
     .select()
     .single();
   if (error) throw error;
+  await recordMasterDocumentChange({
+    tenantId,
+    masterDocumentId,
+    action: "revision",
+    changes: {
+      revision_number: { from: null, to: data.revision_number },
+      change_description: { from: null, to: data.change_description },
+      change_reason: { from: null, to: data.change_reason || "" },
+      status: { from: null, to: data.status },
+    },
+    summary: `Nova revisão ${data.revision_number} (rascunho)`,
+  });
   return data;
 }
 
 export async function approveDocumentRevision(revisionId, approvedById = null) {
   assertSupabaseMasterDocuments();
+  const { data: beforeRev } = await supabase
+    .from("document_revisions")
+    .select("id, tenant_id, master_document_id, revision_number, approved_by_id, status")
+    .eq("id", revisionId)
+    .maybeSingle();
+
   if (approvedById) {
     const { error: updateError } = await supabase
       .from("document_revisions")
@@ -209,12 +276,20 @@ export async function approveDocumentRevision(revisionId, approvedById = null) {
   }
   const { error } = await supabase.rpc("approve_document_revision", { p_revision_id: revisionId });
   if (error) throw error;
-  const { data: rev } = await supabase
-    .from("document_revisions")
-    .select("tenant_id")
-    .eq("id", revisionId)
-    .maybeSingle();
-  if (rev?.tenant_id) clearMasterDocumentCache(rev.tenant_id);
+  if (beforeRev?.tenant_id) {
+    clearMasterDocumentCache(beforeRev.tenant_id);
+    await recordMasterDocumentChange({
+      tenantId: beforeRev.tenant_id,
+      masterDocumentId: beforeRev.master_document_id,
+      action: "approve_revision",
+      changes: {
+        revision_number: { from: beforeRev.revision_number, to: beforeRev.revision_number },
+        status: { from: beforeRev.status, to: "vigente" },
+        approved_by_id: { from: beforeRev.approved_by_id, to: approvedById || beforeRev.approved_by_id },
+      },
+      summary: `Aprovação da revisão ${beforeRev.revision_number}`,
+    });
+  }
 }
 
 export async function recordCriticalAnalysis(tenantId, masterDocumentId, payload) {
@@ -229,6 +304,10 @@ export async function recordCriticalAnalysis(tenantId, masterDocumentId, payload
     critical_analysis_result: payload.result || "",
     critical_analysis_notes: payload.notes || "",
     analysis_responsible_id: payload.responsible_id || null,
+  }, {
+    before: doc,
+    auditAction: "critical_analysis",
+    auditSummary: `Análise crítica: ${payload.result || analysisDate}`,
   });
 }
 
@@ -304,6 +383,17 @@ export async function saveDocumentDistribution(tenantId, payload) {
       .select()
       .single();
     if (error) throw error;
+    await recordMasterDocumentChange({
+      tenantId,
+      masterDocumentId: data.master_document_id,
+      action: "distribution",
+      changes: {
+        area: { from: null, to: data.area },
+        recipient_name: { from: null, to: data.recipient_name || "" },
+        copy_number: { from: null, to: data.copy_number },
+      },
+      summary: `Distribuição atualizada: ${data.area || "área"} / ${data.recipient_name || "usuário"} / cópia ${data.copy_number ?? "—"}`,
+    });
     return data;
   }
   const { data, error } = await supabase
@@ -312,6 +402,17 @@ export async function saveDocumentDistribution(tenantId, payload) {
     .select()
     .single();
   if (error) throw error;
+  await recordMasterDocumentChange({
+    tenantId,
+    masterDocumentId: data.master_document_id,
+    action: "distribution",
+    changes: {
+      area: { from: null, to: data.area },
+      recipient_name: { from: null, to: data.recipient_name || "" },
+      copy_number: { from: null, to: data.copy_number },
+    },
+    summary: `Nova distribuição: ${data.area || "área"} / ${data.recipient_name || "usuário"} / cópia ${data.copy_number ?? "—"}`,
+  });
   return data;
 }
 

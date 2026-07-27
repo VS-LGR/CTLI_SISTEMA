@@ -16,6 +16,7 @@ export const MANUAL_QUALIDADE_PATH = "/requirement/5/manual-qualidade";
 const LISTA_MESTRA_TAB_IDS = [
   "lista_mestra_internos",
   "lista_mestra_externos",
+  "lista_mestra_software",
   "lista_mestra_revisoes",
   "lista_mestra_distribuicao",
   "lista_mestra_gerados",

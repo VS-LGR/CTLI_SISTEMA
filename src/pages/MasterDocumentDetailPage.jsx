@@ -27,6 +27,7 @@ import MasterDocumentFormDialog from "@/components/masterDocuments/MasterDocumen
 import DocumentRevisionPanel from "@/components/masterDocuments/DocumentRevisionPanel";
 import DocumentDistributionEditor from "@/components/masterDocuments/DocumentDistributionEditor";
 import CriticalAnalysisDialog from "@/components/masterDocuments/CriticalAnalysisDialog";
+import DocumentChangeLogPanel from "@/components/masterDocuments/DocumentChangeLogPanel";
 
 export default function MasterDocumentDetailPage() {
   const { id } = useParams();
@@ -132,6 +133,7 @@ export default function MasterDocumentDetailPage() {
           <TabsTrigger value="distribuicao">Distribuição</TabsTrigger>
           <TabsTrigger value="exportacao">Exportação</TabsTrigger>
           <TabsTrigger value="gerados">Registros gerados</TabsTrigger>
+          <TabsTrigger value="alteracoes">Histórico de alterações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="mt-4">
@@ -220,6 +222,10 @@ export default function MasterDocumentDetailPage() {
               </tbody>
             </table>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="alteracoes" className="mt-4">
+          <DocumentChangeLogPanel tenantId={currentTenantId} masterDocumentId={id} />
         </TabsContent>
       </Tabs>
 

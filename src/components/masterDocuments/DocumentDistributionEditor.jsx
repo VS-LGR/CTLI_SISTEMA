@@ -16,6 +16,7 @@ import { formatDateBr } from "@/lib/quotationRequestDisplay";
 
 const EMPTY = {
   area: "",
+  recipient_name: "",
   copy_number: "",
   copy_type: "copia_eletronica",
   distribution_method: "Eletrônico",
@@ -39,6 +40,7 @@ export default function DocumentDistributionEditor({ tenantId, masterDocumentId,
     setEditRow(row);
     setForm({
       area: row.area || "",
+      recipient_name: row.recipient_name || "",
       copy_number: row.copy_number ?? "",
       copy_type: row.copy_type || "copia_eletronica",
       distribution_method: row.distribution_method || "",
@@ -90,10 +92,11 @@ export default function DocumentDistributionEditor({ tenantId, masterDocumentId,
       {showForm && (
         <div className="border rounded-lg p-4 space-y-3 bg-slate-50">
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Área / usuário</Label><Input value={form.area} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} /></div>
-            <div><Label>Cópia nº</Label><Input type="number" value={form.copy_number} onChange={(e) => setForm((f) => ({ ...f, copy_number: e.target.value }))} /></div>
+            <div><Label>Área</Label><Input value={form.area} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} /></div>
+            <div><Label>Usuário</Label><Input value={form.recipient_name} onChange={(e) => setForm((f) => ({ ...f, recipient_name: e.target.value }))} placeholder="Nome do destinatário" /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
+            <div><Label>Cópia nº</Label><Input type="number" value={form.copy_number} onChange={(e) => setForm((f) => ({ ...f, copy_number: e.target.value }))} /></div>
             <div>
               <Label>Tipo</Label>
               <Select value={form.copy_type} onValueChange={(v) => setForm((f) => ({ ...f, copy_type: v }))}>
@@ -103,6 +106,9 @@ export default function DocumentDistributionEditor({ tenantId, masterDocumentId,
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Método</Label><Input value={form.distribution_method} onChange={(e) => setForm((f) => ({ ...f, distribution_method: e.target.value }))} /></div>
             <div><Label>Data</Label><Input type="date" value={form.distribution_date || ""} onChange={(e) => setForm((f) => ({ ...f, distribution_date: e.target.value }))} /></div>
           </div>
           <div className="flex gap-2">
@@ -115,6 +121,7 @@ export default function DocumentDistributionEditor({ tenantId, masterDocumentId,
         <thead className="bg-slate-50 border-b">
           <tr className="text-[10px] uppercase text-slate-500">
             <th className="px-3 py-2 text-left">Área</th>
+            <th className="px-3 py-2 text-left">Usuário</th>
             <th className="px-3 py-2 text-left">Cópia</th>
             <th className="px-3 py-2 text-left">Tipo</th>
             <th className="px-3 py-2 text-left">Data</th>
@@ -123,11 +130,12 @@ export default function DocumentDistributionEditor({ tenantId, masterDocumentId,
         </thead>
         <tbody className="divide-y bg-white">
           {distributions.length === 0 && (
-            <tr><td colSpan={5} className="px-3 py-4 text-center text-slate-500 text-xs">Nenhuma distribuição.</td></tr>
+            <tr><td colSpan={6} className="px-3 py-4 text-center text-slate-500 text-xs">Nenhuma distribuição.</td></tr>
           )}
           {distributions.map((d) => (
             <tr key={d.id}>
               <td className="px-3 py-2">{d.area}</td>
+              <td className="px-3 py-2 text-xs">{d.recipient_name || "—"}</td>
               <td className="px-3 py-2">{d.copy_number ?? "—"}</td>
               <td className="px-3 py-2 text-xs">{copyTypeLabel(d.copy_type)}</td>
               <td className="px-3 py-2 text-xs">{formatDateBr(d.distribution_date)}</td>

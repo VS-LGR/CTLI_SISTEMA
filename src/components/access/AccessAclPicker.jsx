@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +7,7 @@ import {
   emptyAccessAcl,
   isAclActive,
 } from "@/lib/accessAcl";
+import { buildProcedureLabelMap } from "@/lib/masterDocuments/procedureLabelResolver";
 
 /**
  * Seleção granular de módulos e sub-procedimentos (PR) para uma conta.
@@ -17,8 +18,33 @@ export default function AccessAclPicker({
   onChange,
   disabled = false,
   className = "",
+  tenantId = null,
 }) {
-  const catalog = useMemo(() => getAccessAclCatalog(), []);
+  const [labelMap, setLabelMap] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!tenantId) {
+        setLabelMap({});
+        return;
+      }
+      try {
+        const base = getAccessAclCatalog();
+        const entries = base.requirements.flatMap((req) =>
+          (req.folders || []).map((f) => ({ folderKey: f.folderKey, label: f.label })),
+        );
+        const map = await buildProcedureLabelMap(tenantId, entries);
+        if (!cancelled) setLabelMap(map);
+      } catch {
+        if (!cancelled) setLabelMap({});
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [tenantId]);
+
+  const catalog = useMemo(() => getAccessAclCatalog(labelMap), [labelMap]);
   const acl = useMemo(() => {
     if (isAclActive(value)) return normalizeAccessAcl(value);
     return emptyAccessAcl();

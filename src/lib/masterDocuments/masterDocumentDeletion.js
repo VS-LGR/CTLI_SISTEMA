@@ -131,7 +131,7 @@ export async function deleteMasterDocumentCascade(tenantId, masterDocumentId, { 
     await deleteTenantDocumentRow(td);
   }
 
-  await deleteMasterDocument(tenantId, masterDocumentId);
+  await deleteMasterDocument(tenantId, masterDocumentId, { before: masterDoc });
   clearMasterDocumentCache(tenantId);
   return { removedMaster: true, removedTenantDocuments: linked.length };
 }
@@ -153,7 +153,7 @@ export async function removeMasterDocumentIfOrphaned(tenantId, masterDocumentId,
   if (isManualOnly) return { removed: false };
 
   await recordDocumentDeletionAudit(tenantId, masterDoc, { source, linkedDocs: [] });
-  await deleteMasterDocument(tenantId, masterDocumentId);
+  await deleteMasterDocument(tenantId, masterDocumentId, { before: masterDoc });
   clearMasterDocumentCache(tenantId);
   return { removed: true };
 }

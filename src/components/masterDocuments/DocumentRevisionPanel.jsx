@@ -21,6 +21,8 @@ import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
 export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revisions, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [responsibles, setResponsibles] = useState([]);
+  const [approvingId, setApprovingId] = useState(null);
+  const [approveById, setApproveById] = useState("");
   const [form, setForm] = useState({
     revision_number: "",
     issue_date: "",
@@ -28,6 +30,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
     change_description: "",
     change_reason: "",
     changed_by_id: "",
+    reviewed_by_id: "",
   });
   const [busy, setBusy] = useState(false);
 
@@ -48,6 +51,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
         ...form,
         revision_date: form.revision_date || form.issue_date,
         changed_by_id: form.changed_by_id || null,
+        reviewed_by_id: form.reviewed_by_id || null,
         status: "rascunho",
       });
       toast.success("Revisão criada");
@@ -59,6 +63,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
         change_description: "",
         change_reason: "",
         changed_by_id: "",
+        reviewed_by_id: "",
       });
       onRefresh?.();
     } catch (e) {
@@ -69,17 +74,20 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
   };
 
   const approve = async (rev) => {
+    const approvedBy = approveById || rev.approved_by_id || rev.changed_by_id;
     const v = validateRevisionBeforeApproval({
       ...rev,
-      approved_by_id: rev.approved_by_id || rev.changed_by_id,
+      approved_by_id: approvedBy,
     });
     if (!v.valid) {
       toast.error(v.errors.join("; "));
       return;
     }
     try {
-      await approveDocumentRevision(rev.id, rev.approved_by_id || rev.changed_by_id);
+      await approveDocumentRevision(rev.id, approvedBy);
       toast.success("Revisão aprovada");
+      setApprovingId(null);
+      setApproveById("");
       onRefresh?.();
     } catch (e) {
       toast.error(e.message);
@@ -102,7 +110,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Data da alteração</Label><Input type="date" value={form.revision_date} onChange={(e) => setForm((f) => ({ ...f, revision_date: e.target.value }))} /></div>
             <div>
-              <Label>Responsável</Label>
+              <Label>Responsável pela alteração</Label>
               <Select value={form.changed_by_id || "__none"} onValueChange={(v) => setForm((f) => ({ ...f, changed_by_id: v === "__none" ? "" : v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>
@@ -114,7 +122,20 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
               </Select>
             </div>
           </div>
+          <div>
+            <Label>Analisado por</Label>
+            <Select value={form.reviewed_by_id || "__none"} onValueChange={(v) => setForm((f) => ({ ...f, reviewed_by_id: v === "__none" ? "" : v }))}>
+              <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">—</SelectItem>
+                {responsibles.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div><Label>Descrição da alteração</Label><Textarea value={form.change_description} onChange={(e) => setForm((f) => ({ ...f, change_description: e.target.value }))} /></div>
+          <div><Label>Motivo da alteração</Label><Textarea value={form.change_reason} onChange={(e) => setForm((f) => ({ ...f, change_reason: e.target.value }))} rows={2} /></div>
           <Button onClick={save} disabled={busy}>Guardar rascunho</Button>
         </div>
       )}
@@ -124,6 +145,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
             <th className="px-3 py-2 text-left">Rev.</th>
             <th className="px-3 py-2 text-left">Data</th>
             <th className="px-3 py-2 text-left">Descrição</th>
+            <th className="px-3 py-2 text-left">Motivo</th>
             <th className="px-3 py-2 text-left">Responsável</th>
             <th className="px-3 py-2 text-left">Status</th>
             <th className="px-3 py-2 text-right">Ações</th>
@@ -134,12 +156,33 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
             <tr key={r.id}>
               <td className="px-3 py-2">{r.revision_number}</td>
               <td className="px-3 py-2 text-xs">{formatDateBr(revisionDate(r))}</td>
-              <td className="px-3 py-2 text-xs max-w-[240px]">{r.change_description}</td>
+              <td className="px-3 py-2 text-xs max-w-[200px]">{r.change_description}</td>
+              <td className="px-3 py-2 text-xs max-w-[140px]">{r.change_reason || "—"}</td>
               <td className="px-3 py-2 text-xs">{revisionResponsibleName(r)}</td>
               <td className="px-3 py-2 text-xs">{revisionStatusLabel(r.status)}</td>
               <td className="px-3 py-2 text-right">
                 {r.status === "rascunho" && (
-                  <Button size="sm" variant="outline" onClick={() => approve(r)}>Aprovar</Button>
+                  approvingId === r.id ? (
+                    <div className="flex flex-col items-end gap-1 min-w-[160px]">
+                      <Select value={approveById || r.changed_by_id || "__none"} onValueChange={(v) => setApproveById(v === "__none" ? "" : v)}>
+                        <SelectTrigger className="h-8"><SelectValue placeholder="Aprovador" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">—</SelectItem>
+                          {responsibles.map((resp) => (
+                            <SelectItem key={resp.id} value={resp.id}>{resp.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={() => approve(r)}>Confirmar</Button>
+                        <Button size="sm" variant="outline" onClick={() => { setApprovingId(null); setApproveById(""); }}>Cancelar</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => { setApprovingId(r.id); setApproveById(r.changed_by_id || ""); }}>
+                      Aprovar
+                    </Button>
+                  )
                 )}
               </td>
             </tr>

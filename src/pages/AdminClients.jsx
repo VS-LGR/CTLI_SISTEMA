@@ -722,7 +722,7 @@ const AdminClients = () => {
                   </select>
                 </div>
                 {uPortalAccess && uRole !== "admin" && (
-                  <AccessAclPicker value={uAccessAcl} onChange={handleUserAclChange} />
+                  <AccessAclPicker value={uAccessAcl} onChange={handleUserAclChange} tenantId={uTenant || null} />
                 )}
                 {uPortalAccess && uRole === "signatario" && (
                   <div>

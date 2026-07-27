@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { PencilSimple, Eye, Copy, Prohibit, Trash } from "@phosphor-icons/react";
+import { PencilSimple, Eye, Copy, Prohibit, Trash, Plus } from "@phosphor-icons/react";
 import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
 import { toast } from "sonner";
 import {
@@ -132,40 +132,48 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 items-end">
-        <Input
-          placeholder="Buscar código ou título…"
-          value={filters.search}
-          onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-          className="max-w-xs"
-        />
-        <Select value={filters.type} onValueChange={(v) => setFilters((f) => ({ ...f, type: v }))}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            {MASTER_DOCUMENT_TYPES.map((t) => (
-              <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filters.category} onValueChange={(v) => setFilters((f) => ({ ...f, category: v }))}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {MASTER_DOCUMENT_CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filters.status} onValueChange={(v) => setFilters((f) => ({ ...f, status: v }))}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {MASTER_DOCUMENT_STATUSES.map((s) => (
-              <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap gap-2 items-end justify-between">
+        <div className="flex flex-wrap gap-2 items-end">
+          <Input
+            placeholder="Buscar código ou título…"
+            value={filters.search}
+            onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+            className="max-w-xs"
+          />
+          <Select value={filters.type} onValueChange={(v) => setFilters((f) => ({ ...f, type: v }))}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              {MASTER_DOCUMENT_TYPES.map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filters.category} onValueChange={(v) => setFilters((f) => ({ ...f, category: v }))}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {MASTER_DOCUMENT_CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filters.status} onValueChange={(v) => setFilters((f) => ({ ...f, status: v }))}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {MASTER_DOCUMENT_STATUSES.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => { setEditDoc(null); setFormOpen(true); }}
+        >
+          <Plus size={14} className="mr-1" /> Novo documento
+        </Button>
       </div>
 
       <Card className="border-slate-200 overflow-hidden">

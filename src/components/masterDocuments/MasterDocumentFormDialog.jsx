@@ -23,6 +23,7 @@ import {
   MASTER_DOCUMENT_CATEGORIES,
 } from "@/lib/masterDocuments/masterDocumentConstants";
 import { validateDocumentBeforeActivation } from "@/lib/masterDocuments/masterDocumentValidation";
+import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
 import {
   buildExportTemplateConfigWithObservations,
   getCertificateObservationsFromConfig,
@@ -43,6 +44,15 @@ const EMPTY = {
   export_file_name_pattern: "",
   template_key: "",
   linked_module: "",
+  department: "",
+  storage_location: "",
+  protection_method: "",
+  distribution_method: "",
+  related_process: "",
+  emission_responsible_id: "",
+  analysis_responsible_id: "",
+  approval_responsible_id: "",
+  quality_management_responsible_id: "",
   retention_time: null,
   retention_unit: "anos",
   notes: "",
@@ -50,11 +60,31 @@ const EMPTY = {
   critical_analysis_period_months: 24,
 };
 
+function ResponsibleSelect({ label, value, onChange, responsibles }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Select value={value || "__none"} onValueChange={(v) => onChange(v === "__none" ? "" : v)}>
+        <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none">—</SelectItem>
+          {responsibles.map((r) => (
+            <SelectItem key={r.id} value={r.id}>
+              {r.name}{r.role ? ` (${r.role})` : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId, document, onSaved }) {
   const { user } = useAuth();
   const showTemplateFields = isCtliAdmin(user?.role);
   const [form, setForm] = useState(EMPTY);
   const [namingRules, setNamingRules] = useState([]);
+  const [responsibles, setResponsibles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [obsRbcText, setObsRbcText] = useState("");
   const [obsRastreavelText, setObsRastreavelText] = useState("");
@@ -62,13 +92,25 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
   useEffect(() => {
     if (open) {
       listFileNamingRules().then(setNamingRules).catch(() => setNamingRules([]));
-      const nextForm = document ? { ...EMPTY, ...document } : { ...EMPTY };
+      if (tenantId) {
+        loadTenantResponsibles(tenantId).then(setResponsibles).catch(() => setResponsibles([]));
+      }
+      const nextForm = document
+        ? {
+          ...EMPTY,
+          ...document,
+          emission_responsible_id: document.emission_responsible_id || "",
+          analysis_responsible_id: document.analysis_responsible_id || "",
+          approval_responsible_id: document.approval_responsible_id || "",
+          quality_management_responsible_id: document.quality_management_responsible_id || "",
+        }
+        : { ...EMPTY };
       setForm(nextForm);
       const obs = getCertificateObservationsFromConfig(nextForm.export_template_config);
       setObsRbcText(observationsArrayToLines(obs?.rbc));
       setObsRastreavelText(observationsArrayToLines(obs?.rastreavel));
     }
-  }, [open, document]);
+  }, [open, document, tenantId]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -80,8 +122,29 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
 
   const save = async () => {
     if (!tenantId) return;
+    if (!form.title?.trim()) {
+      toast.error("Título obrigatório");
+      return;
+    }
+    const payloadBase = {
+      ...form,
+      emission_responsible_id: form.emission_responsible_id || null,
+      analysis_responsible_id: form.analysis_responsible_id || null,
+      approval_responsible_id: form.approval_responsible_id || null,
+      quality_management_responsible_id: form.quality_management_responsible_id || null,
+      retention_time: form.retention_time ? Number(form.retention_time) : null,
+      critical_analysis_period_months: form.critical_analysis_period_months
+        ? Number(form.critical_analysis_period_months)
+        : 24,
+      export_template_config: isCertificateMasterDocument(form)
+        ? buildExportTemplateConfigWithObservations(form.export_template_config, {
+          rbcText: obsRbcText,
+          rastreavelText: obsRastreavelText,
+        })
+        : (form.export_template_config || {}),
+    };
     if (form.status === "ativo") {
-      const v = validateDocumentBeforeActivation(form);
+      const v = validateDocumentBeforeActivation(payloadBase);
       if (!v.valid) {
         toast.error(v.errors.join("; "));
         return;
@@ -89,21 +152,11 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
     }
     setBusy(true);
     try {
-      const payload = {
-        ...form,
-        retention_time: form.retention_time ? Number(form.retention_time) : null,
-        export_template_config: isCertificateMasterDocument(form)
-          ? buildExportTemplateConfigWithObservations(form.export_template_config, {
-            rbcText: obsRbcText,
-            rastreavelText: obsRastreavelText,
-          })
-          : (form.export_template_config || {}),
-      };
       if (document?.id) {
-        await updateMasterDocument(tenantId, document.id, payload);
+        await updateMasterDocument(tenantId, document.id, payloadBase);
         toast.success("Documento atualizado");
       } else {
-        await createMasterDocument(tenantId, payload);
+        await createMasterDocument(tenantId, payloadBase);
         toast.success("Documento criado");
       }
       onSaved?.();
@@ -182,10 +235,63 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
               <Label>Data de emissão</Label>
               <Input type="date" value={form.current_issue_date || ""} onChange={(e) => set("current_issue_date", e.target.value)} />
             </div>
-          <div>
-            <Label>Módulo vinculado</Label>
-            <Input value={form.linked_module} onChange={(e) => set("linked_module", e.target.value)} />
+            <div>
+              <Label>Módulo vinculado</Label>
+              <Input value={form.linked_module} onChange={(e) => set("linked_module", e.target.value)} />
+            </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Departamento</Label>
+              <Input value={form.department} onChange={(e) => set("department", e.target.value)} />
+            </div>
+            <div>
+              <Label>Processo relacionado</Label>
+              <Input value={form.related_process} onChange={(e) => set("related_process", e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Local de armazenamento</Label>
+              <Input value={form.storage_location} onChange={(e) => set("storage_location", e.target.value)} />
+            </div>
+            <div>
+              <Label>Proteção</Label>
+              <Input value={form.protection_method} onChange={(e) => set("protection_method", e.target.value)} placeholder="PDF / capa plástica" />
+            </div>
+          </div>
+          <div>
+            <Label>Método de distribuição</Label>
+            <Input value={form.distribution_method} onChange={(e) => set("distribution_method", e.target.value)} />
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+            <p className="text-xs font-medium text-slate-700">Responsáveis (obrigatório para ativar)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <ResponsibleSelect
+                label="Emissor"
+                value={form.emission_responsible_id}
+                onChange={(v) => set("emission_responsible_id", v)}
+                responsibles={responsibles}
+              />
+              <ResponsibleSelect
+                label="Análise crítica"
+                value={form.analysis_responsible_id}
+                onChange={(v) => set("analysis_responsible_id", v)}
+                responsibles={responsibles}
+              />
+              <ResponsibleSelect
+                label="Aprovação"
+                value={form.approval_responsible_id}
+                onChange={(v) => set("approval_responsible_id", v)}
+                responsibles={responsibles}
+              />
+              <ResponsibleSelect
+                label="Gestão da Qualidade"
+                value={form.quality_management_responsible_id}
+                onChange={(v) => set("quality_management_responsible_id", v)}
+                responsibles={responsibles}
+              />
+            </div>
           </div>
           {showTemplateFields && (
             <>
@@ -211,9 +317,19 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
               </div>
             </>
           )}
-          <div>
-            <Label>Retenção (anos)</Label>
-            <Input type="number" value={form.retention_time ?? ""} onChange={(e) => set("retention_time", e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Retenção</Label>
+              <Input type="number" value={form.retention_time ?? ""} onChange={(e) => set("retention_time", e.target.value)} />
+            </div>
+            <div>
+              <Label>Período análise crítica (meses)</Label>
+              <Input
+                type="number"
+                value={form.critical_analysis_period_months ?? 24}
+                onChange={(e) => set("critical_analysis_period_months", e.target.value)}
+              />
+            </div>
           </div>
           <div>
             <Label>Observações</Label>

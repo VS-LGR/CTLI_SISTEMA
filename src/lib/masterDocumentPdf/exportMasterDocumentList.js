@@ -7,12 +7,11 @@ import {
   listMasterDocuments,
   listExternalDocuments,
   listControlledSoftware,
-  listRevisionsForDocumentCode,
+  listDocumentRevisions,
   listDocumentDistributions,
   revisionResponsibleName,
-  findMasterDocumentByCode,
 } from "@/lib/masterDocuments/masterDocumentsApi";
-import { getActiveDocumentByCode } from "@/lib/masterDocuments/masterDocumentResolver";
+import { findListaMestraDocument } from "@/lib/masterDocuments/findListaMestraDocument";
 import { buildDistributionMap, getDistributionSummaryForDoc } from "@/lib/masterDocuments/masterDocumentDistribution";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 import { generateDocumentFileName } from "@/lib/masterDocuments/masterDocumentFileName";
@@ -101,21 +100,24 @@ export async function exportMasterDocumentListPdf(tenantId, tenant) {
     allDocs,
     externals,
     software,
-    listaMeta,
-    listaRevisions,
+    listaDocRow,
     allDistributions,
     responsibles,
-    listaDocRow,
   ] = await Promise.all([
     listMasterDocuments(tenantId, {}),
     listExternalDocuments(tenantId),
     listControlledSoftware(tenantId),
-    getActiveDocumentByCode(tenantId, "RE-8.3A"),
-    listRevisionsForDocumentCode(tenantId, "RE-8.3A"),
+    findListaMestraDocument(tenantId),
     listDocumentDistributions(tenantId),
     loadTenantResponsibles(tenantId),
-    findMasterDocumentByCode(tenantId, "RE-8.3A"),
   ]);
+
+  const listaRevisions = listaDocRow?.id
+    ? await listDocumentRevisions(tenantId, listaDocRow.id)
+    : [];
+  const listaRevisionsSorted = [...listaRevisions].sort((a, b) =>
+    String(a.revision_number).localeCompare(String(b.revision_number), undefined, { numeric: true }),
+  );
 
   const distributionMap = buildDistributionMap(allDistributions);
   const listaDistributions = listaDocRow?.id
@@ -127,10 +129,10 @@ export async function exportMasterDocumentListPdf(tenantId, tenant) {
 
   const header = {
     title: "LISTA MESTRA DE DOCUMENTOS",
-    code: listaMeta?.code || "RE-8.3A",
-    reference: listaMeta?.reference || "PR-8.3",
-    revision: listaMeta?.revision || listaDocRow?.current_revision || "03",
-    modelIssueDate: listaMeta?.modelIssueDate || listaDocRow?.current_issue_date || "2026-06-01",
+    code: listaDocRow?.code || "RE-8.3A",
+    reference: listaDocRow?.reference || "PR-8.3",
+    revision: listaDocRow?.current_revision || "03",
+    modelIssueDate: listaDocRow?.current_issue_date || "2026-06-01",
   };
 
   let y = drawInstitutionalPdfHeader(doc, header, logoDataUrl);
@@ -140,7 +142,11 @@ export async function exportMasterDocumentListPdf(tenantId, tenant) {
     doc,
     y,
     ["Área", "Usuário", "Cópia n.º"],
-    listaDistributions.map((d) => [d.area || "—", d.area || "—", d.copy_number ?? "—"]),
+    listaDistributions.map((d) => [
+      d.area || "—",
+      d.recipient_name || "—",
+      d.copy_number ?? "—",
+    ]),
     { 0: { cellWidth: 60 }, 1: { cellWidth: 60 }, 2: { cellWidth: 30 } },
   );
 
@@ -149,7 +155,7 @@ export async function exportMasterDocumentListPdf(tenantId, tenant) {
     doc,
     y,
     ["Rev.", "Data", "Descrição da modificação", "Resp."],
-    listaRevisions.map((r) => [
+    listaRevisionsSorted.map((r) => [
       r.revision_number,
       formatDateBr(r.revision_date || r.issue_date),
       r.change_description || "—",
@@ -172,13 +178,14 @@ export async function exportMasterDocumentListPdf(tenantId, tenant) {
   y = noteText(doc, y, "Análise Crítica Periódica dos Documentos SGQ realizada a cada 24 meses.");
   y += 2;
 
-  const internals = allDocs.filter((d) => d.type !== "documento_externo");
+  const internals = allDocs.filter((d) => d.type !== "documento_externo" && d.status !== "cancelado");
   const manuals = internals.filter((d) => ["manual", "politica", "documento_interno"].includes(d.type));
   const procedures = internals.filter((d) => d.type === "procedimento");
-  const records = internals.filter((d) => d.type === "registro");
+  const records = internals.filter((d) => d.type === "registro" || d.type === "lista");
+  const planilhaDocs = internals.filter((d) => d.type === "planilha_software");
 
   const headers = [
-    "Código", "Rev.", "Título", "Rev. anterior", "Rev. atual",
+    "N.º", "Rev.", "Título", "Rev. anterior", "Rev. atual",
     "Distribuição", "Últ. análise", "Próx. análise",
   ];
 
@@ -202,13 +209,28 @@ export async function exportMasterDocumentListPdf(tenantId, tenant) {
   y = sectionTitle(doc, y, "Registros da Qualidade");
   y = drawDocTable(doc, y, headers, records.map(rowMap));
 
-  if (software.length) {
+  const softwareRows = [
+    ...software.map((s) => [
+      s.title,
+      s.revision,
+      formatDateBr(s.last_validation_date),
+      s.validation_location || "—",
+    ]),
+    ...planilhaDocs.map((d) => [
+      d.title,
+      d.current_revision,
+      formatDateBr(d.current_revision_date || d.current_issue_date),
+      d.storage_location || "—",
+    ]),
+  ];
+
+  if (softwareRows.length) {
     y = sectionTitle(doc, y, "Planilhas / Softwares Controlados");
     y = drawDocTable(
       doc,
       y,
-      ["Título", "Revisão", "Última validação", "Status"],
-      software.map((s) => [s.title, s.revision, formatDateBr(s.last_validation_date), s.status]),
+      ["Título", "REV.", "Última validação", "Local"],
+      softwareRows,
       { 0: { cellWidth: 90 }, 1: { cellWidth: 20 }, 2: { cellWidth: 35 }, 3: { cellWidth: 35 } },
     );
   }
@@ -236,8 +258,8 @@ export async function exportMasterDocumentListPdf(tenantId, tenant) {
 
   drawInstitutionalPageFooters(doc);
   const fileName = generateDocumentFileName(
-    listaMeta || {
-      code: "RE-8.3A",
+    listaDocRow || {
+      code: header.code,
       title: "Lista-Mestra",
       current_revision: header.revision,
       export_file_name_pattern: "{codigo}_{titulo}_Rev{revisao}_{ano}",

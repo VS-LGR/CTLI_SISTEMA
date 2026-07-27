@@ -263,7 +263,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
                 ))}
               </select>
             </div>
-            <AccessAclPicker value={accessAcl} onChange={handleAclChange} />
+            <AccessAclPicker value={accessAcl} onChange={handleAclChange} tenantId={tenantId} />
             {role === "signatario" && (
               <div>
                 <Label>Colaborador signatário</Label>

@@ -187,11 +187,14 @@ export function accessFlagsFromAcl(acl) {
   };
 }
 
-export function getAccessAclCatalog() {
+export function getAccessAclCatalog(labelMap = null) {
   const requirements = Object.keys(REQ_LABELS).map((id) => ({
     id,
     label: REQ_LABELS[id],
-    folders: FOLDER_CATALOG[id] || [],
+    folders: (FOLDER_CATALOG[id] || []).map((f) => ({
+      ...f,
+      label: (labelMap && labelMap[f.folderKey]) || f.label,
+    })),
   }));
   return {
     modules: ACL_OPERATIONAL_MODULES,
