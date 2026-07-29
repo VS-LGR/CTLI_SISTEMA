@@ -223,7 +223,7 @@ async function recordBackupEvent(
     actor_full_name,
     actor_role,
   });
-  if (error && !/does not exist|schema cache/i.test(error.message)) {
+  if (error && !isRecoverableQueryError(error.message)) {
     console.error("[tenant-backup] event insert failed:", error.message);
   }
 }
@@ -325,6 +325,23 @@ async function verifyActorPassword(email: string, password: string): Promise<boo
   return !error;
 }
 
+function isRecoverableQueryError(message: string | undefined | null): boolean {
+  const m = String(message || "").trim();
+  // PostgREST por vezes devolve body vazio em filtro de coluna inexistente
+  if (!m) return true;
+  return /does not exist|schema cache|could not find|PGRST204|PGRST116|42703|column|failed to parse/i
+    .test(m);
+}
+
+function isTenantScopedTable(table: string): boolean {
+  return TENANT_TABLES.some((t) => t.table === table);
+}
+
+function isUniqueOrFkConflict(message: string | undefined | null): boolean {
+  const m = String(message || "");
+  return /duplicate key|unique constraint|foreign key|violates foreign key|23503|23505/i.test(m);
+}
+
 async function fetchAllPaged(
   admin: SupabaseClient,
   table: string,
@@ -335,11 +352,15 @@ async function fetchAllPaged(
     admin.from(table).select("*", { count: "exact", head: true }),
   );
   if (cErr) {
-    // Tabela pode não existir em ambientes sem migration — skip graceful
-    if (/does not exist|schema cache/i.test(cErr.message)) {
-      return { rows: [], expected: 0, truncated: false, error: cErr.message };
+    if (isRecoverableQueryError(cErr.message)) {
+      return {
+        rows: [],
+        expected: 0,
+        truncated: false,
+        error: cErr.message || `count_failed:${table}`,
+      };
     }
-    throw new Error(`Count ${table}: ${cErr.message}`);
+    throw new Error(`Count ${table}: ${cErr.message || cErr.code || "unknown"}`);
   }
   const expected = count ?? 0;
   const rows: Record<string, unknown>[] = [];
@@ -348,10 +369,15 @@ async function fetchAllPaged(
       admin.from(table).select("*"),
     ).range(from, from + PAGE_SIZE - 1);
     if (error) {
-      if (/does not exist|schema cache/i.test(error.message)) {
-        return { rows: [], expected: 0, truncated: false, error: error.message };
+      if (isRecoverableQueryError(error.message)) {
+        return {
+          rows: [],
+          expected: 0,
+          truncated: false,
+          error: error.message || `export_failed:${table}`,
+        };
       }
-      throw new Error(`Export ${table}: ${error.message}`);
+      throw new Error(`Export ${table}: ${error.message || error.code || "unknown"}`);
     }
     if (!data?.length) break;
     rows.push(...(data as Record<string, unknown>[]));
@@ -383,8 +409,11 @@ async function fetchByParentIds(
   let anyTrunc = false;
   for (const ids of chunkArray(parentIds, IN_CHUNK)) {
     const res = await fetchAllPaged(admin, table, (q) => q.in(fk, ids));
-    if (res.error && /does not exist|schema cache/i.test(res.error)) {
-      return { rows: [], truncated: false, error: res.error };
+    if (res.error) {
+      if (isRecoverableQueryError(res.error)) {
+        return { rows: [], truncated: false, error: res.error };
+      }
+      throw new Error(`Export ${table}: ${res.error}`);
     }
     rows.push(...res.rows);
     if (res.truncated) anyTrunc = true;
@@ -469,10 +498,17 @@ async function loadIdSet(
   table: string,
   tenantId: string,
 ): Promise<Set<string>> {
-  const live = await fetchByTenant(admin, table, tenantId);
-  return new Set(
-    (live.error ? [] : live.rows).map((r) => String(r.id)).filter(Boolean),
-  );
+  if (!isTenantScopedTable(table)) {
+    return new Set();
+  }
+  try {
+    const live = await fetchByTenant(admin, table, tenantId);
+    if (live.error) return new Set();
+    return new Set(live.rows.map((r) => String(r.id)).filter(Boolean));
+  } catch (e) {
+    console.warn(`[tenant-backup] loadIdSet ${table}:`, String(e));
+    return new Set();
+  }
 }
 
 async function insertChunked(
@@ -488,25 +524,27 @@ async function insertChunked(
       inserted += chunk.length;
       continue;
     }
-    if (/does not exist|schema cache/i.test(error.message)) return inserted;
-    // Unique / FK pontuais: tenta linha a linha e salta conflitos de unique
-    if (/duplicate key|unique constraint/i.test(error.message)) {
+    if (isRecoverableQueryError(error.message)) {
+      console.warn(`[tenant-backup] skip table ${table}:`, error.message);
+      return inserted;
+    }
+    // Unique / FK: tenta linha a linha e salta conflitos (merge idempotente)
+    if (isUniqueOrFkConflict(error.message)) {
       for (const row of chunk) {
         const { error: rowErr } = await admin.from(table).insert(row);
         if (!rowErr) {
           inserted += 1;
           continue;
         }
-        if (/duplicate key|unique constraint/i.test(rowErr.message)) {
-          console.warn(`[tenant-backup] skip duplicate ${table}:`, rowErr.message);
+        if (isUniqueOrFkConflict(rowErr.message) || isRecoverableQueryError(rowErr.message)) {
+          console.warn(`[tenant-backup] skip row ${table}:`, rowErr.message);
           continue;
         }
-        if (/does not exist|schema cache/i.test(rowErr.message)) continue;
-        throw new Error(`${table}: ${rowErr.message}`);
+        throw new Error(`${table}: ${rowErr.message || "insert_failed"}`);
       }
       continue;
     }
-    throw new Error(`${table}: ${error.message}`);
+    throw new Error(`${table}: ${error.message || error.code || "insert_failed"}`);
   }
   return inserted;
 }
@@ -630,7 +668,7 @@ async function buildBackupZip(
 
   for (const spec of TENANT_TABLES) {
     const res = await fetchByTenant(admin, spec.table, tenantId);
-    if (res.error && /does not exist|schema cache/i.test(res.error)) {
+    if (res.error) {
       skippedTables.push(spec.table);
       exportedByTable[spec.table] = [];
       counts[spec.table] = 0;
@@ -647,7 +685,7 @@ async function buildBackupZip(
     const parents = exportedByTable[spec.parentTable] || [];
     const parentIds = parents.map((r) => r.id as string).filter(Boolean);
     const res = await fetchByParentIds(admin, spec.table, spec.parentFk, parentIds);
-    if (res.error && /does not exist|schema cache/i.test(res.error)) {
+    if (res.error) {
       skippedTables.push(spec.table);
       exportedByTable[spec.table] = [];
       counts[spec.table] = 0;
@@ -828,7 +866,7 @@ async function deleteTenantData(admin: SupabaseClient, tenantId: string) {
     for (const chunk of chunkArray(ids, IN_CHUNK)) {
       if (!chunk.length) continue;
       const { error } = await admin.from(spec.table).delete().in(spec.parentFk, chunk);
-      if (error && !/does not exist|schema cache/i.test(error.message)) {
+      if (error && !isRecoverableQueryError(error.message)) {
         throw new Error(`Delete ${spec.table}: ${error.message}`);
       }
     }
@@ -842,7 +880,7 @@ async function deleteTenantData(admin: SupabaseClient, tenantId: string) {
         .eq("tenant_id", tenantId);
     }
     const { error } = await admin.from(spec.table).delete().eq("tenant_id", tenantId);
-    if (error && !/does not exist|schema cache/i.test(error.message)) {
+    if (error && !isRecoverableQueryError(error.message)) {
       throw new Error(`Delete ${spec.table}: ${error.message}`);
     }
   }
@@ -1162,103 +1200,136 @@ async function restoreFromZip(
   });
 
   for (const spec of TENANT_TABLES) {
-    if (spec.table === "employee_registrations") {
-      const sorted = sortEmployeesForInsert(employees);
-      restored += await insertChunked(admin, spec.table, sorted);
-      continue;
-    }
-    if (spec.table === "personnel_positions") {
-      restored += await insertChunked(
-        admin,
-        spec.table,
-        (dataByTable[spec.table] || []).map((r) => ({ ...r, tenant_id: tenantId })),
-      );
-      for (const ep of employeeOriginalPositions) {
-        if (!ep.id || !ep.position_id) continue;
-        await admin.from("employee_registrations").update({ position_id: ep.position_id }).eq("id", ep.id);
+    try {
+      if (spec.table === "employee_registrations") {
+        const sorted = sortEmployeesForInsert(employees);
+        restored += await insertChunked(admin, spec.table, sorted);
+        continue;
       }
-      continue;
-    }
+      if (spec.table === "personnel_positions") {
+        restored += await insertChunked(
+          admin,
+          spec.table,
+          (dataByTable[spec.table] || []).map((r) => ({ ...r, tenant_id: tenantId })),
+        );
+        for (const ep of employeeOriginalPositions) {
+          if (!ep.id || !ep.position_id) continue;
+          await admin.from("employee_registrations").update({ position_id: ep.position_id }).eq("id", ep.id);
+        }
+        continue;
+      }
 
-    const rows = (dataByTable[spec.table] || []).map((r) => {
-      const copy = { ...r, tenant_id: tenantId };
-      if (spec.table === "purchase_orders") {
-        copy.client_environment_id = tenantId;
-      }
-      // FK circular: collections ↔ certificates — repor certificate_id depois
-      if (spec.table === "weight_calibration_collections") {
-        copy.certificate_id = null;
-      }
-      // Self-FK: inserir primeiro sem replaces, atualizar depois
-      if (
-        spec.table === "calibration_certificates" ||
-        spec.table === "weight_calibration_certificates"
-      ) {
-        copy.replaces_certificate_id = null;
-      }
-      delete copy.created_at;
-      delete copy.updated_at;
-      return copy;
-    });
+      const rows = (dataByTable[spec.table] || []).map((r) => {
+        const copy = { ...r, tenant_id: tenantId };
+        if (spec.table === "purchase_orders") {
+          copy.client_environment_id = tenantId;
+        }
+        if (spec.table === "weight_calibration_collections") {
+          copy.certificate_id = null;
+        }
+        if (
+          spec.table === "calibration_certificates" ||
+          spec.table === "weight_calibration_certificates"
+        ) {
+          copy.replaces_certificate_id = null;
+        }
+        delete copy.created_at;
+        delete copy.updated_at;
+        return copy;
+      });
 
-    // FK para pai já inserido/reutilizado — evita 23503 no merge idempotente
-    const fkSan = TENANT_FK_SANITIZE.find((s) => s.table === spec.table);
-    if (fkSan) {
-      const validParents = await loadIdSet(admin, fkSan.parentTable, tenantId);
-      restored += await insertChunked(
-        admin,
-        spec.table,
-        sanitizeFkRows(rows, fkSan.fk, validParents, { nullable: fkSan.nullable }),
-      );
-      continue;
+      const fkSan = TENANT_FK_SANITIZE.find((s) => s.table === spec.table);
+      if (fkSan) {
+        const validParents = await loadIdSet(admin, fkSan.parentTable, tenantId);
+        restored += await insertChunked(
+          admin,
+          spec.table,
+          sanitizeFkRows(rows, fkSan.fk, validParents, { nullable: fkSan.nullable }),
+        );
+        continue;
+      }
+
+      restored += await insertChunked(admin, spec.table, rows);
+    } catch (e) {
+      console.error(`[tenant-backup] tenant insert ${spec.table}:`, String(e));
     }
-
-    restored += await insertChunked(admin, spec.table, rows);
   }
 
-  // Repor FKs circulares / self-ref
+  // Repor FKs circulares / self-ref (best-effort — não derruba o restore)
   for (const row of dataByTable.weight_calibration_collections || []) {
     if (!row.id || !row.certificate_id) continue;
-    await admin.from("weight_calibration_collections")
+    const { error } = await admin.from("weight_calibration_collections")
       .update({ certificate_id: row.certificate_id })
       .eq("id", row.id as string);
+    if (error) console.warn("[tenant-backup] repor certificate_id:", error.message);
   }
   for (const table of ["calibration_certificates", "weight_calibration_certificates"] as const) {
     for (const row of dataByTable[table] || []) {
       if (!row.id || !row.replaces_certificate_id) continue;
-      await admin.from(table)
+      const { error } = await admin.from(table)
         .update({ replaces_certificate_id: row.replaces_certificate_id })
         .eq("id", row.id as string);
+      if (error) console.warn(`[tenant-backup] repor replaces ${table}:`, error.message);
     }
   }
 
-  // IDs de pais já presentes no tenant (merge) + acabados de inserir
+  // IDs de pais válidos: batch atual + vivos no tenant (se aplicável) + netos via avô
   const validParentCache = new Map<string, Set<string>>();
   async function validParentIds(parentTable: string): Promise<Set<string>> {
     if (validParentCache.has(parentTable)) return validParentCache.get(parentTable)!;
-    const set = await loadIdSet(admin, parentTable, tenantId);
-    // Pais sem tenant_id (filhos de filhos): usar ids remapeados + inseridos
-    if (set.size === 0 && !TENANT_TABLES.some((t) => t.table === parentTable)) {
-      for (const r of dataByTable[parentTable] || []) {
-        if (r.id) set.add(String(r.id));
+    const set = new Set<string>();
+
+    // Sempre: IDs deste restore (inserir ou já remapeados no dataByTable)
+    for (const r of dataByTable[parentTable] || []) {
+      if (r.id) set.add(String(r.id));
+    }
+
+    if (isTenantScopedTable(parentTable)) {
+      const live = await loadIdSet(admin, parentTable, tenantId);
+      for (const id of live) set.add(id);
+    } else {
+      // Pai intermédio (ex.: commercial_proposal_scales): carregar vivos via avô
+      const asChild = CHILD_TABLES.find((c) => c.table === parentTable);
+      if (asChild) {
+        try {
+          const grandIds = [...await validParentIds(asChild.parentTable)];
+          const liveKids = await fetchByParentIds(
+            admin,
+            parentTable,
+            asChild.parentFk,
+            grandIds,
+          );
+          for (const r of liveKids.rows) {
+            if (r.id) set.add(String(r.id));
+          }
+        } catch (e) {
+          console.warn(`[tenant-backup] validParentIds ${parentTable}:`, String(e));
+        }
       }
+      // IDs reutilizados/remapeados que possam ser deste nível
       for (const id of idMap.values()) set.add(id);
     }
+
     validParentCache.set(parentTable, set);
     return set;
   }
 
   for (const spec of CHILD_TABLES) {
-    let rows = (dataByTable[spec.table] || []).map((r) => {
-      const copy = { ...r };
-      if ("tenant_id" in copy) copy.tenant_id = tenantId;
-      delete copy.created_at;
-      delete copy.updated_at;
-      return copy;
-    });
-    const validParents = await validParentIds(spec.parentTable);
-    rows = sanitizeFkRows(rows, spec.parentFk, validParents, { nullable: false });
-    restored += await insertChunked(admin, spec.table, rows);
+    try {
+      let rows = (dataByTable[spec.table] || []).map((r) => {
+        const copy = { ...r };
+        if ("tenant_id" in copy) copy.tenant_id = tenantId;
+        delete copy.created_at;
+        delete copy.updated_at;
+        return copy;
+      });
+      const validParents = await validParentIds(spec.parentTable);
+      rows = sanitizeFkRows(rows, spec.parentFk, validParents, { nullable: false });
+      restored += await insertChunked(admin, spec.table, rows);
+    } catch (e) {
+      // Não abortar o restore inteiro por um filho problemático
+      console.error(`[tenant-backup] child insert ${spec.table}:`, String(e));
+    }
   }
 
   let storage_files_restored = 0;
