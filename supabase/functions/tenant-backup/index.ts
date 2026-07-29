@@ -95,10 +95,25 @@ const MERGE_NATURAL_KEYS: { table: string; keys: string[] }[] = [
   { table: "equipment_maintenance_programs", keys: ["year", "equipment_kind"] },
   /** Mesmo código na lista mestra = mesmo documento (unique parcial tenant+code). */
   { table: "master_documents", keys: ["code"] },
+  /** Certificados ativos: unique (tenant, year, number). */
+  { table: "calibration_certificates", keys: ["certificate_year", "certificate_number"] },
+  { table: "weight_calibration_certificates", keys: ["certificate_year", "certificate_number"] },
   {
     table: "calibration_schedule_overrides",
     keys: ["source", "source_id", "year", "month", "mark_kind"],
   },
+];
+
+/** Tabelas tenant com FK a pai — sanitizar após insert do pai (merge idempotente). */
+const TENANT_FK_SANITIZE: {
+  table: string;
+  fk: string;
+  parentTable: string;
+  nullable: boolean;
+}[] = [
+  { table: "master_document_change_logs", fk: "master_document_id", parentTable: "master_documents", nullable: true },
+  { table: "certificate_email_deliveries", fk: "certificate_id", parentTable: "calibration_certificates", nullable: false },
+  { table: "weight_certificate_email_deliveries", fk: "certificate_id", parentTable: "weight_calibration_certificates", nullable: false },
 ];
 
 const MERGE_CHILD_NATURAL_KEYS: { table: string; keys: string[] }[] = [
@@ -1050,12 +1065,20 @@ async function restoreFromZip(
       const keys = naturalTenant.get(spec.table);
       if (!keys) continue;
       const live = await fetchByTenant(admin, spec.table, tenantId);
-      // Aplicar source_id já remapeado? nesta fase ainda não — schedule overrides
-      // usam source_id lógico; resolve depois do remap genérico dos pais.
       if (spec.table === "calibration_schedule_overrides") continue;
+      let liveRows = live.error ? [] : live.rows;
+      // Unique de certificado só cobre status ativos — preferir esses no match
+      if (
+        spec.table === "calibration_certificates" ||
+        spec.table === "weight_calibration_certificates"
+      ) {
+        liveRows = liveRows.filter(
+          (r) => !["cancelado", "substituido", "obsoleto"].includes(String(r.status || "")),
+        );
+      }
       dataByTable[spec.table] = resolveMergeNaturalKeys(
         dataByTable[spec.table] || [],
-        live.error ? [] : live.rows,
+        liveRows,
         keys,
         idMap,
       );
@@ -1178,13 +1201,14 @@ async function restoreFromZip(
       return copy;
     });
 
-    // Change logs: FK nullable — anular master_document_id órfão (docs saltados no merge)
-    if (spec.table === "master_document_change_logs") {
-      const validDocs = await loadIdSet(admin, "master_documents", tenantId);
+    // FK para pai já inserido/reutilizado — evita 23503 no merge idempotente
+    const fkSan = TENANT_FK_SANITIZE.find((s) => s.table === spec.table);
+    if (fkSan) {
+      const validParents = await loadIdSet(admin, fkSan.parentTable, tenantId);
       restored += await insertChunked(
         admin,
         spec.table,
-        sanitizeFkRows(rows, "master_document_id", validDocs, { nullable: true }),
+        sanitizeFkRows(rows, fkSan.fk, validParents, { nullable: fkSan.nullable }),
       );
       continue;
     }
