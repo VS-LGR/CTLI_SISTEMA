@@ -9,14 +9,105 @@ const corsHeaders: Record<string, string> = {
     "authorization, x-client-info, apikey, content-type, x-backup-cron",
 };
 
-const MANIFEST_VERSION = "1";
+const MANIFEST_VERSION = "3";
+const PAGE_SIZE = 1000;
+const INSERT_CHUNK = 400;
+const IN_CHUNK = 100;
+const SIGNED_URL_TTL_SEC = 60 * 60; // 1h
+const DEFAULT_RETENTION_DAYS = 90;
+
 const CADASTRO_BUCKET = "cadastro-certificados";
 const BRANDING_BUCKET = "tenant-branding";
 const DOCUMENTS_BUCKET = "tenant-documents";
-/** ZIP devolvido em base64; acima disto a resposta da Edge Function pode falhar. */
-const MAX_ZIP_BYTES = 5 * 1024 * 1024;
+const BACKUP_BUCKET = "tenant-backups";
 
 type Profile = { id: string; role: string; tenant_id: string | null };
+
+type TenantTableSpec = {
+  table: string;
+  zip: string;
+  /** Campos FK extra a remapear (além de *_id genérico) */
+  forceTenantId?: boolean;
+};
+
+/** Tabelas com tenant_id — ordem de INSERT (pais antes de filhos). DELETE = reverse. */
+const TENANT_TABLES: TenantTableSpec[] = [
+  { table: "responsibles", zip: "responsibles.json", forceTenantId: true },
+  { table: "supplier_registrations", zip: "cadastros/suppliers.json", forceTenantId: true },
+  { table: "end_customer_registrations", zip: "cadastros/end_customers.json", forceTenantId: true },
+  { table: "personnel_standard_options", zip: "cadastros/personnel_options.json", forceTenantId: true },
+  { table: "employee_registrations", zip: "cadastros/employees.json", forceTenantId: true },
+  { table: "personnel_positions", zip: "cadastros/personnel_positions.json", forceTenantId: true },
+  { table: "personnel_competency_adequacies", zip: "cadastros/personnel_adequacies.json", forceTenantId: true },
+  { table: "personnel_monitorings", zip: "cadastros/personnel_monitorings.json", forceTenantId: true },
+  { table: "personnel_experience_evaluations", zip: "cadastros/personnel_exp_evaluations.json", forceTenantId: true },
+  { table: "personnel_selections", zip: "cadastros/personnel_selections.json", forceTenantId: true },
+  { table: "personnel_attendance_lists", zip: "cadastros/personnel_attendance_lists.json", forceTenantId: true },
+  { table: "weight_standard_certificates", zip: "cadastros/weight_certs.json", forceTenantId: true },
+  { table: "standard_weight_items", zip: "cadastros/weight_items.json", forceTenantId: true },
+  { table: "environment_sensor_certificates", zip: "cadastros/env_certs.json", forceTenantId: true },
+  { table: "scale_registrations", zip: "cadastros/scale_registrations.json", forceTenantId: true },
+  { table: "scale_calibration_collections", zip: "coleta/collections.json", forceTenantId: true },
+  { table: "dashboard_reminders", zip: "dashboard/reminders.json", forceTenantId: true },
+  { table: "quotation_requests", zip: "orcamentos/requests.json", forceTenantId: true },
+  { table: "purchase_orders", zip: "pedidos_compra/orders.json", forceTenantId: true },
+  { table: "commercial_proposals", zip: "propostas/proposals.json", forceTenantId: true },
+  { table: "master_documents", zip: "lista_mestra/documents.json", forceTenantId: true },
+  { table: "external_document_controls", zip: "lista_mestra/external_controls.json", forceTenantId: true },
+  { table: "controlled_software", zip: "lista_mestra/controlled_software.json", forceTenantId: true },
+  { table: "master_document_change_logs", zip: "lista_mestra/change_logs.json", forceTenantId: true },
+  { table: "equipment_computers", zip: "equipamentos/computers.json", forceTenantId: true },
+  { table: "equipment_vehicles", zip: "equipamentos/vehicles.json", forceTenantId: true },
+  { table: "equipment_verifications", zip: "equipamentos/verifications.json", forceTenantId: true },
+  { table: "calibration_schedule_overrides", zip: "manutencao/schedule_overrides.json", forceTenantId: true },
+  { table: "equipment_maintenance_programs", zip: "manutencao/programs.json", forceTenantId: true },
+  { table: "equipment_maintenance_events", zip: "manutencao/events.json", forceTenantId: true },
+  { table: "device_technical_sheet_history", zip: "fichas/device_technical_sheet_history.json", forceTenantId: true },
+  { table: "calibration_certificates", zip: "certificados/calibration_certificates.json", forceTenantId: true },
+  { table: "weight_calibration_collections", zip: "certificados/weight_collections.json", forceTenantId: true },
+  { table: "weight_calibration_certificates", zip: "certificados/weight_certificates.json", forceTenantId: true },
+  { table: "certificate_email_deliveries", zip: "certificados/certificate_email_deliveries.json", forceTenantId: true },
+  { table: "weight_certificate_email_deliveries", zip: "certificados/weight_email_deliveries.json", forceTenantId: true },
+  { table: "tenant_documents", zip: "documents/tenant_documents.json", forceTenantId: true },
+];
+
+type ChildTableSpec = {
+  table: string;
+  zip: string;
+  parentTable: string;
+  parentFk: string;
+};
+
+/** Filhos sem tenant_id (ou derivados do pai). */
+const CHILD_TABLES: ChildTableSpec[] = [
+  { table: "personnel_experience_evaluation_items", zip: "cadastros/personnel_exp_eval_items.json", parentTable: "personnel_experience_evaluations", parentFk: "evaluation_id" },
+  { table: "personnel_attendance_participants", zip: "cadastros/personnel_attendance_participants.json", parentTable: "personnel_attendance_lists", parentFk: "attendance_list_id" },
+  { table: "quotation_request_type_sections", zip: "orcamentos/type_sections.json", parentTable: "quotation_requests", parentFk: "quotation_request_id" },
+  { table: "quotation_request_items", zip: "orcamentos/items.json", parentTable: "quotation_requests", parentFk: "quotation_request_id" },
+  { table: "quotation_request_attachments", zip: "orcamentos/attachments.json", parentTable: "quotation_requests", parentFk: "quotation_request_id" },
+  { table: "quotation_request_status_history", zip: "orcamentos/status_history.json", parentTable: "quotation_requests", parentFk: "quotation_request_id" },
+  { table: "quotation_request_conversions", zip: "orcamentos/conversions.json", parentTable: "quotation_requests", parentFk: "quotation_request_id" },
+  { table: "purchase_order_items", zip: "pedidos_compra/items.json", parentTable: "purchase_orders", parentFk: "purchase_order_id" },
+  { table: "purchase_order_inspections", zip: "pedidos_compra/inspections.json", parentTable: "purchase_orders", parentFk: "purchase_order_id" },
+  { table: "purchase_order_signatures", zip: "pedidos_compra/signatures.json", parentTable: "purchase_orders", parentFk: "purchase_order_id" },
+  { table: "purchase_order_attachments", zip: "pedidos_compra/attachments.json", parentTable: "purchase_orders", parentFk: "purchase_order_id" },
+  { table: "commercial_proposal_scales", zip: "propostas/scales.json", parentTable: "commercial_proposals", parentFk: "proposal_id" },
+  { table: "commercial_proposal_calibration_points", zip: "propostas/calibration_points.json", parentTable: "commercial_proposal_scales", parentFk: "scale_id" },
+  { table: "document_revisions", zip: "lista_mestra/revisions.json", parentTable: "master_documents", parentFk: "master_document_id" },
+  { table: "document_distributions", zip: "lista_mestra/distributions.json", parentTable: "master_documents", parentFk: "master_document_id" },
+  { table: "document_template_links", zip: "lista_mestra/template_links.json", parentTable: "master_documents", parentFk: "master_document_id" },
+  { table: "document_generated_snapshots", zip: "lista_mestra/snapshots.json", parentTable: "master_documents", parentFk: "master_document_id" },
+  { table: "document_access_rules", zip: "lista_mestra/access_rules.json", parentTable: "master_documents", parentFk: "master_document_id" },
+  { table: "calibration_certificate_points", zip: "certificados/calibration_points.json", parentTable: "calibration_certificates", parentFk: "certificate_id" },
+  { table: "calibration_certificate_standards", zip: "certificados/calibration_standards.json", parentTable: "calibration_certificates", parentFk: "certificate_id" },
+  { table: "calibration_certificate_environmental", zip: "certificados/calibration_environmental.json", parentTable: "calibration_certificates", parentFk: "certificate_id" },
+  { table: "calibration_certificate_conformity", zip: "certificados/calibration_conformity.json", parentTable: "calibration_certificates", parentFk: "certificate_id" },
+  { table: "calibration_certificate_reviews", zip: "certificados/calibration_reviews.json", parentTable: "calibration_certificates", parentFk: "certificate_id" },
+  { table: "weight_calibration_certificate_items", zip: "certificados/weight_items.json", parentTable: "weight_calibration_certificates", parentFk: "certificate_id" },
+  { table: "weight_calibration_certificate_standards", zip: "certificados/weight_standards.json", parentTable: "weight_calibration_certificates", parentFk: "certificate_id" },
+  { table: "weight_calibration_certificate_environmental", zip: "certificados/weight_environmental.json", parentTable: "weight_calibration_certificates", parentFk: "certificate_id" },
+  { table: "weight_calibration_certificate_reviews", zip: "certificados/weight_reviews.json", parentTable: "weight_calibration_certificates", parentFk: "certificate_id" },
+];
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -25,10 +116,116 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function uint8ToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function recordBackupEvent(
+  admin: SupabaseClient,
+  payload: {
+    tenant_id: string;
+    action: string;
+    outcome?: string;
+    source?: string;
+    restore_mode?: string | null;
+    filename?: string;
+    storage_path?: string;
+    size_bytes?: number;
+    record_count?: number;
+    sha256?: string;
+    manifest_version?: string;
+    error_message?: string;
+    details?: Record<string, unknown>;
+    actor_user_id?: string | null;
+  },
+) {
+  let actor_email = "";
+  let actor_full_name = "";
+  let actor_role = "";
+  if (payload.actor_user_id) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("email, full_name, role")
+      .eq("id", payload.actor_user_id)
+      .maybeSingle();
+    actor_email = profile?.email || "";
+    actor_full_name = profile?.full_name || "";
+    actor_role = profile?.role || "";
+  }
+
+  const { error } = await admin.from("tenant_backup_events").insert({
+    tenant_id: payload.tenant_id,
+    action: payload.action,
+    outcome: payload.outcome || "success",
+    source: payload.source || "manual",
+    restore_mode: payload.restore_mode ?? null,
+    filename: payload.filename || "",
+    storage_path: payload.storage_path || "",
+    size_bytes: payload.size_bytes || 0,
+    record_count: payload.record_count || 0,
+    sha256: payload.sha256 || "",
+    manifest_version: payload.manifest_version || "",
+    error_message: payload.error_message || "",
+    details: payload.details || {},
+    actor_user_id: payload.actor_user_id || null,
+    actor_email,
+    actor_full_name,
+    actor_role,
+  });
+  if (error && !/does not exist|schema cache/i.test(error.message)) {
+    console.error("[tenant-backup] event insert failed:", error.message);
+  }
+}
+
+async function purgeExpiredBackups(
+  admin: SupabaseClient,
+  tenantId: string,
+  retentionDays: number,
+  actorUserId: string | null,
+): Promise<number> {
+  const days = Math.max(7, retentionDays || DEFAULT_RETENTION_DAYS);
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const { data: objects } = await admin.storage.from(BACKUP_BUCKET).list(tenantId, {
+    limit: 200,
+    sortBy: { column: "created_at", order: "asc" },
+  });
+  const expired = (objects || []).filter((o) => {
+    const ts = o.created_at || o.updated_at;
+    if (!ts) return false;
+    return new Date(ts).getTime() < cutoff;
+  });
+  if (!expired.length) return 0;
+
+  const paths = expired.flatMap((o) => {
+    const base = `${tenantId}/${o.name}`;
+    return o.name.endsWith(".zip") ? [base, `${base}.sha256`] : [base];
+  });
+  for (const chunk of chunkArray(paths, 50)) {
+    await admin.storage.from(BACKUP_BUCKET).remove(chunk);
+  }
+
+  await recordBackupEvent(admin, {
+    tenant_id: tenantId,
+    action: "purge",
+    outcome: "success",
+    source: "manual",
+    record_count: expired.length,
+    actor_user_id: actorUserId,
+    details: {
+      retention_days: days,
+      purged: expired.map((o) => o.name),
+    },
+  });
+  return expired.length;
 }
 
 async function authGate(
@@ -36,10 +233,9 @@ async function authGate(
   tenantId: string,
 ): Promise<
   | { error: Response }
-  | { admin: SupabaseClient; userId: string | null }
+  | { admin: SupabaseClient; userId: string | null; userEmail: string }
 > {
   const authHeader = req.headers.get("Authorization") || "";
-
   if (!authHeader.startsWith("Bearer ")) {
     return { error: jsonResponse({ error: "Unauthorized" }, 401) };
   }
@@ -57,18 +253,15 @@ async function authGate(
 
   const { data: profile } = await userClient
     .from("profiles")
-    .select("id, role, tenant_id")
+    .select("id, role, tenant_id, email")
     .eq("id", user.id)
     .single();
 
-  const p = profile as Profile | null;
+  const p = profile as (Profile & { email?: string }) | null;
   if (!p) return { error: jsonResponse({ error: "Forbidden" }, 403) };
 
-  const allowed =
-    p.role === "admin" ||
-    (p.role === "client" && p.tenant_id === tenantId);
-
-  if (!allowed) {
+  // Alinhado à UI: backup é módulo CTLI admin-only
+  if (p.role !== "admin") {
     return { error: jsonResponse({ error: "Forbidden" }, 403) };
   }
 
@@ -76,7 +269,101 @@ async function authGate(
   return {
     admin: createClient(supabaseUrl, serviceKey),
     userId: user.id,
+    userEmail: p.email || user.email || "",
   };
+}
+
+/** Reautenticação Part 11-ish: exige senha atual do ator para restore destrutivo. */
+async function verifyActorPassword(email: string, password: string): Promise<boolean> {
+  if (!email || !password) return false;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const client = createClient(supabaseUrl, supabaseAnonKey);
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  return !error;
+}
+
+async function fetchAllPaged(
+  admin: SupabaseClient,
+  table: string,
+  // deno-lint-ignore no-explicit-any
+  applyFilter: (q: any) => any,
+): Promise<{ rows: Record<string, unknown>[]; expected: number | null; truncated: boolean; error?: string }> {
+  const { count, error: cErr } = await applyFilter(
+    admin.from(table).select("*", { count: "exact", head: true }),
+  );
+  if (cErr) {
+    // Tabela pode não existir em ambientes sem migration — skip graceful
+    if (/does not exist|schema cache/i.test(cErr.message)) {
+      return { rows: [], expected: 0, truncated: false, error: cErr.message };
+    }
+    throw new Error(`Count ${table}: ${cErr.message}`);
+  }
+  const expected = count ?? 0;
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await applyFilter(
+      admin.from(table).select("*"),
+    ).range(from, from + PAGE_SIZE - 1);
+    if (error) {
+      if (/does not exist|schema cache/i.test(error.message)) {
+        return { rows: [], expected: 0, truncated: false, error: error.message };
+      }
+      throw new Error(`Export ${table}: ${error.message}`);
+    }
+    if (!data?.length) break;
+    rows.push(...(data as Record<string, unknown>[]));
+    if (data.length < PAGE_SIZE) break;
+  }
+  return {
+    rows,
+    expected,
+    truncated: expected != null && rows.length !== expected,
+  };
+}
+
+async function fetchByTenant(
+  admin: SupabaseClient,
+  table: string,
+  tenantId: string,
+) {
+  return fetchAllPaged(admin, table, (q) => q.eq("tenant_id", tenantId));
+}
+
+async function fetchByParentIds(
+  admin: SupabaseClient,
+  table: string,
+  fk: string,
+  parentIds: string[],
+): Promise<{ rows: Record<string, unknown>[]; truncated: boolean; error?: string }> {
+  if (!parentIds.length) return { rows: [], truncated: false };
+  const rows: Record<string, unknown>[] = [];
+  let anyTrunc = false;
+  for (const ids of chunkArray(parentIds, IN_CHUNK)) {
+    const res = await fetchAllPaged(admin, table, (q) => q.in(fk, ids));
+    if (res.error && /does not exist|schema cache/i.test(res.error)) {
+      return { rows: [], truncated: false, error: res.error };
+    }
+    rows.push(...res.rows);
+    if (res.truncated) anyTrunc = true;
+  }
+  return { rows, truncated: anyTrunc };
+}
+
+async function insertChunked(
+  admin: SupabaseClient,
+  table: string,
+  rows: Record<string, unknown>[],
+) {
+  if (!rows.length) return 0;
+  for (const chunk of chunkArray(rows, INSERT_CHUNK)) {
+    const { error } = await admin.from(table).insert(chunk);
+    if (error) {
+      if (/does not exist|schema cache/i.test(error.message)) return 0;
+      throw new Error(`${table}: ${error.message}`);
+    }
+  }
+  return rows.length;
 }
 
 async function listStoragePrefix(
@@ -113,6 +400,14 @@ async function listStoragePrefix(
   return out;
 }
 
+async function removeStoragePrefix(admin: SupabaseClient, bucket: string, prefix: string) {
+  const files = await listStoragePrefix(admin, bucket, `${prefix}/`);
+  if (!files.length) return;
+  for (const chunk of chunkArray(files.map((f) => `${prefix}/${f.path}`), 100)) {
+    await admin.storage.from(bucket).remove(chunk);
+  }
+}
+
 async function fetchLegacyDocuments(
   tenantId: string,
   authHeader: string | null,
@@ -145,19 +440,17 @@ async function fetchLegacyDocuments(
     } catch { /* ignore */ }
 
     const files: { docId: string; name: string; data: Uint8Array }[] = [];
-    for (const doc of documents as { id?: string; has_file?: boolean; file_name?: string }[]) {
-      if (!doc?.id || !doc.has_file) continue;
-      try {
-        const dlRes = await fetch(`${base}/api/documents/${doc.id}/download`, { headers });
-        if (dlRes.ok) {
-          const buf = new Uint8Array(await dlRes.arrayBuffer());
-          files.push({
-            docId: doc.id,
-            name: doc.file_name || "attachment.bin",
-            data: buf,
-          });
-        }
-      } catch { /* skip file */ }
+    for (const doc of documents as { id?: string; files?: { name?: string; url?: string }[] }[]) {
+      if (!doc?.id || !Array.isArray(doc.files)) continue;
+      for (const f of doc.files) {
+        if (!f?.url || !f?.name) continue;
+        try {
+          const fr = await fetch(f.url);
+          if (fr.ok) {
+            files.push({ docId: doc.id, name: f.name, data: new Uint8Array(await fr.arrayBuffer()) });
+          }
+        } catch { /* skip */ }
+      }
     }
 
     return { documents, reminders, available: true, files };
@@ -171,127 +464,63 @@ async function buildBackupZip(
   tenantId: string,
   source: string,
   authHeader: string | null,
-): Promise<{ zipBytes: Uint8Array; manifest: Record<string, unknown>; recordCount: number }> {
+): Promise<{
+  zipBytes: Uint8Array;
+  manifest: Record<string, unknown>;
+  recordCount: number;
+  archiveSha256: string;
+  integrityDoc: Record<string, unknown>;
+}> {
   const zip = new JSZip();
 
   const { data: tenant, error: tErr } = await admin.from("tenants").select("*").eq("id", tenantId).single();
   if (tErr || !tenant) throw new Error("Tenant não encontrado");
-
-  const tables = {
-    responsibles: () => admin.from("responsibles").select("*").eq("tenant_id", tenantId),
-    suppliers: () => admin.from("supplier_registrations").select("*").eq("tenant_id", tenantId),
-    end_customers: () => admin.from("end_customer_registrations").select("*").eq("tenant_id", tenantId),
-    personnel_options: () => admin.from("personnel_standard_options").select("*").eq("tenant_id", tenantId),
-    personnel_positions: () => admin.from("personnel_positions").select("*").eq("tenant_id", tenantId),
-    personnel_adequacies: () => admin.from("personnel_competency_adequacies").select("*").eq("tenant_id", tenantId),
-    personnel_monitorings: () => admin.from("personnel_monitorings").select("*").eq("tenant_id", tenantId),
-    personnel_exp_evaluations: () => admin.from("personnel_experience_evaluations").select("*").eq("tenant_id", tenantId),
-    personnel_selections: () => admin.from("personnel_selections").select("*").eq("tenant_id", tenantId),
-    personnel_attendance_lists: () => admin.from("personnel_attendance_lists").select("*").eq("tenant_id", tenantId),
-    employees: () => admin.from("employee_registrations").select("*").eq("tenant_id", tenantId),
-    weight_certs: () => admin.from("weight_standard_certificates").select("*").eq("tenant_id", tenantId),
-    weight_items: () => admin.from("standard_weight_items").select("*").eq("tenant_id", tenantId),
-    env_certs: () => admin.from("environment_sensor_certificates").select("*").eq("tenant_id", tenantId),
-    coleta: () => admin.from("scale_calibration_collections").select("*").eq("tenant_id", tenantId),
-    purchase_orders: () => admin.from("purchase_orders").select("*").eq("tenant_id", tenantId),
-  };
-
-  const exported: Record<string, unknown[]> = {};
-  for (const [key, fn] of Object.entries(tables)) {
-    const { data, error } = await fn();
-    if (error) throw new Error(`Export ${key}: ${error.message}`);
-    exported[key] = data || [];
-  }
-
   zip.file("tenant.json", JSON.stringify(tenant, null, 2));
-  zip.file("responsibles.json", JSON.stringify(exported.responsibles, null, 2));
-  zip.folder("cadastros");
-  zip.file("cadastros/suppliers.json", JSON.stringify(exported.suppliers, null, 2));
-  zip.file("cadastros/end_customers.json", JSON.stringify(exported.end_customers, null, 2));
-  zip.file("cadastros/personnel_options.json", JSON.stringify(exported.personnel_options, null, 2));
-  zip.file("cadastros/personnel_positions.json", JSON.stringify(exported.personnel_positions, null, 2));
-  zip.file("cadastros/personnel_adequacies.json", JSON.stringify(exported.personnel_adequacies, null, 2));
-  zip.file("cadastros/personnel_monitorings.json", JSON.stringify(exported.personnel_monitorings, null, 2));
-  zip.file("cadastros/personnel_exp_evaluations.json", JSON.stringify(exported.personnel_exp_evaluations, null, 2));
-  zip.file("cadastros/personnel_selections.json", JSON.stringify(exported.personnel_selections, null, 2));
-  zip.file("cadastros/personnel_attendance_lists.json", JSON.stringify(exported.personnel_attendance_lists, null, 2));
 
-  const expEvalIds = (exported.personnel_exp_evaluations as { id: string }[]).map((r) => r.id);
-  let personnelExpEvalItems: unknown[] = [];
-  if (expEvalIds.length) {
-    const { data: pei, error: peiErr } = await admin
-      .from("personnel_experience_evaluation_items")
-      .select("*")
-      .in("evaluation_id", expEvalIds);
-    if (peiErr) throw new Error(`Export personnel_exp_eval_items: ${peiErr.message}`);
-    personnelExpEvalItems = pei || [];
+  const exportedByTable: Record<string, Record<string, unknown>[]> = {};
+  const counts: Record<string, number> = {};
+  const expectedCounts: Record<string, number | null> = {};
+  const truncatedTables: string[] = [];
+  const skippedTables: string[] = [];
+
+  for (const spec of TENANT_TABLES) {
+    const res = await fetchByTenant(admin, spec.table, tenantId);
+    if (res.error && /does not exist|schema cache/i.test(res.error)) {
+      skippedTables.push(spec.table);
+      exportedByTable[spec.table] = [];
+      counts[spec.table] = 0;
+      continue;
+    }
+    exportedByTable[spec.table] = res.rows;
+    counts[spec.table] = res.rows.length;
+    expectedCounts[spec.table] = res.expected;
+    if (res.truncated) truncatedTables.push(spec.table);
+    zip.file(spec.zip, JSON.stringify(res.rows, null, 2));
   }
-  zip.file("cadastros/personnel_exp_eval_items.json", JSON.stringify(personnelExpEvalItems, null, 2));
 
-  const attListIds = (exported.personnel_attendance_lists as { id: string }[]).map((r) => r.id);
-  let personnelAttendanceParticipants: unknown[] = [];
-  if (attListIds.length) {
-    const { data: pap, error: papErr } = await admin
-      .from("personnel_attendance_participants")
-      .select("*")
-      .in("attendance_list_id", attListIds);
-    if (papErr) throw new Error(`Export personnel_attendance_participants: ${papErr.message}`);
-    personnelAttendanceParticipants = pap || [];
+  for (const spec of CHILD_TABLES) {
+    const parents = exportedByTable[spec.parentTable] || [];
+    const parentIds = parents.map((r) => r.id as string).filter(Boolean);
+    const res = await fetchByParentIds(admin, spec.table, spec.parentFk, parentIds);
+    if (res.error && /does not exist|schema cache/i.test(res.error)) {
+      skippedTables.push(spec.table);
+      exportedByTable[spec.table] = [];
+      counts[spec.table] = 0;
+      continue;
+    }
+    exportedByTable[spec.table] = res.rows;
+    counts[spec.table] = res.rows.length;
+    if (res.truncated) truncatedTables.push(spec.table);
+    zip.file(spec.zip, JSON.stringify(res.rows, null, 2));
   }
-  zip.file("cadastros/personnel_attendance_participants.json", JSON.stringify(personnelAttendanceParticipants, null, 2));
-
-  zip.file("cadastros/employees.json", JSON.stringify(exported.employees, null, 2));
-  zip.file("cadastros/weight_certs.json", JSON.stringify(exported.weight_certs, null, 2));
-  zip.file("cadastros/weight_items.json", JSON.stringify(exported.weight_items, null, 2));
-  zip.file("cadastros/env_certs.json", JSON.stringify(exported.env_certs, null, 2));
-  zip.file("coleta/collections.json", JSON.stringify(exported.coleta, null, 2));
-
-  const poIds = (exported.purchase_orders || []).map((r: { id: string }) => r.id);
-  let poItems: unknown[] = [];
-  let poInspections: unknown[] = [];
-  let poSignatures: unknown[] = [];
-  if (poIds.length) {
-    const [itemsRes, inspRes, sigsRes] = await Promise.all([
-      admin.from("purchase_order_items").select("*").in("purchase_order_id", poIds),
-      admin.from("purchase_order_inspections").select("*").in("purchase_order_id", poIds),
-      admin.from("purchase_order_signatures").select("*").in("purchase_order_id", poIds),
-    ]);
-    if (itemsRes.error) throw new Error(`Export purchase_order_items: ${itemsRes.error.message}`);
-    if (inspRes.error) throw new Error(`Export purchase_order_inspections: ${inspRes.error.message}`);
-    if (sigsRes.error) throw new Error(`Export purchase_order_signatures: ${sigsRes.error.message}`);
-    poItems = itemsRes.data || [];
-    poInspections = inspRes.data || [];
-    poSignatures = sigsRes.data || [];
-  }
-  zip.folder("pedidos_compra");
-  zip.file("pedidos_compra/orders.json", JSON.stringify(exported.purchase_orders, null, 2));
-  zip.file("pedidos_compra/items.json", JSON.stringify(poItems, null, 2));
-  zip.file("pedidos_compra/inspections.json", JSON.stringify(poInspections, null, 2));
-  zip.file("pedidos_compra/signatures.json", JSON.stringify(poSignatures, null, 2));
-
-  const { data: tenantDocs, error: docsErr } = await admin
-    .from("tenant_documents")
-    .select("*")
-    .eq("tenant_id", tenantId);
-  if (docsErr) throw new Error(`Export tenant_documents: ${docsErr.message}`);
-  const documents = tenantDocs || [];
-  zip.file("documents/tenant_documents.json", JSON.stringify(documents, null, 2));
 
   let storageFileCount = 0;
-  const cadastroFiles = await listStoragePrefix(admin, CADASTRO_BUCKET, `${tenantId}/`);
-  for (const f of cadastroFiles) {
-    zip.file(`storage/${CADASTRO_BUCKET}/${f.path}`, f.data);
-    storageFileCount++;
-  }
-  const brandingFiles = await listStoragePrefix(admin, BRANDING_BUCKET, `${tenantId}/`);
-  for (const f of brandingFiles) {
-    zip.file(`storage/${BRANDING_BUCKET}/${f.path}`, f.data);
-    storageFileCount++;
-  }
-  const documentFiles = await listStoragePrefix(admin, DOCUMENTS_BUCKET, `${tenantId}/`);
-  for (const f of documentFiles) {
-    zip.file(`storage/${DOCUMENTS_BUCKET}/${f.path}`, f.data);
-    storageFileCount++;
+  for (const bucket of [CADASTRO_BUCKET, BRANDING_BUCKET, DOCUMENTS_BUCKET]) {
+    const files = await listStoragePrefix(admin, bucket, `${tenantId}/`);
+    for (const f of files) {
+      zip.file(`storage/${bucket}/${f.path}`, f.data);
+      storageFileCount++;
+    }
   }
 
   const legacy = await fetchLegacyDocuments(tenantId, authHeader);
@@ -303,18 +532,8 @@ async function buildBackupZip(
     }
   }
 
-  const recordCount =
-    (exported.responsibles?.length || 0) +
-    (exported.suppliers?.length || 0) +
-    (exported.end_customers?.length || 0) +
-    (exported.employees?.length || 0) +
-    (exported.weight_certs?.length || 0) +
-    (exported.weight_items?.length || 0) +
-    (exported.env_certs?.length || 0) +
-    (exported.coleta?.length || 0) +
-    (exported.purchase_orders?.length || 0) +
-    poItems.length +
-    documents.length +
+  const recordCount = Object.values(counts).reduce((a, b) => a + b, 0) +
+    storageFileCount +
     (legacy.documents?.length || 0);
 
   const manifest = {
@@ -324,63 +543,78 @@ async function buildBackupZip(
     created_at: new Date().toISOString(),
     source,
     legacy_api_available: legacy.available,
+    pagination: { page_size: PAGE_SIZE },
     counts: {
-      responsibles: exported.responsibles?.length || 0,
-      suppliers: exported.suppliers?.length || 0,
-      end_customers: exported.end_customers?.length || 0,
-      employees: exported.employees?.length || 0,
-      weight_certs: exported.weight_certs?.length || 0,
-      weight_items: exported.weight_items?.length || 0,
-      env_certs: exported.env_certs?.length || 0,
-      coleta: exported.coleta?.length || 0,
-      purchase_orders: exported.purchase_orders?.length || 0,
-      purchase_order_items: poItems.length,
-      tenant_documents: documents.length,
-      documents: documents.length + (legacy.documents?.length || 0),
-      reminders: legacy.reminders?.length || 0,
+      ...counts,
       storage_files: storageFileCount,
+      legacy_documents: legacy.documents?.length || 0,
+      legacy_reminders: legacy.reminders?.length || 0,
+      total_records: recordCount,
+    },
+    expected_counts: expectedCounts,
+    truncated_tables: truncatedTables,
+    skipped_tables: skippedTables,
+    integrity: {
+      exported_equals_expected: truncatedTables.length === 0,
+      algorithm: "SHA-256",
     },
   };
 
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+  // Digests dos ficheiros (exceto integrity.json) antes de fechar o ZIP
+  const fileDigests: Record<string, string> = {};
+  for (const path of Object.keys(zip.files)) {
+    const entry = zip.files[path];
+    if (!entry || entry.dir) continue;
+    const data = new Uint8Array(await entry.async("uint8array"));
+    fileDigests[path] = await sha256Hex(data);
+  }
+  const integrityDoc = {
+    version: MANIFEST_VERSION,
+    algorithm: "SHA-256",
+    created_at: manifest.created_at,
+    tenant_id: tenantId,
+    files: fileDigests,
+  };
+  zip.file("integrity.json", JSON.stringify(integrityDoc, null, 2));
+
   const zipBytes = new Uint8Array(await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" }));
-  return { zipBytes, manifest, recordCount };
+  const archiveSha256 = await sha256Hex(zipBytes);
+  return { zipBytes, manifest, recordCount, archiveSha256, integrityDoc };
 }
 
-async function deleteTenantData(admin: SupabaseClient, tenantId: string) {
-  const { data: poRows } = await admin.from("purchase_orders").select("id").eq("tenant_id", tenantId);
-  const poIds = (poRows || []).map((r: { id: string }) => r.id);
-  if (poIds.length) {
-    await admin.from("purchase_order_signatures").delete().in("purchase_order_id", poIds);
-    await admin.from("purchase_order_items").delete().in("purchase_order_id", poIds);
-    await admin.from("purchase_order_inspections").delete().in("purchase_order_id", poIds);
-  }
-  await admin.from("purchase_orders").delete().eq("tenant_id", tenantId);
-  await admin.from("scale_calibration_collections").delete().eq("tenant_id", tenantId);
-  await admin.from("standard_weight_items").delete().eq("tenant_id", tenantId);
-  await admin.from("weight_standard_certificates").delete().eq("tenant_id", tenantId);
-  await admin.from("environment_sensor_certificates").delete().eq("tenant_id", tenantId);
-  await admin.from("personnel_attendance_lists").delete().eq("tenant_id", tenantId);
-  await admin.from("personnel_experience_evaluations").delete().eq("tenant_id", tenantId);
-  await admin.from("personnel_selections").delete().eq("tenant_id", tenantId);
-  await admin.from("personnel_monitorings").delete().eq("tenant_id", tenantId);
-  await admin.from("personnel_competency_adequacies").delete().eq("tenant_id", tenantId);
-  await admin.from("employee_registrations").update({ supervisor_id: null, position_id: null }).eq("tenant_id", tenantId);
-  await admin.from("personnel_positions").delete().eq("tenant_id", tenantId);
-  await admin.from("personnel_standard_options").delete().eq("tenant_id", tenantId);
-  await admin.from("employee_registrations").delete().eq("tenant_id", tenantId);
-  await admin.from("supplier_registrations").delete().eq("tenant_id", tenantId);
-  await admin.from("end_customer_registrations").delete().eq("tenant_id", tenantId);
-  await admin.from("responsibles").delete().eq("tenant_id", tenantId);
-  await admin.from("tenant_documents").delete().eq("tenant_id", tenantId);
+async function uploadBackupZip(
+  admin: SupabaseClient,
+  tenantId: string,
+  filename: string,
+  zipBytes: Uint8Array,
+  archiveSha256: string,
+): Promise<{ storage_path: string; download_url: string }> {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const storage_path = `${tenantId}/${stamp}-${filename}`;
+  const { error: upErr } = await admin.storage
+    .from(BACKUP_BUCKET)
+    .upload(storage_path, zipBytes, {
+      contentType: "application/zip",
+      upsert: false,
+    });
+  if (upErr) throw new Error(`Upload backup: ${upErr.message}`);
 
-  for (const bucket of [CADASTRO_BUCKET, BRANDING_BUCKET, DOCUMENTS_BUCKET]) {
-    const files = await listStoragePrefix(admin, bucket, `${tenantId}/`);
-    if (files.length) {
-      const paths = files.map((f) => `${tenantId}/${f.path}`);
-      await admin.storage.from(bucket).remove(paths);
-    }
+  await admin.storage
+    .from(BACKUP_BUCKET)
+    .upload(`${storage_path}.sha256`, new TextEncoder().encode(archiveSha256), {
+      contentType: "text/plain",
+      upsert: true,
+    });
+
+  const { data: signed, error: sErr } = await admin.storage
+    .from(BACKUP_BUCKET)
+    .createSignedUrl(storage_path, SIGNED_URL_TTL_SEC);
+  if (sErr || !signed?.signedUrl) {
+    throw new Error(`Signed URL: ${sErr?.message || "falhou"}`);
   }
+  return { storage_path, download_url: signed.signedUrl };
 }
 
 function sortEmployeesForInsert(rows: Record<string, unknown>[]) {
@@ -405,7 +639,7 @@ function sortEmployeesForInsert(rows: Record<string, unknown>[]) {
 
 function remapIds<T extends { id?: string }>(rows: T[], idMap: Map<string, string>): T[] {
   return rows.map((row) => {
-    const copy = { ...row } as T & { supervisor_id?: string | null; weight_certificate_id?: string | null };
+    const copy = { ...row } as T;
     if (copy.id) {
       const newId = crypto.randomUUID();
       idMap.set(copy.id, newId);
@@ -415,22 +649,106 @@ function remapIds<T extends { id?: string }>(rows: T[], idMap: Map<string, strin
   });
 }
 
-function applyIdMap(row: Record<string, unknown>, idMap: Map<string, string>) {
-  if (row.supervisor_id && idMap.has(row.supervisor_id as string)) {
-    row.supervisor_id = idMap.get(row.supervisor_id as string);
-  }
-  if (row.weight_certificate_id && idMap.has(row.weight_certificate_id as string)) {
-    row.weight_certificate_id = idMap.get(row.weight_certificate_id as string);
+function remapRowFks(row: Record<string, unknown>, idMap: Map<string, string>) {
+  for (const [k, v] of Object.entries(row)) {
+    if (typeof v !== "string") continue;
+    if ((k === "id" || k.endsWith("_id")) && idMap.has(v)) {
+      row[k] = idMap.get(v);
+    }
   }
 }
 
-async function restoreFromZip(
+async function resolveParentIds(
+  admin: SupabaseClient,
+  parentTable: string,
+  tenantId: string,
+): Promise<string[]> {
+  if (TENANT_TABLES.some((t) => t.table === parentTable)) {
+    const res = await fetchByTenant(admin, parentTable, tenantId);
+    return res.rows.map((r) => r.id as string).filter(Boolean);
+  }
+  const childParent = CHILD_TABLES.find((c) => c.table === parentTable);
+  if (childParent) {
+    const grandIds = await resolveParentIds(admin, childParent.parentTable, tenantId);
+    const mid = await fetchByParentIds(admin, parentTable, childParent.parentFk, grandIds);
+    return mid.rows.map((r) => r.id as string).filter(Boolean);
+  }
+  return [];
+}
+
+async function deleteTenantData(admin: SupabaseClient, tenantId: string) {
+  // Filhos primeiro (inclui netos, ex.: pontos de proposta → scales → proposals)
+  for (const spec of [...CHILD_TABLES].reverse()) {
+    const ids = await resolveParentIds(admin, spec.parentTable, tenantId);
+    for (const chunk of chunkArray(ids, IN_CHUNK)) {
+      if (!chunk.length) continue;
+      const { error } = await admin.from(spec.table).delete().in(spec.parentFk, chunk);
+      if (error && !/does not exist|schema cache/i.test(error.message)) {
+        throw new Error(`Delete ${spec.table}: ${error.message}`);
+      }
+    }
+  }
+
+  // Tabelas tenant em ordem inversa
+  for (const spec of [...TENANT_TABLES].reverse()) {
+    if (spec.table === "employee_registrations") {
+      await admin.from("employee_registrations")
+        .update({ supervisor_id: null, position_id: null })
+        .eq("tenant_id", tenantId);
+    }
+    const { error } = await admin.from(spec.table).delete().eq("tenant_id", tenantId);
+    if (error && !/does not exist|schema cache/i.test(error.message)) {
+      throw new Error(`Delete ${spec.table}: ${error.message}`);
+    }
+  }
+
+  for (const bucket of [CADASTRO_BUCKET, BRANDING_BUCKET, DOCUMENTS_BUCKET]) {
+    await removeStoragePrefix(admin, bucket, tenantId);
+  }
+}
+
+async function verifyZipIntegrity(zip: JSZip): Promise<{
+  ok: boolean;
+  checked: number;
+  mismatches: string[];
+  hasIntegrityFile: boolean;
+}> {
+  const integrityFile = zip.file("integrity.json");
+  if (!integrityFile) {
+    return { ok: true, checked: 0, mismatches: [], hasIntegrityFile: false };
+  }
+  const integrity = JSON.parse(await integrityFile.async("string")) as {
+    files?: Record<string, string>;
+  };
+  const expected = integrity.files || {};
+  const mismatches: string[] = [];
+  let checked = 0;
+  for (const [path, want] of Object.entries(expected)) {
+    if (path === "integrity.json") continue;
+    const entry = zip.file(path);
+    if (!entry || entry.dir) {
+      mismatches.push(path);
+      continue;
+    }
+    const data = new Uint8Array(await entry.async("uint8array"));
+    const got = await sha256Hex(data);
+    checked += 1;
+    if (got !== want) mismatches.push(path);
+  }
+  return {
+    ok: mismatches.length === 0,
+    checked,
+    mismatches,
+    hasIntegrityFile: true,
+  };
+}
+
+async function dryRunRestore(
   admin: SupabaseClient,
   tenantId: string,
   zipBytes: Uint8Array,
-  replace: boolean,
-  authHeader: string | null,
-): Promise<Record<string, number>> {
+): Promise<Record<string, unknown>> {
+  const archiveSha256 = await sha256Hex(zipBytes);
   const zip = await JSZip.loadAsync(zipBytes);
   const manifestFile = zip.file("manifest.json");
   if (!manifestFile) throw new Error("ZIP inválido: manifest.json ausente");
@@ -440,10 +758,143 @@ async function restoreFromZip(
     throw new Error("O backup pertence a outro ambiente");
   }
 
-  const readJson = async (path: string) => {
+  const integrityCheck = await verifyZipIntegrity(zip);
+  if (integrityCheck.hasIntegrityFile && !integrityCheck.ok) {
+    throw new Error(
+      `Integridade SHA-256 falhou em ${integrityCheck.mismatches.length} ficheiro(s): ${
+        integrityCheck.mismatches.slice(0, 5).join(", ")
+      }`,
+    );
+  }
+
+  const readJson = async (path: string): Promise<unknown[]> => {
     const f = zip.file(path);
     if (!f) return [];
-    return JSON.parse(await f.async("string"));
+    const raw = JSON.parse(await f.async("string"));
+    return Array.isArray(raw) ? raw : [];
+  };
+
+  const zip_counts: Record<string, number> = {};
+  const live_counts: Record<string, number | null> = {};
+  const deltas: Record<string, { zip: number; live: number | null; delta: number | null }> = {};
+  const warnings: string[] = [];
+
+  for (const spec of TENANT_TABLES) {
+    const rows = await readJson(spec.zip);
+    zip_counts[spec.table] = rows.length;
+    const live = await fetchByTenant(admin, spec.table, tenantId);
+    live_counts[spec.table] = live.error ? null : (live.expected ?? live.rows.length);
+    const liveN = live_counts[spec.table];
+    deltas[spec.table] = {
+      zip: rows.length,
+      live: liveN,
+      delta: liveN == null ? null : rows.length - liveN,
+    };
+  }
+
+  for (const spec of CHILD_TABLES) {
+    const rows = await readJson(spec.zip);
+    zip_counts[spec.table] = rows.length;
+  }
+
+  if (!integrityCheck.hasIntegrityFile) {
+    warnings.push("ZIP sem integrity.json — verificação de conteúdo limitada (versão anterior ao v3).");
+  }
+  if (String(manifest.version || "") < "3") {
+    warnings.push(`Manifest versão ${manifest.version || "?"} — preferir backup v3+.`);
+  }
+
+  const storagePaths = Object.keys(zip.files).filter((p) => p.startsWith("storage/") && !zip.files[p].dir);
+  zip_counts.storage_files = storagePaths.length;
+
+  const zipTotal = Object.values(zip_counts).reduce((a, b) => a + b, 0);
+  const liveTotal = Object.values(live_counts).reduce<number>(
+    (a, b) => a + (typeof b === "number" ? b : 0),
+    0,
+  );
+
+  return {
+    dry_run: true,
+    would_write: false,
+    sha256: archiveSha256,
+    manifest_version: String(manifest.version || ""),
+    integrity_verified: integrityCheck.hasIntegrityFile && integrityCheck.ok,
+    integrity_files_checked: integrityCheck.checked,
+    zip_counts,
+    live_counts,
+    deltas,
+    zip_total_records: zipTotal,
+    live_total_records: liveTotal,
+    warnings,
+    replace_impact:
+      "Modo SUBSTITUIR apagaria os dados cobertos do ambiente e inseriria o conteúdo do ZIP. Um backup automático pre-replace será gerado antes.",
+    merge_impact:
+      "Modo MERGE acrescentaria registos com novos IDs (remap), sem apagar os dados atuais.",
+  };
+}
+
+async function createPreReplaceSafetyBackup(
+  admin: SupabaseClient,
+  tenantId: string,
+  authHeader: string | null,
+  userId: string | null,
+): Promise<{ storage_path: string; sha256: string; size_bytes: number; filename: string }> {
+  const { zipBytes, recordCount, archiveSha256 } = await buildBackupZip(
+    admin,
+    tenantId,
+    "pre_replace",
+    authHeader,
+  );
+  const filename = `pre-replace-${tenantId.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.zip`;
+  const { storage_path } = await uploadBackupZip(admin, tenantId, filename, zipBytes, archiveSha256);
+  await recordBackupEvent(admin, {
+    tenant_id: tenantId,
+    action: "pre_replace_backup",
+    outcome: "success",
+    source: "auto",
+    filename,
+    storage_path,
+    size_bytes: zipBytes.length,
+    record_count: recordCount,
+    sha256: archiveSha256,
+    manifest_version: MANIFEST_VERSION,
+    actor_user_id: userId,
+    details: { purpose: "safety_before_replace" },
+  });
+  return { storage_path, sha256: archiveSha256, size_bytes: zipBytes.length, filename };
+}
+
+async function restoreFromZip(
+  admin: SupabaseClient,
+  tenantId: string,
+  zipBytes: Uint8Array,
+  replace: boolean,
+  authHeader: string | null,
+): Promise<Record<string, number | string | boolean>> {
+  const archiveSha256 = await sha256Hex(zipBytes);
+  const zip = await JSZip.loadAsync(zipBytes);
+  const manifestFile = zip.file("manifest.json");
+  if (!manifestFile) throw new Error("ZIP inválido: manifest.json ausente");
+
+  const manifest = JSON.parse(await manifestFile.async("string"));
+  if (manifest.tenant_id !== tenantId) {
+    throw new Error("O backup pertence a outro ambiente");
+  }
+
+  const integrityCheck = await verifyZipIntegrity(zip);
+  if (integrityCheck.hasIntegrityFile && !integrityCheck.ok) {
+    throw new Error(
+      `Integridade SHA-256 falhou em ${integrityCheck.mismatches.length} ficheiro(s): ${
+        integrityCheck.mismatches.slice(0, 5).join(", ")
+      }`,
+    );
+  }
+
+  const readJson = async (path: string): Promise<Record<string, unknown>[]> => {
+    const f = zip.file(path);
+    if (!f) return [];
+    const raw = JSON.parse(await f.async("string"));
+    return Array.isArray(raw) ? raw : [];
   };
 
   if (replace) {
@@ -451,228 +902,114 @@ async function restoreFromZip(
   }
 
   const idMap = new Map<string, string>();
-  let responsibles = await readJson("responsibles.json");
-  let suppliers = await readJson("cadastros/suppliers.json");
-  let endCustomers = await readJson("cadastros/end_customers.json");
-  let personnelOptions = await readJson("cadastros/personnel_options.json");
-  let personnelPositions = await readJson("cadastros/personnel_positions.json");
-  let personnelAdequacies = await readJson("cadastros/personnel_adequacies.json");
-  let personnelMonitorings = await readJson("cadastros/personnel_monitorings.json");
-  let personnelExpEvaluations = await readJson("cadastros/personnel_exp_evaluations.json");
-  let personnelExpEvalItems = await readJson("cadastros/personnel_exp_eval_items.json");
-  let personnelSelections = await readJson("cadastros/personnel_selections.json");
-  let personnelAttendanceLists = await readJson("cadastros/personnel_attendance_lists.json");
-  let personnelAttendanceParticipants = await readJson("cadastros/personnel_attendance_participants.json");
-  let employees = await readJson("cadastros/employees.json");
-  let weightCerts = await readJson("cadastros/weight_certs.json");
-  let weightItems = await readJson("cadastros/weight_items.json");
-  let envCerts = await readJson("cadastros/env_certs.json");
-  let coleta = await readJson("coleta/collections.json");
-  let purchaseOrders = await readJson("pedidos_compra/orders.json");
-  let poItems = await readJson("pedidos_compra/items.json");
-  let poInspections = await readJson("pedidos_compra/inspections.json");
-  let poSignatures = await readJson("pedidos_compra/signatures.json");
+  const dataByTable: Record<string, Record<string, unknown>[]> = {};
+
+  for (const spec of TENANT_TABLES) {
+    dataByTable[spec.table] = await readJson(spec.zip);
+  }
+  for (const spec of CHILD_TABLES) {
+    dataByTable[spec.table] = await readJson(spec.zip);
+  }
 
   if (!replace) {
-    responsibles = remapIds(responsibles, idMap);
-    suppliers = remapIds(suppliers, idMap);
-    endCustomers = remapIds(endCustomers, idMap);
-    personnelOptions = remapIds(personnelOptions, idMap);
-    personnelPositions = remapIds(personnelPositions, idMap);
-    personnelAdequacies = remapIds(personnelAdequacies, idMap);
-    personnelMonitorings = remapIds(personnelMonitorings, idMap);
-    personnelExpEvaluations = remapIds(personnelExpEvaluations, idMap);
-    personnelExpEvalItems = remapIds(personnelExpEvalItems, idMap);
-    personnelSelections = remapIds(personnelSelections, idMap);
-    personnelAttendanceLists = remapIds(personnelAttendanceLists, idMap);
-    personnelAttendanceParticipants = remapIds(personnelAttendanceParticipants, idMap);
-    employees = remapIds(employees, idMap);
-    weightCerts = remapIds(weightCerts, idMap);
-    weightItems = remapIds(weightItems, idMap);
-    envCerts = remapIds(envCerts, idMap);
-    coleta = remapIds(coleta, idMap);
-    purchaseOrders = remapIds(purchaseOrders, idMap);
-    poItems = remapIds(poItems, idMap);
-    poInspections = remapIds(poInspections, idMap);
-    poSignatures = remapIds(poSignatures, idMap);
-    for (const row of employees) {
-      applyIdMap(row, idMap);
-      if (row.position_id && idMap.has(row.position_id as string)) {
-        row.position_id = idMap.get(row.position_id as string);
-      }
+    for (const spec of TENANT_TABLES) {
+      dataByTable[spec.table] = remapIds(dataByTable[spec.table], idMap);
     }
-    for (const row of personnelPositions) {
-      if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
-        row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
-      }
+    for (const spec of CHILD_TABLES) {
+      dataByTable[spec.table] = remapIds(dataByTable[spec.table], idMap);
     }
-    for (const row of personnelAdequacies) {
-      if (row.employee_id && idMap.has(row.employee_id as string)) row.employee_id = idMap.get(row.employee_id as string);
-      if (row.position_id && idMap.has(row.position_id as string)) row.position_id = idMap.get(row.position_id as string);
-      if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
-        row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
-      }
-    }
-    for (const row of personnelMonitorings) {
-      if (row.employee_id && idMap.has(row.employee_id as string)) row.employee_id = idMap.get(row.employee_id as string);
-      if (row.position_id && idMap.has(row.position_id as string)) row.position_id = idMap.get(row.position_id as string);
-      if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
-        row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
-      }
-    }
-    for (const row of personnelExpEvaluations) {
-      if (row.employee_id && idMap.has(row.employee_id as string)) row.employee_id = idMap.get(row.employee_id as string);
-      if (row.position_id && idMap.has(row.position_id as string)) row.position_id = idMap.get(row.position_id as string);
-      if (row.evaluator_id && idMap.has(row.evaluator_id as string)) row.evaluator_id = idMap.get(row.evaluator_id as string);
-    }
-    for (const row of personnelExpEvalItems) {
-      if (row.evaluation_id && idMap.has(row.evaluation_id as string)) {
-        row.evaluation_id = idMap.get(row.evaluation_id as string);
-      }
-    }
-    for (const row of personnelSelections) {
-      if (row.position_id && idMap.has(row.position_id as string)) row.position_id = idMap.get(row.position_id as string);
-      if (row.selection_conductor_id && idMap.has(row.selection_conductor_id as string)) {
-        row.selection_conductor_id = idMap.get(row.selection_conductor_id as string);
-      }
-      if (row.analysis_approval_responsible_id && idMap.has(row.analysis_approval_responsible_id as string)) {
-        row.analysis_approval_responsible_id = idMap.get(row.analysis_approval_responsible_id as string);
-      }
-    }
-    for (const row of personnelAttendanceParticipants) {
-      if (row.attendance_list_id && idMap.has(row.attendance_list_id as string)) {
-        row.attendance_list_id = idMap.get(row.attendance_list_id as string);
-      }
-      if (row.employee_id && idMap.has(row.employee_id as string)) row.employee_id = idMap.get(row.employee_id as string);
-    }
-    for (const row of weightItems) applyIdMap(row, idMap);
-    for (const row of purchaseOrders) {
-      if (row.supplier_id && idMap.has(row.supplier_id as string)) {
-        row.supplier_id = idMap.get(row.supplier_id as string);
-      }
-      for (const fk of ["requested_by_id", "technical_manager_id", "purchase_responsible_id"]) {
-        if (row[fk] && idMap.has(row[fk] as string)) row[fk] = idMap.get(row[fk] as string);
-      }
-    }
-    for (const row of poItems) {
-      if (row.purchase_order_id && idMap.has(row.purchase_order_id as string)) {
-        row.purchase_order_id = idMap.get(row.purchase_order_id as string);
-      }
-    }
-    for (const row of poInspections) {
-      if (row.purchase_order_id && idMap.has(row.purchase_order_id as string)) {
-        row.purchase_order_id = idMap.get(row.purchase_order_id as string);
-      }
-      if (row.inspection_responsible_id && idMap.has(row.inspection_responsible_id as string)) {
-        row.inspection_responsible_id = idMap.get(row.inspection_responsible_id as string);
-      }
-    }
-    for (const row of poSignatures) {
-      if (row.purchase_order_id && idMap.has(row.purchase_order_id as string)) {
-        row.purchase_order_id = idMap.get(row.purchase_order_id as string);
-      }
-      if (row.employee_id && idMap.has(row.employee_id as string)) {
-        row.employee_id = idMap.get(row.employee_id as string);
-      }
+    for (const rows of Object.values(dataByTable)) {
+      for (const row of rows) remapRowFks(row, idMap);
     }
   }
 
-  const counts = {
-    responsibles_restored: 0,
-    cadastros_restored: 0,
-    coleta_restored: 0,
-    purchase_orders_restored: 0,
-    storage_files_restored: 0,
-    documents_restored: 0,
-  };
+  let restored = 0;
 
-  if (responsibles.length) {
-    const rows = responsibles.map((r: Record<string, unknown>) => ({ ...r, tenant_id: tenantId }));
-    const { error } = await admin.from("responsibles").insert(rows);
-    if (error) throw new Error(`responsibles: ${error.message}`);
-    counts.responsibles_restored = rows.length;
+  // Employees: insert without position_id first, then positions, then update positions
+  const employees = (dataByTable.employee_registrations || []).map((r) => ({
+    ...r,
+    tenant_id: tenantId,
+    position_id: null,
+  }));
+  const employeeOriginalPositions = (await readJson("cadastros/employees.json")).map((r) => {
+    const id = replace ? (r.id as string) : idMap.get(r.id as string);
+    const position_id = replace
+      ? r.position_id
+      : (r.position_id && idMap.has(r.position_id as string) ? idMap.get(r.position_id as string) : r.position_id);
+    return { id, position_id };
+  });
+
+  for (const spec of TENANT_TABLES) {
+    if (spec.table === "employee_registrations") {
+      const sorted = sortEmployeesForInsert(employees);
+      restored += await insertChunked(admin, spec.table, sorted);
+      continue;
+    }
+    if (spec.table === "personnel_positions") {
+      restored += await insertChunked(
+        admin,
+        spec.table,
+        (dataByTable[spec.table] || []).map((r) => ({ ...r, tenant_id: tenantId })),
+      );
+      for (const ep of employeeOriginalPositions) {
+        if (!ep.id || !ep.position_id) continue;
+        await admin.from("employee_registrations").update({ position_id: ep.position_id }).eq("id", ep.id);
+      }
+      continue;
+    }
+
+    const rows = (dataByTable[spec.table] || []).map((r) => {
+      const copy = { ...r, tenant_id: tenantId };
+      if (spec.table === "purchase_orders") {
+        copy.client_environment_id = tenantId;
+      }
+      // FK circular: collections ↔ certificates — repor certificate_id depois
+      if (spec.table === "weight_calibration_collections") {
+        copy.certificate_id = null;
+      }
+      // Self-FK: inserir primeiro sem replaces, atualizar depois
+      if (
+        spec.table === "calibration_certificates" ||
+        spec.table === "weight_calibration_certificates"
+      ) {
+        copy.replaces_certificate_id = null;
+      }
+      delete copy.created_at;
+      delete copy.updated_at;
+      return copy;
+    });
+    restored += await insertChunked(admin, spec.table, rows);
   }
 
-  const insertCadastro = async (table: string, rows: Record<string, unknown>[]) => {
-    if (!rows.length) return 0;
-    const payload = rows.map((r) => ({ ...r, tenant_id: tenantId }));
-    const { error } = await admin.from(table).insert(payload);
-    if (error) throw new Error(`${table}: ${error.message}`);
-    return payload.length;
-  };
-
-  counts.cadastros_restored += await insertCadastro("supplier_registrations", suppliers);
-  counts.cadastros_restored += await insertCadastro("end_customer_registrations", endCustomers);
-
-  counts.cadastros_restored += await insertCadastro("personnel_standard_options", personnelOptions);
-
-  const employeesForInsert = employees.map((r: Record<string, unknown>) => ({ ...r, position_id: null }));
-  const sortedEmployees = sortEmployeesForInsert(employeesForInsert);
-  counts.cadastros_restored += await insertCadastro("employee_registrations", sortedEmployees);
-  counts.cadastros_restored += await insertCadastro("personnel_positions", personnelPositions);
-
-  for (const row of employees) {
-    if (!row.position_id) continue;
-    const { error } = await admin
-      .from("employee_registrations")
-      .update({ position_id: row.position_id })
+  // Repor FKs circulares / self-ref
+  for (const row of dataByTable.weight_calibration_collections || []) {
+    if (!row.id || !row.certificate_id) continue;
+    await admin.from("weight_calibration_collections")
+      .update({ certificate_id: row.certificate_id })
       .eq("id", row.id as string);
-    if (error) throw new Error(`employee position_id: ${error.message}`);
+  }
+  for (const table of ["calibration_certificates", "weight_calibration_certificates"] as const) {
+    for (const row of dataByTable[table] || []) {
+      if (!row.id || !row.replaces_certificate_id) continue;
+      await admin.from(table)
+        .update({ replaces_certificate_id: row.replaces_certificate_id })
+        .eq("id", row.id as string);
+    }
   }
 
-  counts.cadastros_restored += await insertCadastro("personnel_competency_adequacies", personnelAdequacies);
-  counts.cadastros_restored += await insertCadastro("personnel_monitorings", personnelMonitorings);
-  counts.cadastros_restored += await insertCadastro("personnel_experience_evaluations", personnelExpEvaluations);
-  if (personnelExpEvalItems.length) {
-    const { error: peiErr } = await admin.from("personnel_experience_evaluation_items").insert(personnelExpEvalItems);
-    if (peiErr) throw new Error(`personnel_experience_evaluation_items: ${peiErr.message}`);
-    counts.cadastros_restored += personnelExpEvalItems.length;
-  }
-  counts.cadastros_restored += await insertCadastro("personnel_selections", personnelSelections);
-  counts.cadastros_restored += await insertCadastro("personnel_attendance_lists", personnelAttendanceLists);
-  if (personnelAttendanceParticipants.length) {
-    const { error: papErr } = await admin.from("personnel_attendance_participants").insert(personnelAttendanceParticipants);
-    if (papErr) throw new Error(`personnel_attendance_participants: ${papErr.message}`);
-    counts.cadastros_restored += personnelAttendanceParticipants.length;
-  }
-  counts.cadastros_restored += await insertCadastro("weight_standard_certificates", weightCerts);
-  counts.cadastros_restored += await insertCadastro("standard_weight_items", weightItems);
-  counts.cadastros_restored += await insertCadastro("environment_sensor_certificates", envCerts);
-
-  if (coleta.length) {
-    const rows = coleta.map((r: Record<string, unknown>) => ({ ...r, tenant_id: tenantId }));
-    const { error } = await admin.from("scale_calibration_collections").insert(rows);
-    if (error) throw new Error(`coleta: ${error.message}`);
-    counts.coleta_restored = rows.length;
+  for (const spec of CHILD_TABLES) {
+    const rows = (dataByTable[spec.table] || []).map((r) => {
+      const copy = { ...r };
+      if ("tenant_id" in copy) copy.tenant_id = tenantId;
+      delete copy.created_at;
+      delete copy.updated_at;
+      return copy;
+    });
+    restored += await insertChunked(admin, spec.table, rows);
   }
 
-  if (purchaseOrders.length) {
-    const rows = purchaseOrders.map((r: Record<string, unknown>) => ({
-      ...r,
-      tenant_id: tenantId,
-      client_environment_id: tenantId,
-    }));
-    const { error } = await admin.from("purchase_orders").insert(rows);
-    if (error) throw new Error(`purchase_orders: ${error.message}`);
-    counts.purchase_orders_restored = rows.length;
-  }
-  if (poItems.length) {
-    const { error } = await admin.from("purchase_order_items").insert(poItems);
-    if (error) throw new Error(`purchase_order_items: ${error.message}`);
-  }
-  if (poInspections.length) {
-    const { error } = await admin.from("purchase_order_inspections").insert(poInspections);
-    if (error) throw new Error(`purchase_order_inspections: ${error.message}`);
-  }
-  if (poSignatures.length) {
-    const { error } = await admin.from("purchase_order_signatures").insert(poSignatures);
-    if (error) throw new Error(`purchase_order_signatures: ${error.message}`);
-  }
-
-  const supabaseDocCounts = await restoreTenantDocuments(admin, tenantId, zip, replace, idMap);
-  counts.documents_restored += supabaseDocCounts.documents_restored;
-
-  const storagePaths = Object.keys(zip.files).filter((p) => p.startsWith("storage/"));
+  let storage_files_restored = 0;
+  const storagePaths = Object.keys(zip.files).filter((p) => p.startsWith("storage/") && !zip.files[p].dir);
   for (const fullPath of storagePaths) {
     const parts = fullPath.split("/");
     if (parts.length < 3) continue;
@@ -690,60 +1027,30 @@ async function restoreFromZip(
     if (!f) continue;
     const data = await f.async("uint8array");
     await admin.storage.from(bucket).upload(storagePath, data, { upsert: true });
-    counts.storage_files_restored++;
+    storage_files_restored++;
   }
 
-  const legacyCounts = await restoreLegacy(admin, tenantId, zip, replace, authHeader, replace ? null : idMap);
-  counts.documents_restored += legacyCounts.documents_restored;
+  const legacyCounts = await restoreLegacy(admin, tenantId, zip, replace, authHeader);
 
-  return counts;
-}
-
-async function restoreTenantDocuments(
-  admin: SupabaseClient,
-  tenantId: string,
-  zip: JSZip,
-  replace: boolean,
-  idMap: Map<string, string>,
-): Promise<{ documents_restored: number }> {
-  const docsFile = zip.file("documents/tenant_documents.json");
-  if (!docsFile) return { documents_restored: 0 };
-
-  let rows: Record<string, unknown>[] = JSON.parse(await docsFile.async("string"));
-  if (!rows.length) return { documents_restored: 0 };
-
-  if (replace) {
-    await admin.from("tenant_documents").delete().eq("tenant_id", tenantId);
-    const existingFiles = await listStoragePrefix(admin, DOCUMENTS_BUCKET, `${tenantId}/`);
-    if (existingFiles.length) {
-      const paths = existingFiles.map((f) => `${tenantId}/${f.path}`);
-      await admin.storage.from(DOCUMENTS_BUCKET).remove(paths);
-    }
-  }
-
-  if (!replace) {
-    rows = remapIds(rows, idMap);
-    for (const row of rows) {
-      if (row.storage_path && typeof row.storage_path === "string") {
-        const parts = (row.storage_path as string).split("/");
-        if (parts.length >= 2 && idMap.has(parts[1])) {
-          parts[1] = idMap.get(parts[1])!;
-          row.storage_path = parts.join("/");
-        }
-      }
-    }
-  }
-
-  const payload = rows.map((r) => {
-    const copy = { ...r, tenant_id: tenantId };
-    delete copy.created_at;
-    delete copy.updated_at;
-    return copy;
-  });
-
-  const { error } = await admin.from("tenant_documents").insert(payload);
-  if (error) throw new Error(`tenant_documents: ${error.message}`);
-  return { documents_restored: payload.length };
+  return {
+    records_restored: restored,
+    storage_files_restored,
+    documents_restored: (dataByTable.tenant_documents?.length || 0) + legacyCounts.documents_restored,
+    responsibles_restored: dataByTable.responsibles?.length || 0,
+    cadastros_restored: (dataByTable.supplier_registrations?.length || 0) +
+      (dataByTable.end_customer_registrations?.length || 0) +
+      (dataByTable.employee_registrations?.length || 0),
+    coleta_restored: dataByTable.scale_calibration_collections?.length || 0,
+    purchase_orders_restored: dataByTable.purchase_orders?.length || 0,
+    certificates_restored: (dataByTable.calibration_certificates?.length || 0) +
+      (dataByTable.weight_calibration_certificates?.length || 0),
+    master_documents_restored: dataByTable.master_documents?.length || 0,
+    legacy_api_available: Boolean(Deno.env.get("LEGACY_API_URL")),
+    manifest_version: String(manifest.version || ""),
+    sha256: archiveSha256,
+    integrity_verified: integrityCheck.hasIntegrityFile,
+    integrity_files_checked: integrityCheck.checked,
+  };
 }
 
 async function restoreLegacy(
@@ -752,7 +1059,6 @@ async function restoreLegacy(
   zip: JSZip,
   replace: boolean,
   authHeader: string | null,
-  _idMap: Map<string, string> | null,
 ): Promise<{ documents_restored: number }> {
   const base = (Deno.env.get("LEGACY_API_URL") || "").replace(/\/$/, "");
   if (!base) return { documents_restored: 0 };
@@ -807,7 +1113,9 @@ async function restoreLegacy(
               fd.append("file", blob, name);
               await fetch(`${base}/api/documents/${newId}/upload`, {
                 method: "POST",
-                headers: serviceToken ? { Authorization: `Bearer ${serviceToken}` } : (authHeader ? { Authorization: authHeader } : {}),
+                headers: serviceToken
+                  ? { Authorization: `Bearer ${serviceToken}` }
+                  : (authHeader ? { Authorization: authHeader } : {}),
                 body: fd,
               });
             }
@@ -816,21 +1124,6 @@ async function restoreLegacy(
         restored++;
       }
     } catch { /* skip */ }
-  }
-
-  const remFile = zip.file("legacy/reminders.json");
-  if (remFile && replace) {
-    const reminders = JSON.parse(await remFile.async("string"));
-    for (const rem of reminders as { text?: string }[]) {
-      if (!rem?.text) continue;
-      try {
-        await fetch(`${base}/api/dashboard/reminders`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ tenant_id: tenantId, text: rem.text }),
-        });
-      } catch { /* skip */ }
-    }
   }
 
   return { documents_restored: restored };
@@ -849,10 +1142,13 @@ serve(async (req) => {
     if (contentType.includes("multipart/form-data")) {
       const form = await req.formData();
       zipFile = form.get("file") as File | null;
-      const action = form.get("action") as string;
-      const tenantId = form.get("tenant_id") as string;
-      const replace = form.get("replace") === "true";
-      body = { action: action || "restore", tenant_id: tenantId, replace };
+      body = {
+        action: (form.get("action") as string) || "restore",
+        tenant_id: form.get("tenant_id") as string,
+        replace: form.get("replace") === "true",
+        confirm_password: form.get("confirm_password") as string,
+        confirm_phrase: form.get("confirm_phrase") as string,
+      };
     } else {
       body = await req.json();
     }
@@ -863,68 +1159,294 @@ serve(async (req) => {
 
     const gate = await authGate(req, tenantId);
     if ("error" in gate) return gate.error;
-    const { admin } = gate;
+    const { admin, userId, userEmail } = gate;
     const authHeader = req.headers.get("Authorization");
 
     if (action === "list") {
       const { data: tenant, error } = await admin
         .from("tenants")
-        .select("last_backup_at, auto_interval_days")
+        .select("last_backup_at, auto_interval_days, backup_retention_days")
         .eq("id", tenantId)
         .single();
-
       if (error) return jsonResponse({ error: error.message }, 500);
 
+      const retentionDays = tenant?.backup_retention_days ?? DEFAULT_RETENTION_DAYS;
+      const purged = await purgeExpiredBackups(admin, tenantId, retentionDays, userId);
+
+      const { data: objects } = await admin.storage.from(BACKUP_BUCKET).list(tenantId, {
+        limit: 30,
+        sortBy: { column: "created_at", order: "desc" },
+      });
+
+      const backups = (objects || [])
+        .filter((o) => o.name?.endsWith(".zip"))
+        .map((o) => ({
+          name: o.name,
+          storage_path: `${tenantId}/${o.name}`,
+          size_bytes: o.metadata?.size ?? null,
+          created_at: o.created_at || o.updated_at || null,
+        }));
+
+      const { data: events } = await admin
+        .from("tenant_backup_events")
+        .select("id, action, outcome, source, restore_mode, filename, size_bytes, record_count, sha256, manifest_version, actor_email, actor_full_name, error_message, created_at")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false })
+        .limit(40);
+
       return jsonResponse({
-        backups: [],
-        storage_mode: "local",
+        backups,
+        events: events || [],
+        storage_mode: "storage_signed",
         last_backup_at: tenant?.last_backup_at ?? null,
         auto_interval_days: tenant?.auto_interval_days ?? 20,
+        backup_retention_days: retentionDays,
+        purged_expired: purged,
       });
     }
 
     if (action === "create") {
-      const { zipBytes, manifest, recordCount } = await buildBackupZip(
-        admin,
-        tenantId,
-        "manual",
-        authHeader,
-      );
+      try {
+        const { zipBytes, manifest, recordCount, archiveSha256 } = await buildBackupZip(
+          admin,
+          tenantId,
+          "manual",
+          authHeader,
+        );
 
-      if (zipBytes.length > MAX_ZIP_BYTES) {
+        if (manifest.truncated_tables && (manifest.truncated_tables as string[]).length) {
+          await recordBackupEvent(admin, {
+            tenant_id: tenantId,
+            action: "create",
+            outcome: "failure",
+            actor_user_id: userId,
+            error_message: "Export truncado",
+            details: { truncated_tables: manifest.truncated_tables },
+          });
+          return jsonResponse({
+            error: `Export incompleto (truncado): ${(manifest.truncated_tables as string[]).join(", ")}. Tente novamente.`,
+            truncated_tables: manifest.truncated_tables,
+            expected_counts: manifest.expected_counts,
+            counts: manifest.counts,
+          }, 409);
+        }
+
+        const filename = `backup-${tenantId.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.zip`;
+        const created_at = new Date().toISOString();
+        const { storage_path, download_url } = await uploadBackupZip(
+          admin,
+          tenantId,
+          filename,
+          zipBytes,
+          archiveSha256,
+        );
+
+        await admin
+          .from("tenants")
+          .update({ last_backup_at: created_at })
+          .eq("id", tenantId);
+
+        const { data: tenantMeta } = await admin
+          .from("tenants")
+          .select("backup_retention_days")
+          .eq("id", tenantId)
+          .maybeSingle();
+        const purged = await purgeExpiredBackups(
+          admin,
+          tenantId,
+          tenantMeta?.backup_retention_days ?? DEFAULT_RETENTION_DAYS,
+          userId,
+        );
+
+        await recordBackupEvent(admin, {
+          tenant_id: tenantId,
+          action: "create",
+          outcome: "success",
+          source: "manual",
+          filename,
+          storage_path,
+          size_bytes: zipBytes.length,
+          record_count: recordCount,
+          sha256: archiveSha256,
+          manifest_version: MANIFEST_VERSION,
+          actor_user_id: userId,
+          details: {
+            counts: manifest.counts,
+            skipped_tables: manifest.skipped_tables,
+            purged_expired: purged,
+          },
+        });
+
         return jsonResponse({
-          error: `Backup muito grande (${Math.round(zipBytes.length / 1024 / 1024)} MB). Limite ~${MAX_ZIP_BYTES / 1024 / 1024} MB para download direto.`,
-        }, 413);
+          filename,
+          created_at,
+          doc_count: recordCount,
+          size_bytes: zipBytes.length,
+          sha256: archiveSha256,
+          storage_path,
+          download_url,
+          download_expires_in: SIGNED_URL_TTL_SEC,
+          legacy_api_available: manifest.legacy_api_available,
+          storage_mode: "storage_signed",
+          counts: manifest.counts,
+          skipped_tables: manifest.skipped_tables,
+          purged_expired: purged,
+        });
+      } catch (e) {
+        await recordBackupEvent(admin, {
+          tenant_id: tenantId,
+          action: "create",
+          outcome: "failure",
+          actor_user_id: userId,
+          error_message: String(e),
+        });
+        throw e;
       }
+    }
 
-      const filename = `backup-${tenantId.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.zip`;
-      const created_at = new Date().toISOString();
-
-      await admin
-        .from("tenants")
-        .update({ last_backup_at: created_at })
-        .eq("id", tenantId);
-
-      return jsonResponse({
-        filename,
-        created_at,
-        doc_count: recordCount,
-        size_bytes: zipBytes.length,
-        zip_base64: uint8ToBase64(zipBytes),
-        legacy_api_available: manifest.legacy_api_available,
-        storage_mode: "local",
+    if (action === "download") {
+      const storagePath = String(body.storage_path || "");
+      if (!storagePath.startsWith(`${tenantId}/`)) {
+        return jsonResponse({ error: "storage_path inválido" }, 400);
+      }
+      const { data: signed, error: sErr } = await admin.storage
+        .from(BACKUP_BUCKET)
+        .createSignedUrl(storagePath, SIGNED_URL_TTL_SEC);
+      if (sErr || !signed?.signedUrl) {
+        return jsonResponse({ error: sErr?.message || "Falha ao assinar URL" }, 500);
+      }
+      await recordBackupEvent(admin, {
+        tenant_id: tenantId,
+        action: "download",
+        outcome: "success",
+        storage_path: storagePath,
+        actor_user_id: userId,
       });
+      return jsonResponse({
+        download_url: signed.signedUrl,
+        download_expires_in: SIGNED_URL_TTL_SEC,
+        storage_path: storagePath,
+      });
+    }
+
+    if (action === "dry_run") {
+      if (!zipFile) return jsonResponse({ error: "Arquivo ZIP obrigatório" }, 400);
+      const zipBytes = new Uint8Array(await zipFile.arrayBuffer());
+      try {
+        const report = await dryRunRestore(admin, tenantId, zipBytes);
+        await recordBackupEvent(admin, {
+          tenant_id: tenantId,
+          action: "dry_run",
+          outcome: "success",
+          source: "manual",
+          filename: zipFile.name || "",
+          size_bytes: zipBytes.length,
+          record_count: Number(report.zip_total_records || 0),
+          sha256: String(report.sha256 || ""),
+          manifest_version: String(report.manifest_version || ""),
+          actor_user_id: userId,
+          details: {
+            warnings: report.warnings,
+            integrity_verified: report.integrity_verified,
+            zip_total_records: report.zip_total_records,
+            live_total_records: report.live_total_records,
+          },
+        });
+        return jsonResponse(report);
+      } catch (e) {
+        const msg = String(e);
+        const isIntegrity = /Integridade SHA-256/i.test(msg);
+        await recordBackupEvent(admin, {
+          tenant_id: tenantId,
+          action: isIntegrity ? "verify_fail" : "dry_run",
+          outcome: "failure",
+          filename: zipFile.name || "",
+          size_bytes: zipBytes.length,
+          sha256: await sha256Hex(zipBytes),
+          actor_user_id: userId,
+          error_message: msg,
+        });
+        throw e;
+      }
     }
 
     if (action === "restore") {
       if (!zipFile) return jsonResponse({ error: "Arquivo ZIP obrigatório" }, 400);
       const replace = body.replace === true || body.replace === "true";
       const zipBytes = new Uint8Array(await zipFile.arrayBuffer());
-      const counts = await restoreFromZip(admin, tenantId, zipBytes, replace, authHeader);
-      return jsonResponse({
-        ...counts,
-        legacy_api_available: Boolean(Deno.env.get("LEGACY_API_URL")),
-      });
+
+      if (replace) {
+        const phrase = String(body.confirm_phrase || "").trim().toUpperCase();
+        if (phrase !== "SUBSTITUIR") {
+          return jsonResponse({
+            error: 'Confirmação incompleta: digite SUBSTITUIR para o modo substituir.',
+          }, 400);
+        }
+        const password = String(body.confirm_password || "");
+        const ok = await verifyActorPassword(userEmail, password);
+        if (!ok) {
+          await recordBackupEvent(admin, {
+            tenant_id: tenantId,
+            action: "reauth_fail",
+            outcome: "failure",
+            restore_mode: "replace",
+            filename: zipFile.name || "",
+            size_bytes: zipBytes.length,
+            actor_user_id: userId,
+            error_message: "Reautenticação falhou",
+          });
+          return jsonResponse({
+            error: "Reautenticação falhou. Confirme a senha do utilizador administrador.",
+          }, 401);
+        }
+      }
+
+      try {
+        let pre_replace: Record<string, unknown> | null = null;
+        if (replace) {
+          pre_replace = await createPreReplaceSafetyBackup(admin, tenantId, authHeader, userId);
+        }
+
+        const counts = await restoreFromZip(admin, tenantId, zipBytes, replace, authHeader);
+        await recordBackupEvent(admin, {
+          tenant_id: tenantId,
+          action: "restore",
+          outcome: "success",
+          source: "manual",
+          restore_mode: replace ? "replace" : "merge",
+          filename: zipFile.name || "",
+          size_bytes: zipBytes.length,
+          record_count: Number(counts.records_restored || 0),
+          sha256: String(counts.sha256 || ""),
+          manifest_version: String(counts.manifest_version || ""),
+          actor_user_id: userId,
+          details: {
+            ...counts,
+            reauth: replace,
+            pre_replace_backup: pre_replace,
+          },
+        });
+        return jsonResponse({
+          ...counts,
+          reauth_ok: replace,
+          pre_replace_backup: pre_replace,
+        });
+      } catch (e) {
+        const msg = String(e);
+        const isIntegrity = /Integridade SHA-256/i.test(msg);
+        await recordBackupEvent(admin, {
+          tenant_id: tenantId,
+          action: isIntegrity ? "verify_fail" : "restore",
+          outcome: "failure",
+          restore_mode: replace ? "replace" : "merge",
+          filename: zipFile.name || "",
+          size_bytes: zipBytes.length,
+          sha256: await sha256Hex(zipBytes),
+          actor_user_id: userId,
+          error_message: msg,
+        });
+        throw e;
+      }
     }
 
     return jsonResponse({ error: `Ação desconhecida: ${action}` }, 400);

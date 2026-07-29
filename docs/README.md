@@ -21,6 +21,7 @@ Cada módulo descreve **utilização** (manual operacional) e **referência téc
 | [08-DASHBOARD-ADMIN.md](./08-DASHBOARD-ADMIN.md) | Dashboard e Admin | Atalhos, lembretes, backup, AdminClients |
 | [09-PROPOSTA-COMERCIAL.md](./09-PROPOSTA-COMERCIAL.md) | PR-7.1 Proposta | RE-7.1A, multi-balança, PDF, coleta |
 | [10-IMPLANTACAO-NOVO-CLIENTE.md](./10-IMPLANTACAO-NOVO-CLIENTE.md) | Implantação | Briefing + carga SQL para novo ambiente/cliente |
+| [11-BACKUP-DR-QIQO.md](./11-BACKUP-DR-QIQO.md) | Backup / DR | QI/QO dry-run, SHA-256, replace+reauth, evidências |
 
 ### Documentação legada (referência)
 

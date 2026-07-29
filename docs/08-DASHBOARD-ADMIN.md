@@ -28,9 +28,12 @@
 
 ### Backup (`/backup`)
 
-1. Listar backups disponíveis do tenant.
-2. Descarregar ZIP gerado pela edge function `tenant-backup`.
-3. Restaurar conforme fluxo implementado em `BackupView.jsx`.
+1. Gerar ZIP (Storage privado + URL assinada + SHA-256).
+2. Dry-run (análise sem gravar) e consultar audit trail.
+3. Restaurar merge, ou replace com reauth (`SUBSTITUIR` + senha) e backup automático pre-replace.
+4. Protocolo QI/QO: [11-BACKUP-DR-QIQO.md](./11-BACKUP-DR-QIQO.md).
+
+**Camadas:** (A) PITR/projeto Supabase = DR de plataforma; (B) export tenant = retenção/descontinuidade por ambiente. Ambas são necessárias.
 
 Conteúdo do ZIP inclui documentos, cadastros, coletas, pedidos de compra, etc. (ver função Supabase).
 

@@ -23,6 +23,13 @@ O frontend ProcVault QMS é uma SPA React multi-tenant que gere procedimentos, r
 - O switch de ambiente no `Layout` altera o tenant ativo; APIs filtram por tenant.
 - Branding (logo) vem de `tenantBranding.js` + bucket `tenant-branding`.
 
+### Backup e continuidade
+
+Duas camadas distintas (ambas necessárias):
+
+1. **DR de plataforma** — backups/PITR do projeto Supabase (infra).
+2. **Export tenant** — Edge Function `tenant-backup` (ZIP no Storage, SHA-256, audit trail, dry-run, replace com reauth). Ver [11-BACKUP-DR-QIQO.md](./11-BACKUP-DR-QIQO.md).
+
 ### Padrão de páginas
 
 | Tipo | Exemplo | Responsabilidade |

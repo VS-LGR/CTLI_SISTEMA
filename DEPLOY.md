@@ -13,25 +13,29 @@ Defina no painel do projeto Vercel (Settings → Environment Variables):
 | `REACT_APP_BACKEND_URL` | Opcional | API legada (importação/transição); **procedimentos e registros usam Supabase** quando `REACT_APP_SUPABASE_URL` + chave pública estão definidos. |
 | `REACT_APP_USE_MOCK_API` | Opcional | `true` apenas para demo local sem Supabase nem API. |
 
-### Backup (Edge Function `tenant-backup`) — ZIP local
+### Backup (Edge Function `tenant-backup`) — Storage + URL assinada
 
-O backup **não** é guardado no Supabase Storage. O utilizador **gera e baixa** um `.zip` e guarda no PC; para recuperar, faz **upload** do mesmo ficheiro.
+O backup gera um `.zip` completo do tenant, grava-o no bucket privado **`tenant-backups`** e devolve uma **URL assinada** (1 h) para download. Guarde também uma cópia na rede da empresa. Para recuperar, faça **upload** do ZIP na UI.
+
+Cobertura (manifest v3): cadastros, certificados, lista mestra, propostas, equipamentos, pedidos, anexos + **integrity.json** (SHA-256 por ficheiro).
+
+Export é **paginado** (1000 linhas); se a contagem exportada ≠ `count` exacto, a criação falha (409) para evitar ZIP truncado.
+
+**P1/P2:** audit trail `tenant_backup_events`; SHA-256 + verify; retenção; dry-run; replace com reauth + pre-replace automático. Protocolo: `docs/11-BACKUP-DR-QIQO.md`.
 
 Segredos na Edge Function `tenant-backup`:
 
 | Segredo | Obrigatório | Descrição |
 |---------|-------------|-----------|
-| `CTLI_SERVICE_ROLE_KEY` | Sim | Valor **service_role** (Settings → API). Nome customizado no painel (alternativa legada: `SUPABASE_SERVICE_ROLE_KEY`). |
-| `LEGACY_API_URL` | Opcional | API antiga de documentos (só se ainda existir dados fora do Supabase). |
+| `CTLI_SERVICE_ROLE_KEY` | Sim | Valor **service_role** (Settings → API). |
+| `LEGACY_API_URL` | Opcional | API antiga de documentos. |
 | `LEGACY_API_SERVICE_TOKEN` | Opcional | Token para export/restore legado no ZIP. |
 
-O ZIP inclui **`documents/tenant_documents.json`** e ficheiros em **`storage/tenant-documents/`** (Supabase). A pasta `legacy/` só é preenchida se `LEGACY_API_URL` estiver configurada.
-
-Migrações de backup (por ordem): `20250623000000` (colunas em `tenants`), depois **`20250624000000_tenant_backup_local_only.sql`** — remove tabela `tenant_backup_runs`, cron automático e histórico na nuvem. **Não** é necessário aplicar `20250623100000` (cron na nuvem) se usar só backup local.
+Migrações: `20250623000000`, `20250624000000`, `20250730010000`, `20250730020000`, **`20250730030000_tenant_backup_p2_actions.sql`**.
 
 Após alterar a função: `supabase functions deploy tenant-backup`.
 
-**SQL Editor:** execute **um bloco de cada vez** em `20250624000000`. Limite de tamanho do ZIP na resposta: ~5 MB (Edge Function).
+Acesso: **apenas role `admin`** (CTLI).
 
 O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`).
 

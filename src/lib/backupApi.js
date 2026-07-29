@@ -33,7 +33,10 @@ export async function listBackupStatus(tenantId) {
   return {
     last_backup_at: raw?.last_backup_at ?? null,
     auto_interval_days: raw?.auto_interval_days ?? 20,
+    backup_retention_days: raw?.backup_retention_days ?? 90,
     storage_mode: "local",
+    backups: asArray(raw?.backups),
+    events: asArray(raw?.events),
   };
 }
 
@@ -45,40 +48,70 @@ export async function createBackup(tenantId) {
   return data;
 }
 
-/** Gera o ZIP e inicia o download no browser; atualiza last_backup_at no servidor. */
+/**
+ * Gera o ZIP (Storage privado + URL assinada) e inicia o download no browser.
+ * Fallback legado: zip_base64 na resposta.
+ */
 export async function createAndDownloadBackup(tenantId) {
   const data = await createBackup(tenantId);
-  if (data?.zip_base64 && data?.filename) {
-    triggerBlobDownload(base64ToBlob(data.zip_base64), data.filename);
+  const filename = data?.filename || `backup-${tenantId.slice(0, 8)}.zip`;
+
+  if (data?.download_url) {
+    const res = await fetch(data.download_url);
+    if (!res.ok) throw new Error("Falha ao descarregar o ZIP assinado");
+    const blob = await res.blob();
+    triggerBlobDownload(blob, filename);
+  } else if (data?.zip_base64) {
+    triggerBlobDownload(base64ToBlob(data.zip_base64), filename);
   } else if (isMockApiMode) {
     throw new Error("Resposta de backup sem arquivo ZIP");
+  } else {
+    throw new Error("Resposta de backup sem download_url");
   }
   return data;
 }
 
-export async function restoreBackup(tenantId, file, replace) {
-  if (isSupabaseAuthMode) {
-    if (!supabase) throw new Error("Supabase não configurado");
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("action", "restore");
-    fd.append("tenant_id", tenantId);
-    fd.append("replace", replace ? "true" : "false");
+async function postBackupMultipart(tenantId, file, { action, replace, confirmPassword, confirmPhrase }) {
+  if (!supabase) throw new Error("Supabase não configurado");
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("action", action);
+  fd.append("tenant_id", tenantId);
+  fd.append("replace", replace ? "true" : "false");
+  if (confirmPassword) fd.append("confirm_password", confirmPassword);
+  if (confirmPhrase) fd.append("confirm_phrase", confirmPhrase);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    const url = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/tenant-backup`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        apikey: process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY || "",
-      },
-      body: fd,
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const url = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/tenant-backup`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: token ? `Bearer ${token}` : "",
+      apikey: process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY || "",
+    },
+    body: fd,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || `Falha na ação ${action}`);
+  return data;
+}
+
+export async function dryRunBackup(tenantId, file) {
+  if (isSupabaseAuthMode) {
+    return postBackupMultipart(tenantId, file, { action: "dry_run", replace: false });
+  }
+  throw new Error("Dry-run disponível apenas em modo Supabase");
+}
+
+export async function restoreBackup(tenantId, file, replace, { confirmPassword, confirmPhrase } = {}) {
+  if (isSupabaseAuthMode) {
+    return postBackupMultipart(tenantId, file, {
+      action: "restore",
+      replace,
+      confirmPassword,
+      confirmPhrase,
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Falha na restauração");
-    return data;
   }
 
   const fd = new FormData();
@@ -89,24 +122,54 @@ export async function restoreBackup(tenantId, file, replace) {
   return data;
 }
 
+export function shortHash(sha256) {
+  if (!sha256 || typeof sha256 !== "string") return "";
+  return `${sha256.slice(0, 10)}…${sha256.slice(-6)}`;
+}
+
 export function formatRestoreMessage(data) {
   const parts = [];
+  if (data.records_restored != null) parts.push(`${data.records_restored} registos`);
   if (data.documents_restored != null) parts.push(`${data.documents_restored} documentos`);
   if (data.responsibles_restored != null) parts.push(`${data.responsibles_restored} responsáveis`);
   if (data.cadastros_restored != null && data.cadastros_restored > 0) {
-    parts.push(`${data.cadastros_restored} registos de cadastros`);
+    parts.push(`${data.cadastros_restored} cadastros`);
   }
   if (data.coleta_restored != null && data.coleta_restored > 0) {
     parts.push(`${data.coleta_restored} coletas`);
+  }
+  if (data.certificates_restored != null && data.certificates_restored > 0) {
+    parts.push(`${data.certificates_restored} certificados`);
+  }
+  if (data.master_documents_restored != null && data.master_documents_restored > 0) {
+    parts.push(`${data.master_documents_restored} docs. lista mestra`);
   }
   if (data.storage_files_restored != null && data.storage_files_restored > 0) {
     parts.push(`${data.storage_files_restored} ficheiros`);
   }
   if (parts.length === 0) return "Restauração concluída (nenhum item importado).";
   let msg = `Restaurados: ${parts.join(", ")}.`;
+  if (data.integrity_verified) {
+    msg += ` Integridade SHA-256 OK (${data.integrity_files_checked || 0} ficheiros).`;
+  }
+  if (data.pre_replace_backup?.storage_path) {
+    msg += ` Backup de segurança gerado antes do replace.`;
+  }
+  if (data.sha256) msg += ` Hash: ${shortHash(data.sha256)}.`;
   if (data.legacy_api_available === false) {
     msg += " Documentos da API legada não foram incluídos (API indisponível).";
   }
   if (data.detail) msg += ` ${data.detail}`;
   return msg;
+}
+
+export function formatDryRunSummary(report) {
+  if (!report?.dry_run) return "Dry-run inválido";
+  const parts = [
+    `ZIP: ${report.zip_total_records ?? 0} registos`,
+    `Ambiente atual: ${report.live_total_records ?? 0} registos`,
+  ];
+  if (report.integrity_verified) parts.push("integridade OK");
+  if (report.warnings?.length) parts.push(`${report.warnings.length} aviso(s)`);
+  return parts.join(" · ");
 }
