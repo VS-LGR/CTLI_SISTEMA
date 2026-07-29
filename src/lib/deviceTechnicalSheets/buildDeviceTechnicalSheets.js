@@ -1,8 +1,13 @@
 import { envEquipmentTypeLabel } from "@/lib/cadastroConstants";
 import { parseCalibrationNumber } from "@/lib/certificateCalculations/parseNumber";
 import { isLoadBatchItem } from "@/lib/standardWeightItemUtils";
+import {
+  classifyWeightClassFromUncertainty,
+  toGrams,
+  fromGrams,
+} from "@/lib/weightCalibrationCalculations/oimlTables";
 
-/** @typedef {'APROVADO'|'VENCIDO'|'INATIVO'|'A_VERIFICAR'} SheetStatus */
+/** @typedef {'APROVADO'|'REPROVADO'|'VENCIDO'|'INATIVO'|'A_VERIFICAR'} SheetStatus */
 
 const NA = "N/A";
 
@@ -42,18 +47,88 @@ export function computeMassError(nominalRaw, conventionalRaw) {
   };
 }
 
+/**
+ * Metrologia de peso padrão conforme RE-6.4B (colunas ocultas + Classe).
+ * - Classifica pela Ue vs. incerteza tolerada (δm/3), E1→M3
+ * - EP = δm; U máx = δm/3
+ * - V.C. min/max = nominal ± (EP − Ue)
+ */
+export function computeWeightSheetMetrology({
+  nominalRaw,
+  conventionalRaw,
+  uncertaintyRaw,
+  unit = "g",
+} = {}) {
+  const nom = parseCalibrationNumber(nominalRaw);
+  const vc = parseCalibrationNumber(conventionalRaw);
+  const ue = parseCalibrationNumber(uncertaintyRaw);
+  const unitNorm = String(unit || "g").toLowerCase();
+
+  if (!nom.valid || !ue.valid) {
+    return {
+      className: null,
+      error: null,
+      errorFound: NA,
+      maxError: NA,
+      maxUncertainty: NA,
+      vcMin: NA,
+      vcMax: NA,
+      withinTolerance: null,
+    };
+  }
+
+  const nominalG = toGrams(nom.value, unitNorm);
+  const classified = classifyWeightClassFromUncertainty(nominalG, ue.value, unitNorm);
+  const { error, errorFound } = computeMassError(nominalRaw, conventionalRaw);
+
+  if (!classified.className || classified.mpeMg == null) {
+    return {
+      className: null,
+      error,
+      errorFound,
+      maxError: NA,
+      maxUncertainty: NA,
+      vcMin: NA,
+      vcMax: NA,
+      withinTolerance: null,
+    };
+  }
+
+  const epInUnit = fromGrams(classified.mpeMg / 1000, unitNorm);
+  const uMaxInUnit = fromGrams(classified.classUncertaintyMg / 1000, unitNorm);
+  const vcMin = nom.value - (epInUnit - ue.value);
+  const vcMax = nom.value + (epInUnit - ue.value);
+  const withinTolerance = vc.valid
+    ? vc.value >= vcMin && vc.value <= vcMax
+    : null;
+
+  return {
+    className: classified.className,
+    error,
+    errorFound,
+    maxError: formatDisplayNumber(epInUnit, 8),
+    maxUncertainty: formatDisplayNumber(uMaxInUnit, 8),
+    vcMin: formatDisplayNumber(vcMin, 8),
+    vcMax: formatDisplayNumber(vcMax, 8),
+    withinTolerance,
+    epInUnit,
+    uMaxInUnit,
+    ue: ue.value,
+    nominal: nom.value,
+  };
+}
+
 function calibrationFrequencyLabel(calib, expiry) {
   if (!calib || !expiry) return NA;
   return "02 anos";
 }
 
-function frequencyStatusLabel(freq, status) {
-  if (freq === NA) return status || NA;
-  const statusShort = status === "APROVADO" ? "Ok"
-    : status === "VENCIDO" ? "Vencido"
-      : status === "INATIVO" ? "Inativo"
-        : "A verificar";
-  return `${freq} — ${statusShort}`;
+function frequencyStatusLabel(freq, calendarStatus) {
+  if (freq === NA) return calendarStatus || NA;
+  if (calendarStatus === "VENCIDO") return `${freq} - Vencido`;
+  if (calendarStatus === "INATIVO") return `${freq} - Inativo`;
+  if (calendarStatus === "APROVADO") return `${freq} - Ok`;
+  return `${freq} - A verificar`;
 }
 
 function historyLabel(weightStatus) {
@@ -61,6 +136,14 @@ function historyLabel(weightStatus) {
   const n = String(weightStatus).replace(/[^\d]/g, "");
   if (!n) return NA;
   return `${n}ª Calibração`;
+}
+
+function addYearsIso(isoDate, years) {
+  if (!isoDate) return null;
+  const d = new Date(`${String(isoDate).slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setFullYear(d.getFullYear() + years);
+  return d.toISOString().slice(0, 10);
 }
 
 function thermQuantities(equipmentType) {
@@ -115,16 +198,43 @@ function baseRow(partial) {
   };
 }
 
+function deriveWeightSituation({ active, expiryDate, today, withinTolerance }) {
+  if (active === false) return "INATIVO";
+  const calendar = deriveDeviceSheetStatus({ active, expiryDate, today });
+  if (calendar === "VENCIDO") return "VENCIDO";
+  if (withinTolerance === true && calendar === "APROVADO") return "APROVADO";
+  if (withinTolerance === false) return "REPROVADO";
+  if (withinTolerance == null && calendar === "APROVADO") return "A_VERIFICAR";
+  return calendar;
+}
+
 function mapWeightItem(item, certById, today) {
   const cert = item.weight_certificate_id
     ? certById[item.weight_certificate_id]
     : null;
   const expiry = cert?.expiry_date || null;
   const calib = cert?.calibration_date || null;
-  const status = deriveDeviceSheetStatus({ active: item.active, expiryDate: expiry, today });
+  const calendarStatus = deriveDeviceSheetStatus({ active: item.active, expiryDate: expiry, today });
   const freq = calibrationFrequencyLabel(calib, expiry);
-  const { errorFound } = computeMassError(item.nominal_value, item.conventional_value);
-  const classLabel = item.weight_class || cert?.class || NA;
+  const metro = computeWeightSheetMetrology({
+    nominalRaw: item.nominal_value,
+    conventionalRaw: item.conventional_value,
+    uncertaintyRaw: item.expanded_uncertainty,
+    unit: item.unit || "g",
+  });
+  const classLabel = metro.className
+    || item.weight_class
+    || cert?.class
+    || NA;
+  const status = deriveWeightSituation({
+    active: item.active,
+    expiryDate: expiry,
+    today,
+    withinTolerance: metro.withinTolerance,
+  });
+
+  const intermediateFromCert = cert?.intermediate_check_label || null;
+  const intermediateDate = addYearsIso(calib, 1);
 
   return baseRow({
     source: "peso",
@@ -132,21 +242,25 @@ function mapWeightItem(item, certById, today) {
     identification: item.identification || "",
     equipmentType: "Peso Padrão",
     manufacturer: cert?.manufacturer || NA,
-    location: NA,
+    location: item.location || cert?.location || NA,
     certificateNumber: item.certificate_number || cert?.certificate_number || "",
     calibratedBy: cert?.calibrated_by || "",
     calibrationDate: calib,
     nextCalibrationDate: expiry,
-    intermediateCheck: cert?.intermediate_check_label || NA,
+    intermediateCheck: intermediateFromCert || intermediateDate || NA,
     calibrationFrequency: freq,
-    frequencyStatus: frequencyStatusLabel(freq, status),
+    frequencyStatus: frequencyStatusLabel(freq, calendarStatus),
     nominalValue: item.nominal_value || NA,
     conventionalValue: item.conventional_value || NA,
-    errorFound,
+    errorFound: metro.errorFound,
+    maxError: metro.maxError,
     uncertainty: item.expanded_uncertainty || NA,
+    maxUncertainty: metro.maxUncertainty,
     unit: item.unit || "g",
     equipmentClass: classLabel,
     quantity: "MASSA",
+    vcMin: metro.vcMin,
+    vcMax: metro.vcMax,
     status,
     history: historyLabel(item.weight_status),
     updatedAt: item.updated_at || cert?.updated_at || null,
@@ -156,18 +270,20 @@ function mapWeightItem(item, certById, today) {
 function mapEnvCert(cert, quantityMeta, today) {
   const status = deriveDeviceSheetStatus({ active: true, expiryDate: cert.expiry_date, today });
   const freq = calibrationFrequencyLabel(cert.calibration_date, cert.expiry_date);
+  const intermediateFromCert = cert.intermediate_check_label || null;
+  const intermediateDate = addYearsIso(cert.calibration_date, 1);
   return baseRow({
     source: "thermo",
     sourceId: `${cert.id}-${quantityMeta.key}`,
     identification: cert.equipment_name || "",
     equipmentType: envEquipmentTypeLabel(cert.equipment_type),
     manufacturer: cert.manufacturer || NA,
-    location: NA,
+    location: cert.location || NA,
     certificateNumber: cert.certificate_number || "",
     calibratedBy: cert.calibrated_by || "",
     calibrationDate: cert.calibration_date || null,
     nextCalibrationDate: cert.expiry_date || null,
-    intermediateCheck: cert.intermediate_check_label || NA,
+    intermediateCheck: intermediateFromCert || intermediateDate || NA,
     calibrationFrequency: freq,
     frequencyStatus: frequencyStatusLabel(freq, status),
     unit: quantityMeta.unit,
@@ -237,6 +353,7 @@ export function filterDeviceTechnicalSheets(rows, {
       r.certificateNumber,
       r.location,
       r.quantity,
+      r.equipmentClass,
       r.status,
       r.history,
     ].join(" ").toLowerCase();

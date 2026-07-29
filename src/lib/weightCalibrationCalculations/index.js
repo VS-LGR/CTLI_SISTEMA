@@ -15,6 +15,8 @@ export {
   WEIGHT_CLASS_KEYS,
   lookupClassUncertainty,
   lookupMpeMg,
+  classifyWeightClassFromUncertainty,
+  expandedUncertaintyToMg,
   materialDensityEntry,
   normalizeWeightClass,
   toGrams,

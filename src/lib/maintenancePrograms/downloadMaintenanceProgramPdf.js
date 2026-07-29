@@ -6,12 +6,19 @@ import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFoo
 import { ML, TEXT } from "@/lib/institutionalPdf/theme";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
-import { equipmentKindPdfFill } from "@/lib/equipmentVerifications/equipmentKindPdfColors";
-import { QUARTER_LABELS } from "./maintenanceProgramsApi";
+import {
+  MONTH_SHORT,
+  MONTH_KEYS,
+  buildMaintenanceScheduleRows,
+  markSymbol,
+} from "./maintenanceProgramsApi";
 
 export async function downloadMaintenanceProgramPdf({
   programs = [],
   year,
+  rows: rowsIn = null,
+  issuedApprovedBy = "",
+  updatedAt = null,
   tenantId = null,
   tenantName = "",
   tenant = null,
@@ -19,14 +26,21 @@ export async function downloadMaintenanceProgramPdf({
   const { meta, fileName } = await prepareMasterDocumentExport({
     tenantId,
     code: "RE-6.4.12A",
-    defaultTitle: "Programa de Manutenção",
+    defaultTitle: "Programa de Manutenção Preventiva",
     fileNameContext: { ano: year },
   });
+
+  const built = rowsIn
+    ? { rows: rowsIn, issuedApprovedBy, updatedAt }
+    : buildMaintenanceScheduleRows({ programs });
+  const rows = built.rows || [];
+  const approved = issuedApprovedBy || built.issuedApprovedBy || "";
+  const lastUpdate = updatedAt || built.updatedAt;
 
   const logoDataUrl = tenant ? await loadTenantLogoDataUrl(tenant) : null;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const header = {
-    title: meta?.title || "Programa de Manutenção",
+    title: meta?.title || "Programa de Manutenção Preventiva",
     code: meta?.code || "RE-6.4.12A",
     reference: meta?.reference || "PR-6.4.12",
     revision: meta?.revision || "00",
@@ -38,43 +52,47 @@ export async function downloadMaintenanceProgramPdf({
   doc.text(`Ambiente: ${tenantName || "—"}  |  Ano: ${year}`, ML, startY + 2);
   startY += 8;
 
-  for (const prog of programs) {
-    const pageH = doc.internal.pageSize.getHeight();
-    if (startY > pageH - 50) {
-      doc.addPage();
-      startY = drawInstitutionalPdfHeader(doc, header, logoDataUrl) + 8;
-    }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(prog.kindLabel || prog.equipment_kind, ML, startY);
-    startY += 4;
+  const body = rows.map((r) => [
+    r.label,
+    ...MONTH_KEYS.map((m) => markSymbol(r.marks?.[m]) || ""),
+  ]);
 
-    const body = (prog.events || []).map((e) => [
-      e.asset_label || "—",
-      QUARTER_LABELS[(e.quarter || 1) - 1] || e.quarter,
-      e.frequency || "trimestral",
-      e.status === "executado" ? "Executado" : "Planejado",
-      fmtDmyShort(e.planned_date),
-      fmtDmyShort(e.executed_date),
-      e.responsible || "",
-      e.notes || "",
-    ]);
+  autoTable(doc, {
+    startY,
+    margin: { left: ML, right: 8 },
+    head: [["Equipamentos", ...MONTH_SHORT]],
+    body: body.length ? body : [["—", ...MONTH_KEYS.map(() => "")]],
+    styles: { font: "helvetica", fontSize: 8, textColor: TEXT, halign: "center" },
+    columnStyles: { 0: { halign: "left", cellWidth: 70 } },
+    headStyles: {
+      fillColor: [37, 99, 235],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 7,
+      halign: "center",
+    },
+    didParseCell: (data) => {
+      if (data.section !== "body" || data.column.index === 0) return;
+      const v = String(data.cell.raw || "");
+      if (v === "y") {
+        data.cell.styles.fillColor = [22, 163, 74];
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = "bold";
+      } else if (v === "x") {
+        data.cell.styles.fillColor = [224, 242, 254];
+        data.cell.styles.textColor = [3, 105, 161];
+        data.cell.styles.fontStyle = "bold";
+      }
+    },
+  });
 
-    autoTable(doc, {
-      startY,
-      margin: { left: ML, right: 8 },
-      head: [["Equipamento", "Trimestre", "Freq.", "Status", "Planejado", "Executado", "Responsável", "Obs."]],
-      body: body.length ? body : [["—", "—", "—", "—", "—", "—", "—", "Sem eventos"]],
-      styles: { font: "helvetica", fontSize: 7, textColor: TEXT },
-      headStyles: {
-        fillColor: equipmentKindPdfFill(prog.equipment_kind),
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        fontSize: 7,
-      },
-    });
-    startY = (doc.lastAutoTable?.finalY || startY) + 10;
-  }
+  let y = (doc.lastAutoTable?.finalY || startY) + 8;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...TEXT);
+  doc.text(`Elaborado e Aprovado por: ${approved || "—"}`, ML, y);
+  doc.text("Legenda: x = planejado    y = executado", ML + 90, y);
+  doc.text(`Última atualização: ${lastUpdate ? fmtDmyShort(lastUpdate) : "—"}`, ML + 170, y);
 
   drawInstitutionalPageFooters(doc);
   doc.save(fileName);

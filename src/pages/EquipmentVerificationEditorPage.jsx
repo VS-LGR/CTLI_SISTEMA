@@ -121,10 +121,14 @@ export default function EquipmentVerificationEditorPage() {
       }
       return out;
     });
-    toast.success("Valor aplicado em massa");
+    const item = getVerificationChecklist(record?.equipment_kind).find((i) => i.key === itemKey);
+    toast.success(`${item?.label || "Item"} aplicado a ${assetIds.length} equipamento(s)`);
   };
 
   const applyMassResponsible = ({ assetIds, month, value }) => {
+    if (!String(value || "").trim()) {
+      return toast.error("Informe o nome do responsável");
+    }
     setResponsible((prev) => {
       const out = { ...prev };
       for (const assetId of assetIds) {
@@ -132,7 +136,7 @@ export default function EquipmentVerificationEditorPage() {
       }
       return out;
     });
-    toast.success("Responsável preenchido em massa");
+    toast.success(`Responsável preenchido em ${assetIds.length} equipamento(s)`);
   };
 
   const copyMonthMass = ({ assetIds, fromMonth, toMonth }) => {
@@ -163,7 +167,7 @@ export default function EquipmentVerificationEditorPage() {
       }
       return out;
     });
-    toast.success("Mês copiado");
+    toast.success("Mês copiado para todos os equipamentos");
   };
 
   const save = async () => {

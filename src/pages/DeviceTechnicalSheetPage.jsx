@@ -30,7 +30,8 @@ import { getLegacyFallbackByCode } from "@/lib/masterDocuments/masterDocumentFal
 
 const STATUS_TONE = {
   APROVADO: "bg-emerald-100 text-emerald-800",
-  VENCIDO: "bg-red-100 text-red-800",
+  REPROVADO: "bg-red-100 text-red-800",
+  VENCIDO: "bg-orange-100 text-orange-900",
   INATIVO: "bg-slate-200 text-slate-700",
   A_VERIFICAR: "bg-amber-100 text-amber-900",
 };
@@ -240,6 +241,7 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
             <SelectContent>
               <SelectItem value="all">Todas situações</SelectItem>
               <SelectItem value="APROVADO">Aprovado</SelectItem>
+              <SelectItem value="REPROVADO">Reprovado</SelectItem>
               <SelectItem value="VENCIDO">Vencido</SelectItem>
               <SelectItem value="INATIVO">Inativo</SelectItem>
               <SelectItem value="A_VERIFICAR">A verificar</SelectItem>
@@ -277,34 +279,40 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
 
       <Card className="border-slate-200 overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-sm min-w-[1400px]">
+          <table className="w-full text-sm min-w-[2200px]">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <HeadCell tip="Identificação do equipamento no cadastro">ID</HeadCell>
+                <HeadCell tip="Identificação do equipamento no cadastro">Identificação</HeadCell>
                 <HeadCell tip="Tipo (Peso Padrão ou Thermo). Lotes de carga não entram.">Tipo</HeadCell>
                 <HeadCell>Fabricante</HeadCell>
-                <HeadCell tip="Número do certificado vigente — exportado no PDF">Nº cert.</HeadCell>
-                <HeadCell>Lab.</HeadCell>
+                <HeadCell>Localização</HeadCell>
+                <HeadCell tip="Número do certificado vigente">Nº cert.</HeadCell>
+                <HeadCell>Lab. emitente</HeadCell>
                 <HeadCell>Calibração</HeadCell>
                 <HeadCell>Próxima</HeadCell>
-                <HeadCell>Checagem</HeadCell>
-                <HeadCell tip="Frequência e status derivados das datas">Freq.</HeadCell>
-                <HeadCell>Nominal</HeadCell>
-                <HeadCell>V.C.</HeadCell>
-                <HeadCell tip="Erro = V.C. − Nominal">Erro</HeadCell>
-                <HeadCell>Ue</HeadCell>
+                <HeadCell>Verif. intermediária</HeadCell>
+                <HeadCell tip="Frequência e status derivados das datas">Freq. / Status</HeadCell>
+                <HeadCell>Valor nominal</HeadCell>
+                <HeadCell>Valor convencional</HeadCell>
+                <HeadCell tip="Erro = V.C. − Nominal">Erro encontrado</HeadCell>
+                <HeadCell tip="Erro máximo tolerado (δm) da classe determinada">Erro máx. (EP)</HeadCell>
+                <HeadCell tip="Incerteza expandida atual (U95%, k=2)">Ue atual</HeadCell>
+                <HeadCell tip="Incerteza máxima tolerada = EP/3">Ue máx.</HeadCell>
                 <HeadCell>Un.</HeadCell>
-                <HeadCell>Classe</HeadCell>
+                <HeadCell tip="Classe OIML pela Ue ≤ incerteza tolerada (E1→M3)">Classe</HeadCell>
                 <HeadCell>Grandeza</HeadCell>
-                <HeadCell tip="Nº da calibração do item">Histórico</HeadCell>
+                <HeadCell tip="V.C. mín = Nominal − (EP − Ue)">V.C. mín</HeadCell>
+                <HeadCell tip="V.C. máx = Nominal + (EP − Ue)">V.C. máx</HeadCell>
                 <HeadCell>Situação</HeadCell>
+                <HeadCell>Plano manut.</HeadCell>
+                <HeadCell tip="Nº da calibração do item">Histórico</HeadCell>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={18} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={24} className="p-8 text-center text-slate-500">A carregar…</td></tr>
               ) : !filtered.length ? (
-                <tr><td colSpan={18} className="p-8 text-center text-slate-500">Nenhum equipamento encontrado.</td></tr>
+                <tr><td colSpan={24} className="p-8 text-center text-slate-500">Nenhum equipamento encontrado.</td></tr>
               ) : filtered.map((r) => (
                 <tr key={r.sourceId} className="border-t border-slate-100">
                   <td className="p-2 font-medium max-w-[120px]">
@@ -316,6 +324,9 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
                   <td className="p-2 max-w-[100px]">
                     <EllipsisTooltip label={r.manufacturer} className="block">{r.manufacturer}</EllipsisTooltip>
                   </td>
+                  <td className="p-2 text-xs max-w-[100px]">
+                    <EllipsisTooltip label={r.location} className="block">{r.location}</EllipsisTooltip>
+                  </td>
                   <td className="p-2 font-mono text-xs">{r.certificateNumber || "—"}</td>
                   <td className="p-2 text-xs max-w-[100px]">
                     <EllipsisTooltip label={r.calibratedBy || "—"} className="block">{r.calibratedBy || "—"}</EllipsisTooltip>
@@ -323,20 +334,25 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
                   <td className="p-2 whitespace-nowrap">{fmtDmyShort(r.calibrationDate)}</td>
                   <td className="p-2 whitespace-nowrap">{fmtDmyShort(r.nextCalibrationDate)}</td>
                   <td className="p-2 text-xs">{r.intermediateCheck}</td>
-                  <td className="p-2 text-xs max-w-[110px]">
+                  <td className="p-2 text-xs max-w-[120px]">
                     <EllipsisTooltip label={r.frequencyStatus} className="block">{r.frequencyStatus}</EllipsisTooltip>
                   </td>
                   <td className="p-2">{r.nominalValue}</td>
                   <td className="p-2">{r.conventionalValue}</td>
                   <td className="p-2">{r.errorFound}</td>
+                  <td className="p-2">{r.maxError}</td>
                   <td className="p-2">{r.uncertainty}</td>
+                  <td className="p-2">{r.maxUncertainty}</td>
                   <td className="p-2">{r.unit}</td>
-                  <td className="p-2">{r.equipmentClass}</td>
+                  <td className="p-2 font-medium">{r.equipmentClass}</td>
                   <td className="p-2">{r.quantity}</td>
-                  <td className="p-2 text-xs">{r.history}</td>
+                  <td className="p-2">{r.vcMin}</td>
+                  <td className="p-2">{r.vcMax}</td>
                   <td className="p-2">
                     <Badge variant="secondary" className={STATUS_TONE[r.status] || ""}>{r.status}</Badge>
                   </td>
+                  <td className="p-2 text-xs">{r.maintenancePlan}</td>
+                  <td className="p-2 text-xs">{r.history}</td>
                 </tr>
               ))}
             </tbody>

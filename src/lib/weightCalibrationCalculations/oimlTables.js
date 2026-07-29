@@ -170,6 +170,45 @@ export function lookupMpeMg(nominalInGrams, className) {
   return lookupInTable(MPE_MG, nominalInGrams, className);
 }
 
+/**
+ * Converte incerteza expandida (na unidade do cadastro) para mg — espelho da coluna U do Excel RE-6.4B.
+ */
+export function expandedUncertaintyToMg(uncertainty, unit = "g") {
+  if (!Number.isFinite(uncertainty)) return null;
+  const u = String(unit || "g").toLowerCase();
+  if (u === "g") return uncertainty * 1000;
+  if (u === "kg") return uncertainty * 1_000_000;
+  if (u === "mg") return uncertainty;
+  return null;
+}
+
+/**
+ * Classifica o peso pela incerteza expandida vs. incerteza tolerada (δm/3),
+ * da classe mais fina (E1) à mais grossa (M3) — fórmula aninhada da coluna Classe no Excel.
+ *
+ * @returns {{ className: string|null, mpeMg: number|null, classUncertaintyMg: number|null }}
+ */
+export function classifyWeightClassFromUncertainty(nominalInGrams, uncertainty, unit = "g") {
+  const uMg = expandedUncertaintyToMg(uncertainty, unit);
+  const row = resolveTableRow(MPE_MG, nominalInGrams);
+  if (uMg == null || !row) {
+    return { className: null, mpeMg: null, classUncertaintyMg: null };
+  }
+
+  let last = { className: null, mpeMg: null, classUncertaintyMg: null };
+  for (const cls of WEIGHT_CLASS_KEYS) {
+    const mpeMg = row[cls];
+    if (mpeMg == null || !Number.isFinite(Number(mpeMg))) continue;
+    const classUncertaintyMg = Number(mpeMg) / 3;
+    last = { className: cls, mpeMg: Number(mpeMg), classUncertaintyMg };
+    if (uMg <= classUncertaintyMg) {
+      return last;
+    }
+  }
+  // Excel: se U excede todas as faixas, cai no último ramo (M3 / última classe disponível).
+  return last;
+}
+
 export function materialDensityEntry(materialName) {
   if (!materialName) return null;
   const name = String(materialName).trim();

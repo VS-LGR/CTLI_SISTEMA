@@ -19,6 +19,23 @@ import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 
 const MONTH_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+function markKey(source, sourceId, year, month, markKind) {
+  return `${source}:${sourceId}:${year}:${month}:${markKind}`;
+}
+
+function patchOverrides(list, nextRow) {
+  const key = markKey(nextRow.source, nextRow.source_id, nextRow.year, nextRow.month, nextRow.mark_kind);
+  let found = false;
+  const out = (list || []).map((o) => {
+    const k = markKey(o.source, o.source_id, o.year, o.month, o.mark_kind);
+    if (k !== key) return o;
+    found = true;
+    return { ...o, ...nextRow };
+  });
+  if (!found) out.push(nextRow);
+  return out;
+}
+
 export default function CalibrationSchedulePage({ embedded = false }) {
   const { currentTenantId, currentTenant } = useOutletContext();
   const [yearStart, setYearStart] = useState(new Date().getFullYear());
@@ -26,7 +43,7 @@ export default function CalibrationSchedulePage({ embedded = false }) {
   const [envCerts, setEnvCerts] = useState([]);
   const [overrides, setOverrides] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [pendingKeys, setPendingKeys] = useState(() => new Set());
 
   const load = useCallback(async () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
@@ -66,23 +83,45 @@ export default function CalibrationSchedulePage({ embedded = false }) {
   const overdueCount = rows.filter((r) => r.overdue).length;
 
   const toggle = async (row, markKind, month) => {
+    const key = markKey(row.source, row.sourceId, focusYear, month, markKind);
+    if (pendingKeys.has(key)) return;
+
     const current = Boolean(row.marks?.[focusYear]?.[markKind]?.[month]);
-    setBusy(true);
+    const nextMarked = !current;
+    const optimistic = {
+      tenant_id: currentTenantId,
+      source: row.source,
+      source_id: row.sourceId,
+      year: focusYear,
+      month,
+      mark_kind: markKind,
+      marked: nextMarked,
+    };
+    const snapshot = overrides;
+
+    setPendingKeys((prev) => new Set(prev).add(key));
+    setOverrides((prev) => patchOverrides(prev, optimistic));
+
     try {
-      await upsertCalibrationScheduleMark({
+      const saved = await upsertCalibrationScheduleMark({
         tenantId: currentTenantId,
         source: row.source,
         sourceId: row.sourceId,
         year: focusYear,
         month,
         markKind,
-        marked: !current,
+        marked: nextMarked,
       });
-      await load();
+      setOverrides((prev) => patchOverrides(prev, saved));
     } catch (e) {
+      setOverrides(snapshot);
       toast.error(e.message);
     } finally {
-      setBusy(false);
+      setPendingKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
   };
 
@@ -185,12 +224,17 @@ export default function CalibrationSchedulePage({ embedded = false }) {
                     {MONTH_SHORT.map((_, i) => {
                       const m = i + 1;
                       const on = r.marks?.[focusYear]?.previsto?.[m];
+                      const cellPending = pendingKeys.has(markKey(r.source, r.sourceId, focusYear, m, "previsto"));
                       return (
                         <td key={`p-${m}`} className="p-1 text-center">
                           <button
                             type="button"
-                            disabled={busy}
-                            className={`h-7 w-7 rounded text-xs font-semibold ${on ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"}`}
+                            disabled={cellPending}
+                            aria-pressed={Boolean(on)}
+                            aria-busy={cellPending}
+                            className={`h-7 w-7 rounded text-xs font-semibold transition-opacity ${
+                              on ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
+                            } ${cellPending ? "opacity-60" : ""}`}
                             onClick={() => toggle(r, "previsto", m)}
                           >
                             {on ? "X" : ""}
@@ -204,12 +248,17 @@ export default function CalibrationSchedulePage({ embedded = false }) {
                     {MONTH_SHORT.map((_, i) => {
                       const m = i + 1;
                       const on = r.marks?.[focusYear]?.realizado?.[m];
+                      const cellPending = pendingKeys.has(markKey(r.source, r.sourceId, focusYear, m, "realizado"));
                       return (
                         <td key={`r-${m}`} className="p-1 text-center">
                           <button
                             type="button"
-                            disabled={busy}
-                            className={`h-7 w-7 rounded text-xs font-semibold ${on ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400"}`}
+                            disabled={cellPending}
+                            aria-pressed={Boolean(on)}
+                            aria-busy={cellPending}
+                            className={`h-7 w-7 rounded text-xs font-semibold transition-opacity ${
+                              on ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400"
+                            } ${cellPending ? "opacity-60" : ""}`}
                             onClick={() => toggle(r, "realizado", m)}
                           >
                             {on ? "X" : ""}
