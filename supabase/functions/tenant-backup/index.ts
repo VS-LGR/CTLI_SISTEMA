@@ -93,6 +93,8 @@ const MERGE_NATURAL_KEYS: { table: string; keys: string[] }[] = [
   { table: "commercial_proposals", keys: ["proposal_year", "proposal_number"] },
   { table: "equipment_verifications", keys: ["equipment_kind", "year"] },
   { table: "equipment_maintenance_programs", keys: ["year", "equipment_kind"] },
+  /** Mesmo código na lista mestra = mesmo documento (unique parcial tenant+code). */
+  { table: "master_documents", keys: ["code"] },
   {
     table: "calibration_schedule_overrides",
     keys: ["source", "source_id", "year", "month", "mark_kind"],
@@ -382,6 +384,7 @@ function naturalKeyOf(row: Record<string, unknown>, keys: string[]): string {
 /**
  * Resolve IDs no merge: se a chave natural já existe no tenant, reutiliza o id
  * vivo; caso contrário gera UUID novo. Devolve só as linhas a inserir.
+ * Chaves com algum campo vazio não fazem match (ex.: code '' na lista mestra).
  */
 function resolveMergeNaturalKeys(
   rows: Record<string, unknown>[],
@@ -393,25 +396,68 @@ function resolveMergeNaturalKeys(
   for (const r of liveRows) {
     const id = r.id as string | undefined;
     if (!id) continue;
+    if (keys.some((k) => String(r[k] ?? "") === "")) continue;
     liveByKey.set(naturalKeyOf(r, keys), id);
   }
 
   const toInsert: Record<string, unknown>[] = [];
   for (const row of rows) {
     const oldId = row.id as string | undefined;
-    const key = naturalKeyOf(row, keys);
-    const existing = liveByKey.get(key);
-    if (existing) {
-      if (oldId) idMap.set(oldId, existing);
-      continue;
+    const hasEmptyKey = keys.some((k) => String(row[k] ?? "") === "");
+    if (!hasEmptyKey) {
+      const key = naturalKeyOf(row, keys);
+      const existing = liveByKey.get(key);
+      if (existing) {
+        if (oldId) idMap.set(oldId, existing);
+        continue;
+      }
     }
     const newId = crypto.randomUUID();
     if (oldId) idMap.set(oldId, newId);
     const copy = { ...row, id: newId };
     toInsert.push(copy);
-    liveByKey.set(key, newId);
+    if (!hasEmptyKey) {
+      liveByKey.set(naturalKeyOf(copy, keys), newId);
+    }
   }
   return toInsert;
+}
+
+/** Remove ou anula FKs que não existem no conjunto válido (evita 23503 no merge). */
+function sanitizeFkRows(
+  rows: Record<string, unknown>[],
+  fkField: string,
+  validIds: Set<string>,
+  opts: { nullable: boolean } = { nullable: false },
+): Record<string, unknown>[] {
+  const out: Record<string, unknown>[] = [];
+  for (const row of rows) {
+    const fk = row[fkField];
+    if (fk == null || fk === "") {
+      out.push(row);
+      continue;
+    }
+    if (validIds.has(String(fk))) {
+      out.push(row);
+      continue;
+    }
+    if (opts.nullable) {
+      out.push({ ...row, [fkField]: null });
+    }
+    // NOT NULL FK órfã → descarta a linha
+  }
+  return out;
+}
+
+async function loadIdSet(
+  admin: SupabaseClient,
+  table: string,
+  tenantId: string,
+): Promise<Set<string>> {
+  const live = await fetchByTenant(admin, table, tenantId);
+  return new Set(
+    (live.error ? [] : live.rows).map((r) => String(r.id)).filter(Boolean),
+  );
 }
 
 async function insertChunked(
@@ -1131,6 +1177,18 @@ async function restoreFromZip(
       delete copy.updated_at;
       return copy;
     });
+
+    // Change logs: FK nullable — anular master_document_id órfão (docs saltados no merge)
+    if (spec.table === "master_document_change_logs") {
+      const validDocs = await loadIdSet(admin, "master_documents", tenantId);
+      restored += await insertChunked(
+        admin,
+        spec.table,
+        sanitizeFkRows(rows, "master_document_id", validDocs, { nullable: true }),
+      );
+      continue;
+    }
+
     restored += await insertChunked(admin, spec.table, rows);
   }
 
@@ -1150,14 +1208,32 @@ async function restoreFromZip(
     }
   }
 
+  // IDs de pais já presentes no tenant (merge) + acabados de inserir
+  const validParentCache = new Map<string, Set<string>>();
+  async function validParentIds(parentTable: string): Promise<Set<string>> {
+    if (validParentCache.has(parentTable)) return validParentCache.get(parentTable)!;
+    const set = await loadIdSet(admin, parentTable, tenantId);
+    // Pais sem tenant_id (filhos de filhos): usar ids remapeados + inseridos
+    if (set.size === 0 && !TENANT_TABLES.some((t) => t.table === parentTable)) {
+      for (const r of dataByTable[parentTable] || []) {
+        if (r.id) set.add(String(r.id));
+      }
+      for (const id of idMap.values()) set.add(id);
+    }
+    validParentCache.set(parentTable, set);
+    return set;
+  }
+
   for (const spec of CHILD_TABLES) {
-    const rows = (dataByTable[spec.table] || []).map((r) => {
+    let rows = (dataByTable[spec.table] || []).map((r) => {
       const copy = { ...r };
       if ("tenant_id" in copy) copy.tenant_id = tenantId;
       delete copy.created_at;
       delete copy.updated_at;
       return copy;
     });
+    const validParents = await validParentIds(spec.parentTable);
+    rows = sanitizeFkRows(rows, spec.parentFk, validParents, { nullable: false });
     restored += await insertChunked(admin, spec.table, rows);
   }
 
