@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FilePdf, Warning } from "@phosphor-icons/react";
+import { Check, Circle, FilePdf, Warning } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   MONTH_SHORT,
@@ -14,7 +14,7 @@ import {
   buildMaintenanceScheduleRows,
   ensureYearMaintenancePrograms,
   isMaintenanceMarkOverdue,
-  markSymbol,
+  markLabel,
   nextMarkStatus,
   updateYearIssuedApprovedBy,
   upsertMaintenanceMark,
@@ -31,13 +31,25 @@ function cellKey(kind, month) {
 }
 
 function cellClass(status, overdue) {
-  if (status === "executado") return "bg-emerald-600 text-white";
+  if (status === "executado") {
+    return "bg-emerald-600 text-white hover:bg-emerald-700";
+  }
   if (status === "planejado") {
     return overdue
-      ? "bg-amber-100 text-amber-900 ring-1 ring-amber-300"
-      : "bg-sky-100 text-sky-900";
+      ? "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-300 hover:bg-amber-100"
+      : "bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-200 hover:bg-sky-100";
   }
-  return "bg-slate-100 text-slate-400";
+  return "bg-white text-slate-300 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-400";
+}
+
+function MarkIcon({ status }) {
+  if (status === "executado") {
+    return <Check size={14} weight="bold" aria-hidden />;
+  }
+  if (status === "planejado") {
+    return <Circle size={10} weight="fill" aria-hidden />;
+  }
+  return <Circle size={10} weight="regular" aria-hidden />;
 }
 
 export default function MaintenanceProgramPage({ embedded = false }) {
@@ -178,7 +190,7 @@ export default function MaintenanceProgramPage({ embedded = false }) {
             <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4.12 · RE-6.4.12A</div>
             <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Programa de Manutenção Preventiva</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Grelha anual por equipamento — clique no mês para alternar planejado (x) e executado (y).
+              Grelha anual por equipamento — clique no mês para alternar entre planejado e executado.
             </p>
           </div>
           <Button type="button" onClick={handlePdf} disabled={loading || !rows.length}>
@@ -229,7 +241,7 @@ export default function MaintenanceProgramPage({ embedded = false }) {
               <tr>
                 <th className="p-2 text-left sticky left-0 bg-slate-50 min-w-[240px]">Equipamentos</th>
                 {MONTH_SHORT.map((m) => (
-                  <th key={m} className="p-2 text-center min-w-[52px]">{m}</th>
+                  <th key={m} className="p-2 text-center min-w-[56px]">{m}</th>
                 ))}
               </tr>
               <tr className="border-t border-slate-200">
@@ -251,28 +263,27 @@ export default function MaintenanceProgramPage({ embedded = false }) {
                     const status = r.marks[m] || null;
                     const overdue = isMaintenanceMarkOverdue(status, year, m);
                     const pending = pendingKeys.has(cellKey(r.kind, m));
-                    const symbol = markSymbol(status);
                     return (
-                      <td key={m} className="p-1 text-center">
+                      <td key={m} className="p-1.5 text-center">
                         <button
                           type="button"
                           disabled={pending}
                           title={
                             status === "executado"
-                              ? "Executado (y) — clique para limpar"
+                              ? "Executado — clique para limpar"
                               : status === "planejado"
-                                ? "Planejado (x) — clique para marcar executado"
-                                : "Vazio — clique para planejar"
+                                ? "Planejado — clique para marcar como executado"
+                                : "Sem marcação — clique para planejar"
                           }
-                          aria-label={`${r.label} ${MONTH_SHORT[m - 1]}`}
+                          aria-label={`${r.label} ${MONTH_SHORT[m - 1]}: ${markLabel(status)}`}
                           className={cn(
-                            "h-7 w-7 rounded text-xs font-bold transition-opacity",
+                            "h-8 w-8 rounded-md inline-flex items-center justify-center transition-colors",
                             cellClass(status, overdue),
                             pending && "opacity-60",
                           )}
                           onClick={() => toggle(r, m)}
                         >
-                          {symbol}
+                          <MarkIcon status={status} />
                         </button>
                       </td>
                     );
@@ -304,14 +315,18 @@ export default function MaintenanceProgramPage({ embedded = false }) {
         <Card className="border-slate-200">
           <CardContent className="p-4 text-sm text-slate-600">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Legenda</div>
-            <div className="flex flex-wrap gap-3 items-center">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-6 w-6 rounded bg-sky-100 text-sky-900 text-xs font-bold inline-flex items-center justify-center">x</span>
-                planejado
+            <div className="flex flex-wrap gap-4 items-center">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-7 w-7 rounded-md bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-200 inline-flex items-center justify-center">
+                  <Circle size={10} weight="fill" />
+                </span>
+                Planejado
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-6 w-6 rounded bg-emerald-600 text-white text-xs font-bold inline-flex items-center justify-center">y</span>
-                executado
+              <span className="inline-flex items-center gap-2">
+                <span className="h-7 w-7 rounded-md bg-emerald-600 text-white inline-flex items-center justify-center">
+                  <Check size={14} weight="bold" />
+                </span>
+                Executado
               </span>
             </div>
           </CardContent>

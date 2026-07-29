@@ -41,9 +41,15 @@ export function quarterFromMonth(month) {
 }
 
 export function markSymbol(status) {
-  if (status === "executado") return "y";
-  if (status === "planejado") return "x";
+  if (status === "executado") return "OK";
+  if (status === "planejado") return "Plan.";
   return "";
+}
+
+export function markLabel(status) {
+  if (status === "executado") return "Executado";
+  if (status === "planejado") return "Planejado";
+  return "Sem marcação";
 }
 
 export function nextMarkStatus(current) {
@@ -128,7 +134,7 @@ export async function ensureMaintenanceProgram(tenantId, year, equipmentKind) {
   return data;
 }
 
-/** Garante os 4 programas do ano e, se vazios, semeia x nos meses padrão. */
+/** Garante os 4 programas do ano e, se vazios, semeia planejado nos meses padrão. */
 export async function ensureYearMaintenancePrograms(tenantId, year, { seedDefaults = true } = {}) {
   const programs = [];
   for (const def of DEFAULT_MAINTENANCE_ROWS) {

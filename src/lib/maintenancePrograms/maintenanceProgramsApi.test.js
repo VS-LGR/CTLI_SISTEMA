@@ -8,15 +8,15 @@ import {
 } from "./maintenanceProgramsApi";
 
 describe("maintenanceProgramsApi", () => {
-  test("nextMarkStatus ciclo vazio → x → y → vazio", () => {
+  test("nextMarkStatus ciclo vazio → planejado → executado → vazio", () => {
     expect(nextMarkStatus(null)).toBe("planejado");
     expect(nextMarkStatus("planejado")).toBe("executado");
     expect(nextMarkStatus("executado")).toBe(null);
   });
 
   test("markSymbol", () => {
-    expect(markSymbol("planejado")).toBe("x");
-    expect(markSymbol("executado")).toBe("y");
+    expect(markSymbol("planejado")).toBe("Plan.");
+    expect(markSymbol("executado")).toBe("OK");
     expect(markSymbol(null)).toBe("");
   });
 

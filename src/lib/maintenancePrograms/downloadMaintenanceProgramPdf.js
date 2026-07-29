@@ -74,11 +74,11 @@ export async function downloadMaintenanceProgramPdf({
     didParseCell: (data) => {
       if (data.section !== "body" || data.column.index === 0) return;
       const v = String(data.cell.raw || "");
-      if (v === "y") {
+      if (v === "OK") {
         data.cell.styles.fillColor = [22, 163, 74];
         data.cell.styles.textColor = [255, 255, 255];
         data.cell.styles.fontStyle = "bold";
-      } else if (v === "x") {
+      } else if (v === "Plan.") {
         data.cell.styles.fillColor = [224, 242, 254];
         data.cell.styles.textColor = [3, 105, 161];
         data.cell.styles.fontStyle = "bold";
@@ -91,8 +91,8 @@ export async function downloadMaintenanceProgramPdf({
   doc.setFontSize(8);
   doc.setTextColor(...TEXT);
   doc.text(`Elaborado e Aprovado por: ${approved || "—"}`, ML, y);
-  doc.text("Legenda: x = planejado    y = executado", ML + 90, y);
-  doc.text(`Última atualização: ${lastUpdate ? fmtDmyShort(lastUpdate) : "—"}`, ML + 170, y);
+  doc.text("Legenda: Plan. = planejado    OK = executado", ML + 90, y);
+  doc.text(`Última atualização: ${lastUpdate ? fmtDmyShort(lastUpdate) : "—"}`, ML + 175, y);
 
   drawInstitutionalPageFooters(doc);
   doc.save(fileName);
