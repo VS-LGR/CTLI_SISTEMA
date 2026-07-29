@@ -8,7 +8,7 @@ import {
   ListChecks, Briefcase, Toolbox, GearSix, Database,
   Buildings, CaretRight, ClipboardText, List, X,
   FileText, Certificate, BookOpen, FolderSimple, Question, Scales,
-  ShoppingCart, Currency,
+  ShoppingCart, Receipt,
 } from "@phosphor-icons/react";
 import AppBrand from "@/components/branding/AppBrand";
 import {
@@ -52,7 +52,7 @@ const CLIENT_NAV_ICONS = {
   certificados: Certificate,
   "certificados-peso": Scales,
   "pedidos-compra": ShoppingCart,
-  "solicitacoes-orcamento": Currency,
+  "solicitacoes-orcamento": Receipt,
   "manual-qualidade": BookOpen,
 };
 const REQ_ICONS = {
