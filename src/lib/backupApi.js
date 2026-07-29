@@ -4,8 +4,21 @@ import { supabase } from "@/lib/supabaseClient";
 async function invokeTenantBackup(body) {
   if (!supabase) throw new Error("Supabase não configurado");
   const { data, error } = await supabase.functions.invoke("tenant-backup", { body });
-  if (error) throw error;
   if (data?.error) throw new Error(data.error);
+  if (error) {
+    // functions.invoke muitas vezes esconde o JSON de erro 5xx
+    let detail = error.message || "Falha na função tenant-backup";
+    try {
+      const ctx = error.context;
+      if (ctx && typeof ctx.json === "function") {
+        const payload = await ctx.json();
+        if (payload?.error) detail = payload.error;
+      } else if (typeof error === "object" && error !== null && "message" in error) {
+        detail = String(error.message);
+      }
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
   return data;
 }
 

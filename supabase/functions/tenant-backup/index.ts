@@ -78,6 +78,31 @@ type ChildTableSpec = {
   parentFk: string;
 };
 
+/**
+ * Em modo MERGE (acrescentar), linhas com a mesma chave natural no ambiente
+ * reutilizam o id existente (não inserem de novo) — evita unique_violation
+ * ao reimportar backup do mesmo tenant.
+ */
+const MERGE_NATURAL_KEYS: { table: string; keys: string[] }[] = [
+  { table: "personnel_standard_options", keys: ["category", "label"] },
+  { table: "employee_registrations", keys: ["registration_code"] },
+  { table: "supplier_registrations", keys: ["registration_code"] },
+  { table: "end_customer_registrations", keys: ["registration_code"] },
+  { table: "quotation_requests", keys: ["request_year", "request_number"] },
+  { table: "purchase_orders", keys: ["order_year", "order_number"] },
+  { table: "commercial_proposals", keys: ["proposal_year", "proposal_number"] },
+  { table: "equipment_verifications", keys: ["equipment_kind", "year"] },
+  { table: "equipment_maintenance_programs", keys: ["year", "equipment_kind"] },
+  {
+    table: "calibration_schedule_overrides",
+    keys: ["source", "source_id", "year", "month", "mark_kind"],
+  },
+];
+
+const MERGE_CHILD_NATURAL_KEYS: { table: string; keys: string[] }[] = [
+  { table: "personnel_experience_evaluation_items", keys: ["evaluation_id", "item_number"] },
+];
+
 /** Filhos sem tenant_id (ou derivados do pai). */
 const CHILD_TABLES: ChildTableSpec[] = [
   { table: "personnel_experience_evaluation_items", zip: "cadastros/personnel_exp_eval_items.json", parentTable: "personnel_experience_evaluations", parentFk: "evaluation_id" },
@@ -350,20 +375,79 @@ async function fetchByParentIds(
   return { rows, truncated: anyTrunc };
 }
 
+function naturalKeyOf(row: Record<string, unknown>, keys: string[]): string {
+  return keys.map((k) => String(row[k] ?? "")).join("\0");
+}
+
+/**
+ * Resolve IDs no merge: se a chave natural já existe no tenant, reutiliza o id
+ * vivo; caso contrário gera UUID novo. Devolve só as linhas a inserir.
+ */
+function resolveMergeNaturalKeys(
+  rows: Record<string, unknown>[],
+  liveRows: Record<string, unknown>[],
+  keys: string[],
+  idMap: Map<string, string>,
+): Record<string, unknown>[] {
+  const liveByKey = new Map<string, string>();
+  for (const r of liveRows) {
+    const id = r.id as string | undefined;
+    if (!id) continue;
+    liveByKey.set(naturalKeyOf(r, keys), id);
+  }
+
+  const toInsert: Record<string, unknown>[] = [];
+  for (const row of rows) {
+    const oldId = row.id as string | undefined;
+    const key = naturalKeyOf(row, keys);
+    const existing = liveByKey.get(key);
+    if (existing) {
+      if (oldId) idMap.set(oldId, existing);
+      continue;
+    }
+    const newId = crypto.randomUUID();
+    if (oldId) idMap.set(oldId, newId);
+    const copy = { ...row, id: newId };
+    toInsert.push(copy);
+    liveByKey.set(key, newId);
+  }
+  return toInsert;
+}
+
 async function insertChunked(
   admin: SupabaseClient,
   table: string,
   rows: Record<string, unknown>[],
-) {
+): Promise<number> {
   if (!rows.length) return 0;
+  let inserted = 0;
   for (const chunk of chunkArray(rows, INSERT_CHUNK)) {
     const { error } = await admin.from(table).insert(chunk);
-    if (error) {
-      if (/does not exist|schema cache/i.test(error.message)) return 0;
-      throw new Error(`${table}: ${error.message}`);
+    if (!error) {
+      inserted += chunk.length;
+      continue;
     }
+    if (/does not exist|schema cache/i.test(error.message)) return inserted;
+    // Unique / FK pontuais: tenta linha a linha e salta conflitos de unique
+    if (/duplicate key|unique constraint/i.test(error.message)) {
+      for (const row of chunk) {
+        const { error: rowErr } = await admin.from(table).insert(row);
+        if (!rowErr) {
+          inserted += 1;
+          continue;
+        }
+        if (/duplicate key|unique constraint/i.test(rowErr.message)) {
+          console.warn(`[tenant-backup] skip duplicate ${table}:`, rowErr.message);
+          continue;
+        }
+        if (/does not exist|schema cache/i.test(rowErr.message)) continue;
+        throw new Error(`${table}: ${rowErr.message}`);
+      }
+      continue;
+    }
+    throw new Error(`${table}: ${error.message}`);
   }
-  return rows.length;
+  return inserted;
 }
 
 async function listStoragePrefix(
@@ -829,7 +913,7 @@ async function dryRunRestore(
     replace_impact:
       "Modo SUBSTITUIR apagaria os dados cobertos do ambiente e inseriria o conteúdo do ZIP. Um backup automático pre-replace será gerado antes.",
     merge_impact:
-      "Modo MERGE acrescentaria registos com novos IDs (remap), sem apagar os dados atuais.",
+      "Modo MERGE acrescenta registos com novos IDs. Linhas com a mesma chave natural (ex.: opções de pessoal, códigos de cadastro, nº de pedido) reutilizam o registo já existente em vez de duplicar.",
   };
 }
 
@@ -912,14 +996,83 @@ async function restoreFromZip(
   }
 
   if (!replace) {
+    const naturalTenant = new Map(MERGE_NATURAL_KEYS.map((s) => [s.table, s.keys]));
+    const naturalChild = new Map(MERGE_CHILD_NATURAL_KEYS.map((s) => [s.table, s.keys]));
+
+    // 1) Tabelas com chave natural: reutilizar ids existentes no tenant
     for (const spec of TENANT_TABLES) {
-      dataByTable[spec.table] = remapIds(dataByTable[spec.table], idMap);
+      const keys = naturalTenant.get(spec.table);
+      if (!keys) continue;
+      const live = await fetchByTenant(admin, spec.table, tenantId);
+      // Aplicar source_id já remapeado? nesta fase ainda não — schedule overrides
+      // usam source_id lógico; resolve depois do remap genérico dos pais.
+      if (spec.table === "calibration_schedule_overrides") continue;
+      dataByTable[spec.table] = resolveMergeNaturalKeys(
+        dataByTable[spec.table] || [],
+        live.error ? [] : live.rows,
+        keys,
+        idMap,
+      );
     }
+
+    // 2) Restantes tabelas tenant: novos UUIDs
+    for (const spec of TENANT_TABLES) {
+      if (naturalTenant.has(spec.table)) continue;
+      dataByTable[spec.table] = remapIds(dataByTable[spec.table] || [], idMap);
+    }
+
+    // 2b) Overrides: ainda com ids originais — só remapear FKs (source_id) antes da chave natural
+    for (const row of dataByTable.calibration_schedule_overrides || []) {
+      remapRowFks(row, idMap);
+    }
+
+    // 3) Filhos: novos UUIDs (exceto os com chave natural — resolvidos após remap de FKs)
     for (const spec of CHILD_TABLES) {
-      dataByTable[spec.table] = remapIds(dataByTable[spec.table], idMap);
+      if (naturalChild.has(spec.table)) continue;
+      dataByTable[spec.table] = remapIds(dataByTable[spec.table] || [], idMap);
     }
+
+    // 4) Remapear FKs (*_id) para os novos/reutilizados
     for (const rows of Object.values(dataByTable)) {
       for (const row of rows) remapRowFks(row, idMap);
+    }
+
+    // 5) Filhos com unique composto (já com FK remapeada): reutilizar ou inserir
+    for (const spec of CHILD_TABLES) {
+      const keys = naturalChild.get(spec.table);
+      if (!keys) continue;
+      const parentIds: string[] = [];
+      for (const newId of idMap.values()) parentIds.push(newId);
+      for (const r of dataByTable[spec.parentTable] || []) {
+        if (r.id) parentIds.push(r.id as string);
+      }
+      const uniqueParentIds = [...new Set(parentIds)];
+      const liveKids = await fetchByParentIds(
+        admin,
+        spec.table,
+        spec.parentFk,
+        uniqueParentIds,
+      );
+      dataByTable[spec.table] = resolveMergeNaturalKeys(
+        dataByTable[spec.table] || [],
+        liveKids.error ? [] : liveKids.rows,
+        keys,
+        idMap,
+      );
+    }
+
+    // 6) Overrides de calendário (dependem de source_id já remapeado)
+    {
+      const keys = naturalTenant.get("calibration_schedule_overrides");
+      if (keys) {
+        const live = await fetchByTenant(admin, "calibration_schedule_overrides", tenantId);
+        dataByTable.calibration_schedule_overrides = resolveMergeNaturalKeys(
+          dataByTable.calibration_schedule_overrides || [],
+          live.error ? [] : live.rows,
+          keys,
+          idMap,
+        );
+      }
     }
   }
 
