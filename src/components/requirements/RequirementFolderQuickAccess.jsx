@@ -25,7 +25,7 @@ export default function RequirementFolderQuickAccess({
 
   if (!ctx || !user) return null;
 
-  const folder = getFoldersForRequirement(ctx.requirementId, currentTenant, user.role)
+  const folder = getFoldersForRequirement(ctx.requirementId, currentTenant, user.role, user)
     .find((f) => f.folderKey === ctx.folderKey);
 
   if (!folder) return null;

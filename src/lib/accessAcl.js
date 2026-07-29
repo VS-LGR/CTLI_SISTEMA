@@ -244,7 +244,15 @@ export function presetAccessAclForRole(role) {
 
   if (role === "gerente_qualidade") {
     allFoldersFor(["6", "8"]);
-    acl.modules = ["lista_mestra", "cadastros", "pessoal", "coleta", "certificados"];
+    acl.modules = [
+      "lista_mestra",
+      "cadastros",
+      "pessoal",
+      "coleta",
+      "certificados",
+      "pedidos_compra",
+      "solicitacao_orcamento",
+    ];
     return normalizeAccessAcl(acl);
   }
 

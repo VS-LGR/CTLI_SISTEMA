@@ -8,6 +8,7 @@ import {
   ListChecks, Briefcase, Toolbox, GearSix, Database,
   Buildings, CaretRight, ClipboardText, List, X,
   FileText, Certificate, BookOpen, FolderSimple, Question, Scales,
+  ShoppingCart, Currency,
 } from "@phosphor-icons/react";
 import AppBrand from "@/components/branding/AppBrand";
 import {
@@ -50,6 +51,8 @@ const CLIENT_NAV_ICONS = {
   coleta: ClipboardText,
   certificados: Certificate,
   "certificados-peso": Scales,
+  "pedidos-compra": ShoppingCart,
+  "solicitacoes-orcamento": Currency,
   "manual-qualidade": BookOpen,
 };
 const REQ_ICONS = {
@@ -225,6 +228,12 @@ const Layout = () => {
     if (item.requiresColeta && !canAccessColeta(user?.role, user)) return false;
     if (item.requiresCommercialProposals && !canAccessCommercialProposals(user?.role, user)) return false;
     if (item.requiresCalibrationCertificates && !canAccessCalibrationCertificates(user?.role, user)) return false;
+    if (item.requiresPurchaseOrders && !canAccessModule({
+      tenant: currentTenant, role: user?.role, module: "pedidos_compra", user,
+    })) return false;
+    if (item.requiresQuotationRequests && !canAccessModule({
+      tenant: currentTenant, role: user?.role, module: "solicitacao_orcamento", user,
+    })) return false;
     return true;
   };
 

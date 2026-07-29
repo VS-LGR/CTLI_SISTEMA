@@ -152,6 +152,29 @@ describe("tenantAccess", () => {
     expect(shortcuts.every((s) => s.id === "coleta")).toBe(true);
   });
 
+  test("ACL com pasta pr-6-6 libera pedidos e orçamento", () => {
+    const userWithFolder = {
+      tenant_id: "t1",
+      access_acl: {
+        version: 1,
+        modules: ["lista_mestra"],
+        folders: { "6": ["pr-6-6"] },
+      },
+    };
+    expect(canAccessModule({
+      tenant: fullTenant,
+      role: "gerente_qualidade",
+      module: "pedidos_compra",
+      user: userWithFolder,
+    })).toBe(true);
+    expect(canAccessModule({
+      tenant: fullTenant,
+      role: "gerente_qualidade",
+      module: "solicitacao_orcamento",
+      user: userWithFolder,
+    })).toBe(true);
+  });
+
   test("ACL ativa tem prioridade — função extra e remoção", () => {
     const techWithExtra = {
       tenant_id: "t1",

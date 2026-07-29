@@ -249,20 +249,20 @@ export function folderHasSidebarNav(requirementId, folder) {
   return buildFolderSidebarNav(requirementId, folder).length > 0;
 }
 
-export function getFolderLabel(requirementId, folderKey, tenant = null, role = null) {
+export function getFolderLabel(requirementId, folderKey, tenant = null, role = null, user = null) {
   if (!folderKey) return null;
-  const row = getFoldersForRequirement(requirementId, tenant, role).find((f) => f.folderKey === folderKey);
+  const row = getFoldersForRequirement(requirementId, tenant, role, user).find((f) => f.folderKey === folderKey);
   return row ? row.label : null;
 }
 
-export function getFirstFolderKey(requirementId, tenant = null, role = null) {
-  const list = getFoldersForRequirement(requirementId, tenant, role);
+export function getFirstFolderKey(requirementId, tenant = null, role = null, user = null) {
+  const list = getFoldersForRequirement(requirementId, tenant, role, user);
   return list.length ? list[0].folderKey : null;
 }
 
-export function isValidFolderKey(requirementId, folderKey, tenant = null, role = null) {
+export function isValidFolderKey(requirementId, folderKey, tenant = null, role = null, user = null) {
   if (!folderKey) return false;
-  return getFoldersForRequirement(requirementId, tenant, role).some((f) => f.folderKey === folderKey);
+  return getFoldersForRequirement(requirementId, tenant, role, user).some((f) => f.folderKey === folderKey);
 }
 
 /** Rota de listagem de documentos para um requisito (com subsessão quando aplicável). */

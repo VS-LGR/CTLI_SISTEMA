@@ -2,12 +2,15 @@ import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
 import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
+import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
+import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
 import { DOCUMENT_SECTIONS } from "@/lib/documentFolderConfig";
 import { masterDocumentListPath } from "@/lib/masterDocuments/masterDocumentRoutes";
 import { usesClientSidebarNav } from "@/lib/roleNav";
 import {
   isAclActive,
   aclAllowsModule,
+  aclAllowsFolder,
   aclAllowedRequirementPathPrefixes,
 } from "@/lib/accessAcl";
 import { isFolderAllowedForNonCtli, isCtliOnlyRequirement } from "@/lib/ctliOnlyFolders";
@@ -55,6 +58,8 @@ export const CLIENT_TOP_NAV_ITEMS = [
   { id: "coleta", label: "Coleta de dados", to: COLETA_LIST_PATH, requiresColeta: true },
   { id: "certificados", label: "Cert. balanças", to: CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
   { id: "certificados-peso", label: "Cert. pesos", to: WEIGHT_CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
+  { id: "pedidos-compra", label: "Pedidos de compra", to: PEDIDOS_LIST_PATH, requiresPurchaseOrders: true },
+  { id: "solicitacoes-orcamento", label: "Solicitações de orçamento", to: QUOTATION_LIST_PATH, requiresQuotationRequests: true },
   { id: "manual-qualidade", label: "Manual da Qualidade", to: MANUAL_QUALIDADE_PATH },
 ];
 
@@ -65,6 +70,8 @@ const ALLOWED_PATH_PREFIXES = [
   COLETA_LIST_PATH,
   CERTIFICATE_LIST_PATH,
   WEIGHT_CERTIFICATE_LIST_PATH,
+  PEDIDOS_LIST_PATH,
+  QUOTATION_LIST_PATH,
   MANUAL_QUALIDADE_PATH,
   "/requirement/5/manual-qualidade",
   "/requirement/7/pr-7-1",
@@ -106,8 +113,14 @@ export function isClientAllowedPath(pathname, user = null) {
     if (pathname.startsWith(CERTIFICATE_LIST_PATH) || pathname.startsWith(WEIGHT_CERTIFICATE_LIST_PATH)) {
       return aclAllowsModule(acl, "certificados");
     }
-    if (pathname.startsWith("/pedidos-compra")) return aclAllowsModule(acl, "pedidos_compra");
-    if (pathname.startsWith("/solicitacoes-orcamento")) return aclAllowsModule(acl, "solicitacao_orcamento");
+    if (pathname.startsWith("/pedidos-compra")) {
+      return aclAllowsModule(acl, "pedidos_compra") || aclAllowsFolder(acl, "6", "pr-6-6");
+    }
+    if (pathname.startsWith("/solicitacoes-orcamento")) {
+      return aclAllowsModule(acl, "solicitacao_orcamento")
+        || aclAllowsModule(acl, "pedidos_compra")
+        || aclAllowsFolder(acl, "6", "pr-6-6");
+    }
     if (pathname.startsWith("/lista-mestra") || pathname.includes("/pr-8-3")) {
       return aclAllowsModule(acl, "lista_mestra")
         || matchesAllowedPrefix(pathname, aclAllowedRequirementPathPrefixes(acl));

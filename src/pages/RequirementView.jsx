@@ -556,7 +556,7 @@ const RequirementView = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const first = getFirstFolderKey(id, currentTenant, user?.role);
+  const first = getFirstFolderKey(id, currentTenant, user?.role, user);
 
   const load = useCallback(async () => {
     if (!currentTenantId) { setLoading(false); return; }
@@ -594,7 +594,7 @@ const RequirementView = () => {
   if (requiresFolderNav(id) && !folderKey && first) {
     return <Navigate to={`/requirement/${id}/${first}`} replace />;
   }
-  if (requiresFolderNav(id) && folderKey && !isValidFolderKey(id, folderKey, currentTenant, user?.role) && first) {
+  if (requiresFolderNav(id) && folderKey && !isValidFolderKey(id, folderKey, currentTenant, user?.role, user) && first) {
     return <Navigate to={`/requirement/${id}/${first}`} replace />;
   }
   if (!requiresFolderNav(id) && folderKey) {
@@ -604,9 +604,9 @@ const RequirementView = () => {
     return <div className="text-slate-600">Selecione um ambiente no topo.</div>;
   }
 
-  const folderLabel = folderKey ? getFolderLabel(id, folderKey, currentTenant, user?.role) : null;
+  const folderLabel = folderKey ? getFolderLabel(id, folderKey, currentTenant, user?.role, user) : null;
   const folderMeta = folderKey
-    ? getFoldersForRequirement(id, currentTenant, user?.role).find((f) => f.folderKey === folderKey)
+    ? getFoldersForRequirement(id, currentTenant, user?.role, user).find((f) => f.folderKey === folderKey)
     : null;
   const reqTitle = REQ_NAMES[String(id)];
   const isColetaRegistro =

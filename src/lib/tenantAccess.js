@@ -59,7 +59,7 @@ export const TENANT_ADMIN_CREATABLE_ROLES = [
 
 export const CLIENT_PORTAL_REQ_IDS = ["5", "6", "7", "8"];
 
-export const CLIENT_PORTAL_REQ6_FOLDERS = new Set(["pr-6-2", "pr-6-4", "pr-6-4-12"]);
+export const CLIENT_PORTAL_REQ6_FOLDERS = new Set(["pr-6-2", "pr-6-4", "pr-6-4-12", "pr-6-6"]);
 
 export const CLIENT_PORTAL_REQ7_FOLDERS = new Set(["pr-7-1", "pr-7-2", "pr-7-6"]);
 
@@ -157,7 +157,15 @@ export function canAccessModule({ tenant, role, module, user = null }) {
     if (module === "pessoal") return aclAllowsModule(user.access_acl, "pessoal");
     if (module === "lista_mestra") return aclAllowsModule(user.access_acl, "lista_mestra");
     if (module === "pedidos_compra" || module === "solicitacao_orcamento") {
-      return aclAllowsModule(user.access_acl, module);
+      if (aclAllowsModule(user.access_acl, module)) return true;
+      if (
+        module === "solicitacao_orcamento"
+        && aclAllowsModule(user.access_acl, "pedidos_compra")
+      ) {
+        return true;
+      }
+      // Pasta PR-6.6 implica os módulos operacionais das abas.
+      return aclAllowsFolder(user.access_acl, "6", "pr-6-6");
     }
     if (module === "cadastros" || module === "thermo" || module === "pesos" || module === "balancas") {
       return aclAllowsModule(user.access_acl, "cadastros");

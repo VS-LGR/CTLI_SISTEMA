@@ -73,13 +73,16 @@ describe("accessAcl", () => {
     });
   });
 
-  it("preset gerente_qualidade inclui req 6/8 (sem req 4)", () => {
+  it("preset gerente_qualidade inclui req 6/8 e módulos de pedidos/orçamento", () => {
     const acl = presetAccessAclForRole("gerente_qualidade");
     expect(aclAllowsRequirement(acl, "6")).toBe(true);
     expect(aclAllowsRequirement(acl, "4")).toBe(false);
     expect(aclAllowsRequirement(acl, "7")).toBe(false);
     expect(aclAllowsFolder(acl, "6", "pr-6-2")).toBe(true);
     expect(aclAllowsFolder(acl, "6", "pr-6-5")).toBe(false);
+    expect(aclAllowsFolder(acl, "6", "pr-6-6")).toBe(true);
+    expect(aclAllowsModule(acl, "pedidos_compra")).toBe(true);
+    expect(aclAllowsModule(acl, "solicitacao_orcamento")).toBe(true);
   });
 
   it("catálogo e emptyAcl", () => {

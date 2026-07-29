@@ -6,6 +6,11 @@ import {
   isDirectorOnlyNav,
   isClientPortalOperationsRole,
 } from "@/lib/roleNav";
+import {
+  isAclActive,
+  aclAllowsModule,
+  aclAllowsFolder,
+} from "@/lib/accessAcl";
 
 export {
   CLIENT_PORTAL_OPERATIONS_ROLES,
@@ -118,8 +123,11 @@ export const canEditCalibrationCertificate = (role, user = null) => {
 
 /** Pedidos de compra / orçamentos (PR-6.6). */
 export const canAccessPurchaseOrders = (role, user = null) => {
-  if (user?.access_acl && Number(user.access_acl.version) === 1) {
-    return Array.isArray(user.access_acl.modules) && user.access_acl.modules.includes("pedidos_compra");
+  if (isCtliAdmin(role)) return true;
+  if (isAclActive(user?.access_acl)) {
+    if (aclAllowsModule(user.access_acl, "pedidos_compra")) return true;
+    // Pasta PR-6.6 implica o módulo (presets legados omitiam o id em modules).
+    return aclAllowsFolder(user.access_acl, "6", "pr-6-6");
   }
   return [
     "admin",
@@ -132,10 +140,15 @@ export const canAccessPurchaseOrders = (role, user = null) => {
 
 /** Solicitações de orçamento — mesmos papéis que pedidos de compra. */
 export const canAccessQuotationRequests = (role, user = null) => {
-  if (user?.access_acl && Number(user.access_acl.version) === 1) {
-    return Array.isArray(user.access_acl.modules)
-      && (user.access_acl.modules.includes("solicitacao_orcamento")
-        || user.access_acl.modules.includes("pedidos_compra"));
+  if (isCtliAdmin(role)) return true;
+  if (isAclActive(user?.access_acl)) {
+    if (
+      aclAllowsModule(user.access_acl, "solicitacao_orcamento")
+      || aclAllowsModule(user.access_acl, "pedidos_compra")
+    ) {
+      return true;
+    }
+    return aclAllowsFolder(user.access_acl, "6", "pr-6-6");
   }
   return canAccessPurchaseOrders(role, user);
 };

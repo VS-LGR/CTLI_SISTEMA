@@ -43,6 +43,20 @@ describe("clientNavConfig", () => {
     expect(isClientAllowedPath("/requirement/5/politica-qualidade")).toBe(false);
     expect(isClientAllowedPath("/requirement/8/pr-8-3/config/re-72a")).toBe(false);
     expect(isClientAllowedPath("/pedidos-compra")).toBe(false);
+    expect(isClientAllowedPath("/solicitacoes-orcamento")).toBe(false);
+  });
+
+  test("isClientAllowedPath com ACL libera pedidos e orçamento", () => {
+    const aclUser = {
+      access_acl: {
+        version: 1,
+        modules: ["pedidos_compra", "solicitacao_orcamento"],
+        folders: { "6": ["pr-6-6"] },
+      },
+    };
+    expect(isClientAllowedPath("/pedidos-compra", aclUser)).toBe(true);
+    expect(isClientAllowedPath("/solicitacoes-orcamento", aclUser)).toBe(true);
+    expect(isClientAllowedPath("/requirement/6/pr-6-6", aclUser)).toBe(true);
   });
 
   test("getClientListaMestraNavItems exclui config", () => {
