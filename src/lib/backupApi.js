@@ -93,7 +93,13 @@ async function postBackupMultipart(tenantId, file, { action, replace, confirmPas
     body: fd,
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || `Falha na ação ${action}`);
+  if (!res.ok) {
+    const err = data?.error || `Falha na ação ${action}`;
+    if (/Ação desconhecida/i.test(err)) {
+      throw new Error(`${err} (é necessário redeploy da função tenant-backup)`);
+    }
+    throw new Error(err);
+  }
   return data;
 }
 

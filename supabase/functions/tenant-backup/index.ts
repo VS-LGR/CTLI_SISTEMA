@@ -1153,14 +1153,21 @@ serve(async (req) => {
       body = await req.json();
     }
 
-    const action = String(body.action || "");
-    const tenantId = String(body.tenant_id || "");
+    const action = String(body.action || "").trim().toLowerCase();
+    const tenantId = String(body.tenant_id || "").trim();
     if (!tenantId) return jsonResponse({ error: "tenant_id obrigatório" }, 400);
 
     const gate = await authGate(req, tenantId);
     if ("error" in gate) return gate.error;
     const { admin, userId, userEmail } = gate;
     const authHeader = req.headers.get("Authorization");
+
+    const knownActions = ["list", "create", "download", "dry_run", "restore"];
+    if (action && !knownActions.includes(action)) {
+      return jsonResponse({
+        error: `Ação desconhecida: ${action}. Ações válidas: ${knownActions.join(", ")}. Se acabou de atualizar o código, confirme o deploy: supabase functions deploy tenant-backup`,
+      }, 400);
+    }
 
     if (action === "list") {
       const { data: tenant, error } = await admin
@@ -1449,7 +1456,9 @@ serve(async (req) => {
       }
     }
 
-    return jsonResponse({ error: `Ação desconhecida: ${action}` }, 400);
+    return jsonResponse({
+      error: `Ação desconhecida: ${action || "(vazia)"}. Use list, create, download, dry_run ou restore.`,
+    }, 400);
   } catch (e) {
     return jsonResponse({ error: String(e) }, 500);
   }
