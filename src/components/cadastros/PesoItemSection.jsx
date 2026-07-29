@@ -28,6 +28,7 @@ import {
 } from "@/lib/oimlR111NominalValues";
 import { WEIGHT_PICKER_KIND_OPTIONS, filterWeightItemsByKind } from "@/lib/pesoPadraoPickerUtils";
 import { isLoadBatchItem } from "@/lib/standardWeightItemUtils";
+import { recordWeightItemSheetHistory } from "@/lib/deviceTechnicalSheets/deviceSheetHistoryApi";
 import { cadastroFilterFieldClass } from "@/components/cadastros/CadastroListFilterBar";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 
@@ -186,10 +187,16 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
       if (editing) {
         const { error } = await supabase.from("standard_weight_items").update(base).eq("id", editing.id);
         if (error) throw error;
+        try {
+          await recordWeightItemSheetHistory(tenantId, editing, { ...editing, ...base, id: editing.id });
+        } catch { /* histórico best-effort */ }
         toast.success("Atualizado");
       } else {
-        const { error } = await supabase.from("standard_weight_items").insert(base);
+        const { data, error } = await supabase.from("standard_weight_items").insert(base).select("*").single();
         if (error) throw error;
+        try {
+          await recordWeightItemSheetHistory(tenantId, null, data);
+        } catch { /* histórico best-effort */ }
         toast.success("Cadastrado");
       }
       setOpen(false);

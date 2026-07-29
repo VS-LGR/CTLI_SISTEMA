@@ -1,5 +1,7 @@
 /** ACL granular por conta — helpers puros (sem imports de tenantAccess/nav para evitar ciclos). */
 
+import { filterFoldersForNonCtli, isFolderAllowedForNonCtli, isCtliOnlyRequirement } from "@/lib/ctliOnlyFolders";
+
 export const ACL_VERSION = 1;
 
 /** Módulos operacionais selecionáveis na UI. */
@@ -129,11 +131,12 @@ export function normalizeAccessAcl(raw, { activate = true } = {}) {
   Object.keys(foldersIn).forEach((reqId) => {
     const rid = String(reqId);
     if (!REQ_LABELS[rid]) return;
+    if (isCtliOnlyRequirement(rid)) return;
     const list = Array.isArray(foldersIn[reqId]) ? foldersIn[reqId] : [];
     const keys = [...new Set(
       list
         .map((k) => String(k || "").trim())
-        .filter((k) => ALLOWED_FOLDER_KEYS.has(k)),
+        .filter((k) => ALLOWED_FOLDER_KEYS.has(k) && isFolderAllowedForNonCtli(rid, k)),
     )].sort();
     if (keys.length) folders[rid] = keys;
   });
@@ -188,14 +191,19 @@ export function accessFlagsFromAcl(acl) {
 }
 
 export function getAccessAclCatalog(labelMap = null) {
-  const requirements = Object.keys(REQ_LABELS).map((id) => ({
-    id,
-    label: REQ_LABELS[id],
-    folders: (FOLDER_CATALOG[id] || []).map((f) => ({
-      ...f,
-      label: (labelMap && labelMap[f.folderKey]) || f.label,
-    })),
-  }));
+  const requirements = Object.keys(REQ_LABELS)
+    .filter((id) => !isCtliOnlyRequirement(id))
+    .map((id) => ({
+      id,
+      label: REQ_LABELS[id],
+      folders: (FOLDER_CATALOG[id] || [])
+        .filter((f) => isFolderAllowedForNonCtli(id, f.folderKey))
+        .map((f) => ({
+          ...f,
+          label: (labelMap && labelMap[f.folderKey]) || f.label,
+        })),
+    }))
+    .filter((r) => r.folders.length > 0);
   return {
     modules: ACL_OPERATIONAL_MODULES,
     requirements,
@@ -220,19 +228,22 @@ export function presetAccessAclForRole(role) {
 
   const allFoldersFor = (reqIds) => {
     reqIds.forEach((rid) => {
-      const keys = (FOLDER_CATALOG[rid] || []).map((f) => f.folderKey);
+      if (isCtliOnlyRequirement(rid)) return;
+      const keys = (FOLDER_CATALOG[rid] || [])
+        .map((f) => f.folderKey)
+        .filter((fk) => isFolderAllowedForNonCtli(rid, fk));
       if (keys.length) acl.folders[rid] = keys;
     });
   };
 
   if (role === "gerente_geral" || role === "client") {
-    allFoldersFor(["4", "5", "6", "7", "8"]);
+    allFoldersFor(["5", "6", "7", "8"]);
     acl.modules = ACL_OPERATIONAL_MODULES.map((m) => m.id);
     return normalizeAccessAcl(acl);
   }
 
   if (role === "gerente_qualidade") {
-    allFoldersFor(["4", "6", "8"]);
+    allFoldersFor(["6", "8"]);
     acl.modules = ["lista_mestra", "cadastros", "pessoal", "coleta", "certificados"];
     return normalizeAccessAcl(acl);
   }
@@ -244,7 +255,7 @@ export function presetAccessAclForRole(role) {
   }
 
   if (role === "administrativo_vendas") {
-    acl.folders = { "7": ["pr-7-1", "pr-7-1-7"] };
+    acl.folders = { "7": ["pr-7-1"] };
     acl.modules = ["propostas", "cadastros", "coleta", "certificados"];
     return normalizeAccessAcl(acl);
   }
@@ -255,7 +266,10 @@ export function presetAccessAclForRole(role) {
     return normalizeAccessAcl(acl);
   }
 
-  return normalizeAccessAcl(acl);
+  return normalizeAccessAcl({
+    ...acl,
+    folders: filterFoldersForNonCtli(acl.folders),
+  });
 }
 
 export function aclAllowedRequirementPathPrefixes(acl) {

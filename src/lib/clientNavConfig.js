@@ -10,6 +10,7 @@ import {
   aclAllowsModule,
   aclAllowedRequirementPathPrefixes,
 } from "@/lib/accessAcl";
+import { isFolderAllowedForNonCtli, isCtliOnlyRequirement } from "@/lib/ctliOnlyFolders";
 
 export const MANUAL_QUALIDADE_PATH = "/requirement/5/manual-qualidade";
 
@@ -27,7 +28,7 @@ export const CLIENT_ENV_REQ_IDS = new Set(["5", "7", "8"]);
 
 export const CLIENT_ENV_REQ5_FOLDERS = new Set(["manual-qualidade"]);
 
-export const CLIENT_ENV_REQ7_FOLDERS = new Set(["pr-7-1", "pr-7-2"]);
+export const CLIENT_ENV_REQ7_FOLDERS = new Set(["pr-7-1", "pr-7-2", "pr-7-6"]);
 
 export const CLIENT_ENV_REQ8_FOLDERS = new Set(["pr-8-3"]);
 
@@ -68,6 +69,7 @@ const ALLOWED_PATH_PREFIXES = [
   "/requirement/5/manual-qualidade",
   "/requirement/7/pr-7-1",
   "/requirement/7/pr-7-2",
+  "/requirement/7/pr-7-6",
   "/requirement/8/pr-8-3",
   "/lista-mestra",
 ];
@@ -115,6 +117,12 @@ export function isClientAllowedPath(pathname, user = null) {
         && matchesAllowedPrefix(pathname, aclAllowedRequirementPathPrefixes(acl));
     }
     if (pathname.startsWith("/requirement/")) {
+      const m = pathname.match(/^\/requirement\/([^/]+)\/([^/]+)/);
+      if (m) {
+        const rid = m[1];
+        const fk = m[2];
+        if (isCtliOnlyRequirement(rid) || !isFolderAllowedForNonCtli(rid, fk)) return false;
+      }
       return matchesAllowedPrefix(pathname, aclAllowedRequirementPathPrefixes(acl));
     }
     return false;
@@ -130,7 +138,7 @@ export function isClientAllowedPath(pathname, user = null) {
   if (pathname.includes("/pr-8-3/config/")) return false;
 
   if (pathname.match(/^\/requirement\/5\/(?!manual-qualidade)/)) return false;
-  if (pathname.match(/^\/requirement\/7\/(?!pr-7-1|pr-7-2)/)) return false;
+  if (pathname.match(/^\/requirement\/7\/(?!pr-7-1|pr-7-2|pr-7-6)/)) return false;
   if (pathname.match(/^\/requirement\/8\/(?!pr-8-3)/)) return false;
 
   return matchesAllowedPrefix(pathname);

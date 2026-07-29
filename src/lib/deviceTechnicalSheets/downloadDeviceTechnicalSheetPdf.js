@@ -6,18 +6,25 @@ import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFoo
 import { ML, TEXT } from "@/lib/institutionalPdf/theme";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
+import { latestSheetUpdateIso } from "./buildDeviceTechnicalSheets";
 
 const TABLE_STYLES = {
   font: "helvetica",
-  fontSize: 6.5,
+  fontSize: 6,
   textColor: TEXT,
 };
+
+function fmtCell(v) {
+  if (v == null || v === "") return "—";
+  return String(v);
+}
 
 export async function downloadDeviceTechnicalSheetPdf(rows, {
   tenantId = null,
   tenantName = "",
   tenant = null,
   logoDataUrl: preloadedLogo = null,
+  historyRows = [],
 } = {}) {
   const { meta, fileName } = await prepareMasterDocumentExport({
     tenantId,
@@ -39,44 +46,79 @@ export async function downloadDeviceTechnicalSheetPdf(rows, {
   };
   let startY = drawInstitutionalPdfHeader(doc, header, logoDataUrl);
 
+  const lastUpdate = latestSheetUpdateIso(rows);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...TEXT);
   doc.text(
-    `Ambiente: ${tenantName || "—"}  |  ${rows.length} linha(s)`,
+    `Ambiente: ${tenantName || "—"}  |  ${rows.length} linha(s)  |  Última atualização da ficha: ${lastUpdate ? fmtDmyShort(lastUpdate) : "—"}`,
     ML,
     startY + 2,
   );
   startY += 8;
 
   const body = (rows || []).map((r) => [
-    r.identification || "",
-    r.equipmentType || "",
-    r.manufacturer || "",
-    r.certificateNumber || "",
+    fmtCell(r.identification),
+    fmtCell(r.equipmentType),
+    fmtCell(r.manufacturer),
+    fmtCell(r.certificateNumber),
+    fmtCell(r.calibratedBy),
     fmtDmyShort(r.calibrationDate),
     fmtDmyShort(r.nextCalibrationDate),
-    r.nominalValue || "",
-    r.conventionalValue || "",
-    r.uncertainty || "",
-    r.unit || "",
-    r.equipmentClass || "",
-    r.quantity || "",
-    r.status || "",
+    fmtCell(r.intermediateCheck),
+    fmtCell(r.frequencyStatus || r.calibrationFrequency),
+    fmtCell(r.nominalValue),
+    fmtCell(r.conventionalValue),
+    fmtCell(r.errorFound),
+    fmtCell(r.uncertainty),
+    fmtCell(r.unit),
+    fmtCell(r.equipmentClass),
+    fmtCell(r.quantity),
+    fmtCell(r.status),
+    fmtCell(r.history),
   ]);
 
   autoTable(doc, {
     startY,
-    margin: { left: ML, right: 10 },
+    margin: { left: ML, right: 8 },
     head: [[
-      "ID", "Tipo", "Fabricante", "Nº cert.", "Calibração", "Próxima",
-      "Nominal", "V.C.", "Ue", "Un.", "Classe", "Grandeza", "Situação",
+      "ID", "Tipo", "Fabricante", "Nº cert.", "Lab.", "Calibração", "Próxima",
+      "Checagem", "Freq./Status", "Nominal", "V.C.", "Erro", "Ue", "Un.",
+      "Classe", "Grandeza", "Situação", "Histórico",
     ]],
     body,
     styles: TABLE_STYLES,
-    headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold", fontSize: 6.5 },
+    headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 5.5 },
     alternateRowStyles: { fillColor: [248, 250, 252] },
   });
+
+  if (historyRows?.length) {
+    let y = (doc.lastAutoTable?.finalY || startY) + 10;
+    if (y > 180) {
+      doc.addPage();
+      y = drawInstitutionalPdfHeader(doc, header, logoDataUrl) + 4;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Histórico de alterações de itens", ML, y);
+    y += 4;
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: ML, right: 8 },
+      head: [["Data", "ID / Fonte", "Campo", "De", "Para", "Nº cert."]],
+      body: historyRows.map((h) => [
+        fmtDmyShort(h.changed_at),
+        fmtCell(h.identification || h.source_id),
+        fmtCell(h.field_label || h.field_key),
+        fmtCell(h.old_value),
+        fmtCell(h.new_value),
+        fmtCell(h.certificate_number_snapshot),
+      ]),
+      styles: TABLE_STYLES,
+      headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 6 },
+    });
+  }
 
   drawInstitutionalPageFooters(doc);
   doc.save(fileName);

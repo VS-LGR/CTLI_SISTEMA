@@ -34,8 +34,9 @@ describe("tenantAccess", () => {
     expect(canAccessModule({ tenant: fullTenant, role: "client", module: "cadastros", user: clientUser })).toBe(false);
   });
 
-  test("gerente qualidade — req 4/6/8; coleta só com toggle", () => {
-    expect(canAccessRequirement({ tenant: fullTenant, role: "gerente_qualidade", requirementId: "4", user: clientUser })).toBe(true);
+  test("gerente qualidade — req 6/8 (sem req 4 CTLI-only); coleta só com toggle", () => {
+    expect(canAccessRequirement({ tenant: fullTenant, role: "gerente_qualidade", requirementId: "4", user: clientUser })).toBe(false);
+    expect(canAccessRequirement({ tenant: fullTenant, role: "gerente_qualidade", requirementId: "6", user: clientUser })).toBe(true);
     expect(canAccessRequirement({ tenant: fullTenant, role: "gerente_qualidade", requirementId: "7", user: clientUser })).toBe(false);
     expect(canAccessModule({ tenant: fullTenant, role: "gerente_qualidade", module: "coleta", user: clientUser })).toBe(false);
     expect(canAccessModule({
@@ -47,7 +48,7 @@ describe("tenantAccess", () => {
     expect(canAccessCadastroSection({ tenant: fullTenant, role: "gerente_qualidade", sectionId: "pesos", user: clientUser })).toBe(true);
   });
 
-  test("administrativo vendas — 7.1 e 7.1.7", () => {
+  test("administrativo vendas — 7.1; 7.1.7 bloqueado (CTLI-only)", () => {
     expect(canAccessRequirementFolder({
       tenant: fullTenant,
       role: "administrativo_vendas",
@@ -59,11 +60,57 @@ describe("tenantAccess", () => {
       tenant: fullTenant,
       role: "administrativo_vendas",
       requirementId: "7",
+      folderKey: "pr-7-1-7",
+      user: clientUser,
+    })).toBe(false);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "administrativo_vendas",
+      requirementId: "7",
       folderKey: "pr-7-2",
       user: clientUser,
     })).toBe(false);
   });
 
+  test("hard-block CTLI-only — pastas e req 4 indisponíveis para não-admin", () => {
+    expect(canAccessRequirement({ tenant: fullTenant, role: "gerente_geral", requirementId: "4" })).toBe(false);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "gerente_geral",
+      requirementId: "6",
+      folderKey: "pr-6-4-10",
+    })).toBe(false);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "gerente_geral",
+      requirementId: "6",
+      folderKey: "pr-6-5",
+    })).toBe(false);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "gerente_geral",
+      requirementId: "7",
+      folderKey: "pr-7-6",
+    })).toBe(true);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "gerente_geral",
+      requirementId: "7",
+      folderKey: "pr-7-8",
+    })).toBe(false);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "gerente_geral",
+      requirementId: "8",
+      folderKey: "pr-8-4",
+    })).toBe(false);
+    expect(canAccessRequirementFolder({
+      tenant: fullTenant,
+      role: "admin",
+      requirementId: "8",
+      folderKey: "pr-8-4",
+    })).toBe(true);
+  });
   test("administrativo compras — 6.6", () => {
     expect(canAccessRequirementFolder({
       tenant: fullTenant,
@@ -178,7 +225,7 @@ describe("tenantAccess", () => {
     const items = getVisibleReqMenuItems(portalTenant, "client", clientUser);
     expect(items.map((i) => i.id)).toEqual(["5", "7", "8"]);
     const r7 = getFoldersForRequirement("7", portalTenant, "client", clientUser).map((f) => f.folderKey);
-    expect(r7).toEqual(["pr-7-1", "pr-7-2"]);
+    expect(r7).toEqual(["pr-7-1", "pr-7-2", "pr-7-6"]);
   });
 
   test("gerente qualidade vê cadastros no menu", () => {

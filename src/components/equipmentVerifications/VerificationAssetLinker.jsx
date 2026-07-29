@@ -258,7 +258,8 @@ export default function VerificationAssetLinker({
         <div className="flex flex-wrap gap-2">
           {assetKindUsesCadastroLink(kind) && (
             <Button type="button" size="sm" variant="outline" onClick={openLinkDialog} disabled={disabled || busy}>
-              <LinkSimple size={16} className="mr-1" /> Vincular do cadastro
+              <LinkSimple size={16} className="mr-1" />
+              {kind === "pesos" ? "Vincular conjuntos" : "Vincular do cadastro"}
             </Button>
           )}
           {assetKindUsesInlineCadastro(kind) && (
@@ -273,7 +274,9 @@ export default function VerificationAssetLinker({
           <p className="text-sm text-slate-500">
             {assetKindUsesInlineCadastro(kind)
               ? "Adicione computadores ou veículos para preencher o checklist de cada um."
-              : "Vincule um ou mais equipamentos do cadastro para preencher o checklist."}
+              : kind === "pesos"
+                ? "Vincule conjuntos (certificados de peso padrão) para verificar por conjunto, não por peso individual."
+                : "Vincule um ou mais equipamentos do cadastro para preencher o checklist."}
           </p>
         ) : (
           <ul className="divide-y divide-slate-100 border border-slate-100 rounded-lg">
@@ -299,7 +302,9 @@ export default function VerificationAssetLinker({
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Vincular equipamentos</DialogTitle>
+            <DialogTitle>
+              {kind === "pesos" ? "Vincular conjuntos (certificados de peso)" : "Vincular equipamentos"}
+            </DialogTitle>
           </DialogHeader>
           {loadingOptions ? (
             <p className="text-sm text-slate-500 py-4">A carregar…</p>

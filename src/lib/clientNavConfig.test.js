@@ -12,14 +12,14 @@ const portalTenant = { deployment_model: "client_portal" };
 const clientUser = { tenant_id: "tenant-1" };
 
 describe("clientNavConfig", () => {
-  test("isClientEnvironmentUser — tenant fixo exceto admin e nav restrita", () => {
+  test("isClientEnvironmentUser — apenas conta client", () => {
     expect(isClientEnvironmentUser("client", clientUser, portalTenant)).toBe(true);
-    expect(isClientEnvironmentUser("diretor", clientUser, portalTenant)).toBe(true);
+    expect(isClientEnvironmentUser("diretor", clientUser, portalTenant)).toBe(false);
     expect(isClientEnvironmentUser("admin", clientUser, portalTenant)).toBe(false);
-    expect(isClientEnvironmentUser("client", { tenant_id: null }, portalTenant)).toBe(false);
+    expect(isClientEnvironmentUser("client", { tenant_id: null }, portalTenant)).toBe(true);
     expect(isClientEnvironmentUser("tecnico_campo", clientUser, portalTenant)).toBe(false);
     expect(isClientEnvironmentUser("signatario", clientUser, { deployment_model: "full" })).toBe(false);
-    expect(isClientEnvironmentUser("signatario", clientUser, portalTenant)).toBe(true);
+    expect(isClientEnvironmentUser("signatario", clientUser, portalTenant)).toBe(false);
   });
 
   test("isClientAllowedPath permite rotas do menu", () => {

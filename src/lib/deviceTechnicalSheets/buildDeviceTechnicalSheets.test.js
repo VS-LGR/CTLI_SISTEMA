@@ -57,12 +57,47 @@ describe("buildDeviceTechnicalSheets", () => {
     expect(rows[1].equipmentType).toMatch(/Barômetro/);
   });
 
-  test("filterDeviceTechnicalSheets por situação e query", () => {
-    const rows = [
-      { identification: "A", status: "APROVADO", equipmentType: "Peso Padrão", quantity: "MASSA", manufacturer: "X", certificateNumber: "1", location: "", calibrationDate: "2024-01-01" },
-      { identification: "B", status: "VENCIDO", equipmentType: "Barômetro", quantity: "PRESSÃO", manufacturer: "Y", certificateNumber: "2", location: "", calibrationDate: "2023-01-01" },
-    ];
-    expect(filterDeviceTechnicalSheets(rows, { status: "VENCIDO" })).toHaveLength(1);
-    expect(filterDeviceTechnicalSheets(rows, { query: "bar" })).toHaveLength(1);
+  test("exclui lote de carga e calcula erro", () => {
+    const rows = buildDeviceTechnicalSheets({
+      today: "2026-07-08",
+      weightItems: [
+        {
+          id: "w1",
+          identification: "MA-01",
+          nominal_value: "1",
+          conventional_value: "0,999959",
+          expanded_uncertainty: "0,000033",
+          unit: "g",
+          active: true,
+          weight_certificate_id: "c1",
+          weight_status: "4",
+          is_load_batch: false,
+        },
+        {
+          id: "lb1",
+          identification: "L-190",
+          nominal_value: "190",
+          conventional_value: "190",
+          expanded_uncertainty: "0,1",
+          unit: "g",
+          active: true,
+          is_load_batch: true,
+        },
+      ],
+      weightCertificates: [{
+        id: "c1",
+        manufacturer: "Kn",
+        certificate_number: "CAL-1",
+        calibrated_by: "CAL 0056",
+        calibration_date: "2024-01-10",
+        expiry_date: "2026-01-10",
+        class: "M1",
+      }],
+      envCertificates: [],
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].equipmentType).toBe("Peso Padrão");
+    expect(rows[0].history).toBe("4ª Calibração");
+    expect(rows[0].errorFound).not.toBe("N/A");
   });
 });

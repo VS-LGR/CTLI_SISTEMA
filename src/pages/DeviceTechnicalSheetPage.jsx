@@ -4,23 +4,29 @@ import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FilePdf, MagnifyingGlass } from "@phosphor-icons/react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { FilePdf, Info, MagnifyingGlass } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { DEVICE_SHEET_REQ_ID, DEVICE_SHEET_FOLDER_KEY } from "@/lib/deviceTechnicalSheetRoutes";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import {
   buildDeviceTechnicalSheets,
   filterDeviceTechnicalSheets,
+  latestSheetUpdateIso,
   uniqueSheetValues,
 } from "@/lib/deviceTechnicalSheets/buildDeviceTechnicalSheets";
 import { downloadDeviceTechnicalSheetPdf } from "@/lib/deviceTechnicalSheets/downloadDeviceTechnicalSheetPdf";
+import { listDeviceTechnicalSheetHistory } from "@/lib/deviceTechnicalSheets/deviceSheetHistoryApi";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
+import DocumentRecordMetaLine from "@/components/masterDocuments/DocumentRecordMetaLine";
+import { getActiveDocumentByCode } from "@/lib/masterDocuments/masterDocumentResolver";
+import { getLegacyFallbackByCode } from "@/lib/masterDocuments/masterDocumentFallback";
 
 const STATUS_TONE = {
   APROVADO: "bg-emerald-100 text-emerald-800",
@@ -29,11 +35,37 @@ const STATUS_TONE = {
   A_VERIFICAR: "bg-amber-100 text-amber-900",
 };
 
+const COL_HELP = "Alterar o equipamento ou o certificado no cadastro atualiza a ficha. O histórico de alterações fica na tabela abaixo.";
+
+function HeadCell({ children, tip }) {
+  return (
+    <th className="p-2 whitespace-nowrap">
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center gap-1 cursor-help">
+              {children}
+              {tip ? <Info size={12} className="text-slate-400" /> : null}
+            </span>
+          </TooltipTrigger>
+          {tip ? (
+            <TooltipContent className="max-w-xs bg-slate-900 text-white">
+              {tip}
+            </TooltipContent>
+          ) : null}
+        </Tooltip>
+      </TooltipProvider>
+    </th>
+  );
+}
+
 export default function DeviceTechnicalSheetPage({ embedded = false }) {
   const { currentTenantId, currentTenant } = useOutletContext();
   const [weightItems, setWeightItems] = useState([]);
   const [weightCerts, setWeightCerts] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
+  const [historyRows, setHistoryRows] = useState([]);
+  const [docMeta, setDocMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyPdf, setBusyPdf] = useState(false);
   const [query, setQuery] = useState("");
@@ -47,10 +79,12 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
     setLoading(true);
     try {
       const tid = currentTenantId;
-      const [wi, wc, ec] = await Promise.all([
+      const [wi, wc, ec, hist, meta] = await Promise.all([
         supabase.from("standard_weight_items").select("*").eq("tenant_id", tid).order("identification"),
         supabase.from("weight_standard_certificates").select("*").eq("tenant_id", tid),
         supabase.from("environment_sensor_certificates").select("*").eq("tenant_id", tid).order("equipment_name"),
+        listDeviceTechnicalSheetHistory(tid).catch(() => []),
+        getActiveDocumentByCode(tid, "RE-6.4B").catch(() => null),
       ]);
       if (wi.error) throw wi.error;
       if (wc.error) throw wc.error;
@@ -58,6 +92,8 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
       setWeightItems(wi.data || []);
       setWeightCerts(wc.data || []);
       setEnvCerts(ec.data || []);
+      setHistoryRows(hist || []);
+      setDocMeta(meta || getLegacyFallbackByCode("RE-6.4B"));
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -92,6 +128,8 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
     return [...set].sort((a, b) => b.localeCompare(a));
   }, [rows]);
 
+  const lastUpdate = latestSheetUpdateIso(filtered);
+
   const handlePdf = async () => {
     setBusyPdf(true);
     try {
@@ -99,6 +137,7 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
         tenantId: currentTenantId,
         tenantName: currentTenant?.name || "",
         tenant: currentTenant,
+        historyRows,
       });
       toast.success("PDF gerado");
     } catch (e) {
@@ -113,15 +152,28 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] w-full min-w-0" data-testid="device-technical-sheet-page">
+    <div className="space-y-6 max-w-[1600px] w-full min-w-0" data-testid="device-technical-sheet-page">
       {!embedded && (
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4 · RE-6.4B</div>
             <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Ficha Técnica de Dispositivos</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Visão consolidada dos pesos padrão e termo-baro-higrômetros cadastrados.
+              Visão consolidada dos pesos padrão e termo-baro-higrômetros (lotes de carga excluídos).
             </p>
+            <div className="mt-2">
+              <DocumentRecordMetaLine
+                code={docMeta?.code || "RE-6.4B"}
+                reference={docMeta?.reference || "PR-6.4"}
+                revision={docMeta?.revision || "00"}
+                modelIssueDate={docMeta?.modelIssueDate}
+                title={docMeta?.title}
+                masterDocumentId={docMeta?.id}
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Última atualização da ficha: {lastUpdate ? fmtDmyShort(lastUpdate) : "—"}
+              </p>
+            </div>
           </div>
           <Button type="button" onClick={handlePdf} disabled={busyPdf || loading || !filtered.length}>
             <FilePdf size={16} className="mr-1" />
@@ -130,7 +182,15 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
         </div>
       )}
       {embedded && (
-        <div className="flex justify-end">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <DocumentRecordMetaLine
+            code={docMeta?.code || "RE-6.4B"}
+            reference={docMeta?.reference || "PR-6.4"}
+            revision={docMeta?.revision || "00"}
+            modelIssueDate={docMeta?.modelIssueDate}
+            title={docMeta?.title}
+            masterDocumentId={docMeta?.id}
+          />
           <Button type="button" onClick={handlePdf} disabled={busyPdf || loading || !filtered.length}>
             <FilePdf size={16} className="mr-1" />
             Exportar PDF
@@ -144,6 +204,11 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
           folderKey={DEVICE_SHEET_FOLDER_KEY}
         />
       )}
+
+      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 flex gap-2 items-start">
+        <Info size={14} className="mt-0.5 shrink-0 text-slate-500" />
+        <span>{COL_HELP}</span>
+      </div>
 
       <div className="flex flex-col gap-3">
         <div className="relative flex-1 max-w-xl">
@@ -212,31 +277,34 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
 
       <Card className="border-slate-200 overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-sm min-w-[1200px]">
+          <table className="w-full text-sm min-w-[1400px]">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="p-2">ID</th>
-                <th className="p-2">Tipo</th>
-                <th className="p-2">Fabricante</th>
-                <th className="p-2">Nº cert.</th>
-                <th className="p-2">Lab.</th>
-                <th className="p-2">Calibração</th>
-                <th className="p-2">Próxima</th>
-                <th className="p-2">Checagem</th>
-                <th className="p-2">Nominal</th>
-                <th className="p-2">V.C.</th>
-                <th className="p-2">Ue</th>
-                <th className="p-2">Un.</th>
-                <th className="p-2">Classe</th>
-                <th className="p-2">Grandeza</th>
-                <th className="p-2">Situação</th>
+                <HeadCell tip="Identificação do equipamento no cadastro">ID</HeadCell>
+                <HeadCell tip="Tipo (Peso Padrão ou Thermo). Lotes de carga não entram.">Tipo</HeadCell>
+                <HeadCell>Fabricante</HeadCell>
+                <HeadCell tip="Número do certificado vigente — exportado no PDF">Nº cert.</HeadCell>
+                <HeadCell>Lab.</HeadCell>
+                <HeadCell>Calibração</HeadCell>
+                <HeadCell>Próxima</HeadCell>
+                <HeadCell>Checagem</HeadCell>
+                <HeadCell tip="Frequência e status derivados das datas">Freq.</HeadCell>
+                <HeadCell>Nominal</HeadCell>
+                <HeadCell>V.C.</HeadCell>
+                <HeadCell tip="Erro = V.C. − Nominal">Erro</HeadCell>
+                <HeadCell>Ue</HeadCell>
+                <HeadCell>Un.</HeadCell>
+                <HeadCell>Classe</HeadCell>
+                <HeadCell>Grandeza</HeadCell>
+                <HeadCell tip="Nº da calibração do item">Histórico</HeadCell>
+                <HeadCell>Situação</HeadCell>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={15} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={18} className="p-8 text-center text-slate-500">A carregar…</td></tr>
               ) : !filtered.length ? (
-                <tr><td colSpan={15} className="p-8 text-center text-slate-500">Nenhum equipamento encontrado.</td></tr>
+                <tr><td colSpan={18} className="p-8 text-center text-slate-500">Nenhum equipamento encontrado.</td></tr>
               ) : filtered.map((r) => (
                 <tr key={r.sourceId} className="border-t border-slate-100">
                   <td className="p-2 font-medium max-w-[120px]">
@@ -245,21 +313,67 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
                   <td className="p-2 max-w-[140px]">
                     <EllipsisTooltip label={r.equipmentType} className="block">{r.equipmentType}</EllipsisTooltip>
                   </td>
-                  <td className="p-2">{r.manufacturer}</td>
+                  <td className="p-2 max-w-[100px]">
+                    <EllipsisTooltip label={r.manufacturer} className="block">{r.manufacturer}</EllipsisTooltip>
+                  </td>
                   <td className="p-2 font-mono text-xs">{r.certificateNumber || "—"}</td>
-                  <td className="p-2 text-xs">{r.calibratedBy || "—"}</td>
+                  <td className="p-2 text-xs max-w-[100px]">
+                    <EllipsisTooltip label={r.calibratedBy || "—"} className="block">{r.calibratedBy || "—"}</EllipsisTooltip>
+                  </td>
                   <td className="p-2 whitespace-nowrap">{fmtDmyShort(r.calibrationDate)}</td>
                   <td className="p-2 whitespace-nowrap">{fmtDmyShort(r.nextCalibrationDate)}</td>
                   <td className="p-2 text-xs">{r.intermediateCheck}</td>
+                  <td className="p-2 text-xs max-w-[110px]">
+                    <EllipsisTooltip label={r.frequencyStatus} className="block">{r.frequencyStatus}</EllipsisTooltip>
+                  </td>
                   <td className="p-2">{r.nominalValue}</td>
                   <td className="p-2">{r.conventionalValue}</td>
+                  <td className="p-2">{r.errorFound}</td>
                   <td className="p-2">{r.uncertainty}</td>
                   <td className="p-2">{r.unit}</td>
                   <td className="p-2">{r.equipmentClass}</td>
                   <td className="p-2">{r.quantity}</td>
+                  <td className="p-2 text-xs">{r.history}</td>
                   <td className="p-2">
                     <Badge variant="secondary" className={STATUS_TONE[r.status] || ""}>{r.status}</Badge>
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-base font-semibold">Itens alterados (histórico)</CardTitle>
+          <p className="text-xs text-slate-500 font-normal">
+            Rastreio de mudanças de equipamento/certificado. O PDF vigente usa sempre os dados atuais; o histórico segue em secção separada.
+          </p>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-sm min-w-[800px]">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="p-2">Data</th>
+                <th className="p-2">ID</th>
+                <th className="p-2">Campo</th>
+                <th className="p-2">De</th>
+                <th className="p-2">Para</th>
+                <th className="p-2">Nº cert.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!historyRows.length ? (
+                <tr><td colSpan={6} className="p-6 text-center text-slate-500">Sem alterações registadas.</td></tr>
+              ) : historyRows.map((h) => (
+                <tr key={h.id} className="border-t border-slate-100">
+                  <td className="p-2 whitespace-nowrap">{fmtDmyShort(h.changed_at)}</td>
+                  <td className="p-2 font-medium">{h.identification || h.source_id?.slice?.(0, 8) || "—"}</td>
+                  <td className="p-2">{h.field_label || h.field_key}</td>
+                  <td className="p-2 text-xs text-slate-600">{h.old_value || "—"}</td>
+                  <td className="p-2 text-xs">{h.new_value || "—"}</td>
+                  <td className="p-2 font-mono text-xs">{h.certificate_number_snapshot || "—"}</td>
                 </tr>
               ))}
             </tbody>

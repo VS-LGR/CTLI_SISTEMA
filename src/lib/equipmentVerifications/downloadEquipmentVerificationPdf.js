@@ -19,6 +19,8 @@ import {
   normalizeMultiAssetResponsible,
 } from "./verificationChecklist";
 
+import { equipmentKindPdfFill } from "./equipmentKindPdfColors";
+
 const TABLE_STYLES = {
   font: "helvetica",
   fontSize: 7,
@@ -55,7 +57,12 @@ function drawAssetChecklistTable(doc, {
     head: [["Itens a serem verificados", ...headMonths]],
     body: [...body, respRow],
     styles: TABLE_STYLES,
-    headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold", fontSize: 6.5 },
+    headStyles: {
+      fillColor: equipmentKindPdfFill(kind),
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 6.5,
+    },
     columnStyles: { 0: { cellWidth: 55 } },
   });
 

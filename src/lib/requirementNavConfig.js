@@ -9,6 +9,8 @@ import { PERSONNEL_LISTAS_PATH } from "./personnelRoutes";
 import { RE_71A_CONFIG_PATH } from "./masterDocuments/masterDocumentRoutes";
 import { DEVICE_SHEET_LIST_PATH } from "./deviceTechnicalSheetRoutes";
 import { EQUIPMENT_VERIFICATION_LIST_PATH } from "./equipmentVerificationRoutes";
+import { CALIBRATION_SCHEDULE_PATH } from "./calibrationScheduleRoutes";
+import { MAINTENANCE_PROGRAM_PATH } from "./maintenanceProgramRoutes";
 import { cadastroSectionPath } from "./cadastroSections";
 import { getFolderDocumentMode, getVisibleSections } from "./documentFolderConfig";
 import { canAccessRequirement, canAccessRequirementFolder, canAccessCadastroSection } from "./tenantAccess";
@@ -277,7 +279,9 @@ export function buildRequirementListPath(requirementId, folderKey) {
 export function isPr72OperationalPath(pathname) {
   if (!pathname) return false;
   if (pathname.startsWith(DEVICE_SHEET_LIST_PATH)) return true;
+  if (pathname.startsWith(CALIBRATION_SCHEDULE_PATH)) return true;
   if (pathname.startsWith(EQUIPMENT_VERIFICATION_LIST_PATH)) return true;
+  if (pathname.startsWith(MAINTENANCE_PROGRAM_PATH)) return true;
   const base = `/requirement/${COLETA_REQ_ID}/${COLETA_FOLDER_KEY}`;
   return pathname.startsWith(`${base}/coleta`) || pathname.startsWith(`${base}/certificados`);
 }

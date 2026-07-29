@@ -73,17 +73,20 @@ describe("accessAcl", () => {
     });
   });
 
-  it("preset gerente_qualidade inclui req 4/6/8", () => {
+  it("preset gerente_qualidade inclui req 6/8 (sem req 4)", () => {
     const acl = presetAccessAclForRole("gerente_qualidade");
     expect(aclAllowsRequirement(acl, "6")).toBe(true);
+    expect(aclAllowsRequirement(acl, "4")).toBe(false);
     expect(aclAllowsRequirement(acl, "7")).toBe(false);
     expect(aclAllowsFolder(acl, "6", "pr-6-2")).toBe(true);
+    expect(aclAllowsFolder(acl, "6", "pr-6-5")).toBe(false);
   });
 
   it("catálogo e emptyAcl", () => {
     const cat = getAccessAclCatalog();
     expect(cat.modules.length).toBe(ACL_OPERATIONAL_MODULES.length);
-    expect(cat.requirements.length).toBeGreaterThanOrEqual(5);
+    expect(cat.requirements.length).toBe(4);
+    expect(cat.requirements.every((r) => r.id !== "4")).toBe(true);
     expect(emptyAccessAcl().version).toBe(1);
     expect(aclAllowedRequirementPathPrefixes(
       normalizeAccessAcl({ folders: { "7": ["pr-7-1"] }, modules: [] }),

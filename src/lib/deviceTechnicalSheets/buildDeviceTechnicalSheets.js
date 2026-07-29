@@ -1,6 +1,10 @@
 import { envEquipmentTypeLabel } from "@/lib/cadastroConstants";
+import { parseCalibrationNumber } from "@/lib/certificateCalculations/parseNumber";
+import { isLoadBatchItem } from "@/lib/standardWeightItemUtils";
 
 /** @typedef {'APROVADO'|'VENCIDO'|'INATIVO'|'A_VERIFICAR'} SheetStatus */
+
+const NA = "N/A";
 
 export function todayIsoDate(date = new Date()) {
   return date.toISOString().slice(0, 10);
@@ -17,7 +21,47 @@ export function deriveDeviceSheetStatus({ active = true, expiryDate = null, toda
   return "APROVADO";
 }
 
-const NA = "N/A";
+function formatDisplayNumber(value, digits = 6) {
+  if (value == null || Number.isNaN(value)) return NA;
+  const s = Number(value).toFixed(digits).replace(/\.?0+$/, "").replace(".", ",");
+  return s || "0";
+}
+
+/** Erro = V.C. − nominal (unidade do cadastro). */
+export function computeMassError(nominalRaw, conventionalRaw) {
+  const nom = parseCalibrationNumber(nominalRaw);
+  const vc = parseCalibrationNumber(conventionalRaw);
+  if (!nom.valid || !vc.valid) {
+    return { error: null, errorFound: NA, display: NA };
+  }
+  const error = vc.value - nom.value;
+  return {
+    error,
+    errorFound: formatDisplayNumber(error, 8),
+    display: formatDisplayNumber(error, 8),
+  };
+}
+
+function calibrationFrequencyLabel(calib, expiry) {
+  if (!calib || !expiry) return NA;
+  return "02 anos";
+}
+
+function frequencyStatusLabel(freq, status) {
+  if (freq === NA) return status || NA;
+  const statusShort = status === "APROVADO" ? "Ok"
+    : status === "VENCIDO" ? "Vencido"
+      : status === "INATIVO" ? "Inativo"
+        : "A verificar";
+  return `${freq} — ${statusShort}`;
+}
+
+function historyLabel(weightStatus) {
+  if (!weightStatus) return NA;
+  const n = String(weightStatus).replace(/[^\d]/g, "");
+  if (!n) return NA;
+  return `${n}ª Calibração`;
+}
 
 function thermQuantities(equipmentType) {
   switch (equipmentType) {
@@ -51,6 +95,7 @@ function baseRow(partial) {
     nextCalibrationDate: null,
     intermediateCheck: NA,
     calibrationFrequency: NA,
+    frequencyStatus: NA,
     nominalValue: NA,
     conventionalValue: NA,
     errorFound: NA,
@@ -63,8 +108,9 @@ function baseRow(partial) {
     vcMin: NA,
     vcMax: NA,
     status: "A_VERIFICAR",
-    maintenancePlan: NA,
+    maintenancePlan: "RE-6.4.12A",
     history: NA,
+    updatedAt: null,
     ...partial,
   };
 }
@@ -75,11 +121,16 @@ function mapWeightItem(item, certById, today) {
     : null;
   const expiry = cert?.expiry_date || null;
   const calib = cert?.calibration_date || null;
+  const status = deriveDeviceSheetStatus({ active: item.active, expiryDate: expiry, today });
+  const freq = calibrationFrequencyLabel(calib, expiry);
+  const { errorFound } = computeMassError(item.nominal_value, item.conventional_value);
+  const classLabel = item.weight_class || cert?.class || NA;
+
   return baseRow({
     source: "peso",
     sourceId: item.id,
     identification: item.identification || "",
-    equipmentType: item.is_load_batch ? "Lote de carga" : "Peso Padrão",
+    equipmentType: "Peso Padrão",
     manufacturer: cert?.manufacturer || NA,
     location: NA,
     certificateNumber: item.certificate_number || cert?.certificate_number || "",
@@ -87,19 +138,24 @@ function mapWeightItem(item, certById, today) {
     calibrationDate: calib,
     nextCalibrationDate: expiry,
     intermediateCheck: cert?.intermediate_check_label || NA,
-    calibrationFrequency: calib && expiry ? "02 anos" : NA,
+    calibrationFrequency: freq,
+    frequencyStatus: frequencyStatusLabel(freq, status),
     nominalValue: item.nominal_value || NA,
     conventionalValue: item.conventional_value || NA,
+    errorFound,
     uncertainty: item.expanded_uncertainty || NA,
     unit: item.unit || "g",
-    equipmentClass: cert?.class || NA,
+    equipmentClass: classLabel,
     quantity: "MASSA",
-    status: deriveDeviceSheetStatus({ active: item.active, expiryDate: expiry, today }),
-    history: item.weight_status ? `${item.weight_status}ª Calibração` : NA,
+    status,
+    history: historyLabel(item.weight_status),
+    updatedAt: item.updated_at || cert?.updated_at || null,
   });
 }
 
 function mapEnvCert(cert, quantityMeta, today) {
+  const status = deriveDeviceSheetStatus({ active: true, expiryDate: cert.expiry_date, today });
+  const freq = calibrationFrequencyLabel(cert.calibration_date, cert.expiry_date);
   return baseRow({
     source: "thermo",
     sourceId: `${cert.id}-${quantityMeta.key}`,
@@ -112,16 +168,18 @@ function mapEnvCert(cert, quantityMeta, today) {
     calibrationDate: cert.calibration_date || null,
     nextCalibrationDate: cert.expiry_date || null,
     intermediateCheck: cert.intermediate_check_label || NA,
-    calibrationFrequency: cert.calibration_date && cert.expiry_date ? "02 anos" : NA,
+    calibrationFrequency: freq,
+    frequencyStatus: frequencyStatusLabel(freq, status),
     unit: quantityMeta.unit,
     quantity: quantityMeta.label,
-    status: deriveDeviceSheetStatus({ active: true, expiryDate: cert.expiry_date, today }),
+    status,
     history: "1ª Calibração",
+    updatedAt: cert.updated_at || null,
   });
 }
 
 /**
- * Agrega pesos e termo-baro numa lista unificada tipo RE-6.4B.
+ * Agrega pesos (sem lote de carga) e termo-baro numa lista unificada tipo RE-6.4B.
  */
 export function buildDeviceTechnicalSheets({
   weightItems = [],
@@ -133,6 +191,7 @@ export function buildDeviceTechnicalSheets({
   const rows = [];
 
   for (const item of weightItems || []) {
+    if (isLoadBatchItem(item)) continue;
     rows.push(mapWeightItem(item, certById, today));
   }
 
@@ -143,6 +202,15 @@ export function buildDeviceTechnicalSheets({
   }
 
   return rows;
+}
+
+export function latestSheetUpdateIso(rows = []) {
+  let max = null;
+  for (const r of rows || []) {
+    const iso = r.updatedAt ? String(r.updatedAt) : null;
+    if (iso && (!max || iso > max)) max = iso;
+  }
+  return max;
 }
 
 export function filterDeviceTechnicalSheets(rows, {
@@ -170,6 +238,7 @@ export function filterDeviceTechnicalSheets(rows, {
       r.location,
       r.quantity,
       r.status,
+      r.history,
     ].join(" ").toLowerCase();
     return hay.includes(q);
   });

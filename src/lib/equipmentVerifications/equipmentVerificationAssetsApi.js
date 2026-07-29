@@ -10,11 +10,10 @@ export async function listLinkableCadastroAssets(tenantId, kind) {
   assertSupabase();
   if (kind === "pesos") {
     const { data, error } = await supabase
-      .from("standard_weight_items")
-      .select("id, identification, nominal_value, unit, certificate_number, active")
+      .from("weight_standard_certificates")
+      .select("id, set_name, certificate_number, class, quantity, manufacturer, calibration_date, expiry_date")
       .eq("tenant_id", tenantId)
-      .eq("active", true)
-      .order("identification");
+      .order("set_name");
     if (error) throw error;
     return data || [];
   }

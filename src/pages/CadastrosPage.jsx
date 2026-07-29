@@ -30,6 +30,7 @@ import {
   envEquipmentTypeLabel,
 } from "@/lib/cadastroConstants";
 import { downloadWeightCertificatesValidPdf, downloadEnvironmentCertificatesValidPdf } from "@/lib/cadastroPdf";
+import { recordThermoCertSheetHistory } from "@/lib/deviceTechnicalSheets/deviceSheetHistoryApi";
 import { downloadTbhCorrectionPdf } from "@/lib/tbhCorrectionPdf/downloadTbhCorrectionPdf";
 import CadastroListFilterBar from "@/components/cadastros/CadastroListFilterBar";
 import TbhCalibrationPointsEditor, { emptyTbhCorrectionCalibration, normalizeTbhCorrectionCalibration } from "@/components/cadastros/TbhCalibrationPointsEditor";
@@ -1068,17 +1069,23 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
           attachment_storage_path: file ? path : editing.attachment_storage_path,
         }).eq("id", editing.id);
         if (error) throw error;
+        try {
+          await recordThermoCertSheetHistory(tenantId, editing, { ...editing, ...base, id: editing.id });
+        } catch { /* best-effort */ }
         toast.success("Atualizado");
       } else {
         const { data, error } = await supabase.from("environment_sensor_certificates").insert({
           ...base,
           attachment_storage_path: null,
-        }).select("id").single();
+        }).select("*").single();
         if (error) throw error;
         if (file) {
           const path = await uploadCertificateFile(tenantId, "env", data.id, file);
           await supabase.from("environment_sensor_certificates").update({ attachment_storage_path: path }).eq("id", data.id);
         }
+        try {
+          await recordThermoCertSheetHistory(tenantId, null, data);
+        } catch { /* best-effort */ }
         toast.success("Cadastrado");
       }
       setOpen(false);

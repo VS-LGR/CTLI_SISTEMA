@@ -169,7 +169,7 @@ export function assetKindUsesCadastroLink(kind) {
 
 export function assetTableForKind(kind) {
   switch (kind) {
-    case "pesos": return "standard_weight_items";
+    case "pesos": return "weight_standard_certificates";
     case "thermo": return "environment_sensor_certificates";
     case "computador": return "equipment_computers";
     case "veiculo": return "equipment_vehicles";
@@ -180,9 +180,12 @@ export function assetTableForKind(kind) {
 export function formatAssetLabel(asset, kind) {
   if (!asset) return "—";
   if (kind === "pesos") {
-    const nom = asset.identification || asset.nominal_value || "";
-    const unit = asset.unit ? ` ${asset.unit}` : "";
-    return nom ? `${nom}${unit}` : asset.id?.slice(0, 8) || "—";
+    const set = asset.set_name || "";
+    const cert = asset.certificate_number || "";
+    const cls = asset.class ? ` · ${asset.class}` : "";
+    const qtd = asset.quantity != null ? ` (${asset.quantity} itens)` : "";
+    if (set && cert) return `${set} · ${cert}${cls}${qtd}`;
+    return set || cert || asset.id?.slice(0, 8) || "—";
   }
   if (kind === "thermo") {
     return asset.equipment_name || asset.certificate_number || "—";

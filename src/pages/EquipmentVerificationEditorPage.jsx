@@ -17,6 +17,7 @@ import { downloadEquipmentVerificationPdf } from "@/lib/equipmentVerifications/d
 import {
   equipmentKindLabel,
   emptyVerificationResponses,
+  getVerificationChecklist,
   isLegacyResponses,
   MONTH_KEYS,
 } from "@/lib/equipmentVerifications/verificationChecklist";
@@ -26,6 +27,7 @@ import VerificationAssetLinker, {
   initAssetResponsibleState,
 } from "@/components/equipmentVerifications/VerificationAssetLinker";
 import VerificationAssetChecklist from "@/components/equipmentVerifications/VerificationAssetChecklist";
+import VerificationMassEditToolbar from "@/components/equipmentVerifications/VerificationMassEditToolbar";
 
 export default function EquipmentVerificationEditorPage() {
   const { id } = useParams();
@@ -105,6 +107,63 @@ export default function EquipmentVerificationEditorPage() {
       ...prev,
       [assetId]: { ...(prev[assetId] || {}), [month]: value },
     }));
+  };
+
+  const applyMassCells = ({ assetIds, itemKey, month, value }) => {
+    setResponses((prev) => {
+      const out = { ...prev };
+      for (const assetId of assetIds) {
+        const base = out[assetId] || emptyVerificationResponses(record?.equipment_kind);
+        out[assetId] = {
+          ...base,
+          [itemKey]: { ...(base[itemKey] || {}), [month]: value },
+        };
+      }
+      return out;
+    });
+    toast.success("Valor aplicado em massa");
+  };
+
+  const applyMassResponsible = ({ assetIds, month, value }) => {
+    setResponsible((prev) => {
+      const out = { ...prev };
+      for (const assetId of assetIds) {
+        out[assetId] = { ...(out[assetId] || {}), [month]: value };
+      }
+      return out;
+    });
+    toast.success("Responsável preenchido em massa");
+  };
+
+  const copyMonthMass = ({ assetIds, fromMonth, toMonth }) => {
+    if (fromMonth === toMonth) return toast.error("Selecione meses diferentes");
+    const checklist = getVerificationChecklist(record?.equipment_kind);
+    setResponses((prev) => {
+      const out = { ...prev };
+      for (const assetId of assetIds) {
+        const base = out[assetId] || emptyVerificationResponses(record?.equipment_kind);
+        const next = { ...base };
+        for (const item of checklist) {
+          next[item.key] = {
+            ...(next[item.key] || {}),
+            [toMonth]: next[item.key]?.[fromMonth] || "",
+          };
+        }
+        out[assetId] = next;
+      }
+      return out;
+    });
+    setResponsible((prev) => {
+      const out = { ...prev };
+      for (const assetId of assetIds) {
+        out[assetId] = {
+          ...(out[assetId] || {}),
+          [toMonth]: out[assetId]?.[fromMonth] || "",
+        };
+      }
+      return out;
+    });
+    toast.success("Mês copiado");
   };
 
   const save = async () => {
@@ -214,6 +273,13 @@ export default function EquipmentVerificationEditorPage() {
 
       {assets.length > 0 ? (
         <div className="space-y-4">
+          <VerificationMassEditToolbar
+            kind={kind}
+            assetIds={linkedAssetIds}
+            onApplyCells={applyMassCells}
+            onApplyResponsible={applyMassResponsible}
+            onCopyMonth={copyMonthMass}
+          />
           {assets.map((asset) => (
             <VerificationAssetChecklist
               key={asset.id}

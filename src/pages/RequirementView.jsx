@@ -79,7 +79,9 @@ const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
 const WeightCertificateListPage = lazy(() => import("@/pages/WeightCertificateListPage"));
 const DeviceTechnicalSheetPage = lazy(() => import("@/pages/DeviceTechnicalSheetPage"));
+const CalibrationSchedulePage = lazy(() => import("@/pages/CalibrationSchedulePage"));
 const EquipmentVerificationListPage = lazy(() => import("@/pages/EquipmentVerificationListPage"));
+const MaintenanceProgramPage = lazy(() => import("@/pages/MaintenanceProgramPage"));
 const PersonnelRegistrosPage = lazy(() => import("@/pages/PersonnelRegistrosPage"));
 const MasterDocumentHub = lazy(() => import("@/components/masterDocuments/MasterDocumentHub"));
 
@@ -623,8 +625,11 @@ const RequirementView = () => {
     && section === "emissao_cert_peso_padrao"
     && canAccessCalibrationCertificates(user?.role, user);
   const isFichaTecnicaTab = String(id) === "6" && folderKey === "pr-6-4" && section === "ficha_tecnica";
+  const isCronogramaCalibracaoTab = String(id) === "6" && folderKey === "pr-6-4" && section === "cronograma_calibracao";
   const isVerificacaoEquipamentoTab =
     String(id) === "6" && folderKey === "pr-6-4-12" && section === "verificacao_equipamento";
+  const isProgramaManutencaoTab =
+    String(id) === "6" && folderKey === "pr-6-4-12" && section === "programa_manutencao";
   const isPersonnelRegistro =
     String(id) === PERSONNEL_REQ_ID
     && folderKey === PERSONNEL_FOLDER_KEY
@@ -644,7 +649,9 @@ const RequirementView = () => {
     || isCertBalancasTab
     || isCertPesoTab
     || isFichaTecnicaTab
-    || isVerificacaoEquipamentoTab;
+    || isCronogramaCalibracaoTab
+    || isVerificacaoEquipamentoTab
+    || isProgramaManutencaoTab;
   const variant = status === "vigente" ? "vigente" : "obsoleto";
   const currentSectionMeta = visibleSections.find((s) => s.id === section);
 
@@ -785,9 +792,17 @@ const RequirementView = () => {
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar ficha técnica…</div>}>
               <DeviceTechnicalSheetPage embedded />
             </Suspense>
+          ) : isCronogramaCalibracaoTab ? (
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar cronograma…</div>}>
+              <CalibrationSchedulePage embedded />
+            </Suspense>
           ) : isVerificacaoEquipamentoTab ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar verificações…</div>}>
               <EquipmentVerificationListPage embedded />
+            </Suspense>
+          ) : isProgramaManutencaoTab ? (
+            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar programa de manutenção…</div>}>
+              <MaintenanceProgramPage embedded />
             </Suspense>
           ) : isPersonnelRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar registros de pessoal…</div>}>

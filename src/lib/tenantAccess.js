@@ -29,6 +29,17 @@ import {
   aclAllowsFolder,
   aclAllowsCadastroSection,
 } from "@/lib/accessAcl";
+import {
+  isCtliOnlyRequirement,
+  isFolderAllowedForNonCtli,
+} from "@/lib/ctliOnlyFolders";
+
+export {
+  CTLI_ONLY_FOLDER_KEYS,
+  NON_CTLI_REQ7_FOLDER_KEYS,
+  isCtliOnlyRequirement,
+  isFolderAllowedForNonCtli,
+} from "@/lib/ctliOnlyFolders";
 
 export const DEPLOYMENT_MODELS = {
   FULL: "full",
@@ -50,7 +61,7 @@ export const CLIENT_PORTAL_REQ_IDS = ["5", "6", "7", "8"];
 
 export const CLIENT_PORTAL_REQ6_FOLDERS = new Set(["pr-6-2", "pr-6-4", "pr-6-4-12"]);
 
-export const CLIENT_PORTAL_REQ7_FOLDERS = new Set(["pr-7-1", "pr-7-2"]);
+export const CLIENT_PORTAL_REQ7_FOLDERS = new Set(["pr-7-1", "pr-7-2", "pr-7-6"]);
 
 export const CLIENT_PORTAL_REQ8_FOLDERS = new Set(["pr-8-3"]);
 
@@ -87,11 +98,11 @@ export const CLIENT_PORTAL_MODULES = new Set([
 
 /** Pastas liberadas por papel (matriz RBAC). */
 const ROLE_REQ_ACCESS = {
-  gerente_qualidade: { reqs: new Set(["4", "6", "8"]), folders: null },
+  gerente_qualidade: { reqs: new Set(["6", "8"]), folders: null },
   gerente_tecnico: { reqs: new Set(["7"]), folders: null },
   administrativo_vendas: {
     reqs: new Set(["7"]),
-    folders: { "7": new Set(["pr-7-1", "pr-7-1-7"]) },
+    folders: { "7": new Set(["pr-7-1"]) },
   },
   administrativo_compras: {
     reqs: new Set(["6"]),
@@ -131,6 +142,7 @@ export function canAccessModule({ tenant, role, module, user = null }) {
   if (isCtliAdmin(role)) return true;
 
   if (isCtliOnlyModule(module)) return false;
+  if (module === "req4") return false;
 
   if (module === "tenant_users") {
     return canManageTenantUsers(role);
@@ -180,7 +192,7 @@ export function canAccessModule({ tenant, role, module, user = null }) {
     if (module === "cadastros" || module === "thermo" || module === "pesos" || module === "balancas") {
       return true;
     }
-    if (module === "req4" || module === "req5" || module === "req6" || module === "req7" || module === "req8") {
+    if (module === "req5" || module === "req6" || module === "req7" || module === "req8") {
       return true;
     }
     return CLIENT_PORTAL_MODULES.has(module);
@@ -208,9 +220,6 @@ export function canAccessModule({ tenant, role, module, user = null }) {
   if (module === "thermo" || module === "pesos" || module === "balancas") {
     return canAccessCadastrosMenu(role);
   }
-  if (module === "req4") {
-    return role === "gerente_qualidade" || isGerenteGeralRole(role);
-  }
   if (module === "req5") {
     return role === "client" || isGerenteGeralRole(role);
   }
@@ -230,40 +239,41 @@ export function canAccessModule({ tenant, role, module, user = null }) {
 export function canAccessRequirement({ tenant, role, requirementId, user = null }) {
   const rid = String(requirementId);
   if (isCtliAdmin(role)) return true;
+  if (isCtliOnlyRequirement(rid)) return false;
+
+  let allowed = false;
 
   if (isAclActive(user?.access_acl)) {
-    return aclAllowsRequirement(user.access_acl, rid);
+    allowed = aclAllowsRequirement(user.access_acl, rid);
+  } else if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
+    allowed = false;
+  } else if (isGerenteGeralRole(role)) {
+    allowed = true;
+  } else if (isClientEnvironmentUser(role, user, tenant)) {
+    allowed = CLIENT_ENV_REQ_IDS.has(rid);
+  } else {
+    const matrix = ROLE_REQ_ACCESS[role];
+    if (matrix) {
+      allowed = matrix.reqs.has(rid);
+    } else if (role === "client") {
+      if (isEffectiveClientPortal(tenant, role)) {
+        allowed = CLIENT_PORTAL_REQ_IDS.includes(rid);
+      } else {
+        allowed = CLIENT_ENV_REQ_IDS.has(rid);
+      }
+    } else if (!isEffectiveClientPortal(tenant, role)) {
+      allowed = true;
+    } else {
+      allowed = CLIENT_PORTAL_REQ_IDS.includes(rid);
+    }
   }
 
-  if (isFieldTechnicianRole(role) || isSignatoryRole(role) || isDirectorRole(role)) {
-    return false;
-  }
-
-  if (isGerenteGeralRole(role)) return true;
-
-  if (isClientEnvironmentUser(role, user, tenant)) {
-    return CLIENT_ENV_REQ_IDS.has(rid);
-  }
-
-  const matrix = ROLE_REQ_ACCESS[role];
-  if (matrix) return matrix.reqs.has(rid);
-
-  // Portal legado / client sem user context
-  if (role === "client") {
-    if (isEffectiveClientPortal(tenant, role)) return CLIENT_PORTAL_REQ_IDS.includes(rid);
-    return CLIENT_ENV_REQ_IDS.has(rid);
-  }
-
-  if (!isEffectiveClientPortal(tenant, role)) {
-    // Full tenant: papéis sem matriz restritiva
-    return true;
-  }
-
-  return CLIENT_PORTAL_REQ_IDS.includes(rid);
+  return allowed;
 }
 
 export function canAccessRequirementFolder({ tenant, role, requirementId, folderKey, user = null }) {
   if (isCtliAdmin(role)) return true;
+  if (!isFolderAllowedForNonCtli(requirementId, folderKey)) return false;
 
   if (isAclActive(user?.access_acl)) {
     return aclAllowsFolder(user.access_acl, requirementId, folderKey);

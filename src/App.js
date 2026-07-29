@@ -18,6 +18,8 @@ import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposal
 import { LISTA_MESTRA_PATH, LISTA_MESTRA_SHORT_PATH, RE_71A_CONFIG_PATH, RE_71A_CONFIG_LEGACY_PATH, RE_72A_CONFIG_PATH } from "@/lib/masterDocuments/masterDocumentRoutes";
 import { DEVICE_SHEET_LIST_PATH } from "@/lib/deviceTechnicalSheetRoutes";
 import { EQUIPMENT_VERIFICATION_LIST_PATH } from "@/lib/equipmentVerificationRoutes";
+import { CALIBRATION_SCHEDULE_PATH } from "@/lib/calibrationScheduleRoutes";
+import { MAINTENANCE_PROGRAM_PATH } from "@/lib/maintenanceProgramRoutes";
 import TenantModuleGate, { RequirementAccessGate, CadastroSectionGate } from "@/components/tenant/TenantModuleGate";
 import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import "@/App.css";
@@ -42,8 +44,10 @@ const WeightCertificateListPage = lazy(() => import("@/pages/WeightCertificateLi
 const WeightCertificateNewPage = lazy(() => import("@/pages/WeightCertificateNewPage"));
 const WeightCertificateEditorPage = lazy(() => import("@/pages/WeightCertificateEditorPage"));
 const DeviceTechnicalSheetPage = lazy(() => import("@/pages/DeviceTechnicalSheetPage"));
+const CalibrationSchedulePage = lazy(() => import("@/pages/CalibrationSchedulePage"));
 const EquipmentVerificationListPage = lazy(() => import("@/pages/EquipmentVerificationListPage"));
 const EquipmentVerificationEditorPage = lazy(() => import("@/pages/EquipmentVerificationEditorPage"));
+const MaintenanceProgramPage = lazy(() => import("@/pages/MaintenanceProgramPage"));
 const PedidosCompraPage = lazy(() => import("@/pages/PedidosCompraPage"));
 const PedidoCompraEditorPage = lazy(() => import("@/pages/PedidoCompraEditorPage"));
 const QuotationRequestsPage = lazy(() => import("@/pages/QuotationRequestsPage"));
@@ -368,6 +372,16 @@ const App = () => (
               )}
             />
             <Route
+              path={CALIBRATION_SCHEDULE_PATH}
+              element={(
+                <RequirementAccessGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <CalibrationSchedulePage />
+                  </Suspense>
+                </RequirementAccessGate>
+              )}
+            />
+            <Route
               path={EQUIPMENT_VERIFICATION_LIST_PATH}
               element={(
                 <RequirementAccessGate>
@@ -383,6 +397,16 @@ const App = () => (
                 <RequirementAccessGate>
                   <Suspense fallback={pageSuspenseFallback}>
                     <EquipmentVerificationEditorPage />
+                  </Suspense>
+                </RequirementAccessGate>
+              )}
+            />
+            <Route
+              path={MAINTENANCE_PROGRAM_PATH}
+              element={(
+                <RequirementAccessGate>
+                  <Suspense fallback={pageSuspenseFallback}>
+                    <MaintenanceProgramPage />
                   </Suspense>
                 </RequirementAccessGate>
               )}

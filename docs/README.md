@@ -20,6 +20,7 @@ Cada módulo descreve **utilização** (manual operacional) e **referência téc
 | [07-CADASTROS.md](./07-CADASTROS.md) | Cadastros | Dados mestres, certificados, config coleta |
 | [08-DASHBOARD-ADMIN.md](./08-DASHBOARD-ADMIN.md) | Dashboard e Admin | Atalhos, lembretes, backup, AdminClients |
 | [09-PROPOSTA-COMERCIAL.md](./09-PROPOSTA-COMERCIAL.md) | PR-7.1 Proposta | RE-7.1A, multi-balança, PDF, coleta |
+| [10-IMPLANTACAO-NOVO-CLIENTE.md](./10-IMPLANTACAO-NOVO-CLIENTE.md) | Implantação | Briefing + carga SQL para novo ambiente/cliente |
 
 ### Documentação legada (referência)
 
