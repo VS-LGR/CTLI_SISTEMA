@@ -185,9 +185,12 @@ export function formatRestoreMessage(data) {
 export function formatDryRunSummary(report) {
   if (!report?.dry_run) return "Dry-run inválido";
   const parts = [
-    `ZIP: ${report.zip_total_records ?? 0} registos`,
-    `Ambiente atual: ${report.live_total_records ?? 0} registos`,
+    `ZIP: ${report.zip_total_records ?? 0} registos (tabelas)`,
+    `Ambiente: ${report.live_total_records ?? 0} registos`,
   ];
+  if (report.zip_storage_files != null) {
+    parts.push(`${report.zip_storage_files} ficheiros storage no ZIP`);
+  }
   if (report.integrity_verified) parts.push("integridade OK");
   if (report.warnings?.length) parts.push(`${report.warnings.length} aviso(s)`);
   return parts.join(" · ");

@@ -154,21 +154,26 @@ export default function BackupView() {
     }
   };
 
-  const canReplace = !replace
-    || (confirmPhrase.trim().toUpperCase() === "SUBSTITUIR" && Boolean(confirmPassword));
+  const replaceReady =
+    confirmPhrase.trim().toUpperCase() === "SUBSTITUIR" && confirmPassword.length > 0;
 
   const restore = async () => {
     if (!zipFile) {
       toast.error("Escolha um ficheiro ZIP");
       return;
     }
-    if (replace && !canReplace) {
-      toast.error("Confirme SUBSTITUIR e a senha do administrador");
+    if (replace && !replaceReady) {
+      toast.error("Para Substituir: digite SUBSTITUIR e a senha do administrador");
       return;
     }
     if (!replace) {
       const ok = window.confirm(
-        "Restaurar em modo acrescentar?\n\nOs dados atuais mantêm-se; o ZIP é importado com novos IDs.",
+        "Restaurar em modo acrescentar?\n\nOs dados atuais mantêm-se; o ZIP é importado com novos IDs (chaves naturais iguais são reutilizadas).",
+      );
+      if (!ok) return;
+    } else {
+      const ok = window.confirm(
+        "SUBSTITUIR o ambiente?\n\n1) Será gerada uma cópia de segurança automática\n2) Os dados cobertos atuais serão apagados\n3) O conteúdo do ZIP será importado\n\nEsta ação é destrutiva.",
       );
       if (!ok) return;
     }
@@ -288,79 +293,106 @@ export default function BackupView() {
               </Button>
               <Button
                 type="button"
-                disabled={restoring || !zipFile || (replace && !canReplace)}
+                disabled={restoring || !zipFile || (replace && !replaceReady)}
                 onClick={restore}
                 className={cn(
                   "text-white",
                   replace ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700",
                 )}
                 data-testid="confirm-restore-btn"
+                title={
+                  replace && !replaceReady
+                    ? "Preencha SUBSTITUIR e a senha abaixo"
+                    : undefined
+                }
               >
                 <UploadSimple size={16} className="mr-1.5" />
                 {restoring
                   ? "A restaurar…"
                   : replace
-                    ? "Substituir ambiente"
+                    ? replaceReady
+                      ? "Substituir ambiente"
+                      : "Preencha a confirmação ↓"
                     : "Restaurar (acrescentar)"}
               </Button>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setReplace(false)}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  !replace
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                )}
-              >
-                Acrescentar
-              </button>
-              <button
-                type="button"
-                onClick={() => setReplace(true)}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  replace
-                    ? "bg-red-600 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                )}
-                data-testid="replace-checkbox"
-              >
-                Substituir
-              </button>
-              <span className="self-center text-xs text-slate-400">
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-slate-500">Modo de restauração</div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReplace(false);
+                    setConfirmPhrase("");
+                    setConfirmPassword("");
+                  }}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-xs font-medium transition-colors border",
+                    !replace
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                  )}
+                >
+                  Acrescentar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReplace(true)}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-xs font-medium transition-colors border",
+                    replace
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                  )}
+                  data-testid="replace-checkbox"
+                >
+                  Substituir
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
                 {replace
-                  ? "Apaga dados cobertos · gera cópia de segurança · exige senha"
-                  : "Mantém dados atuais · importa com novos IDs"}
-              </span>
+                  ? "Apaga os dados cobertos do ambiente e importa o ZIP. Exige digitar SUBSTITUIR + senha de admin."
+                  : "Mantém os dados atuais e importa o ZIP (novos IDs; chaves naturais iguais são reutilizadas)."}
+              </p>
             </div>
 
             {replace && (
-              <div className="grid sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
-                <div>
-                  <Label className="text-xs text-slate-500">Digite SUBSTITUIR</Label>
-                  <Input
-                    className="h-9 mt-1"
-                    value={confirmPhrase}
-                    onChange={(e) => setConfirmPhrase(e.target.value)}
-                    placeholder="SUBSTITUIR"
-                    data-testid="confirm-phrase"
-                  />
+              <div className="rounded-lg border border-red-200 bg-red-50/60 p-4 space-y-3">
+                <p className="text-xs text-red-900 font-medium">
+                  Confirmação obrigatória para ativar «Substituir ambiente»
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-slate-600">Digite exatamente SUBSTITUIR</Label>
+                    <Input
+                      className="h-9 mt-1 bg-white"
+                      value={confirmPhrase}
+                      onChange={(e) => setConfirmPhrase(e.target.value)}
+                      placeholder="SUBSTITUIR"
+                      data-testid="confirm-phrase"
+                    />
+                    {confirmPhrase && confirmPhrase.trim().toUpperCase() !== "SUBSTITUIR" && (
+                      <p className="text-[11px] text-red-700 mt-1">Texto incorreto — use SUBSTITUIR</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600">Senha do administrador</Label>
+                    <Input
+                      type="password"
+                      className="h-9 mt-1 bg-white"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="current-password"
+                      data-testid="confirm-password"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs text-slate-500">Senha do administrador</Label>
-                  <Input
-                    type="password"
-                    className="h-9 mt-1"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="current-password"
-                    data-testid="confirm-password"
-                  />
-                </div>
+                {!replaceReady && (
+                  <p className="text-[11px] text-red-800/80">
+                    O botão de restauração fica bloqueado até preencher os dois campos.
+                  </p>
+                )}
               </div>
             )}
 
@@ -376,6 +408,19 @@ export default function BackupView() {
                   <span className="text-xs font-mono text-slate-400">{shortHash(dryRunReport.sha256)}</span>
                 </div>
                 <p className="text-sm text-slate-600">{formatDryRunSummary(dryRunReport)}</p>
+                <p className="text-[11px] text-slate-400">
+                  Δ = registos no ZIP − registos atuais (por tabela). Positivo = ZIP tem mais; negativo = ambiente tem mais.
+                </p>
+                {dryRunReport.coverage && (
+                  <p className="text-[11px] text-slate-500">
+                    Cobertura do ZIP: {dryRunReport.coverage.tenant_tables} tabelas tenant
+                    {" · "}
+                    {dryRunReport.coverage.child_tables} tabelas filhas
+                    {dryRunReport.coverage.truncated_tables?.length
+                      ? ` · truncado: ${dryRunReport.coverage.truncated_tables.join(", ")}`
+                      : " · sem truncamento"}
+                  </p>
+                )}
                 {dryRunReport.warnings?.length > 0 && (
                   <ul className="text-xs text-amber-800/90 space-y-0.5">
                     {dryRunReport.warnings.map((w) => (

@@ -962,22 +962,39 @@ async function dryRunRestore(
   const deltas: Record<string, { zip: number; live: number | null; delta: number | null }> = {};
   const warnings: string[] = [];
 
+  // Contagens por tabela com tenant_id
   for (const spec of TENANT_TABLES) {
     const rows = await readJson(spec.zip);
     zip_counts[spec.table] = rows.length;
     const live = await fetchByTenant(admin, spec.table, tenantId);
-    live_counts[spec.table] = live.error ? null : (live.expected ?? live.rows.length);
-    const liveN = live_counts[spec.table];
+    const liveN = live.error ? null : (live.expected ?? live.rows.length);
+    live_counts[spec.table] = liveN;
+    deltas[spec.table] = {
+      zip: rows.length,
+      live: liveN,
+      // Δ = registos no ZIP − registos atuais no ambiente (mesma tabela)
+      delta: liveN == null ? null : rows.length - liveN,
+    };
+  }
+
+  // Filhos: contar vivos via IDs dos pais atuais do tenant
+  for (const spec of CHILD_TABLES) {
+    const rows = await readJson(spec.zip);
+    zip_counts[spec.table] = rows.length;
+    let liveN: number | null = null;
+    try {
+      const parentIds = await resolveParentIds(admin, spec.parentTable, tenantId);
+      const liveKids = await fetchByParentIds(admin, spec.table, spec.parentFk, parentIds);
+      liveN = liveKids.error ? null : liveKids.rows.length;
+    } catch {
+      liveN = null;
+    }
+    live_counts[spec.table] = liveN;
     deltas[spec.table] = {
       zip: rows.length,
       live: liveN,
       delta: liveN == null ? null : rows.length - liveN,
     };
-  }
-
-  for (const spec of CHILD_TABLES) {
-    const rows = await readJson(spec.zip);
-    zip_counts[spec.table] = rows.length;
   }
 
   if (!integrityCheck.hasIntegrityFile) {
@@ -990,11 +1007,29 @@ async function dryRunRestore(
   const storagePaths = Object.keys(zip.files).filter((p) => p.startsWith("storage/") && !zip.files[p].dir);
   zip_counts.storage_files = storagePaths.length;
 
-  const zipTotal = Object.values(zip_counts).reduce((a, b) => a + b, 0);
-  const liveTotal = Object.values(live_counts).reduce<number>(
-    (a, b) => a + (typeof b === "number" ? b : 0),
-    0,
-  );
+  const sumCounts = (keys: string[]) =>
+    keys.reduce((a, k) => a + (typeof zip_counts[k] === "number" ? zip_counts[k] : 0), 0);
+  const sumLive = (keys: string[]) =>
+    keys.reduce((a, k) => a + (typeof live_counts[k] === "number" ? (live_counts[k] as number) : 0), 0);
+
+  const tenantKeys = TENANT_TABLES.map((t) => t.table);
+  const childKeys = CHILD_TABLES.map((t) => t.table);
+  const zipTenant = sumCounts(tenantKeys);
+  const zipChild = sumCounts(childKeys);
+  const liveTenant = sumLive(tenantKeys);
+  const liveChild = sumLive(childKeys);
+
+  // Totais comparáveis: tabelas (tenant + filhos). Storage só no ZIP (não há count live simples).
+  const zip_total_records = zipTenant + zipChild;
+  const live_total_records = liveTenant + liveChild;
+
+  const skippedInManifest = Array.isArray(manifest.skipped_tables) ? manifest.skipped_tables : [];
+  if (skippedInManifest.length) {
+    warnings.push(`Backup gerado com tabelas omitidas: ${skippedInManifest.join(", ")}`);
+  }
+  if (Array.isArray(manifest.truncated_tables) && manifest.truncated_tables.length) {
+    warnings.push(`Backup truncado (incompleto): ${manifest.truncated_tables.join(", ")}`);
+  }
 
   return {
     dry_run: true,
@@ -1006,8 +1041,21 @@ async function dryRunRestore(
     zip_counts,
     live_counts,
     deltas,
-    zip_total_records: zipTotal,
-    live_total_records: liveTotal,
+    delta_formula: "delta = contagem_no_ZIP − contagem_atual_no_ambiente (por tabela)",
+    zip_total_records,
+    live_total_records,
+    zip_tenant_records: zipTenant,
+    zip_child_records: zipChild,
+    live_tenant_records: liveTenant,
+    live_child_records: liveChild,
+    zip_storage_files: storagePaths.length,
+    coverage: {
+      tenant_tables: TENANT_TABLES.length,
+      child_tables: CHILD_TABLES.length,
+      manifest_counts: manifest.counts || null,
+      skipped_tables: skippedInManifest,
+      truncated_tables: manifest.truncated_tables || [],
+    },
     warnings,
     replace_impact:
       "Modo SUBSTITUIR apagaria os dados cobertos do ambiente e inseriria o conteúdo do ZIP. Um backup automático pre-replace será gerado antes.",
