@@ -45,7 +45,7 @@ export async function listBackupStatus(tenantId) {
   const { data: raw } = await api.get(`/tenants/${tenantId}/backups`);
   return {
     last_backup_at: raw?.last_backup_at ?? null,
-    auto_interval_days: raw?.auto_interval_days ?? 20,
+    auto_interval_days: raw?.auto_interval_days ?? 90,
     backup_retention_days: raw?.backup_retention_days ?? 90,
     storage_mode: "local",
     backups: asArray(raw?.backups),
@@ -55,7 +55,11 @@ export async function listBackupStatus(tenantId) {
 
 export async function createBackup(tenantId) {
   if (isSupabaseAuthMode) {
-    return invokeTenantBackup({ action: "create", tenant_id: tenantId });
+    return invokeTenantBackup({
+      action: "create",
+      tenant_id: tenantId,
+      source: "manual",
+    });
   }
   const { data } = await api.post(`/tenants/${tenantId}/backup`);
   return data;

@@ -17,6 +17,11 @@ Defina no painel do projeto Vercel (Settings → Environment Variables):
 
 O backup gera um `.zip` completo do tenant, grava-o no bucket privado **`tenant-backups`** e devolve uma **URL assinada** (1 h) para download. Guarde também uma cópia na rede da empresa. Para recuperar, faça **upload** do ZIP na UI.
 
+**Modos:**
+- **Automático (90 dias):** job `pg_cron` diário (`tenant-backup-auto-daily`, 03:00 UTC) chama a Edge Function para tenants com `last_backup_at` nulo ou mais antigo que `auto_interval_days` (default **90**). ZIP fica só no Storage (`source: auto`).
+- **Manual:** botão «Gerar cópia» na UI (admin CTLI) — Storage + download local (`source: manual`).
+- **Retenção / espaço:** `backup_retention_days` (default **90**) — ZIPs mais antigos são purgados em `list`/`create`.
+
 Cobertura (manifest v3): cadastros, certificados, lista mestra, propostas, equipamentos, pedidos, anexos + **integrity.json** (SHA-256 por ficheiro).
 
 Export é **paginado** (1000 linhas); se a contagem exportada ≠ `count` exacto, a criação falha (409) para evitar ZIP truncado.
@@ -28,14 +33,25 @@ Segredos na Edge Function `tenant-backup`:
 | Segredo | Obrigatório | Descrição |
 |---------|-------------|-----------|
 | `CTLI_SERVICE_ROLE_KEY` | Sim | Valor **service_role** (Settings → API). |
+| `BACKUP_CRON_SECRET` | Sim (para auto) | Segredo partilhado com o job `pg_cron` (`Authorization: Bearer` + header `X-Backup-Cron: 1`). |
 | `LEGACY_API_URL` | Opcional | API antiga de documentos. |
 | `LEGACY_API_SERVICE_TOKEN` | Opcional | Token para export/restore legado no ZIP. |
 
-Migrações: `20250623000000`, `20250624000000`, `20250730010000`, `20250730020000`, **`20250730030000_tenant_backup_p2_actions.sql`**.
+Após aplicar a migração `20250730100000_tenant_backup_auto_90d.sql`, configurar uma vez no SQL Editor:
+
+```sql
+ALTER DATABASE postgres SET app.settings.tenant_backup_function_url =
+  'https://SEU_REF.supabase.co/functions/v1/tenant-backup';
+ALTER DATABASE postgres SET app.settings.backup_cron_secret = 'o-mesmo-valor-de-BACKUP_CRON_SECRET';
+```
+
+Ativar extensões **pg_cron** e **pg_net** (Database → Extensions) se ainda não estiverem ativas.
+
+Migrações: `20250623000000`, `20250624000000`, `20250730010000`, `20250730020000`, `20250730030000`, **`20250730100000_tenant_backup_auto_90d.sql`**.
 
 Após alterar a função: `supabase functions deploy tenant-backup`.
 
-Acesso: **apenas role `admin`** (CTLI).
+Acesso manual: **apenas role `admin`** (CTLI). Acesso automático: segredo `BACKUP_CRON_SECRET`.
 
 O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`).
 

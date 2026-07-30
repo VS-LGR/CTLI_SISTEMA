@@ -53,11 +53,17 @@ const ACTION_LABEL = {
   reauth_fail: "Reauth",
 };
 
+const SOURCE_LABEL = {
+  manual: "Manual",
+  auto: "Automático",
+  cron: "Automático",
+};
+
 export default function BackupView() {
   const { currentTenantId, currentTenant } = useOutletContext();
   const [status, setStatus] = useState({
     last_backup_at: null,
-    auto_interval_days: 20,
+    auto_interval_days: 90,
     backup_retention_days: 90,
     backups: [],
     events: [],
@@ -79,7 +85,7 @@ export default function BackupView() {
       const raw = await listBackupStatus(currentTenantId);
       setStatus({
         last_backup_at: raw?.last_backup_at ?? null,
-        auto_interval_days: raw?.auto_interval_days ?? 20,
+        auto_interval_days: raw?.auto_interval_days ?? 90,
         backup_retention_days: raw?.backup_retention_days ?? 90,
         backups: raw?.backups || [],
         events: raw?.events || [],
@@ -210,7 +216,7 @@ export default function BackupView() {
           <p className="text-sm text-slate-500 mt-1">
             {currentTenant?.name}
             <span className="text-slate-300 mx-2">·</span>
-            Gere, verifique e restaure a cópia do ambiente
+            Cópia automática a cada {status.auto_interval_days} dias no Storage; use «Gerar cópia» para backup manual sob demanda (Storage + download)
           </p>
         </div>
         <Button
@@ -250,7 +256,7 @@ export default function BackupView() {
           </Badge>
         )}
         <span className="text-xs text-slate-400">
-          Retenção {status.backup_retention_days}d
+          Auto {status.auto_interval_days}d · Retenção {status.backup_retention_days}d
           {lastSha256 ? ` · ${shortHash(lastSha256)}` : ""}
         </span>
       </div>
@@ -486,6 +492,11 @@ export default function BackupView() {
                   <div className="min-w-0">
                     <div className="text-slate-800">
                       {ACTION_LABEL[ev.action] || ev.action}
+                      {ev.source ? (
+                        <span className="text-slate-400">
+                          {" "}· {SOURCE_LABEL[ev.source] || ev.source}
+                        </span>
+                      ) : null}
                       {ev.restore_mode ? (
                         <span className="text-slate-400"> · {ev.restore_mode}</span>
                       ) : null}

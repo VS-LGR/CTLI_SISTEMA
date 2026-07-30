@@ -28,10 +28,12 @@
 
 ### Backup (`/backup`)
 
-1. Gerar ZIP (Storage privado + URL assinada + SHA-256).
-2. Dry-run (análise sem gravar) e consultar audit trail.
-3. Restaurar merge, ou replace com reauth (`SUBSTITUIR` + senha) e backup automático pre-replace.
-4. Protocolo QI/QO: [11-BACKUP-DR-QIQO.md](./11-BACKUP-DR-QIQO.md).
+1. **Automático:** a cada **90 dias** (`auto_interval_days`), job `pg_cron` gera ZIP no Storage (`source: auto`).
+2. **Manual:** gerar ZIP (Storage privado + URL assinada + SHA-256) sob demanda.
+3. Dry-run (análise sem gravar) e consultar audit trail (origem Manual / Automático).
+4. Restaurar merge, ou replace com reauth (`SUBSTITUIR` + senha) e backup automático pre-replace.
+5. **Espaço:** retenção `backup_retention_days` (default 90) purga ZIPs antigos no Storage.
+6. Protocolo QI/QO: [11-BACKUP-DR-QIQO.md](./11-BACKUP-DR-QIQO.md).
 
 **Camadas:** (A) PITR/projeto Supabase = DR de plataforma; (B) export tenant = retenção/descontinuidade por ambiente. Ambas são necessárias.
 

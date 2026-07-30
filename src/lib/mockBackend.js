@@ -114,7 +114,7 @@ const seedDb = () => ({
   backups: {
     "demo-tenant-1": {
       last_backup_at: null,
-      auto_interval_days: 20,
+      auto_interval_days: 90,
       backups: [],
     },
   },
@@ -334,7 +334,7 @@ export function createMockApiClient() {
       });
       db.users[tid] = db.users[tid] || [];
       db.responsibles[tid] = db.responsibles[tid] || [];
-      db.backups[tid] = { last_backup_at: null, auto_interval_days: 20, backups: [] };
+      db.backups[tid] = { last_backup_at: null, auto_interval_days: 90, backups: [] };
       saveDb(db);
       return { data: { id: tid } };
     }
@@ -567,13 +567,13 @@ export function createMockApiClient() {
     const backupsList = path.match(/^\/tenants\/([^/]+)\/backups$/);
     if (method === "GET" && backupsList) {
       const tid = backupsList[1];
-      const b = db.backups[tid] || { last_backup_at: null, auto_interval_days: 20 };
+      const b = db.backups[tid] || { last_backup_at: null, auto_interval_days: 90 };
       return {
         data: {
           backups: [],
           storage_mode: "local",
           last_backup_at: b.last_backup_at ?? null,
-          auto_interval_days: b.auto_interval_days ?? 20,
+          auto_interval_days: b.auto_interval_days ?? 90,
         },
       };
     }
@@ -581,7 +581,7 @@ export function createMockApiClient() {
     const backupPost = path.match(/^\/tenants\/([^/]+)\/backup$/);
     if (method === "POST" && backupPost) {
       const tid = backupPost[1];
-      if (!db.backups[tid]) db.backups[tid] = { last_backup_at: null, auto_interval_days: 20 };
+      if (!db.backups[tid]) db.backups[tid] = { last_backup_at: null, auto_interval_days: 90 };
       const built = await buildMockBackupZip(db, tid, "manual");
       const created_at = new Date().toISOString();
       db.backups[tid].last_backup_at = created_at;

@@ -15,6 +15,7 @@ const INSERT_CHUNK = 400;
 const IN_CHUNK = 100;
 const SIGNED_URL_TTL_SEC = 60 * 60; // 1h
 const DEFAULT_RETENTION_DAYS = 90;
+const DEFAULT_AUTO_INTERVAL_DAYS = 90;
 
 const CADASTRO_BUCKET = "cadastro-certificados";
 const BRANDING_BUCKET = "tenant-branding";
@@ -202,6 +203,10 @@ async function recordBackupEvent(
     actor_email = profile?.email || "";
     actor_full_name = profile?.full_name || "";
     actor_role = profile?.role || "";
+  } else if (payload.source === "auto" || payload.source === "cron") {
+    actor_email = "cron@system";
+    actor_full_name = "Backup automático";
+    actor_role = "system";
   }
 
   const { error } = await admin.from("tenant_backup_events").insert({
@@ -270,19 +275,70 @@ async function purgeExpiredBackups(
   return expired.length;
 }
 
+function parseBearerToken(authHeader: string): string {
+  if (!authHeader.startsWith("Bearer ")) return "";
+  return authHeader.slice("Bearer ".length).trim();
+}
+
+function isCronRequest(req: Request): boolean {
+  const flag = (req.headers.get("X-Backup-Cron") || "").trim();
+  return flag === "1" || flag.toLowerCase() === "true";
+}
+
+function cronSecretMatches(token: string): boolean {
+  const secret = (Deno.env.get("BACKUP_CRON_SECRET") || "").trim();
+  if (!secret || !token) return false;
+  if (secret.length !== token.length) return false;
+  let diff = 0;
+  for (let i = 0; i < secret.length; i++) {
+    diff |= secret.charCodeAt(i) ^ token.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+function normalizeBackupSource(raw: unknown): "manual" | "auto" {
+  const s = String(raw || "manual").trim().toLowerCase();
+  if (s === "auto" || s === "cron") return "auto";
+  return "manual";
+}
+
 async function authGate(
   req: Request,
   tenantId: string,
 ): Promise<
   | { error: Response }
-  | { admin: SupabaseClient; userId: string | null; userEmail: string }
+  | {
+    admin: SupabaseClient;
+    userId: string | null;
+    userEmail: string;
+    isCron: boolean;
+  }
 > {
   const authHeader = req.headers.get("Authorization") || "";
-  if (!authHeader.startsWith("Bearer ")) {
+  const token = parseBearerToken(authHeader);
+  if (!token) {
     return { error: jsonResponse({ error: "Unauthorized" }, 401) };
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = getServiceRoleKey();
+
+  // Job pg_cron: Bearer BACKUP_CRON_SECRET + X-Backup-Cron (sem JWT de utilizador)
+  if (isCronRequest(req)) {
+    if (!cronSecretMatches(token)) {
+      return { error: jsonResponse({ error: "Unauthorized" }, 401) };
+    }
+    if (!tenantId) {
+      return { error: jsonResponse({ error: "tenant_id obrigatório" }, 400) };
+    }
+    return {
+      admin: createClient(supabaseUrl, serviceKey),
+      userId: null,
+      userEmail: "cron@system",
+      isCron: true,
+    };
+  }
+
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const userClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
@@ -307,11 +363,11 @@ async function authGate(
     return { error: jsonResponse({ error: "Forbidden" }, 403) };
   }
 
-  const serviceKey = getServiceRoleKey();
   return {
     admin: createClient(supabaseUrl, serviceKey),
     userId: user.id,
     userEmail: p.email || user.email || "",
+    isCron: false,
   };
 }
 
@@ -1531,7 +1587,7 @@ serve(async (req) => {
 
     const gate = await authGate(req, tenantId);
     if ("error" in gate) return gate.error;
-    const { admin, userId, userEmail } = gate;
+    const { admin, userId, userEmail, isCron } = gate;
     const authHeader = req.headers.get("Authorization");
 
     const knownActions = ["list", "create", "download", "dry_run", "restore"];
@@ -1539,6 +1595,11 @@ serve(async (req) => {
       return jsonResponse({
         error: `Ação desconhecida: ${action}. Ações válidas: ${knownActions.join(", ")}. Se acabou de atualizar o código, confirme o deploy: supabase functions deploy tenant-backup`,
       }, 400);
+    }
+
+    // Cron só pode criar (ou listar estado); nunca restore/dry_run
+    if (isCron && action !== "create" && action !== "list") {
+      return jsonResponse({ error: "Cron autorizado apenas para create/list" }, 403);
     }
 
     if (action === "list") {
@@ -1578,18 +1639,21 @@ serve(async (req) => {
         events: events || [],
         storage_mode: "storage_signed",
         last_backup_at: tenant?.last_backup_at ?? null,
-        auto_interval_days: tenant?.auto_interval_days ?? 20,
+        auto_interval_days: tenant?.auto_interval_days ?? DEFAULT_AUTO_INTERVAL_DAYS,
         backup_retention_days: retentionDays,
         purged_expired: purged,
       });
     }
 
     if (action === "create") {
+      const backupSource = isCron
+        ? "auto"
+        : normalizeBackupSource(body.source);
       try {
         const { zipBytes, manifest, recordCount, archiveSha256 } = await buildBackupZip(
           admin,
           tenantId,
-          "manual",
+          backupSource,
           authHeader,
         );
 
@@ -1598,6 +1662,7 @@ serve(async (req) => {
             tenant_id: tenantId,
             action: "create",
             outcome: "failure",
+            source: backupSource,
             actor_user_id: userId,
             error_message: "Export truncado",
             details: { truncated_tables: manifest.truncated_tables },
@@ -1641,7 +1706,7 @@ serve(async (req) => {
           tenant_id: tenantId,
           action: "create",
           outcome: "success",
-          source: "manual",
+          source: backupSource,
           filename,
           storage_path,
           size_bytes: zipBytes.length,
@@ -1653,6 +1718,7 @@ serve(async (req) => {
             counts: manifest.counts,
             skipped_tables: manifest.skipped_tables,
             purged_expired: purged,
+            triggered_by: isCron ? "cron" : "admin",
           },
         });
 
@@ -1667,6 +1733,7 @@ serve(async (req) => {
           download_expires_in: SIGNED_URL_TTL_SEC,
           legacy_api_available: manifest.legacy_api_available,
           storage_mode: "storage_signed",
+          source: backupSource,
           counts: manifest.counts,
           skipped_tables: manifest.skipped_tables,
           purged_expired: purged,
@@ -1676,6 +1743,7 @@ serve(async (req) => {
           tenant_id: tenantId,
           action: "create",
           outcome: "failure",
+          source: backupSource,
           actor_user_id: userId,
           error_message: String(e),
         });
