@@ -26,6 +26,8 @@ import "@/App.css";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const HelpPage = lazy(() => import("@/pages/HelpPage"));
+const EulaPage = lazy(() => import("@/pages/EulaPage"));
+const LicensePage = lazy(() => import("@/pages/LicensePage"));
 const RequirementView = lazy(() => import("@/pages/RequirementView"));
 const DocumentEditor = lazyWithRetry(() => import("@/pages/DocumentEditor"));
 const AdminClients = lazy(() => import("@/pages/AdminClients"));
@@ -141,6 +143,22 @@ const App = () => (
         <Toaster richColors position="top-right" />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route
+            path="/termos"
+            element={(
+              <Suspense fallback={pageSuspenseFallback}>
+                <EulaPage />
+              </Suspense>
+            )}
+          />
+          <Route
+            path="/licenca"
+            element={(
+              <Suspense fallback={pageSuspenseFallback}>
+                <LicensePage />
+              </Suspense>
+            )}
+          />
           <Route
             element={
               <Protected><Layout /></Protected>

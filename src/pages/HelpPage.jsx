@@ -97,6 +97,18 @@ export default function HelpPage() {
           Ir para o Dashboard
         </Link>
       </p>
+
+      <p className="text-xs text-slate-500">
+        Documentos legais:{" "}
+        <Link to="/termos" className="text-blue-600 hover:underline">
+          Termos de Adesão
+        </Link>
+        {" · "}
+        <Link to="/licenca" className="text-blue-600 hover:underline">
+          Licença
+        </Link>
+        {" "}(© CTLI — todos os direitos reservados).
+      </p>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   ShoppingCart, Receipt,
 } from "@phosphor-icons/react";
 import AppBrand from "@/components/branding/AppBrand";
+import LegalCopyrightLinks from "@/components/legal/LegalCopyrightLinks";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -601,6 +602,10 @@ const Layout = () => {
             }}
           />
         </main>
+
+        <footer className="shrink-0 border-t border-slate-200 bg-white/80 px-4 sm:px-6 lg:px-8 py-3">
+          <LegalCopyrightLinks />
+        </footer>
       </div>
 
       {isAdmin && (

@@ -10,6 +10,7 @@ import { isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 import { restrictedNavHomePath } from "@/lib/roleNav";
 import { APP_NAME, APP_TAGLINE, APP_LOGO_WIDE } from "@/lib/appBranding";
 import AppBrand from "@/components/branding/AppBrand";
+import LegalCopyrightLinks from "@/components/legal/LegalCopyrightLinks";
 
 function DevHints() {
   return (
@@ -152,6 +153,8 @@ const Login = () => {
           </form>
 
           <DevHints />
+
+          <LegalCopyrightLinks className="mt-8 pt-6 border-t border-slate-200" />
         </div>
       </div>
 
@@ -195,6 +198,12 @@ const Login = () => {
             </li>
           </ul>
           <p className="mt-12 text-xs uppercase tracking-[0.2em] text-slate-500">{APP_TAGLINE}</p>
+          <LegalCopyrightLinks
+            className="mt-4"
+            noticeClassName="text-xs text-slate-500 normal-case tracking-normal"
+            linksClassName="text-xs text-slate-500 normal-case tracking-normal"
+            linkClassName="text-blue-400 hover:text-blue-300 hover:underline"
+          />
         </div>
       </div>
     </div>
