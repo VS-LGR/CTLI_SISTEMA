@@ -71,7 +71,7 @@ const ColetaEditorPage = () => {
     if (!currentTenantId) return;
     const { data, error } = await supabase
       .from("end_customer_registrations")
-      .select("id, name, representative_name")
+      .select("id, name, representative_name, full_address, city, state, unit, cnpj, email, phone")
       .eq("tenant_id", currentTenantId)
       .order("name");
     if (error) {

@@ -125,7 +125,19 @@ export default function ColetaForm({
     if (!id) {
       onChange({
         ...payload,
-        cliente: { ...payload.cliente, end_customer_id: "", cliente: "", responsavel: "" },
+        cliente: {
+          ...payload.cliente,
+          end_customer_id: "",
+          cliente: "",
+          responsavel: "",
+          cnpj: "",
+          endereco: "",
+          cidade: "",
+          estado: "",
+          unidade: "",
+          email: "",
+          telefone: "",
+        },
       });
       return;
     }
@@ -289,10 +301,31 @@ export default function ColetaForm({
         )}
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Cliente">
-            <Input value={payload.cliente.cliente} onChange={(e) => setCliente("cliente", e.target.value)} />
+            <Input value={payload.cliente.cliente || ""} onChange={(e) => setCliente("cliente", e.target.value)} />
           </Field>
           <Field label="Responsável">
-            <Input value={payload.cliente.responsavel} onChange={(e) => setCliente("responsavel", e.target.value)} />
+            <Input value={payload.cliente.responsavel || ""} onChange={(e) => setCliente("responsavel", e.target.value)} />
+          </Field>
+          <Field label="CNPJ">
+            <Input value={payload.cliente.cnpj || ""} onChange={(e) => setCliente("cnpj", e.target.value)} />
+          </Field>
+          <Field label="Unidade">
+            <Input value={payload.cliente.unidade || ""} onChange={(e) => setCliente("unidade", e.target.value)} />
+          </Field>
+          <Field label="Endereço" className="sm:col-span-2">
+            <Input value={payload.cliente.endereco || ""} onChange={(e) => setCliente("endereco", e.target.value)} />
+          </Field>
+          <Field label="Cidade">
+            <Input value={payload.cliente.cidade || ""} onChange={(e) => setCliente("cidade", e.target.value)} />
+          </Field>
+          <Field label="Estado">
+            <Input value={payload.cliente.estado || ""} onChange={(e) => setCliente("estado", e.target.value)} />
+          </Field>
+          <Field label="E-mail">
+            <Input type="email" value={payload.cliente.email || ""} onChange={(e) => setCliente("email", e.target.value)} />
+          </Field>
+          <Field label="Telefone">
+            <Input value={payload.cliente.telefone || ""} onChange={(e) => setCliente("telefone", e.target.value)} />
           </Field>
         </div>
       </SectionCard>

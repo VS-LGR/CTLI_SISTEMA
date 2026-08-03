@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import AppBrand from "@/components/branding/AppBrand";
 import LegalCopyrightLinks from "@/components/legal/LegalCopyrightLinks";
+import EulaAcceptanceGate from "@/components/legal/EulaAcceptanceGate";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -466,6 +467,7 @@ const Layout = () => {
 
   return (
     <TooltipProvider delayDuration={200}>
+    <EulaAcceptanceGate>
     <ModuleTourProvider currentTenant={currentTenant}>
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       {/* Desktop sidebar — fixo quando expandido; overlay quando recolhido */}
@@ -623,6 +625,7 @@ const Layout = () => {
       )}
     </div>
     </ModuleTourProvider>
+    </EulaAcceptanceGate>
     </TooltipProvider>
   );
 };

@@ -34,8 +34,19 @@ export function ColetaPdfFrente({ model, logoUrl }) {
       <AbsBlock style={FRENTE.sec1.cliente}>
         <FieldLine label="Cliente" value={cliente.cliente} />
       </AbsBlock>
+      <AbsBlock style={FRENTE.sec1.cnpj}>
+        <FieldLine label="CNPJ" value={cliente.cnpj} />
+      </AbsBlock>
+      <AbsBlock style={FRENTE.sec1.endereco}>
+        <FieldLine
+          label="Endereço"
+          value={[cliente.endereco, [cliente.cidade, cliente.estado].filter(Boolean).join(" / "), cliente.unidade]
+            .filter(Boolean)
+            .join(" · ")}
+        />
+      </AbsBlock>
       <AbsBlock style={FRENTE.sec1.responsavel}>
-        <FieldLine label="Resposável" value={cliente.responsavel} />
+        <FieldLine label="Responsável" value={cliente.responsavel} />
       </AbsBlock>
 
       <AbsBlock style={FRENTE.sec2.title} className="coleta-txt-sec">

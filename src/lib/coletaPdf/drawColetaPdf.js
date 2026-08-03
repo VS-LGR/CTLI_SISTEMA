@@ -183,8 +183,28 @@ function drawFrente(doc, model) {
   y = drawSectionBar(doc, ML, y, CW, "1) Dados do Cliente");
   underlineField(doc, ML, y, "Cliente", model.cliente.cliente, CW);
   y += 5;
-  underlineField(doc, ML, y, "Resposável", model.cliente.responsavel, CW);
-  y += 7;
+  underlineField(doc, ML, y, "CNPJ", model.cliente.cnpj || "", CW);
+  y += 5;
+  underlineField(doc, ML, y, "Endereço", model.cliente.endereco || "", CW);
+  y += 5;
+  underlineField(
+    doc,
+    ML,
+    y,
+    "Cidade / UF",
+    [model.cliente.cidade, model.cliente.estado].filter(Boolean).join(" / ") || "",
+    CW * 0.55,
+  );
+  underlineField(doc, ML + CW * 0.58, y, "Unidade", model.cliente.unidade || "", CW * 0.42);
+  y += 5;
+  underlineField(doc, ML, y, "Responsável", model.cliente.responsavel, CW * 0.55);
+  underlineField(doc, ML + CW * 0.58, y, "Telefone", model.cliente.telefone || "", CW * 0.42);
+  y += 5;
+  if (model.cliente.email) {
+    underlineField(doc, ML, y, "E-mail", model.cliente.email, CW);
+    y += 5;
+  }
+  y += 2;
 
   y = drawSectionBar(doc, ML, y, CW, "2) Informações da Balança");
   const bal = model.balanca;

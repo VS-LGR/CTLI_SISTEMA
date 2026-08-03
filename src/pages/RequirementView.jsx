@@ -21,6 +21,7 @@ import {
   isCommercialProposalsFolder,
   isMasterDocumentListFolder,
 } from "@/lib/documentFolderConfig";
+import { usesClientSidebarNav } from "@/lib/roleNav";
 import PurchaseOrdersListPanel from "@/components/purchaseOrders/PurchaseOrdersListPanel";
 import QuotationRequestsListPanel from "@/components/quotationRequests/QuotationRequestsListPanel";
 import CommercialProposalsListPanel from "@/components/commercialProposals/CommercialProposalsListPanel";
@@ -516,9 +517,13 @@ const RequirementView = () => {
   const folderMode = useMemo(() => getFolderDocumentMode(id, folderKey), [id, folderKey]);
   const hideSectionTabs = folderMode.hideSectionTabs === true;
   const visibleSections = useMemo(() => {
-    const sections = getVisibleSections(id, folderKey);
+    let sections = getVisibleSections(id, folderKey);
     if (String(id) === "8" && folderKey === "pr-8-3" && !isCtliAdmin(user?.role)) {
-      return sections.filter((s) => s.id !== "lista_mestra_templates");
+      sections = sections.filter((s) => s.id !== "lista_mestra_templates");
+    }
+    // Portal cliente: sem aba Procedimentos (só módulos operacionais)
+    if (usesClientSidebarNav(user?.role)) {
+      sections = sections.filter((s) => s.id !== "procedimento");
     }
     return sections;
   }, [id, folderKey, user?.role]);
@@ -534,7 +539,8 @@ const RequirementView = () => {
       return PERSONNEL_DEFAULT_REGISTRO_SECTION;
     }
     if (tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)) return tabFromUrl;
-    return defaultSection;
+    if (visibleSections.some((s) => s.id === defaultSection)) return defaultSection;
+    return visibleSections[0]?.id || defaultSection;
   }, [tabFromUrl, visibleSections, defaultSection, id, folderKey]);
 
   useEffect(() => {
@@ -548,8 +554,20 @@ const RequirementView = () => {
         p.set("tab", PERSONNEL_DEFAULT_REGISTRO_SECTION);
         return p;
       }, { replace: true });
+      return;
     }
-  }, [id, folderKey, tabFromUrl, setSearchParams]);
+    if (
+      usesClientSidebarNav(user?.role)
+      && tabFromUrl === "procedimento"
+      && visibleSections[0]?.id
+    ) {
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        p.set("tab", visibleSections[0].id);
+        return p;
+      }, { replace: true });
+    }
+  }, [id, folderKey, tabFromUrl, setSearchParams, user?.role, visibleSections]);
 
   const [status, setStatus] = useState("vigente");
   const [docs, setDocs] = useState([]);

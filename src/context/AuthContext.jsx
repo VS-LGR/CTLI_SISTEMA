@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import api, { formatApiError, isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { coerceAccessAcl } from "@/lib/accessAcl";
+import { readMockLegalAcceptance } from "@/lib/legal/acceptLegalTermsApi";
 
 const AuthCtx = createContext(null);
 
@@ -16,6 +17,8 @@ function mapProfileToUser(row, fallbackEmail) {
     access_coleta: Boolean(row.access_coleta),
     access_certificados: Boolean(row.access_certificados),
     access_acl: coerceAccessAcl(row.access_acl),
+    legal_accepted_at: row.legal_accepted_at ?? null,
+    legal_accepted_version: row.legal_accepted_version ?? null,
   };
 }
 
@@ -29,7 +32,7 @@ async function loadUserFromSupabaseSession(session) {
   const u = session.user;
   const { data: row, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, tenant_id, access_coleta, access_certificados, access_acl")
+    .select("id, email, full_name, role, tenant_id, access_coleta, access_certificados, access_acl, legal_accepted_at, legal_accepted_version")
     .eq("id", u.id)
     .maybeSingle();
   if (error) throw error;
@@ -45,12 +48,18 @@ export const AuthProvider = ({ children }) => {
   const refreshLegacy = useCallback(async () => {
     try {
       const { data } = await api.get("/auth/me");
-      setUser(data);
-      if (profileIndicatesTenant(data)) {
-        setCurrentTenantId(data.tenant_id);
-        localStorage.setItem("pv_current_tenant", data.tenant_id);
+      const mockLegal = readMockLegalAcceptance();
+      const shaped = {
+        ...data,
+        legal_accepted_at: data?.legal_accepted_at ?? mockLegal?.accepted_at ?? null,
+        legal_accepted_version: data?.legal_accepted_version ?? mockLegal?.version ?? null,
+      };
+      setUser(shaped);
+      if (profileIndicatesTenant(shaped)) {
+        setCurrentTenantId(shaped.tenant_id);
+        localStorage.setItem("pv_current_tenant", shaped.tenant_id);
       }
-      return data;
+      return shaped;
     } catch (e) {
       setUser(false);
       return null;
@@ -118,12 +127,18 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await api.post("/auth/login", { email, password });
         if (data.access_token) localStorage.setItem("pv_token", data.access_token);
-        setUser(data);
-        if (profileIndicatesTenant(data)) {
-          setCurrentTenantId(data.tenant_id);
-          localStorage.setItem("pv_current_tenant", data.tenant_id);
+        const mockLegal = readMockLegalAcceptance();
+        const shaped = {
+          ...data,
+          legal_accepted_at: data?.legal_accepted_at ?? mockLegal?.accepted_at ?? null,
+          legal_accepted_version: data?.legal_accepted_version ?? mockLegal?.version ?? null,
+        };
+        setUser(shaped);
+        if (profileIndicatesTenant(shaped)) {
+          setCurrentTenantId(shaped.tenant_id);
+          localStorage.setItem("pv_current_tenant", shaped.tenant_id);
         }
-        return { ok: true, user: data };
+        return { ok: true, user: shaped };
       } catch (e) {
         return { ok: false, error: formatApiError(e.response?.data?.detail) || e.message };
       }

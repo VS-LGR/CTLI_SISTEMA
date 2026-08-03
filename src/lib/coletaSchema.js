@@ -161,9 +161,20 @@ export function applyEndCustomerToCliente(payload, endCustomer) {
       end_customer_id: endCustomer.id || "",
       cliente: endCustomer.name || "",
       responsavel: endCustomer.representative_name || "",
+      cnpj: endCustomer.cnpj || "",
+      endereco: endCustomer.full_address || "",
+      cidade: endCustomer.city || "",
+      estado: endCustomer.state || "",
+      unidade: endCustomer.unit || "",
+      email: endCustomer.email || "",
+      telefone: endCustomer.phone || "",
     },
   };
 }
+
+/** Colunas do cadastro PR-7.1 → Clientes para autofill da coleta RE-7.2A. */
+export const COLETA_END_CUSTOMER_LOOKUP_SELECT =
+  "id, name, representative_name, full_address, city, state, unit, cnpj, email, phone";
 
 /** Resolve id de cliente cadastrado a partir do payload (id guardado ou nome). */
 export function resolveEndCustomerId(payload, endCustomers = []) {
@@ -177,7 +188,18 @@ export function resolveEndCustomerId(payload, endCustomers = []) {
 
 export function emptyColetaPayload() {
   return {
-    cliente: { cliente: "", responsavel: "", end_customer_id: "" },
+    cliente: {
+      cliente: "",
+      responsavel: "",
+      end_customer_id: "",
+      cnpj: "",
+      endereco: "",
+      cidade: "",
+      estado: "",
+      unidade: "",
+      email: "",
+      telefone: "",
+    },
     balanca: {
       fabricante: "",
       modelo: "",

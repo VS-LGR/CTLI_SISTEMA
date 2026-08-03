@@ -55,6 +55,10 @@ Acesso manual: **apenas role `admin`** (CTLI). Acesso automático: segredo `BACK
 
 O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`).
 
+### Aceite EULA / Licença (primeiro login)
+
+Migração **`20250803140000_profiles_legal_acceptance.sql`**: colunas `profiles.legal_accepted_at` / `legal_accepted_version` + RPC `accept_legal_terms`. No primeiro acesso (ou se a versão dos termos mudar), a UI bloqueia o tutorial até o utilizador aceitar; recusar faz logout.
+
 ## Supabase (CLI)
 
 1. Aplicar migrações SQL em `supabase/migrations/` ao projeto (Supabase SQL Editor ou `supabase db push` com o CLI ligado ao projeto).
