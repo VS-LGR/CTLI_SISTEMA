@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalReportHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-import { ML, TEXT } from "@/lib/institutionalPdf/theme";
+import { ML, TEXT, FORM_COLORS } from "@/lib/institutionalPdf/theme";
 
 const TABLE_STYLES = {
   font: "helvetica",
@@ -59,7 +59,7 @@ export function drawTbhCorrectionPdf(doc, vm) {
         head: [["Indicado pelo equipamento", "Indicado pelo provedor"]],
         body: body.length ? body : [["—", "—"]],
         styles: TABLE_STYLES,
-        headStyles: { fillColor: [217, 119, 6], textColor: TEXT, fontStyle: "bold" },
+        headStyles: { fillColor: FORM_COLORS.tableHeader, textColor: TEXT, fontStyle: "bold" },
       });
 
       if (range.regression) {
@@ -103,7 +103,7 @@ export function drawTbhSessionCorrectionPdf(doc, vm) {
         r.quantity, r.phase, r.rangeLabel, r.device, r.corrected, r.delta,
       ]),
       styles: TABLE_STYLES,
-      headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold" },
+      headStyles: { fillColor: FORM_COLORS.tableHeader, textColor: TEXT, fontStyle: "bold" },
     });
     startY = doc.lastAutoTable.finalY + 8;
   }

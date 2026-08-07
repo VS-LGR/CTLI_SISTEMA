@@ -64,7 +64,7 @@ export async function downloadCalibrationSchedulePdf({
     columnStyles: { 0: { cellWidth: 55, halign: "left" }, 1: { cellWidth: 22, halign: "left" } },
     headStyles: {
       fillColor: equipmentKindPdfFill("pesos"),
-      textColor: [255, 255, 255],
+      textColor: TEXT,
       fontStyle: "bold",
       fontSize: 6.5,
     },

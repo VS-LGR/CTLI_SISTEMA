@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { prepareMasterDocumentExport, recordMasterDocumentExport } from "@/lib/masterDocuments/masterDocumentExportHelper";
 import { drawInstitutionalPdfHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-import { ML, TEXT } from "@/lib/institutionalPdf/theme";
+import { ML, TEXT, FORM_COLORS } from "@/lib/institutionalPdf/theme";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import {
@@ -65,8 +65,8 @@ export async function downloadMaintenanceProgramPdf({
     styles: { font: "helvetica", fontSize: 8, textColor: TEXT, halign: "center" },
     columnStyles: { 0: { halign: "left", cellWidth: 70 } },
     headStyles: {
-      fillColor: [37, 99, 235],
-      textColor: [255, 255, 255],
+      fillColor: FORM_COLORS.tableHeader,
+      textColor: TEXT,
       fontStyle: "bold",
       fontSize: 7,
       halign: "center",

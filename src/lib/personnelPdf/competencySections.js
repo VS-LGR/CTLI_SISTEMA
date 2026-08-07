@@ -1,11 +1,9 @@
 import autoTable from "jspdf-autotable";
 import { displayValue } from "@/lib/quotationRequestDisplay";
+import { HEADER_GRAY, TEXT } from "@/lib/institutionalPdf/theme";
 import { PERSONNEL_PDF_MARGINS, ensurePersonnelSpace } from "./drawPersonnelPdfHeader";
 
 const { ML, MR } = PERSONNEL_PDF_MARGINS;
-const HEADER_GRAY = [217, 217, 217];
-const TEXT = [30, 30, 30];
-
 export function drawLabelValueTable(doc, y, rows) {
   autoTable(doc, {
     startY: y,

@@ -1,21 +1,16 @@
 /**
  * Layout visual do formulário RE-7.2A (cores e helpers jsPDF).
- * Paleta blue ProcVault (Tailwind blue-100 / blue-200 / blue-300).
- * Identidade do tenant (logo, código do formulário) vem de coletaDocMeta + export opts.
+ * Paleta cinza institucional (mesma dos certificados / proposta).
  */
 
-import { COLETA_PDF_BLUE } from "./coletaPdfColors";
+import { FORM_COLORS } from "./coletaPdfColors";
+import { ML as THEME_ML, MR as THEME_MR, PAGE_W as THEME_PAGE_W, SPACING } from "@/lib/institutionalPdf/theme";
 
-export const FORM_COLORS = {
-  sectionBar: COLETA_PDF_BLUE.sectionBar.rgb,
-  sectionBarText: COLETA_PDF_BLUE.sectionBarText.rgb,
-  sectionGreen: COLETA_PDF_BLUE.sectionFill.rgb,
-  tableHeaderGreen: COLETA_PDF_BLUE.tableHeader.rgb,
-  fieldLabelGreen: COLETA_PDF_BLUE.sectionFill.rgb,
-  border: COLETA_PDF_BLUE.border.rgb,
-  brand: COLETA_PDF_BLUE.brand.rgb,
-  text: COLETA_PDF_BLUE.text.rgb,
-};
+export { FORM_COLORS };
+
+export const ML = THEME_ML;
+export const MR = THEME_MR;
+export const PAGE_W = THEME_PAGE_W;
 
 /** Rótulo de campo com dois-pontos (ex.: "Representante do Cliente: "). */
 export function fieldLabelWithColon(label) {
@@ -24,8 +19,8 @@ export function fieldLabelWithColon(label) {
   return t.endsWith(":") ? `${t} ` : `${t}: `;
 }
 
-const SECTION_BAR_H = 5;
-const SECTION_CONTENT_GAP = 2.5;
+const SECTION_BAR_H = SPACING.sectionBarH;
+const SECTION_CONTENT_GAP = SPACING.sectionGap;
 const FIELD_LABEL_H = 3.5;
 const FIELD_BOX_H = 7;
 
@@ -40,7 +35,7 @@ export function tableHeadStyles(doc) {
 }
 
 /**
- * Faixa verde de título de secção (y = topo da barra).
+ * Faixa de título de secção (y = topo da barra).
  * @returns {number} y para o primeiro conteúdo abaixo da barra
  */
 export function drawSectionBar(doc, x, y, width, text) {

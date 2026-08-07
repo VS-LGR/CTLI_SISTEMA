@@ -5,8 +5,29 @@
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 import { pdfImageFormat } from "./compressPdfImages";
 import { FORM_COLORS } from "./certificatePdfColors";
+import {
+  ML as THEME_ML,
+  MR as THEME_MR,
+  PAGE_W as THEME_PAGE_W,
+  PAGE_H as THEME_PAGE_H,
+  FOOTER_Y as THEME_FOOTER_Y,
+  CONTENT_BOTTOM as THEME_CONTENT_BOTTOM,
+  LOGO_W as THEME_LOGO_W,
+  LOGO_H as THEME_LOGO_H,
+  SPACING,
+} from "@/lib/institutionalPdf/theme";
 
 export { FORM_COLORS };
+
+export const ML = THEME_ML;
+export const MR = THEME_MR;
+export const PAGE_W = THEME_PAGE_W;
+export const PAGE_H = THEME_PAGE_H;
+export const CW = MR - ML;
+export const FOOTER_Y = THEME_FOOTER_Y;
+export const CONTENT_BOTTOM = THEME_CONTENT_BOTTOM;
+export const LOGO_W = THEME_LOGO_W;
+export const LOGO_H = THEME_LOGO_H;
 
 /** Rótulo de campo com dois-pontos (ex.: "Representante do Cliente: "). */
 export function fieldLabelWithColon(label) {
@@ -15,8 +36,8 @@ export function fieldLabelWithColon(label) {
   return t.endsWith(":") ? `${t} ` : `${t}: `;
 }
 
-const SECTION_BAR_H = 5;
-const SECTION_CONTENT_GAP = 2.5;
+const SECTION_BAR_H = SPACING.sectionBarH;
+const SECTION_CONTENT_GAP = SPACING.sectionGap;
 const FIELD_LABEL_H = 3.5;
 const FIELD_BOX_H = 7;
 
@@ -186,17 +207,6 @@ export function drawMeasureBlock(doc, x, y, w, title, valueLine) {
   doc.text(valueLine, x + 0.5, valueY, { maxWidth: w - 2 });
   return valueY + 4.5;
 }
-
-export const ML = 10;
-export const MR = 200;
-export const PAGE_W = 210;
-export const PAGE_H = 297;
-export const CW = MR - ML;
-export const FOOTER_Y = PAGE_H - 8;
-export const CONTENT_BOTTOM = FOOTER_Y - 6;
-
-export const LOGO_W = 32;
-export const LOGO_H = 13;
 
 /** @returns {number} y para início do conteúdo após cabeçalho */
 export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6, metrics = null) {

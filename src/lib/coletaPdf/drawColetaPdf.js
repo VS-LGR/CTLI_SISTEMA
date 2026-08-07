@@ -10,6 +10,9 @@ import { buildColetaPdfViewModel, coletaPdfFileSlug } from "./viewModel";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
 import {
   FORM_COLORS,
+  ML,
+  MR,
+  PAGE_W,
   drawSectionBar,
   drawDualSectionBar,
   drawProposalBox,
@@ -21,10 +24,7 @@ import {
   tableHeadStyles,
 } from "./coletaPdfLayout";
 
-const ML = 10;
-const MR = 200;
 const CW = MR - ML;
-const PAGE_W = 210;
 
 function s(v) {
   return v == null ? "" : String(v);

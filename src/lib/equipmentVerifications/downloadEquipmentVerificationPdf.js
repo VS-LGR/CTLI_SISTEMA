@@ -59,7 +59,7 @@ function drawAssetChecklistTable(doc, {
     styles: TABLE_STYLES,
     headStyles: {
       fillColor: equipmentKindPdfFill(kind),
-      textColor: [255, 255, 255],
+      textColor: TEXT,
       fontStyle: "bold",
       fontSize: 6.5,
     },

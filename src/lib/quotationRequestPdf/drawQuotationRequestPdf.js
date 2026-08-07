@@ -2,11 +2,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalPdfHeaderWithCenterLines } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-import { ML, MR, PAGE_H, PAGE_W, TEXT } from "@/lib/institutionalPdf/theme";
+import { ML, MR, PAGE_H, PAGE_W, TEXT, HEADER_GRAY, BORDER } from "@/lib/institutionalPdf/theme";
 import { buildQuotationRequestPdfViewModel } from "./viewModel";
-
-const HEADER_GRAY = [217, 217, 217];
-const BORDER = [180, 180, 180];
 
 function drawWatermark(doc, text) {
   const pages = doc.getNumberOfPages();

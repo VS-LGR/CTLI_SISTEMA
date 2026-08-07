@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { prepareMasterDocumentExport, recordMasterDocumentExport } from "@/lib/masterDocuments/masterDocumentExportHelper";
 import { drawInstitutionalPdfHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-import { ML, TEXT } from "@/lib/institutionalPdf/theme";
+import { ML, TEXT, FORM_COLORS } from "@/lib/institutionalPdf/theme";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { latestSheetUpdateIso } from "./buildDeviceTechnicalSheets";
@@ -95,8 +95,8 @@ export async function downloadDeviceTechnicalSheetPdf(rows, {
     ]],
     body,
     styles: { ...TABLE_STYLES, fontSize: 5 },
-    headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 4.5 },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
+    headStyles: { fillColor: FORM_COLORS.tableHeader, textColor: TEXT, fontStyle: "bold", fontSize: 4.5 },
+    alternateRowStyles: { fillColor: FORM_COLORS.sectionFill },
   });
 
   if (historyRows?.length) {
@@ -123,7 +123,7 @@ export async function downloadDeviceTechnicalSheetPdf(rows, {
         fmtCell(h.certificate_number_snapshot),
       ]),
       styles: TABLE_STYLES,
-      headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 6 },
+      headStyles: { fillColor: FORM_COLORS.tableHeader, textColor: TEXT, fontStyle: "bold", fontSize: 6 },
     });
   }
 

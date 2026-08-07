@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { fmtDmyShort } from "@/lib/dateFormat";
 import { drawInstitutionalReportHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-import { ML, TEXT } from "@/lib/institutionalPdf/theme";
+import { ML, TEXT, FORM_COLORS } from "@/lib/institutionalPdf/theme";
 
 const TABLE_STYLES = {
   font: "helvetica",
@@ -45,7 +45,7 @@ export async function downloadWeightCertificatesValidPdf(rows, tenantName) {
     ]],
     body,
     styles: TABLE_STYLES,
-    headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold" },
+    headStyles: { fillColor: FORM_COLORS.tableHeader, textColor: TEXT, fontStyle: "bold" },
   });
   drawInstitutionalPageFooters(doc);
   doc.save(`certificados-peso-padrao-vigentes-${today}.pdf`);
@@ -82,7 +82,7 @@ export async function downloadEnvironmentCertificatesValidPdf(rows, tenantName) 
     ]],
     body,
     styles: { ...TABLE_STYLES, fontSize: 8 },
-    headStyles: { fillColor: [37, 99, 235], textColor: TEXT, fontStyle: "bold" },
+    headStyles: { fillColor: FORM_COLORS.tableHeader, textColor: TEXT, fontStyle: "bold" },
   });
   drawInstitutionalPageFooters(doc);
   doc.save(`certificados-termo-baro-vigentes-${today}.pdf`);

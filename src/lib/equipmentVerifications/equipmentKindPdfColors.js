@@ -1,23 +1,21 @@
-/** Cores de cabeçalho PDF por tipo de equipamento (RE-6.4.12B / agendas). */
+import { FORM_COLORS } from "@/lib/institutionalPdf/theme";
+
+/**
+ * Etiquetas por tipo de equipamento (RE-6.4.12B / agendas).
+ * Cabeçalhos de tabela usam cinza institucional — sem paleta colorida por kind.
+ */
 export const EQUIPMENT_KIND_PDF_COLORS = {
-  pesos: {
-    fill: [37, 99, 235],
-    label: "Peso",
-  },
-  thermo: {
-    fill: [217, 119, 6],
-    label: "Thermo",
-  },
-  computador: {
-    fill: [71, 85, 105],
-    label: "Computador",
-  },
-  veiculo: {
-    fill: [22, 163, 74],
-    label: "Veículo",
-  },
+  pesos: { label: "Peso" },
+  thermo: { label: "Thermo" },
+  computador: { label: "Computador" },
+  veiculo: { label: "Veículo" },
 };
 
-export function equipmentKindPdfFill(kind) {
-  return EQUIPMENT_KIND_PDF_COLORS[kind]?.fill || [37, 99, 235];
+/** Fill de cabeçalho de tabela — sempre cinza institucional. */
+export function equipmentKindPdfFill(_kind) {
+  return FORM_COLORS.tableHeader;
+}
+
+export function equipmentKindPdfLabel(kind) {
+  return EQUIPMENT_KIND_PDF_COLORS[kind]?.label || String(kind || "—");
 }

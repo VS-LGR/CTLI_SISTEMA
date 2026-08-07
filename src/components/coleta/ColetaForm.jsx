@@ -667,9 +667,9 @@ export default function ColetaForm({
           emphasis
           headerAction={<CalibracaoOrdemTooltip tipoPlataforma={payload.balanca.tipo_plataforma} />}
         >
-          <Field label="Valor Aplicado">
+          <Field label="Valor Aplicado" className="max-w-xs">
             <MassValueField
-              compact={!isDesktop}
+              compact
               value={payload.excentricidade.valor_aplicado_valor || ""}
               unit={payload.excentricidade.valor_aplicado_unidade || defaultUnit}
               defaultUnit={defaultUnit}
@@ -689,19 +689,41 @@ export default function ColetaForm({
               })}
             />
           </Field>
-          <div className="space-y-3">
-            {payload.excentricidade.pontos.map((pt, i) => (
-              <FormRowCard key={i} label={`Ponto ${i + 1}`} readOnly>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Antes do ajuste">
-                    <Input inputMode="decimal" value={pt.antes} onChange={(e) => setEccPonto(i, "antes", e.target.value)} className={READING_INPUT} />
-                  </Field>
-                  <Field label="Depois do ajuste">
-                    <Input inputMode="decimal" value={pt.depois} onChange={(e) => setEccPonto(i, "depois", e.target.value)} className={READING_INPUT} />
-                  </Field>
-                </div>
-              </FormRowCard>
-            ))}
+          <div className="rounded-md border border-slate-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-2 py-1.5 text-left font-semibold w-12">Ponto</th>
+                  <th className="px-2 py-1.5 text-left font-semibold">Antes</th>
+                  <th className="px-2 py-1.5 text-left font-semibold">Depois</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payload.excentricidade.pontos.map((pt, i) => (
+                  <tr key={i} className="border-b border-slate-100 last:border-0">
+                    <td className="px-2 py-1 font-mono text-xs text-slate-600 align-middle">{i + 1}</td>
+                    <td className="px-1.5 py-1 align-middle">
+                      <Input
+                        inputMode="decimal"
+                        aria-label={`Ponto ${i + 1} antes do ajuste`}
+                        value={pt.antes}
+                        onChange={(e) => setEccPonto(i, "antes", e.target.value)}
+                        className="h-9 font-mono tabular-nums text-sm"
+                      />
+                    </td>
+                    <td className="px-1.5 py-1 align-middle">
+                      <Input
+                        inputMode="decimal"
+                        aria-label={`Ponto ${i + 1} depois do ajuste`}
+                        value={pt.depois}
+                        onChange={(e) => setEccPonto(i, "depois", e.target.value)}
+                        className="h-9 font-mono tabular-nums text-sm"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </SectionCard>
 

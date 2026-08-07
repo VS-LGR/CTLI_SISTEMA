@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { buildExperienceEvaluationPdfViewModel, mergeDocumentMetaHeader } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters, PERSONNEL_PDF_MARGINS, ensurePersonnelSpace } from "./drawPersonnelPdfHeader";
+import { HEADER_GRAY } from "@/lib/institutionalPdf/theme";
 import { drawLabelValueTable, drawSectionTitle, drawSectionBlock } from "./competencySections";
 import { experienceExportFilename } from "@/lib/personnelExportFilename";
 import { EXPERIENCE_EVALUATION_SCORES } from "@/lib/personnelExperienceConstants";
@@ -28,7 +29,7 @@ function drawScoringTable(doc, y, items, redrawHeader, header, logoDataUrl) {
     body,
     theme: "grid",
     styles: { fontSize: 7, cellPadding: 1.5, halign: "center" },
-    headStyles: { fillColor: [217, 217, 217], fontStyle: "bold", halign: "center" },
+    headStyles: { fillColor: HEADER_GRAY, fontStyle: "bold", halign: "center" },
     columnStyles: { 0: { halign: "left", cellWidth: 95 } },
   });
   return doc.lastAutoTable.finalY + 4;

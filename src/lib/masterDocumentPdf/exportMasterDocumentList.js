@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { drawInstitutionalPdfHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-import { ML, MR, PAGE_W, TEXT } from "@/lib/institutionalPdf/theme";
+import { ML, MR, PAGE_W, TEXT, FORM_COLORS } from "@/lib/institutionalPdf/theme";
 import {
   listMasterDocuments,
   listExternalDocuments,
@@ -84,7 +84,7 @@ function drawDocTable(doc, startY, headers, rows, columnStyles = INTERNAL_COL_WI
     margin: TABLE_MARGIN,
     theme: "grid",
     styles: { fontSize: 7, cellPadding: 1.5, overflow: "linebreak", textColor: TEXT },
-    headStyles: { fillColor: [240, 240, 240], textColor: TEXT, fontStyle: "bold" },
+    headStyles: { fillColor: FORM_COLORS.tableHeader, textColor: TEXT, fontStyle: "bold" },
     columnStyles,
   });
   return doc.lastAutoTable.finalY + 6;

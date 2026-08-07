@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { buildAttendanceListPdfViewModel, mergeDocumentMetaHeader } from "./viewModels";
 import { drawPersonnelPdfHeader, drawPersonnelPageFooters, PERSONNEL_PDF_MARGINS, ensurePersonnelSpace } from "./drawPersonnelPdfHeader";
+import { HEADER_GRAY } from "@/lib/institutionalPdf/theme";
 import { drawLabelValueTable, drawSectionTitle, drawSectionBlock } from "./competencySections";
 import { attendanceExportFilename } from "@/lib/personnelExportFilename";
 import { displayValue } from "@/lib/quotationRequestDisplay";
@@ -26,7 +27,7 @@ function drawParticipantsTable(doc, y, head, body, courseTitle, redrawHeader, he
     body,
     theme: "grid",
     styles: { fontSize: 7, cellPadding: 2 },
-    headStyles: { fillColor: [217, 217, 217], fontStyle: "bold" },
+    headStyles: { fillColor: HEADER_GRAY, fontStyle: "bold" },
   });
   return doc.lastAutoTable.finalY + 4;
 }

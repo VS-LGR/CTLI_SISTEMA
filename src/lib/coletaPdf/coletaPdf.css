@@ -1,10 +1,10 @@
 :root {
-  --coleta-form-accent: #dbeafe;
-  --coleta-form-accent-dark: #bfdbfe;
-  --coleta-form-border: #93c5fd;
-  --coleta-form-section-bar: #3b82f6;
-  --coleta-form-section-text: #ffffff;
-  --coleta-form-section-border: #2563eb;
+  --coleta-form-accent: #f5f5f5;
+  --coleta-form-accent-dark: #f0f0f0;
+  --coleta-form-border: #b4b4b4;
+  --coleta-form-section-bar: #d9d9d9;
+  --coleta-form-section-text: #1e1e1e;
+  --coleta-form-section-border: #787878;
 }
 
 .coleta-pdf-root {
