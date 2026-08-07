@@ -16,7 +16,12 @@ import { exportCommercialProposalPdf } from "@/lib/commercialProposals/commercia
 import {
   computeProposalTotal,
   emptyProposalForm,
+  emptyScale,
+  emptyWeightProposalItem,
   formatProposalNumber,
+  PROPOSAL_KIND_BALANCAS,
+  PROPOSAL_KIND_OPTIONS,
+  PROPOSAL_KIND_PESOS,
   validateProposalForm,
 } from "@/lib/commercialProposals/commercialProposalSchema";
 import { PROPOSAL_LIST_PATH, COMMERCIAL_PROPOSAL_TEMPLATE_KEY } from "@/lib/commercialProposals/commercialProposalRoutes";
@@ -42,6 +47,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, FloppyDisk, FilePdf, Database } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
@@ -318,34 +324,101 @@ export default function CommercialProposalEditorPage() {
       </Card>
 
       <Card className="border-slate-200">
-        <CardContent className="p-4">
-          <ProposalScalesTable
-            scales={form.scales}
-            onChange={(scales) => setForm({ ...form, scales })}
-            endCustomerId={form.end_customer_id}
-            registeredScales={registeredScales}
-            tenantId={currentTenantId}
-            onRegisteredScaleCreated={(saved) => {
-              setRegisteredScales((prev) => {
-                if (prev.some((s) => s.id === saved.id)) return prev;
-                return [...prev, saved].sort((a, b) =>
-                  String(a.serial_number || "").localeCompare(String(b.serial_number || "")),
-                );
-              });
+        <CardContent className="p-4 space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800">Tipo de calibração</h3>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Cada proposta cobre apenas um tipo — balanças ou pesos-padrão.
+            </p>
+          </div>
+          <RadioGroup
+            value={form.proposal_kind || PROPOSAL_KIND_BALANCAS}
+            onValueChange={(kind) => {
+              const linkedScales = (form.scales || []).some((s) => s.collection_id);
+              const linkedWeights = (form.weightItems || []).some((w) => w.collection_id);
+              if (kind === PROPOSAL_KIND_PESOS && linkedScales) {
+                toast.error("Há coletas de balança vinculadas. Remova-as antes de mudar o tipo.");
+                return;
+              }
+              if (kind === PROPOSAL_KIND_BALANCAS && linkedWeights) {
+                toast.error("Há coletas de pesos vinculadas. Remova-as antes de mudar o tipo.");
+                return;
+              }
+              if (kind === PROPOSAL_KIND_PESOS) {
+                setForm({
+                  ...form,
+                  proposal_kind: kind,
+                  scales: [],
+                  weightItems: (form.weightItems || []).length
+                    ? form.weightItems
+                    : [emptyWeightProposalItem(1)],
+                });
+              } else {
+                setForm({
+                  ...form,
+                  proposal_kind: kind,
+                  weightItems: [],
+                  scales: (form.scales || []).length ? form.scales : [emptyScale(1)],
+                });
+              }
             }}
-          />
+            className="grid sm:grid-cols-2 gap-3"
+          >
+            {PROPOSAL_KIND_OPTIONS.map((opt) => {
+              const selected = (form.proposal_kind || PROPOSAL_KIND_BALANCAS) === opt.value;
+              return (
+                <label
+                  key={opt.value}
+                  htmlFor={`proposal-kind-${opt.value}`}
+                  className={`flex items-start gap-3 rounded-lg border px-3 py-3 cursor-pointer transition-colors ${
+                    selected
+                      ? "border-blue-400 bg-blue-50/70"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <RadioGroupItem value={opt.value} id={`proposal-kind-${opt.value}`} className="mt-0.5" />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-900">{opt.label}</span>
+                    <span className="block text-xs text-slate-600 mt-0.5">{opt.hint}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </RadioGroup>
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200">
-        <CardContent className="p-4">
-          <ProposalWeightsTable
-            weightItems={form.weightItems || []}
-            onChange={(weightItems) => setForm({ ...form, weightItems })}
-            standardWeights={standardWeights}
-          />
-        </CardContent>
-      </Card>
+      {(form.proposal_kind || PROPOSAL_KIND_BALANCAS) === PROPOSAL_KIND_BALANCAS ? (
+        <Card className="border-slate-200">
+          <CardContent className="p-4">
+            <ProposalScalesTable
+              scales={form.scales}
+              onChange={(scales) => setForm({ ...form, scales })}
+              endCustomerId={form.end_customer_id}
+              registeredScales={registeredScales}
+              tenantId={currentTenantId}
+              onRegisteredScaleCreated={(saved) => {
+                setRegisteredScales((prev) => {
+                  if (prev.some((s) => s.id === saved.id)) return prev;
+                  return [...prev, saved].sort((a, b) =>
+                    String(a.serial_number || "").localeCompare(String(b.serial_number || "")),
+                  );
+                });
+              }}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-slate-200">
+          <CardContent className="p-4">
+            <ProposalWeightsTable
+              weightItems={form.weightItems || []}
+              onChange={(weightItems) => setForm({ ...form, weightItems })}
+              standardWeights={standardWeights}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-slate-200">
         <CardContent className="p-4">
@@ -359,8 +432,8 @@ export default function CommercialProposalEditorPage() {
 
       <ProposalColetasCard
         proposalId={proposalId}
-        scales={form.scales}
-        weightItems={form.weightItems || []}
+        scales={(form.proposal_kind || PROPOSAL_KIND_BALANCAS) === PROPOSAL_KIND_BALANCAS ? form.scales : []}
+        weightItems={(form.proposal_kind || PROPOSAL_KIND_BALANCAS) === PROPOSAL_KIND_PESOS ? (form.weightItems || []) : []}
         userId={user?.id}
         onGenerated={refreshProposal}
       />

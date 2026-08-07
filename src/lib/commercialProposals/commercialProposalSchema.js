@@ -53,6 +53,33 @@ export function emptyWeightProposalItem(itemNumber = 1) {
   };
 }
 
+export const PROPOSAL_KIND_BALANCAS = "balancas";
+export const PROPOSAL_KIND_PESOS = "pesos";
+
+export const PROPOSAL_KIND_OPTIONS = [
+  {
+    value: PROPOSAL_KIND_BALANCAS,
+    label: "Calibração de balanças",
+    hint: "Itens RE-7.2A — gera coletas de balança",
+  },
+  {
+    value: PROPOSAL_KIND_PESOS,
+    label: "Calibração de pesos-padrão",
+    hint: "Itens RE-5.4.2A — gera coletas de pesos",
+  },
+];
+
+export function inferProposalKind(scales = [], weightItems = []) {
+  const hasWeight = (weightItems || []).some(
+    (w) => String(w.identification || "").trim() || w.collection_id || w.id,
+  );
+  const hasScale = (scales || []).some(
+    (s) => String(s.serial_number || "").trim() || s.collection_id || s.id,
+  );
+  if (hasWeight && !hasScale) return PROPOSAL_KIND_PESOS;
+  return PROPOSAL_KIND_BALANCAS;
+}
+
 export function emptyProposalForm() {
   const today = new Date().toISOString().slice(0, 10);
   return {
@@ -70,6 +97,7 @@ export function emptyProposalForm() {
     adjust_after: "",
     notes: "",
     total_value: "",
+    proposal_kind: PROPOSAL_KIND_BALANCAS,
     scales: [emptyScale(1)],
     weightItems: [],
   };
@@ -124,20 +152,39 @@ export function computeTotalFromWeightItems(weightItems = []) {
 }
 
 export function computeProposalTotal(form = {}) {
-  return computeTotalFromScales(form.scales || []) + computeTotalFromWeightItems(form.weightItems || []);
+  const kind = form.proposal_kind || inferProposalKind(form.scales, form.weightItems);
+  if (kind === PROPOSAL_KIND_PESOS) {
+    return computeTotalFromWeightItems(form.weightItems || []);
+  }
+  return computeTotalFromScales(form.scales || []);
 }
 
 export function validateProposalForm(form) {
   if (!String(form.proposal_date || "").trim()) return "Informe a data da proposta";
   const company = form.client_snapshot?.company || "";
   if (!company.trim()) return "Informe a empresa (cliente)";
+
+  const kind = form.proposal_kind || inferProposalKind(form.scales, form.weightItems);
   const scales = form.scales || [];
   const weightItems = form.weightItems || [];
-  const hasScale = scales.some((s) => String(s.serial_number || "").trim());
-  const hasWeight = weightItems.some((w) => String(w.identification || "").trim());
-  if (!hasScale && !hasWeight) {
-    return "Adicione ao menos uma balança ou um peso-padrão";
+
+  if (kind === PROPOSAL_KIND_PESOS) {
+    const hasWeight = weightItems.some((w) => String(w.identification || "").trim());
+    if (!hasWeight) return "Adicione ao menos um peso-padrão";
+    for (let i = 0; i < weightItems.length; i++) {
+      const w = weightItems[i];
+      const filled = String(w.identification || "").trim()
+        || String(w.nominal_value || "").trim();
+      if (!filled) continue;
+      if (!String(w.identification || "").trim()) {
+        return `Informe a identificação do peso ${i + 1}`;
+      }
+    }
+    return null;
   }
+
+  const hasScale = scales.some((s) => String(s.serial_number || "").trim());
+  if (!hasScale) return "Adicione ao menos uma balança";
   for (let i = 0; i < scales.length; i++) {
     const s = scales[i];
     const filled = String(s.serial_number || "").trim()
@@ -146,15 +193,6 @@ export function validateProposalForm(form) {
     if (!filled) continue;
     if (!String(s.serial_number || "").trim()) {
       return `Informe o número de série da balança ${i + 1}`;
-    }
-  }
-  for (let i = 0; i < weightItems.length; i++) {
-    const w = weightItems[i];
-    const filled = String(w.identification || "").trim()
-      || String(w.nominal_value || "").trim();
-    if (!filled) continue;
-    if (!String(w.identification || "").trim()) {
-      return `Informe a identificação do peso ${i + 1}`;
     }
   }
   return null;
@@ -208,6 +246,7 @@ export function normalizeScaleForSave(scale, itemNumber) {
 }
 
 export function proposalRowToForm(row, scales = [], weightItems = []) {
+  const kind = inferProposalKind(scales, weightItems);
   return {
     proposal_number: row.proposal_number,
     proposal_year: row.proposal_year,
@@ -223,38 +262,43 @@ export function proposalRowToForm(row, scales = [], weightItems = []) {
     adjust_after: row.adjust_after || "",
     notes: row.notes || "",
     total_value: row.total_value ?? "",
-    scales: scales.length
-      ? scales.map((s) => ({
-          id: s.id,
-          item_number: s.item_number,
-          manufacturer: s.manufacturer || "",
-          model: s.model || "",
-          tag: s.tag || "",
-          serial_number: s.serial_number || "",
-          capacity: s.capacity || "",
-          resolution: s.resolution || "",
-          unit: s.unit || "g",
-          client_requested_points: s.client_requested_points || "",
-          unit_value: s.unit_value ?? "",
-          scale_registration_id: s.scale_registration_id || "",
-          collection_id: s.collection_id || "",
-          calibration_points: mergeCalibrationPoints(s.calibration_points, s.unit || "g"),
+    proposal_kind: kind,
+    scales: kind === PROPOSAL_KIND_BALANCAS
+      ? (scales.length
+        ? scales.map((s) => ({
+            id: s.id,
+            item_number: s.item_number,
+            manufacturer: s.manufacturer || "",
+            model: s.model || "",
+            tag: s.tag || "",
+            serial_number: s.serial_number || "",
+            capacity: s.capacity || "",
+            resolution: s.resolution || "",
+            unit: s.unit || "g",
+            client_requested_points: s.client_requested_points || "",
+            unit_value: s.unit_value ?? "",
+            scale_registration_id: s.scale_registration_id || "",
+            collection_id: s.collection_id || "",
+            calibration_points: mergeCalibrationPoints(s.calibration_points, s.unit || "g"),
+          }))
+        : [emptyScale(1)])
+      : [],
+    weightItems: kind === PROPOSAL_KIND_PESOS
+      ? (weightItems || []).map((w) => ({
+          id: w.id,
+          item_number: w.item_number,
+          identification: w.identification || "",
+          nominal_value: w.nominal_value || "",
+          nominal_unit: w.nominal_unit || "g",
+          uut_class: w.uut_class || "",
+          uut_material: w.uut_material || "",
+          manufacturer: w.manufacturer || "",
+          serial_number: w.serial_number || "",
+          unit_value: w.unit_value ?? "",
+          standard_weight_item_id: w.standard_weight_item_id || "",
+          collection_id: w.collection_id || "",
         }))
-      : [emptyScale(1)],
-    weightItems: (weightItems || []).map((w) => ({
-      id: w.id,
-      item_number: w.item_number,
-      identification: w.identification || "",
-      nominal_value: w.nominal_value || "",
-      nominal_unit: w.nominal_unit || "g",
-      uut_class: w.uut_class || "",
-      uut_material: w.uut_material || "",
-      manufacturer: w.manufacturer || "",
-      serial_number: w.serial_number || "",
-      unit_value: w.unit_value ?? "",
-      standard_weight_item_id: w.standard_weight_item_id || "",
-      collection_id: w.collection_id || "",
-    })),
+      : [],
   };
 }
 

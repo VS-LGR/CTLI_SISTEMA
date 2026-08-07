@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
-import { FloppyDisk } from "@phosphor-icons/react";
+import { FloppyDisk, CopySimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   TIPO_BALANCA_OPTIONS,
@@ -37,26 +37,61 @@ import FormRowsTableShell, { FormRowsTableHead, FormRowsTableBody } from "@/comp
 import { balanceSnapshotFromScaleRegistration } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { createScaleRegistrationFromBalance } from "@/lib/scaleRegistrations/scaleRegistrationApi";
 
-function Field({ label, children, className = "" }) {
+const READING_INPUT = "h-11 text-base sm:text-sm font-mono tabular-nums";
+
+function Field({ label, children, className = "", hint }) {
   return (
     <div className={className}>
       <Label className="text-xs text-slate-600">{label}</Label>
+      {hint ? <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{hint}</p> : null}
       <div className="mt-1">{children}</div>
     </div>
   );
 }
 
-function SectionCard({ num, title, children, headerAction }) {
+function SectionCard({ id, num, title, children, headerAction, emphasis = false, subtitle }) {
   return (
-    <Card>
+    <Card
+      id={id}
+      className={emphasis ? "border-blue-300 shadow-sm ring-1 ring-blue-100 scroll-mt-24" : "scroll-mt-24"}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-base font-display">{num}) {title}</CardTitle>
+          <div>
+            <CardTitle className="text-base font-display">{num}) {title}</CardTitle>
+            {subtitle ? <p className="text-xs text-slate-600 mt-1">{subtitle}</p> : null}
+          </div>
           {headerAction}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>
     </Card>
+  );
+}
+
+function FieldNav({ items }) {
+  return (
+    <nav
+      aria-label="Secções da coleta"
+      className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-white/95 backdrop-blur border-b border-slate-200 mb-4"
+    >
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              item.primary
+                ? "border-blue-300 bg-blue-50 text-blue-800"
+                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -105,6 +140,25 @@ export default function ColetaForm({
   const defaultUnit = payload.balanca?.unidade || "g";
   const [savingScale, setSavingScale] = useState(false);
   const [showAllScales, setShowAllScales] = useState(false);
+  const [headerOpen, setHeaderOpen] = useState(!headerLocked);
+  const [showEmptyCalPoints, setShowEmptyCalPoints] = useState(!headerLocked);
+
+  useEffect(() => {
+    setHeaderOpen(!headerLocked);
+    setShowEmptyCalPoints(!headerLocked);
+  }, [headerLocked]);
+
+  const calPointEntries = useMemo(() => {
+    const pontos = payload.calibracao?.pontos || [];
+    return pontos
+      .map((pt, index) => ({ pt, index }))
+      .filter(({ pt }) => {
+        if (showEmptyCalPoints) return true;
+        return String(pt.peso_nominal_valor || "").trim() !== "";
+      });
+  }, [payload.calibracao?.pontos, showEmptyCalPoints]);
+
+  const useReadingCards = !isDesktop || headerLocked || calPointEntries.length <= 6;
 
   const filteredByClient = selectedEndCustomerId
     ? registeredScales.filter((s) => s.end_customer_id === selectedEndCustomerId || !s.end_customer_id)
@@ -243,8 +297,32 @@ export default function ColetaForm({
     onChange({ ...payload, calibracao: { ...payload.calibracao, pontos } });
   };
 
+  const copyAmbienteInicialParaFinal = () => {
+    onChange({
+      ...payload,
+      ambiente: {
+        ...payload.ambiente,
+        horario_final: payload.ambiente.horario_final || payload.ambiente.horario_inicial || "",
+        temp_final: payload.ambiente.temp_final || payload.ambiente.temp_inicial || "",
+        umidade_final: payload.ambiente.umidade_final || payload.ambiente.umidade_inicial || "",
+        pressao_final: payload.ambiente.pressao_final || payload.ambiente.pressao_inicial || "",
+      },
+    });
+    toast.success("Valores finais preenchidos a partir dos iniciais (pode ajustar)");
+  };
+
+  const navItems = [
+    { id: "coleta-cadastro", label: "1–2 Cadastro", primary: false },
+    { id: "coleta-ambiente", label: "3 Ambiente / TBH", primary: true },
+    { id: "coleta-excentricidade", label: "4 Excentricidade", primary: true },
+    { id: "coleta-calibracao", label: "6 Leituras", primary: true },
+    { id: "coleta-controle", label: "5 Fecho", primary: false },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <FieldNav items={navItems} />
+
       <div className="rounded-lg border bg-slate-50 px-4 py-3 text-center space-y-1">
         {formatColetaProposalLine(commercialProposalRef) && (
           <p className="text-xs text-slate-600">{formatColetaProposalLine(commercialProposalRef)}</p>
@@ -277,12 +355,29 @@ export default function ColetaForm({
         <p className="text-sm font-semibold mt-2">COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA</p>
         <p className="text-xs text-slate-500">Cód. RE-7.2A  Ref. PR-7.2  Rev.03 de 14/05/2026</p>
         {headerLocked && (
-          <p className="text-xs text-blue-700 mt-2 rounded-md border border-blue-200 bg-blue-50 px-2 py-1.5">
-            Dados da proposta em somente leitura. Preencha condições ambientais (TBH) e leituras.
+          <p className="text-xs text-blue-800 mt-2 rounded-md border border-blue-200 bg-blue-50 px-2 py-1.5 text-left sm:text-center">
+            Fluxo de campo: confirme o cadastro abaixo e avance para <strong>Ambiente/TBH</strong>, depois <strong>leituras</strong>.
           </p>
         )}
       </div>
 
+      <div id="coleta-cadastro" className="scroll-mt-24 space-y-3">
+        {headerLocked && (
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-slate-900">Dados da proposta (somente leitura)</p>
+              <p className="text-xs text-slate-600 truncate mt-0.5">
+                {[payload.cliente?.cliente, payload.balanca?.serie && `Série ${payload.balanca.serie}`, payload.balanca?.fabricante, payload.balanca?.modelo]
+                  .filter(Boolean)
+                  .join(" · ") || "Cliente e balança pré-preenchidos"}
+              </p>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={() => setHeaderOpen((v) => !v)}>
+              {headerOpen ? "Ocultar detalhe" : "Ver detalhe"}
+            </Button>
+          </div>
+        )}
+        <div className={`space-y-4 ${headerLocked && !headerOpen ? "hidden" : ""}`}>
       <SectionCard num="1" title="Dados do Cliente">
         {endCustomers.length === 0 ? (
           <p className="text-sm text-slate-600">
@@ -475,14 +570,27 @@ export default function ColetaForm({
           </div>
         )}
       </SectionCard>
+        </div>
+      </div>
 
-      <SectionCard num="3" title="Condições Ambientais Durante a Calibração">
+      <SectionCard
+        id="coleta-ambiente"
+        num="3"
+        title="Condições Ambientais Durante a Calibração"
+        emphasis
+        subtitle="Prioridade no campo — TBH e leituras ambientais"
+        headerAction={(
+          <Button type="button" size="sm" variant="outline" onClick={copyAmbienteInicialParaFinal}>
+            <CopySimple size={14} className="mr-1" /> Copiar inicial → final
+          </Button>
+        )}
+      >
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Identificação 1 (termo-baro-higrômetro)">
             <select
               value={payload.ambiente.thermo_cert_id || ""}
               onChange={(e) => setAmbiente("thermo_cert_id", e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             >
               <option value="">Selecionar equipamento…</option>
               {envCerts.map((e) => (
@@ -494,7 +602,7 @@ export default function ColetaForm({
             <select
               value={payload.ambiente.thermo_cert_id_2 || ""}
               onChange={(e) => setAmbiente("thermo_cert_id_2", e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             >
               <option value="">Selecionar equipamento…</option>
               {envCerts.map((e) => (
@@ -505,28 +613,28 @@ export default function ColetaForm({
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Field label="Horário inicial">
-            <Input type="time" value={payload.ambiente.horario_inicial} onChange={(ev) => setAmbiente("horario_inicial", ev.target.value)} />
+            <Input type="time" className="h-11" value={payload.ambiente.horario_inicial} onChange={(ev) => setAmbiente("horario_inicial", ev.target.value)} />
           </Field>
           <Field label="Horário final">
-            <Input type="time" value={payload.ambiente.horario_final} onChange={(ev) => setAmbiente("horario_final", ev.target.value)} />
+            <Input type="time" className="h-11" value={payload.ambiente.horario_final} onChange={(ev) => setAmbiente("horario_final", ev.target.value)} />
           </Field>
           <Field label="Temperatura inicial (°C)">
-            <Input value={payload.ambiente.temp_inicial} onChange={(ev) => setAmbiente("temp_inicial", ev.target.value)} />
+            <Input className={READING_INPUT} inputMode="decimal" value={payload.ambiente.temp_inicial} onChange={(ev) => setAmbiente("temp_inicial", ev.target.value)} />
           </Field>
           <Field label="Temperatura final (°C)">
-            <Input value={payload.ambiente.temp_final} onChange={(ev) => setAmbiente("temp_final", ev.target.value)} />
+            <Input className={READING_INPUT} inputMode="decimal" value={payload.ambiente.temp_final} onChange={(ev) => setAmbiente("temp_final", ev.target.value)} />
           </Field>
           <Field label="Umidade inicial (%ur)">
-            <Input value={payload.ambiente.umidade_inicial} onChange={(ev) => setAmbiente("umidade_inicial", ev.target.value)} />
+            <Input className={READING_INPUT} inputMode="decimal" value={payload.ambiente.umidade_inicial} onChange={(ev) => setAmbiente("umidade_inicial", ev.target.value)} />
           </Field>
           <Field label="Umidade final (%ur)">
-            <Input value={payload.ambiente.umidade_final} onChange={(ev) => setAmbiente("umidade_final", ev.target.value)} />
+            <Input className={READING_INPUT} inputMode="decimal" value={payload.ambiente.umidade_final} onChange={(ev) => setAmbiente("umidade_final", ev.target.value)} />
           </Field>
           <Field label="Pressão inicial (hPa)">
-            <Input value={payload.ambiente.pressao_inicial} onChange={(ev) => setAmbiente("pressao_inicial", ev.target.value)} />
+            <Input className={READING_INPUT} inputMode="decimal" value={payload.ambiente.pressao_inicial} onChange={(ev) => setAmbiente("pressao_inicial", ev.target.value)} />
           </Field>
           <Field label="Pressão final (hPa)">
-            <Input value={payload.ambiente.pressao_final} onChange={(ev) => setAmbiente("pressao_final", ev.target.value)} />
+            <Input className={READING_INPUT} inputMode="decimal" value={payload.ambiente.pressao_final} onChange={(ev) => setAmbiente("pressao_final", ev.target.value)} />
           </Field>
         </div>
         <TbhCorrectionPanel
@@ -535,10 +643,13 @@ export default function ColetaForm({
           envCerts={envCerts}
           onAmbienteChange={(ambiente) => onChange({ ...payload, ambiente })}
         />
-        <RadioRow label="A balança foi ajustada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_ajustada} onChange={(v) => setAmbiente("balanca_ajustada", v)} />
-        <RadioRow label="A balança foi nivelada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_nivelada} onChange={(v) => setAmbiente("balanca_nivelada", v)} />
-        <RadioRow label="Existe vibração no local?" options={BINARY_OPTIONS} value={payload.ambiente.existe_vibracao} onChange={(v) => setAmbiente("existe_vibracao", v)} />
-        <RadioRow label="Existe corrente de ar no local?" options={BINARY_OPTIONS} value={payload.ambiente.existe_corrente_ar} onChange={(v) => setAmbiente("existe_corrente_ar", v)} />
+        <div className="rounded-md border border-slate-100 bg-slate-50/60 p-3 space-y-3">
+          <p className="text-xs font-medium text-slate-700">Condições do local</p>
+          <RadioRow label="A balança foi ajustada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_ajustada} onChange={(v) => setAmbiente("balanca_ajustada", v)} />
+          <RadioRow label="A balança foi nivelada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_nivelada} onChange={(v) => setAmbiente("balanca_nivelada", v)} />
+          <RadioRow label="Existe vibração no local?" options={BINARY_OPTIONS} value={payload.ambiente.existe_vibracao} onChange={(v) => setAmbiente("existe_vibracao", v)} />
+          <RadioRow label="Existe corrente de ar no local?" options={BINARY_OPTIONS} value={payload.ambiente.existe_corrente_ar} onChange={(v) => setAmbiente("existe_corrente_ar", v)} />
+        </div>
         <Field label="Observações">
           <Textarea
             value={payload.ambiente.observacoes || ""}
@@ -548,10 +659,12 @@ export default function ColetaForm({
         </Field>
       </SectionCard>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-5">
         <SectionCard
+          id="coleta-excentricidade"
           num="4"
           title="Ensaio de Excentricidade"
+          emphasis
           headerAction={<CalibracaoOrdemTooltip tipoPlataforma={payload.balanca.tipo_plataforma} />}
         >
           <Field label="Valor Aplicado">
@@ -576,56 +689,26 @@ export default function ColetaForm({
               })}
             />
           </Field>
-          {!isDesktop && (
-            <div className="space-y-3">
-              {payload.excentricidade.pontos.map((pt, i) => (
-                <FormRowCard key={i} label={`Ponto ${i + 1}`} readOnly>
+          <div className="space-y-3">
+            {payload.excentricidade.pontos.map((pt, i) => (
+              <FormRowCard key={i} label={`Ponto ${i + 1}`} readOnly>
+                <div className="grid grid-cols-2 gap-3">
                   <Field label="Antes do ajuste">
-                    <Input value={pt.antes} onChange={(e) => setEccPonto(i, "antes", e.target.value)} className="h-10" />
+                    <Input inputMode="decimal" value={pt.antes} onChange={(e) => setEccPonto(i, "antes", e.target.value)} className={READING_INPUT} />
                   </Field>
                   <Field label="Depois do ajuste">
-                    <Input value={pt.depois} onChange={(e) => setEccPonto(i, "depois", e.target.value)} className="h-10" />
+                    <Input inputMode="decimal" value={pt.depois} onChange={(e) => setEccPonto(i, "depois", e.target.value)} className={READING_INPUT} />
                   </Field>
-                </FormRowCard>
-              ))}
-            </div>
-          )}
-          {isDesktop && (
-            <FormRowsTableShell tableMinWidth="400px">
-              <FormRowsTableHead>
-                <tr>
-                  <th className="p-2 text-left w-12 font-semibold sticky left-0 z-[1] bg-slate-50">Ponto</th>
-                  <th className="p-2 text-left font-semibold">Antes do ajuste</th>
-                  <th className="p-2 text-left font-semibold">Depois do ajuste</th>
-                </tr>
-              </FormRowsTableHead>
-              <FormRowsTableBody>
-                {payload.excentricidade.pontos.map((pt, i) => (
-                  <tr key={i} className="border-b border-slate-100">
-                    <td className="p-2 font-mono sticky left-0 z-[1] bg-white">{i + 1}</td>
-                    <td className="p-2">
-                      <Input value={pt.antes} onChange={(e) => setEccPonto(i, "antes", e.target.value)} className="h-10" />
-                    </td>
-                    <td className="p-2">
-                      <Input value={pt.depois} onChange={(e) => setEccPonto(i, "depois", e.target.value)} className="h-10" />
-                    </td>
-                  </tr>
-                ))}
-              </FormRowsTableBody>
-            </FormRowsTableShell>
-          )}
+                </div>
+              </FormRowCard>
+            ))}
+          </div>
         </SectionCard>
 
-        <SectionCard num="5" title="Controle">
+        <SectionCard id="coleta-controle" num="5" title="Controle / Fecho">
           <div className="grid gap-4">
-            <Field label="Representante do Cliente">
-              <Input value={payload.controle.representante_cliente} onChange={(e) => setControle("representante_cliente", e.target.value)} />
-            </Field>
-            <Field label="Conferido e Transcrito por">
-              <Input value={payload.controle.conferido_por} onChange={(e) => setControle("conferido_por", e.target.value)} />
-            </Field>
-            <Field label="Número do Certificado Emitido">
-              <Input value={payload.controle.numero_certificado} onChange={(e) => setControle("numero_certificado", e.target.value)} />
+            <Field label="Data da Calibração" hint="Campo prioritário no fecho da coleta">
+              <Input type="date" className="h-11" value={payload.controle.data_calibracao} onChange={(e) => setControle("data_calibracao", e.target.value)} />
             </Field>
             <Field label="Técnico executor">
               <select
@@ -642,7 +725,7 @@ export default function ColetaForm({
                     },
                   });
                 }}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
                 <option value="">Selecionar colaborador…</option>
                 {employees
@@ -652,8 +735,14 @@ export default function ColetaForm({
                   ))}
               </select>
             </Field>
-            <Field label="Data da Calibração">
-              <Input type="date" value={payload.controle.data_calibracao} onChange={(e) => setControle("data_calibracao", e.target.value)} />
+            <Field label="Representante do Cliente">
+              <Input className="h-11" value={payload.controle.representante_cliente} onChange={(e) => setControle("representante_cliente", e.target.value)} />
+            </Field>
+            <Field label="Conferido e Transcrito por">
+              <Input className="h-11" value={payload.controle.conferido_por} onChange={(e) => setControle("conferido_por", e.target.value)} />
+            </Field>
+            <Field label="Número do Certificado Emitido">
+              <Input className="h-11" value={payload.controle.numero_certificado} onChange={(e) => setControle("numero_certificado", e.target.value)} />
             </Field>
             <RadioRow
               label="Pontos de Calibração Solicitados pelo Cliente"
@@ -666,17 +755,29 @@ export default function ColetaForm({
       </div>
 
       <SectionCard
+        id="coleta-calibracao"
         num="6"
-        title="Calibração da Balança"
+        title="Calibração da Balança — Leituras"
+        emphasis
+        subtitle={headerLocked
+          ? "Nominais da proposta travados — preencha só as leituras"
+          : "Identifique pesos-padrão e registre as leituras"}
+        headerAction={headerLocked ? (
+          <Button type="button" size="sm" variant="ghost" onClick={() => setShowEmptyCalPoints((v) => !v)}>
+            {showEmptyCalPoints ? "Só pontos com nominal" : "Mostrar todos os pontos"}
+          </Button>
+        ) : null}
       >
-        <p className="text-xs text-slate-500 -mt-2">
-          {headerLocked
-            ? "Nominais da proposta em somente leitura — preencha as leituras."
-            : "A identificação do peso padrão não altera o valor nominal — preencha-o separadamente."}
-        </p>
-        {!isDesktop && (
-          <div className="space-y-3">
-            {payload.calibracao.pontos.map((pt, i) => (
+        {!calPointEntries.length ? (
+          <p className="text-sm text-slate-600">
+            Nenhum ponto com valor nominal.{" "}
+            <button type="button" className="text-blue-700 underline" onClick={() => setShowEmptyCalPoints(true)}>
+              Mostrar todos os pontos
+            </button>
+          </p>
+        ) : useReadingCards ? (
+          <div className="grid md:grid-cols-2 gap-3">
+            {calPointEntries.map(({ pt, index: i }) => (
               <FormRowCard key={i} label={`Ponto P${i + 1}`} readOnly>
                 <Field label="Valor nominal do Peso de Referência">
                   <MassValueField
@@ -688,18 +789,20 @@ export default function ColetaForm({
                     onUnitChange={(u) => setCalPontoNominal(i, pt.peso_nominal_valor || "", u)}
                   />
                 </Field>
-                <Field label="Leitura antes do ajuste">
-                  <Input inputMode="decimal" value={pt.leitura_antes} onChange={(e) => setCalPontoReading(i, "leitura_antes", e.target.value)} className="h-10" />
-                </Field>
-                <Field label="Leitura 1">
-                  <Input inputMode="decimal" value={pt.rep1} onChange={(e) => setCalPontoReading(i, "rep1", e.target.value)} className="h-10" />
-                </Field>
-                <Field label="Leitura 2">
-                  <Input inputMode="decimal" value={pt.rep2} onChange={(e) => setCalPontoReading(i, "rep2", e.target.value)} className="h-10" />
-                </Field>
-                <Field label="Leitura 3">
-                  <Input inputMode="decimal" value={pt.rep3} onChange={(e) => setCalPontoReading(i, "rep3", e.target.value)} className="h-10" />
-                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Antes do ajuste">
+                    <Input inputMode="decimal" value={pt.leitura_antes} onChange={(e) => setCalPontoReading(i, "leitura_antes", e.target.value)} className={READING_INPUT} />
+                  </Field>
+                  <Field label="Leitura 1">
+                    <Input inputMode="decimal" value={pt.rep1} onChange={(e) => setCalPontoReading(i, "rep1", e.target.value)} className={READING_INPUT} />
+                  </Field>
+                  <Field label="Leitura 2">
+                    <Input inputMode="decimal" value={pt.rep2} onChange={(e) => setCalPontoReading(i, "rep2", e.target.value)} className={READING_INPUT} />
+                  </Field>
+                  <Field label="Leitura 3">
+                    <Input inputMode="decimal" value={pt.rep3} onChange={(e) => setCalPontoReading(i, "rep3", e.target.value)} className={READING_INPUT} />
+                  </Field>
+                </div>
                 <Field label="Identificação do(s) Peso(s) Padrão">
                   <PesoPadraoMultiSelect
                     weightItems={weightItems}
@@ -711,8 +814,7 @@ export default function ColetaForm({
               </FormRowCard>
             ))}
           </div>
-        )}
-        {isDesktop && (
+        ) : (
           <FormRowsTableShell tableMinWidth="800px">
             <FormRowsTableHead>
               <tr>
@@ -727,7 +829,7 @@ export default function ColetaForm({
               </tr>
             </FormRowsTableHead>
             <FormRowsTableBody>
-              {payload.calibracao.pontos.map((pt, i) => (
+              {calPointEntries.map(({ pt, index: i }) => (
                 <tr key={i} className="border-b border-slate-100">
                   <td className="p-2 font-mono align-top sticky left-0 z-[1] bg-white">P{i + 1}</td>
                   <td className="p-1 align-top min-w-[88px]">
@@ -736,7 +838,7 @@ export default function ColetaForm({
                       value={pt.peso_nominal_valor || ""}
                       disabled={headerLocked}
                       onChange={(e) => setCalPontoNominal(i, e.target.value, pt.peso_nominal_unidade || defaultUnit)}
-                      className="h-10 text-sm"
+                      className="h-11 text-sm"
                     />
                   </td>
                   <td className="p-1 align-top w-16">
@@ -744,17 +846,17 @@ export default function ColetaForm({
                       value={pt.peso_nominal_unidade || defaultUnit}
                       disabled={headerLocked}
                       onChange={(e) => setCalPontoNominal(i, pt.peso_nominal_valor || "", e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-transparent px-1 text-xs shadow-sm disabled:bg-slate-100"
+                      className="flex h-11 w-full rounded-md border border-input bg-transparent px-1 text-xs shadow-sm disabled:bg-slate-100"
                     >
                       {UNIDADE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
                   </td>
-                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.leitura_antes} onChange={(e) => setCalPontoReading(i, "leitura_antes", e.target.value)} className="h-10 text-sm" /></td>
-                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep1} onChange={(e) => setCalPontoReading(i, "rep1", e.target.value)} className="h-10 text-sm" /></td>
-                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep2} onChange={(e) => setCalPontoReading(i, "rep2", e.target.value)} className="h-10 text-sm" /></td>
-                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep3} onChange={(e) => setCalPontoReading(i, "rep3", e.target.value)} className="h-10 text-sm" /></td>
+                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.leitura_antes} onChange={(e) => setCalPontoReading(i, "leitura_antes", e.target.value)} className="h-11 text-sm font-mono" /></td>
+                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep1} onChange={(e) => setCalPontoReading(i, "rep1", e.target.value)} className="h-11 text-sm font-mono" /></td>
+                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep2} onChange={(e) => setCalPontoReading(i, "rep2", e.target.value)} className="h-11 text-sm font-mono" /></td>
+                  <td className="p-1 align-top"><Input inputMode="decimal" value={pt.rep3} onChange={(e) => setCalPontoReading(i, "rep3", e.target.value)} className="h-11 text-sm font-mono" /></td>
                   <td className="p-1 align-top min-w-[180px]">
                     <PesoPadraoMultiSelect
                       weightItems={weightItems}

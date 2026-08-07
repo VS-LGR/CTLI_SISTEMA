@@ -52,7 +52,7 @@ export default function ProposalWeightsTable({
         <div>
           <h3 className="text-sm font-semibold text-slate-800">Pesos-padrão</h3>
           <p className="text-xs text-slate-600">
-            Itens de calibração de pesos (RE-5.4.2A). Opcional — use quando a proposta incluir pesos.
+            Itens desta proposta de calibração de pesos (RE-5.4.2A).
           </p>
         </div>
         <div className="flex gap-2">

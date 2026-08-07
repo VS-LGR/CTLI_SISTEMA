@@ -132,7 +132,9 @@ export async function generateColetasFromProposal(proposalId, { userId } = {}) {
   } = await import("./commercialProposalToWeightColeta");
 
   const proposal = await getCommercialProposal(proposalId);
-  const pendingScales = (proposal.scales || []).filter((s) => !s.collection_id);
+  const pendingScales = (proposal.scales || []).filter(
+    (s) => !s.collection_id && String(s.serial_number || "").trim(),
+  );
   const scaleCreated = [];
   for (const scale of pendingScales) {
     const collection = await createColetaFromProposalScale(

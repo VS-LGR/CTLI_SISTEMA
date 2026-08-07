@@ -192,7 +192,7 @@ export default function ProposalColetasCard({
           )}
         </div>
         <p className="text-xs text-slate-600">
-          Gere uma coleta por item. Cliente e dados do equipamento da proposta são copiados; o técnico preenche leituras e TBH.
+          Gere uma coleta por item desta proposta. Cliente e equipamento são copiados; o técnico preenche leituras e TBH.
         </p>
 
         {scales.length > 0 && (

@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import {
   computeProposalTotal,
+  inferProposalKind,
   normalizeScaleForSave,
   normalizeWeightItemForSave,
   proposalRowToForm,
@@ -312,8 +313,9 @@ export async function createCommercialProposal(tenantId, form, { userId } = {}) 
     .select()
     .single();
   if (error) throw error;
-  await saveScales(proposal.id, form.scales || []);
-  await saveWeightItems(proposal.id, form.weightItems || []);
+  const kind = form.proposal_kind || inferProposalKind(form.scales, form.weightItems);
+  await saveScales(proposal.id, kind === "pesos" ? [] : (form.scales || []));
+  await saveWeightItems(proposal.id, kind === "pesos" ? (form.weightItems || []) : []);
   return getCommercialProposal(proposal.id);
 }
 
@@ -323,8 +325,9 @@ export async function updateCommercialProposal(id, form, { userId } = {}) {
   delete payload.tenant_id;
   const { error } = await supabase.from("commercial_proposals").update(payload).eq("id", id);
   if (error) throw error;
-  await saveScales(id, form.scales || []);
-  await saveWeightItems(id, form.weightItems || []);
+  const kind = form.proposal_kind || inferProposalKind(form.scales, form.weightItems);
+  await saveScales(id, kind === "pesos" ? [] : (form.scales || []));
+  await saveWeightItems(id, kind === "pesos" ? (form.weightItems || []) : []);
   return getCommercialProposal(id);
 }
 

@@ -10,11 +10,12 @@
 ## 1. Descrição
 
 1. Itens de pesos-padrão na proposta (`commercial_proposal_weight_items`) + FKs em `weight_calibration_collections`.
-2. Geração unificada de coletas (1 por balança + 1 por peso) com pré-preenchimento de cliente/equipamento/nominais.
-3. UI técnico: cabeçalho/nominais em somente leitura quando vinculados à proposta; foco em TBH + leituras.
-4. Voz (pesos): fase confirma cabeçalho → depois TBH/ABA.
-5. Avisos (toast + `dashboard_reminders`) ao marcar preenchida/conferida; badges na proposta.
-6. Cross-refs Proposta / O.S. / Certificado em PDFs e listagens.
+2. **Tipo exclusivo:** cada proposta é **só balanças** ou **só pesos-padrão** (UI + validação; não misturar).
+3. Geração unificada de coletas (1 por item) com pré-preenchimento de cliente/equipamento/nominais.
+4. UI técnico: cabeçalho/nominais em somente leitura quando vinculados à proposta; foco em TBH + leituras; navegação por secções e cartões de leitura.
+5. Voz (pesos): fase confirma cabeçalho → depois TBH/ABA.
+6. Avisos (toast + `dashboard_reminders`) ao marcar preenchida/conferida; badges na proposta.
+7. Cross-refs Proposta / O.S. / Certificado em PDFs e listagens.
 
 ## 2. Docs/testes afetados
 
