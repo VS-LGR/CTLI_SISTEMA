@@ -24,3 +24,8 @@ yarn-error.log*
 docs/10-IMPLANTACAO-NOVO-CLIENTE.md
 docs/BRIEFING-IMPLANTACAO-NOVO-CLIENTE.md
 docs/README.md
+
+pdf-qa-samples/
+
+src/lib/institutionalPdf/__qa__/generatePdfQaSamples.test.js
+certificados-peso-padrao-vigentes-2026-08-07.pdf
