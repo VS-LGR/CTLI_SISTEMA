@@ -12,6 +12,7 @@ import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { PR_71_PROPOSAL_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
 import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
+import { WEIGHT_COLETA_LIST_PATH } from "@/lib/weightCalibration/weightColetaRoutes";
 import {
   FileText,
   ClipboardText,
@@ -39,6 +40,15 @@ export const HERO_SHORTCUTS = [
     to: COLETA_LIST_PATH,
     bgClass: "bg-[#1E3A5F] hover:bg-[#172e4d]",
     icon: ClipboardText,
+    requiresColeta: true,
+    module: "coleta",
+  },
+  {
+    id: "coleta-pesos",
+    label: "Coleta de Pesos-Padrão",
+    to: WEIGHT_COLETA_LIST_PATH,
+    bgClass: "bg-[#0F766E] hover:bg-[#0d9488]",
+    icon: Scales,
     requiresColeta: true,
     module: "coleta",
   },
@@ -105,7 +115,7 @@ export const DASHBOARD_SHORTCUTS = HERO_SHORTCUTS;
 export const CLIENT_PORTAL_SHORTCUTS = HERO_SHORTCUTS;
 
 /** Atalhos operacionais alinhados ao menu cliente (inclui certificados de peso). */
-const CLIENT_ENV_SHORTCUT_IDS = new Set(["propostas", "coleta", "cert-balanca", "cert-peso"]);
+const CLIENT_ENV_SHORTCUT_IDS = new Set(["propostas", "coleta", "coleta-pesos", "cert-balanca", "cert-peso"]);
 
 function mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }) {
   if (item.module && !canAccessModule({ tenant, role, module: item.module, user })) {

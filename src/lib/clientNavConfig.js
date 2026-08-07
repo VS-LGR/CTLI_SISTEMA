@@ -1,6 +1,7 @@
 import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
 import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
+import { WEIGHT_COLETA_LIST_PATH } from "@/lib/weightCalibration/weightColetaRoutes";
 import { PROPOSAL_LIST_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
@@ -56,6 +57,7 @@ export const CLIENT_TOP_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", to: "/dashboard" },
   { id: "propostas", label: "Propostas", to: PROPOSAL_LIST_PATH, requiresCommercialProposals: true },
   { id: "coleta", label: "Coleta de dados", to: COLETA_LIST_PATH, requiresColeta: true },
+  { id: "coleta-pesos", label: "Coleta pesos", to: WEIGHT_COLETA_LIST_PATH, requiresColeta: true },
   { id: "certificados", label: "Cert. balanças", to: CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
   { id: "certificados-peso", label: "Cert. pesos", to: WEIGHT_CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
   { id: "pedidos-compra", label: "Pedidos de compra", to: PEDIDOS_LIST_PATH, requiresPurchaseOrders: true },
@@ -68,6 +70,7 @@ const ALLOWED_PATH_PREFIXES = [
   "/ajuda",
   PROPOSAL_LIST_PATH,
   COLETA_LIST_PATH,
+  WEIGHT_COLETA_LIST_PATH,
   CERTIFICATE_LIST_PATH,
   WEIGHT_CERTIFICATE_LIST_PATH,
   PEDIDOS_LIST_PATH,

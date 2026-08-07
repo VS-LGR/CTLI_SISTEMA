@@ -7,6 +7,7 @@ import {
   canApproveCalibrationCertificate,
   canSendCertificateEmail,
   canEditCalibrationCertificate,
+  canAccessColeta,
 } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,13 +16,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, MagnifyingGlass, Archive, FilePdf, EnvelopeSimple, Trash, PencilSimple } from "@phosphor-icons/react";
+import { Plus, MagnifyingGlass, Archive, FilePdf, EnvelopeSimple, Trash, PencilSimple, ClipboardText } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
 import {
   WEIGHT_CERTIFICATE_NEW_PATH,
   weightCertificateEditorPath,
 } from "@/lib/weightCalibration/weightCertificateRoutes";
+import { WEIGHT_COLETA_LIST_PATH } from "@/lib/weightCalibration/weightColetaRoutes";
 import {
   listWeightCertificates,
   getWeightCertificate,
@@ -304,6 +306,33 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
               Certificados de pesos-padrão
             </h1>
           </div>
+          <div className="flex flex-wrap gap-2">
+            {canAccessColeta(user?.role, user) && (
+              <Button asChild variant="outline">
+                <Link to={WEIGHT_COLETA_LIST_PATH}>
+                  <ClipboardText size={18} className="mr-1" /> Coleta de pesos
+                </Link>
+              </Button>
+            )}
+            {canCreate && (
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                <Link to={WEIGHT_CERTIFICATE_NEW_PATH} data-tour="tour-cert-peso-novo">
+                  <Plus size={18} className="mr-1" /> Nova
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+      {embedded && (
+        <div className="flex flex-wrap justify-end gap-2">
+          {canAccessColeta(user?.role, user) && (
+            <Button asChild variant="outline">
+              <Link to={WEIGHT_COLETA_LIST_PATH}>
+                <ClipboardText size={18} className="mr-1" /> Coleta de pesos
+              </Link>
+            </Button>
+          )}
           {canCreate && (
             <Button asChild className="bg-blue-600 hover:bg-blue-700">
               <Link to={WEIGHT_CERTIFICATE_NEW_PATH} data-tour="tour-cert-peso-novo">
@@ -311,15 +340,6 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
               </Link>
             </Button>
           )}
-        </div>
-      )}
-      {embedded && canCreate && (
-        <div className="flex justify-end">
-          <Button asChild className="bg-blue-600 hover:bg-blue-700">
-            <Link to={WEIGHT_CERTIFICATE_NEW_PATH} data-tour="tour-cert-peso-novo">
-              <Plus size={18} className="mr-1" /> Nova
-            </Link>
-          </Button>
         </div>
       )}
 

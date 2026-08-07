@@ -12,6 +12,10 @@ export const DOCUMENT_SECTIONS = {
   solicitacoes_orcamento: { id: "solicitacoes_orcamento", label: "Solicitações de orçamento" },
   propostas_comerciais: { id: "propostas_comerciais", label: "Propostas Comerciais" },
   coleta_dados: { id: "coleta_dados", label: "Coleta de Dados" },
+  coleta_dados_peso: {
+    id: "coleta_dados_peso",
+    label: "Coleta de Dados — Pesos-Padrão",
+  },
   emissao_cert_balancas: {
     id: "emissao_cert_balancas",
     label: "Emissão de Certificado de Calibração de Balanças",
@@ -57,7 +61,13 @@ const FOLDER_MODES = {
     commercialProposals: true,
   },
   "pr-7-2": {
-    sections: ["procedimento", "coleta_dados", "emissao_cert_balancas", "emissao_cert_peso_padrao"],
+    sections: [
+      "procedimento",
+      "coleta_dados",
+      "coleta_dados_peso",
+      "emissao_cert_balancas",
+      "emissao_cert_peso_padrao",
+    ],
     defaultSection: "procedimento",
     richEditor: true,
   },

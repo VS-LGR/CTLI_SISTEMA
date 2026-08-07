@@ -51,6 +51,7 @@ const CLIENT_NAV_ICONS = {
   dashboard: House,
   propostas: FileText,
   coleta: ClipboardText,
+  "coleta-pesos": Scales,
   certificados: Certificate,
   "certificados-peso": Scales,
   "pedidos-compra": ShoppingCart,

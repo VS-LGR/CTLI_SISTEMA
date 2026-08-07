@@ -480,10 +480,10 @@ export default function WeightColetaEditorPage() {
   const [weightCerts, setWeightCerts] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [expandedItems, setExpandedItems] = useState(() => new Set([0]));
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const speechSupported = useMemo(() => isSpeechRecognitionSupported(), []);
+  const [voiceEnabled, setVoiceEnabled] = useState(() => isSpeechRecognitionSupported());
   const [voiceMode, setVoiceMode] = useState("field"); // field | sequence
   const [guidedSession, setGuidedSession] = useState(null); // { title, fields }
-  const speechSupported = useMemo(() => isSpeechRecognitionSupported(), []);
 
   const setItemCycleReading = useCallback((itemIndex, ci, key, value) => {
     setPayload((p) => {
@@ -796,7 +796,7 @@ export default function WeightColetaEditorPage() {
         </div>
       </div>
 
-      <Card>
+      <Card className="border-blue-200 bg-blue-50/60">
         <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-end gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Checkbox
@@ -804,7 +804,7 @@ export default function WeightColetaEditorPage() {
               checked={voiceEnabled}
               onCheckedChange={(v) => toggleVoice(Boolean(v))}
             />
-            <Label htmlFor="voice-enabled" className="text-sm cursor-pointer flex items-center gap-1.5">
+            <Label htmlFor="voice-enabled" className="text-sm cursor-pointer flex items-center gap-1.5 font-medium text-slate-900">
               <Microphone size={16} />
               Entrada por voz (PR-7.2 — luvas/pinças)
             </Label>

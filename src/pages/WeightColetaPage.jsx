@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
-import { Plus, PencilSimple, Trash, MagnifyingGlass, Certificate } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, MagnifyingGlass, Certificate, Microphone } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   WEIGHT_COLETA_NEW_PATH,
@@ -25,6 +25,7 @@ import {
 } from "@/lib/weightCalibration/weightCertificateSchema";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
+import { isSpeechRecognitionSupported } from "@/lib/voice/speechRecognition";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -36,7 +37,7 @@ function fmtDmy(iso) {
 const filterFieldClass =
   "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
 
-export default function WeightColetaPage() {
+export default function WeightColetaPage({ embedded = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { currentTenantId } = useOutletContext();
@@ -46,6 +47,7 @@ export default function WeightColetaPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [generatingId, setGeneratingId] = useState(null);
+  const speechOk = isSpeechRecognitionSupported();
 
   const load = useCallback(async () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
@@ -130,12 +132,14 @@ export default function WeightColetaPage() {
     <div className="space-y-6 min-w-0" data-testid="weight-coleta-page">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-5.4.2A</p>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+          {!embedded && (
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-5.4.2A · PR-7.2</p>
+          )}
+          <h1 className={`${embedded ? "text-xl" : "font-display text-2xl sm:text-3xl"} font-bold tracking-tight text-slate-900 ${embedded ? "" : "mt-1"}`}>
             Coleta de pesos-padrão
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Registros de calibração de pesos neste ambiente.
+            Registros de calibração de pesos (método ABA). A entrada por voz fica no editor da coleta.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -152,6 +156,21 @@ export default function WeightColetaPage() {
             </Link>
           </Button>
         </div>
+      </div>
+
+      <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm text-blue-950 flex gap-2 items-start">
+        <Microphone size={18} className="shrink-0 mt-0.5" />
+        <p>
+          <span className="font-medium">Preenchimento por voz:</span>{" "}
+          abra ou crie uma coleta e use o bloco{" "}
+          <span className="font-medium">Entrada por voz</span> no topo do formulário
+          (campo a campo ou sequência ABA).
+          {!speechOk && (
+            <span className="block mt-1 text-amber-900">
+              Neste navegador a voz pode estar indisponível — use Chrome ou Edge.
+            </span>
+          )}
+        </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
