@@ -2,7 +2,11 @@ import React, { useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Microphone } from "@phosphor-icons/react";
 import TbhCorrectionPanel from "@/components/coleta/TbhCorrectionPanel";
+import VoiceFieldControl from "@/components/voice/VoiceFieldControl";
+import { AMBIENT_VOICE_FIELD_DEFS } from "@/components/voice/VoiceGuidedSession";
 import { envCertIdentification } from "@/lib/coletaSchema";
 import {
   calculateAirDensityFromEnvironmental,
@@ -20,6 +24,10 @@ const READING_KEYS = [
   "pressao_final",
 ];
 
+const READING_LABELS = Object.fromEntries(
+  AMBIENT_VOICE_FIELD_DEFS.map((d) => [d.key, d.label]),
+);
+
 /**
  * Condições ambientais no padrão RE-7.2A/B (seleção TBH, horários, T/UR/P, correção TBH, ρ_ar).
  */
@@ -29,6 +37,8 @@ export default function WeightAmbientSection({
   onAmbienteChange,
   disabled = false,
   fieldClass = "h-9 text-sm",
+  voiceEnabled = false,
+  onStartAmbientVoiceSequence,
 }) {
   const setField = (key, value) => {
     if (disabled || !onAmbienteChange) return;
@@ -54,9 +64,38 @@ export default function WeightAmbientSection({
     [ambiente],
   );
 
+  const renderReadingInput = (key) => (
+    <div key={key}>
+      <Label className="text-[11px]">{READING_LABELS[key] || key}</Label>
+      <VoiceFieldControl
+        disabled={disabled}
+        voiceEnabled={voiceEnabled}
+        label={READING_LABELS[key] || key}
+        inputClassName={fieldClass}
+        value={ambiente[key] || ""}
+        onChange={(v) => setField(key, v)}
+        onConfirmValue={(v) => setField(key, v)}
+      />
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      <h2 className="font-medium text-slate-900">Condições ambientais durante a calibração</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-medium text-slate-900">Condições ambientais durante a calibração</h2>
+        {onStartAmbientVoiceSequence && !disabled && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="min-h-10"
+            onClick={onStartAmbientVoiceSequence}
+          >
+            <Microphone size={16} className="mr-1" />
+            Sequência de voz (ambiente)
+          </Button>
+        )}
+      </div>
 
       {envCerts.length === 0 ? (
         <p className="text-sm text-slate-600">
@@ -119,60 +158,7 @@ export default function WeightAmbientSection({
             onChange={(e) => setField("horario_final", e.target.value)}
           />
         </div>
-        <div>
-          <Label className="text-[11px]">Temperatura inicial (°C)</Label>
-          <Input
-            disabled={disabled}
-            className={fieldClass}
-            value={ambiente.temp_inicial || ""}
-            onChange={(e) => setField("temp_inicial", e.target.value)}
-          />
-        </div>
-        <div>
-          <Label className="text-[11px]">Temperatura final (°C)</Label>
-          <Input
-            disabled={disabled}
-            className={fieldClass}
-            value={ambiente.temp_final || ""}
-            onChange={(e) => setField("temp_final", e.target.value)}
-          />
-        </div>
-        <div>
-          <Label className="text-[11px]">Umidade inicial (%ur)</Label>
-          <Input
-            disabled={disabled}
-            className={fieldClass}
-            value={ambiente.umidade_inicial || ""}
-            onChange={(e) => setField("umidade_inicial", e.target.value)}
-          />
-        </div>
-        <div>
-          <Label className="text-[11px]">Umidade final (%ur)</Label>
-          <Input
-            disabled={disabled}
-            className={fieldClass}
-            value={ambiente.umidade_final || ""}
-            onChange={(e) => setField("umidade_final", e.target.value)}
-          />
-        </div>
-        <div>
-          <Label className="text-[11px]">Pressão inicial (hPa)</Label>
-          <Input
-            disabled={disabled}
-            className={fieldClass}
-            value={ambiente.pressao_inicial || ""}
-            onChange={(e) => setField("pressao_inicial", e.target.value)}
-          />
-        </div>
-        <div>
-          <Label className="text-[11px]">Pressão final (hPa)</Label>
-          <Input
-            disabled={disabled}
-            className={fieldClass}
-            value={ambiente.pressao_final || ""}
-            onChange={(e) => setField("pressao_final", e.target.value)}
-          />
-        </div>
+        {READING_KEYS.map(renderReadingInput)}
         <div>
           <Label className="text-[11px]">Massa específica do ar (calculada)</Label>
           <Input

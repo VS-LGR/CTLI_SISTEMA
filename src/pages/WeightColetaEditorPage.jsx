@@ -12,12 +12,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, FloppyDisk, Plus, Trash, CaretDown, CaretUp, Certificate } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, Plus, Trash, CaretDown, CaretUp, Certificate, Microphone } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   emptyWeightColetaPayload,
   emptyWeightItem,
   MAX_WEIGHT_ITEMS,
+  DEFAULT_WEIGHT_CYCLE_COUNT,
+  MIN_WEIGHT_CYCLE_COUNT,
+  MAX_WEIGHT_CYCLE_COUNT,
+  clampWeightCycleCount,
   END_CUSTOMER_LOOKUP_SELECT,
   applyEndCustomerToWeightCliente,
   resolveWeightEndCustomerId,
@@ -27,6 +31,12 @@ import {
 import { cadastroSectionPath } from "@/lib/cadastroSections";
 import WeightAmbientSection from "@/components/weightCalibration/WeightAmbientSection";
 import StandardWeightPickerPanel from "@/components/shared/StandardWeightPickerPanel";
+import VoiceFieldControl from "@/components/voice/VoiceFieldControl";
+import VoiceGuidedSession, {
+  buildAbaCycleVoiceFields,
+  buildAmbientVoiceFields,
+} from "@/components/voice/VoiceGuidedSession";
+import { isSpeechRecognitionSupported } from "@/lib/voice/speechRecognition";
 import {
   WEIGHT_COLETA_LIST_PATH,
   WEIGHT_COLETA_NEW_PATH,
@@ -51,7 +61,7 @@ function emptyTraceRow() {
 }
 
 function resizeCycles(cycles, count) {
-  const n = Math.max(1, Math.min(10, Number(count) || 3));
+  const n = clampWeightCycleCount(count);
   const next = Array.isArray(cycles) ? [...cycles] : [];
   while (next.length < n) next.push({ standard_reading: "", measuring_reading: "" });
   return next.slice(0, n);
@@ -177,8 +187,17 @@ function WeightItemCard({
   onRemove,
   weightItems,
   weightCerts = [],
+  voiceEnabled = false,
+  onStartAbaVoiceSequence,
 }) {
   const set = (patch) => onChange({ ...item, ...patch });
+
+  const setCycleReading = (ci, key, value) => {
+    const cycles = [...(item.cycles || [])];
+    while (cycles.length <= ci) cycles.push({ standard_reading: "", measuring_reading: "" });
+    cycles[ci] = { ...cycles[ci], [key]: value };
+    set({ cycles });
+  };
 
   const applyReference = (refId) => {
     if (!refId || refId === "__none") {
@@ -342,15 +361,17 @@ function WeightItemCard({
                 />
               </div>
               <div>
-                <Label className="text-[11px]">Nº ciclos</Label>
+                <Label className="text-[11px]">Nº ciclos (PR-7.2: 5; 3–10)</Label>
                 <Input
                   type="number"
-                  min={1}
-                  max={10}
+                  min={MIN_WEIGHT_CYCLE_COUNT}
+                  max={MAX_WEIGHT_CYCLE_COUNT}
                   className={fieldClass}
-                  value={item.cycle_count ?? 3}
+                  value={item.cycle_count ?? DEFAULT_WEIGHT_CYCLE_COUNT}
                   onChange={(e) => {
-                    const cycle_count = Number(e.target.value) || 3;
+                    const cycle_count = clampWeightCycleCount(
+                      e.target.value || DEFAULT_WEIGHT_CYCLE_COUNT,
+                    );
                     set({ cycle_count, cycles: resizeCycles(item.cycles, cycle_count) });
                   }}
                 />
@@ -368,30 +389,44 @@ function WeightItemCard({
             </div>
 
             <div>
-              <Label className="text-[11px] mb-1 block">Ciclos (padrão / medição)</Label>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <Label className="text-[11px] block">
+                  Ensaio de repetitividade ABA — padrão (P) / mensurando (M)
+                </Label>
+                {onStartAbaVoiceSequence && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="min-h-10"
+                    onClick={onStartAbaVoiceSequence}
+                  >
+                    <Microphone size={14} className="mr-1" />
+                    Sequência ABA (voz)
+                  </Button>
+                )}
+              </div>
               <div className="space-y-1">
                 {(item.cycles || []).map((c, ci) => (
                   <div key={ci} className="grid grid-cols-[2rem_1fr_1fr] gap-2 items-center">
                     <span className="text-xs text-slate-500">{ci + 1}</span>
-                    <Input
-                      className={fieldClass}
-                      placeholder="Leitura padrão"
+                    <VoiceFieldControl
+                      voiceEnabled={voiceEnabled}
+                      label={`Ciclo ${ci + 1} — Leitura padrão (P)`}
+                      inputClassName={fieldClass}
+                      placeholder="Leitura padrão (P)"
                       value={c.standard_reading || ""}
-                      onChange={(e) => {
-                        const cycles = [...(item.cycles || [])];
-                        cycles[ci] = { ...cycles[ci], standard_reading: e.target.value };
-                        set({ cycles });
-                      }}
+                      onChange={(v) => setCycleReading(ci, "standard_reading", v)}
+                      onConfirmValue={(v) => setCycleReading(ci, "standard_reading", v)}
                     />
-                    <Input
-                      className={fieldClass}
-                      placeholder="Leitura medição"
+                    <VoiceFieldControl
+                      voiceEnabled={voiceEnabled}
+                      label={`Ciclo ${ci + 1} — Leitura mensurando (M)`}
+                      inputClassName={fieldClass}
+                      placeholder="Leitura mensurando (M)"
                       value={c.measuring_reading || ""}
-                      onChange={(e) => {
-                        const cycles = [...(item.cycles || [])];
-                        cycles[ci] = { ...cycles[ci], measuring_reading: e.target.value };
-                        set({ cycles });
-                      }}
+                      onChange={(v) => setCycleReading(ci, "measuring_reading", v)}
+                      onConfirmValue={(v) => setCycleReading(ci, "measuring_reading", v)}
                     />
                   </div>
                 ))}
@@ -445,6 +480,68 @@ export default function WeightColetaEditorPage() {
   const [weightCerts, setWeightCerts] = useState([]);
   const [envCerts, setEnvCerts] = useState([]);
   const [expandedItems, setExpandedItems] = useState(() => new Set([0]));
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceMode, setVoiceMode] = useState("field"); // field | sequence
+  const [guidedSession, setGuidedSession] = useState(null); // { title, fields }
+  const speechSupported = useMemo(() => isSpeechRecognitionSupported(), []);
+
+  const setItemCycleReading = useCallback((itemIndex, ci, key, value) => {
+    setPayload((p) => {
+      const itens = [...(p.itens || [])];
+      const item = { ...(itens[itemIndex] || emptyWeightItem()) };
+      const cycles = [...(item.cycles || [])];
+      while (cycles.length <= ci) cycles.push({ standard_reading: "", measuring_reading: "" });
+      cycles[ci] = { ...cycles[ci], [key]: value };
+      item.cycles = cycles;
+      itens[itemIndex] = item;
+      return { ...p, itens };
+    });
+  }, []);
+
+  const setAmbientField = useCallback((key, value) => {
+    setPayload((p) => {
+      const ambiente = { ...normalizeWeightAmbiente(p.ambiente), [key]: value };
+      if (ambiente.tbh_correction_applied) {
+        ambiente.tbh_correction_applied = false;
+        const raw = { ...(ambiente.tbh_correction_raw || {}) };
+        delete raw[key];
+        ambiente.tbh_correction_raw = raw;
+      }
+      return { ...p, ambiente };
+    });
+  }, []);
+
+  const startAbaVoiceSequence = useCallback((itemIndex) => {
+    const item = payload.itens?.[itemIndex];
+    if (!item) return;
+    const fields = buildAbaCycleVoiceFields(item, (ci, key, value) => {
+      setItemCycleReading(itemIndex, ci, key, value);
+    });
+    if (!fields.length) {
+      toast.error("Defina o número de ciclos do item antes da sequência.");
+      return;
+    }
+    setGuidedSession({
+      title: `Sequência ABA — Item ${itemIndex + 1}${item.identification ? ` (${item.identification})` : ""}`,
+      fields,
+    });
+  }, [payload.itens, setItemCycleReading]);
+
+  const startAmbientVoiceSequence = useCallback(() => {
+    setGuidedSession({
+      title: "Sequência de voz — Condições ambientais",
+      fields: buildAmbientVoiceFields(setAmbientField),
+    });
+  }, [setAmbientField]);
+
+  const toggleVoice = useCallback((next) => {
+    if (next && !speechSupported) {
+      toast.error("Reconhecimento de voz não suportado. Use Chrome ou Edge.");
+      setVoiceEnabled(false);
+      return;
+    }
+    setVoiceEnabled(next);
+  }, [speechSupported]);
 
   const loadLookups = useCallback(async () => {
     if (!currentTenantId) return;
@@ -699,6 +796,46 @@ export default function WeightColetaEditorPage() {
         </div>
       </div>
 
+      <Card>
+        <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-end gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="voice-enabled"
+              checked={voiceEnabled}
+              onCheckedChange={(v) => toggleVoice(Boolean(v))}
+            />
+            <Label htmlFor="voice-enabled" className="text-sm cursor-pointer flex items-center gap-1.5">
+              <Microphone size={16} />
+              Entrada por voz (PR-7.2 — luvas/pinças)
+            </Label>
+          </div>
+          {voiceEnabled && (
+            <div className="max-w-xs w-full">
+              <Label className="text-[11px]">Modo de voz</Label>
+              <Select value={voiceMode} onValueChange={setVoiceMode}>
+                <SelectTrigger className="h-10 mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="field">Campo a campo</SelectItem>
+                  <SelectItem value="sequence">Sequência guiada (ABA)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!speechSupported && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+              Voz indisponível neste navegador — use Chrome ou Edge. Teclado permanece ativo.
+            </p>
+          )}
+          {voiceEnabled && speechSupported && (
+            <p className="text-xs text-slate-600 max-w-xl">
+              Cada valor ditado exige Confirmar ou Refazer antes de gravar. Método ABA (P→M) conforme PR-7.2 Rev.06.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {!isNew && (
         <div className="flex flex-wrap gap-3 items-end">
           <div className="max-w-xs">
@@ -876,6 +1013,12 @@ export default function WeightColetaEditorPage() {
             envCerts={envCerts}
             onAmbienteChange={onAmbienteChange}
             fieldClass={fieldClass}
+            voiceEnabled={voiceEnabled && voiceMode === "field"}
+            onStartAmbientVoiceSequence={
+              voiceEnabled && voiceMode === "sequence"
+                ? startAmbientVoiceSequence
+                : undefined
+            }
           />
         </CardContent>
       </Card>
@@ -937,9 +1080,23 @@ export default function WeightColetaEditorPage() {
             }}
             weightItems={weightItems}
             weightCerts={weightCerts}
+            voiceEnabled={voiceEnabled && voiceMode === "field"}
+            onStartAbaVoiceSequence={
+              voiceEnabled && voiceMode === "sequence"
+                ? () => startAbaVoiceSequence(idx)
+                : undefined
+            }
           />
         ))}
       </div>
+
+      <VoiceGuidedSession
+        open={Boolean(guidedSession)}
+        title={guidedSession?.title || "Sequência de voz"}
+        fields={guidedSession?.fields || []}
+        onClose={() => setGuidedSession(null)}
+        onComplete={() => toast.success("Sequência de voz concluída")}
+      />
 
       <div className="flex flex-wrap gap-2 justify-end pb-8">
         <Button onClick={() => save()} disabled={saving} className="bg-blue-600 hover:bg-blue-700">

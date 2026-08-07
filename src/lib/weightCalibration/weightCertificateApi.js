@@ -197,7 +197,7 @@ export function buildWeightItemsFromPayload(itens = []) {
         uut_class: String(it.uut_class || "").trim(),
         balance_resolution: parseNum(it.balance_resolution),
         decimal_places: Number(it.decimal_places) || 2,
-        cycle_count: Number(it.cycle_count) || 3,
+        cycle_count: Number(it.cycle_count) || 5,
         was_adjusted: Boolean(it.was_adjusted),
         value_before_adjustment: parseNum(it.value_before_adjustment),
         assume_class_uncertainty: it.assume_class_uncertainty !== false,

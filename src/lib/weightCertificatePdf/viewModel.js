@@ -2,6 +2,7 @@ import {
   formatCertificateNumber,
   certificateTypeLabel,
 } from "@/lib/weightCalibration/weightCertificateSchema";
+import { getWeightCertificateObservations } from "@/lib/weightCalibration/weightLegalObservations";
 import { defaultValidityDate } from "@/lib/calibrationCertificates/certificateDateUtils";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 
@@ -18,22 +19,22 @@ function formatNum(v, decimals = 4) {
 }
 
 function resolveObservations(cert) {
-  const fromDoc = cert?.document_snapshot?.certificateObservations;
-  if (Array.isArray(fromDoc) && fromDoc.length) return fromDoc.map(String);
+  const obsRoot = cert?.document_snapshot?.certificateObservations
+    || cert?.document_snapshot?.exportTemplateConfig?.certificateObservations
+    || cert?.document_snapshot?.export_template_config?.certificateObservations;
 
-  const typed = cert?.document_snapshot?.certificateObservations?.[cert.certificate_type];
+  const typeKey = cert.certificate_type === "rbc" ? "rbc" : "rastreavel";
+  const typed = obsRoot?.[typeKey];
   if (Array.isArray(typed) && typed.length) return typed.map(String);
+
+  if (Array.isArray(obsRoot) && obsRoot.length) return obsRoot.map(String);
 
   const custom = [cert.observation_1, cert.observation_2, cert.observation_3]
     .map((o) => String(o || "").trim())
     .filter(Boolean);
   if (custom.length) return custom;
 
-  return [
-    "Os resultados apresentados referem-se exclusivamente aos pesos caracterizados neste certificado.",
-    "A incerteza expandida de medição é declarada com probabilidade de abrangência de aproximadamente 95,45%.",
-    "Este certificado só poderá ser utilizado para fins publicitários quando autorizado pelo laboratório.",
-  ];
+  return getWeightCertificateObservations(cert.certificate_type);
 }
 
 /**

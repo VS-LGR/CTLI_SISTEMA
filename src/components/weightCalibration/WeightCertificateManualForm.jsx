@@ -418,12 +418,12 @@ export default function WeightCertificateManualForm({
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px]">Ciclos (padrão / medição)</Label>
-              {(item.cycles || []).slice(0, item.cycle_count || 3).map((c, ci) => (
+              <Label className="text-[11px]">Ensaio ABA — padrão (P) / mensurando (M)</Label>
+              {(item.cycles || []).slice(0, item.cycle_count || 5).map((c, ci) => (
                 <div key={ci} className="grid grid-cols-2 gap-2">
                   <Input
                     className={fieldClass}
-                    placeholder={`Padrão ${ci + 1}`}
+                    placeholder={`Padrão (P) ${ci + 1}`}
                     value={c.standard_reading || ""}
                     onChange={(e) => {
                       const cycles = [...(item.cycles || [])];
@@ -433,7 +433,7 @@ export default function WeightCertificateManualForm({
                   />
                   <Input
                     className={fieldClass}
-                    placeholder={`Medição ${ci + 1}`}
+                    placeholder={`Mensurando (M) ${ci + 1}`}
                     value={c.measuring_reading || ""}
                     onChange={(e) => {
                       const cycles = [...(item.cycles || [])];

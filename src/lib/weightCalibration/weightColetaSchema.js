@@ -6,7 +6,26 @@ export const COLETA_TEMPLATE_KEY = "re-542a-coleta-peso-padrao-pdf";
 
 export const MAX_WEIGHT_ITEMS = 24;
 
+/** PR-7.2 Rev.06 §8.1.1 — 05 ciclos; Passo 04 — 03 a 10 leituras. */
+export const DEFAULT_WEIGHT_CYCLE_COUNT = 5;
+export const MIN_WEIGHT_CYCLE_COUNT = 3;
+export const MAX_WEIGHT_CYCLE_COUNT = 10;
+
+export function clampWeightCycleCount(value, { allowBelowMin = false } = {}) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return DEFAULT_WEIGHT_CYCLE_COUNT;
+  const floored = Math.floor(n);
+  const min = allowBelowMin ? 1 : MIN_WEIGHT_CYCLE_COUNT;
+  return Math.max(min, Math.min(MAX_WEIGHT_CYCLE_COUNT, floored));
+}
+
+export function emptyWeightCycles(count = DEFAULT_WEIGHT_CYCLE_COUNT) {
+  const n = clampWeightCycleCount(count);
+  return Array.from({ length: n }, () => ({ standard_reading: "", measuring_reading: "" }));
+}
+
 export function emptyWeightItem(overrides = {}) {
+  const baseCycles = emptyWeightCycles(DEFAULT_WEIGHT_CYCLE_COUNT);
   return {
     identification: "",
     nominal_value: "",
@@ -20,17 +39,13 @@ export function emptyWeightItem(overrides = {}) {
     uut_class: "",
     balance_resolution: "",
     decimal_places: 2,
-    cycle_count: 3,
+    cycle_count: DEFAULT_WEIGHT_CYCLE_COUNT,
     was_adjusted: false,
     value_before_adjustment: "",
     ambient_temp: "",
     ambient_humidity: "",
     ambient_pressure: "",
-    cycles: [
-      { standard_reading: "", measuring_reading: "" },
-      { standard_reading: "", measuring_reading: "" },
-      { standard_reading: "", measuring_reading: "" },
-    ],
+    cycles: baseCycles,
     assume_class_uncertainty: true,
     ...overrides,
   };
@@ -209,7 +224,7 @@ export function validateWeightCalcPayload(payload = {}) {
         message: `${label}: selecione o material do peso de referência (preenchido ao escolher o cadastro; edite no item ou em PR-6.4 → Peso Padrão).`,
       };
     }
-    const n = Math.max(1, Math.min(10, Number(it.cycle_count) || 3));
+    const n = clampWeightCycleCount(it.cycle_count, { allowBelowMin: true });
     const cycles = Array.isArray(it.cycles) ? it.cycles : [];
     for (let ci = 0; ci < n; ci += 1) {
       const c = cycles[ci] || {};
