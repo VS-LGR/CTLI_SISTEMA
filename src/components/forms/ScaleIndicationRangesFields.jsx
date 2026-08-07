@@ -30,6 +30,7 @@ export default function ScaleIndicationRangesFields({
   onChange,
   includeVerificationDivision = variant === "registration",
   unit = "g",
+  disabled = false,
 }) {
   const ranges = RANGE_MAPS[variant] || RANGE_MAPS.balance;
   const unitLabel = unit || "unidade selecionada";
@@ -59,6 +60,7 @@ export default function ScaleIndicationRangesFields({
               <Input
                 inputMode="decimal"
                 value={values[range.capacity] || ""}
+                disabled={disabled}
                 onChange={(e) => set(range.capacity, e.target.value)}
                 placeholder={idx === 0 ? "Ex.: 5" : "Ex.: 10"}
                 className="mt-1"
@@ -70,6 +72,7 @@ export default function ScaleIndicationRangesFields({
               <Input
                 inputMode="decimal"
                 value={values[range.resolution] || ""}
+                disabled={disabled}
                 onChange={(e) => set(range.resolution, e.target.value)}
                 placeholder={idx === 0 ? "Ex.: 0,005" : "Ex.: 0,01"}
                 className="mt-1"
@@ -82,6 +85,7 @@ export default function ScaleIndicationRangesFields({
                 <Input
                   inputMode="decimal"
                   value={values[range.verification] || ""}
+                  disabled={disabled}
                   onChange={(e) => set(range.verification, e.target.value)}
                   placeholder="Ex.: 0,005"
                   className="mt-1"

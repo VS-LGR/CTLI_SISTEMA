@@ -124,6 +124,37 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
   });
   y = doc.lastAutoTable.finalY + 4;
 
+  if ((model.weightRows || []).length) {
+    y = ensureSpace(doc, y, 20, drawPageHeader, logoDataUrl, model);
+    autoTable(doc, {
+      startY: y,
+      margin: { left: ML, right: PAGE_W - MR },
+      theme: "grid",
+      styles: { fontSize: 6.5, cellPadding: 1.2, lineColor: BORDER, lineWidth: 0.1, overflow: "linebreak" },
+      headStyles: { fillColor: HEADER_GRAY, textColor: TEXT, fontStyle: "bold", fontSize: 6.5 },
+      head: [["Pesos-padrão — Identificação", "Nominal", "Classe", "Série", "Fabricante", "Valor Unit. (R$)"]],
+      body: model.weightRows.map((r) => [
+        r.identification, r.nominal, r.class, r.serial, r.manufacturer, r.unit_value,
+      ]),
+    });
+    y = doc.lastAutoTable.finalY + 4;
+  }
+
+  if ((model.coletaRefs || []).length) {
+    y = ensureSpace(doc, y, 12, drawPageHeader, logoDataUrl, model);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("Coletas / O.S. geradas a partir desta proposta", ML, y);
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    model.coletaRefs.forEach((line) => {
+      doc.text(`• ${line}`, ML + 2, y);
+      y += 3.5;
+    });
+    y += 2;
+  }
+
   y = drawParagraphs(doc, y, model.mileageNote, drawPageHeader, logoDataUrl, model, 7);
 
   y = ensureSpace(doc, y, 14, drawPageHeader, logoDataUrl, model);

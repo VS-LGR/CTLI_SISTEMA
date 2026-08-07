@@ -71,7 +71,7 @@ function drawWeightInfoSection(doc, model, y, ctx) {
     margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
     head: [[
       "Identificação", "Nº Série", "Classe", "Fabricante",
-      "Nº Processo", "Local", "Foi ajuste?",
+      "Nº Processo", "Proposta", "Local", "Foi ajuste?",
     ]],
     body: [[
       s(model.weight.identification),
@@ -79,6 +79,7 @@ function drawWeightInfoSection(doc, model, y, ctx) {
       s(model.weight.class),
       s(model.weight.manufacturer),
       s(model.weight.processNumber),
+      s(model.weight.commercialProposal || model.weight.processNumber),
       s(model.weight.location),
       s(model.weight.wasAdjusted),
     ]],

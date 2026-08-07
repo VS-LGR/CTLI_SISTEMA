@@ -10,7 +10,7 @@ import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, c
 import { restrictedNavHomePath } from "@/lib/roleNav";
 import { PERSONNEL_BASE_PATH, PERSONNEL_CARGOS_PATH } from "@/lib/personnelRoutes";
 import { PERSONNEL_DASHBOARD_PATH } from "@/lib/personnelRegistrosRoutes";
-import { COLETA_LIST_PATH, COLETA_NEW_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
+import { COLETA_LIST_PATH, COLETA_NEW_PATH, COLETA_HUB_PATH, coletaEditorPath, isColetaPath } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH, CERTIFICATE_PENDING_APPROVAL_PATH, certificateEditorPath } from "@/lib/certificateRoutes";
 import { PEDIDOS_LIST_PATH } from "@/lib/pedidosCompraRoutes";
 import { QUOTATION_LIST_PATH } from "@/lib/quotationRequestsRoutes";
@@ -34,6 +34,7 @@ const AdminClients = lazy(() => import("@/pages/AdminClients"));
 const BackupView = lazy(() => import("@/pages/BackupView"));
 const CadastrosPage = lazy(() => import("@/pages/CadastrosPage"));
 const MasterDocumentFormConfigPage = lazy(() => import("@/pages/MasterDocumentFormConfigPage"));
+const ColetaHubPage = lazy(() => import("@/pages/ColetaHubPage"));
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const ColetaEditorPage = lazy(() => import("@/pages/ColetaEditorPage"));
 const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
@@ -71,6 +72,7 @@ const pageSuspenseFallback = (
 
 const ColetaLegacyRedirect = () => {
   const { id } = useParams();
+  if (!id || id === "balancas") return <Navigate to={COLETA_LIST_PATH} replace />;
   if (id === "nova") return <Navigate to={COLETA_NEW_PATH} replace />;
   return <Navigate to={coletaEditorPath(id)} replace />;
 };
@@ -194,13 +196,23 @@ const App = () => (
               element={(
                 <Protected coletaOnly>
                   <Suspense fallback={pageSuspenseFallback}>
+                    <ColetaHubPage />
+                  </Suspense>
+                </Protected>
+              )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/coleta/balancas"
+              element={(
+                <Protected coletaOnly>
+                  <Suspense fallback={pageSuspenseFallback}>
                     <ColetaPage />
                   </Suspense>
                 </Protected>
               )}
             />
             <Route
-              path="/requirement/7/pr-7-2/coleta/nova"
+              path="/requirement/7/pr-7-2/coleta/balancas/nova"
               element={(
                 <Protected coletaOnly>
                   <Suspense fallback={pageSuspenseFallback}>
@@ -210,7 +222,7 @@ const App = () => (
               )}
             />
             <Route
-              path="/requirement/7/pr-7-2/coleta/:id"
+              path="/requirement/7/pr-7-2/coleta/balancas/:id"
               element={(
                 <Protected coletaOnly>
                   <Suspense fallback={pageSuspenseFallback}>
@@ -218,6 +230,14 @@ const App = () => (
                   </Suspense>
                 </Protected>
               )}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/coleta/nova"
+              element={<Navigate to={`${COLETA_LIST_PATH}/nova`} replace />}
+            />
+            <Route
+              path="/requirement/7/pr-7-2/coleta/:id"
+              element={<ColetaLegacyRedirect />}
             />
             <Route
               path="/requirement/7/pr-7-2/certificados"
@@ -309,7 +329,7 @@ const App = () => (
                 </Protected>
               )}
             />
-            <Route path="/coleta" element={<Navigate to={COLETA_LIST_PATH} replace />} />
+            <Route path="/coleta" element={<Navigate to={COLETA_HUB_PATH} replace />} />
             <Route path="/coleta/:id" element={<ColetaLegacyRedirect />} />
             <Route
               path={PEDIDOS_LIST_PATH}

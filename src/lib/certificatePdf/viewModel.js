@@ -449,6 +449,19 @@ export function buildCertificatePdfViewModel(cert, {
     validityDate: fmtDmy(validityDate),
     issueDate: fmtDmy(enriched.issue_date),
     proposalRef: enriched.commercial_proposal_ref || "",
+    collectionOsRef: (() => {
+      const snap = enriched.collection_snapshot || {};
+      const n = enriched.collection_number
+        ?? enriched.collectionNumber
+        ?? snap.collection_number
+        ?? snap.collectionNumber;
+      const y = enriched.collection_year
+        ?? enriched.collectionYear
+        ?? snap.collection_year
+        ?? snap.collectionYear;
+      if (n == null || n === "") return "";
+      return y ? `${String(n).padStart(3, "0")}/${y}` : String(n);
+    })(),
     environmental: env,
     weightStandards,
     instrumentStandards,

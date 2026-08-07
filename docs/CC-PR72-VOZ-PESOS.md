@@ -10,7 +10,9 @@
 ## 1. Descrição da mudança
 
 1. Alinhar defaults e textos da coleta/certificado de pesos ao PR-7.2 Rev.06 (método ABA, 5 ciclos por padrão, observações com método e 17025).
-2. Adicionar entrada por voz (Web Speech API, pt-BR) para leituras de ciclo ABA e condições ambientais T/UR/P, com confirmação humana obrigatória (Confirmar / Refazer / Cancelar).
+2. Entrada por voz (Web Speech API, pt-BR) em **todo** o formulário da coleta RE-5.4.2A (cliente, geral, ambiente, itens, ciclos ABA), com busca em cadastros (cliente, peso padrão, TBH).
+3. Modo sequência: assistente completo (cliente → geral → equipamento/ambiente → itens/ABA).
+4. Confirmação: Tab / Enter / Confirmar; Refazer / Cancelar. Nenhum valor grava sem confirmação.
 
 ## 2. Motivo
 
@@ -38,11 +40,13 @@ O PR-7.2 §9 cita RE-7.2A/RE-7.2B. No sistema, pesos usam RE-5.4.2A/B e balança
 
 - [ ] Nova coleta: itens com 5 ciclos por padrão
 - [ ] Rótulos P/M (ABA) na UI
-- [ ] Modo campo a campo: ditar leitura, Confirmar / Refazer / Cancelar
-- [ ] Modo sequência: ABA completo de um item + ambiente
+- [ ] Modo campo a campo: ditar cliente (lookup), select classe, leitura ABA; Tab/Confirmar / Refazer / Cancelar
+- [ ] Modo sequência completa: cliente cadastrado → geral → TBH → ambiente → item ABA
+- [ ] Lookup ambíguo: lista de matches e seleção antes de confirmar
 - [ ] Browser sem suporte: mensagem e teclado operacional
 - [ ] Salvar coleta e gerar certificado
 - [ ] PDF/observações: método PR-7.2 Calibração de Pesos; RBC cita 17025:2017
+- [ ] Hub Coleta de dados → escolha balanças vs pesos
 
 ## 6. Aprovações
 

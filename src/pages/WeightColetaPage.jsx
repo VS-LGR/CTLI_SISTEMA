@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
-import { Plus, PencilSimple, Trash, MagnifyingGlass, Certificate, Microphone } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, MagnifyingGlass, Certificate, Microphone, ArrowLeft } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   WEIGHT_COLETA_NEW_PATH,
@@ -17,6 +17,7 @@ import {
   WEIGHT_CERTIFICATE_LIST_PATH,
   weightCertificateEditorPath,
 } from "@/lib/weightCalibration/weightCertificateRoutes";
+import { COLETA_HUB_PATH } from "@/lib/coletaRoutes";
 import { listWeightColetas, deleteWeightColeta } from "@/lib/weightCalibration/weightColetaApi";
 import { createWeightCertificateFromColeta } from "@/lib/weightCalibration/weightCertificateApi";
 import {
@@ -133,7 +134,14 @@ export default function WeightColetaPage({ embedded = false }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           {!embedded && (
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-5.4.2A · PR-7.2</p>
+            <>
+              <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2">
+                <Link to={COLETA_HUB_PATH}>
+                  <ArrowLeft size={16} className="mr-1" /> Coleta de dados
+                </Link>
+              </Button>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-5.4.2A · PR-7.2</p>
+            </>
           )}
           <h1 className={`${embedded ? "text-xl" : "font-display text-2xl sm:text-3xl"} font-bold tracking-tight text-slate-900 ${embedded ? "" : "mt-1"}`}>
             Coleta de pesos-padrão
@@ -211,6 +219,7 @@ export default function WeightColetaPage({ embedded = false }) {
               <tr>
                 <th className="text-left p-3 font-medium">Cliente</th>
                 <th className="text-left p-3 font-medium">Identificação</th>
+                <th className="text-left p-3 font-medium">Proposta</th>
                 <th className="text-left p-3 font-medium">Data</th>
                 <th className="text-left p-3 font-medium">Status</th>
                 <th className="text-left p-3 font-medium">Atualizado</th>
@@ -226,11 +235,23 @@ export default function WeightColetaPage({ embedded = false }) {
                     </EllipsisTooltip>
                   </td>
                   <td className="p-3 font-mono text-xs">{row.weight_tag || "—"}</td>
+                  <td className="p-3 font-mono text-xs max-w-[100px]">
+                    <EllipsisTooltip label={row.commercial_proposal_ref || ""} className="block">
+                      {row.commercial_proposal_ref || "—"}
+                    </EllipsisTooltip>
+                  </td>
                   <td className="p-3">{fmtDmy(row.calibration_date)}</td>
                   <td className="p-3">
-                    <Badge variant="outline" className="text-[10px] font-normal">
-                      {coletaWorkflowLabel(row.workflow_status || "rascunho")}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <Badge variant="outline" className="text-[10px] font-normal">
+                        {coletaWorkflowLabel(row.workflow_status || "rascunho")}
+                      </Badge>
+                      {row.commercial_proposal_id && (row.workflow_status === "rascunho" || !row.workflow_status) && (
+                        <Badge className="text-[10px] font-normal bg-blue-50 text-blue-800 border-blue-200" variant="outline">
+                          Da proposta · leituras
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="p-3 text-slate-500 text-xs">
                     {row.updated_at ? new Date(row.updated_at).toLocaleString("pt-BR") : "—"}

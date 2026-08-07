@@ -1,8 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import {
-  computeTotalFromScales,
+  computeProposalTotal,
   normalizeScaleForSave,
+  normalizeWeightItemForSave,
   proposalRowToForm,
 } from "./commercialProposalSchema";
 import { buildClientSnapshot } from "./commercialProposalSnapshots";
@@ -79,6 +80,16 @@ async function loadScalesWithPoints(proposalId) {
   }));
 }
 
+async function loadWeightItems(proposalId) {
+  const { data, error } = await supabase
+    .from("commercial_proposal_weight_items")
+    .select("*")
+    .eq("proposal_id", proposalId)
+    .order("item_number");
+  if (error) throw error;
+  return data || [];
+}
+
 export async function getCommercialProposal(id) {
   assertSupabaseCommercialProposals();
   const { data: proposal, error } = await supabase
@@ -87,14 +98,17 @@ export async function getCommercialProposal(id) {
     .eq("id", id)
     .single();
   if (error) throw error;
-  const scales = await loadScalesWithPoints(id);
-  return { ...proposal, scales };
+  const [scales, weightItems] = await Promise.all([
+    loadScalesWithPoints(id),
+    loadWeightItems(id),
+  ]);
+  return { ...proposal, scales, weightItems };
 }
 
 function buildProposalPayload(form, tenantId, userId, isUpdate = false) {
   const total = form.total_value !== "" && form.total_value != null
     ? parseFloat(String(form.total_value).replace(",", ".")) || 0
-    : computeTotalFromScales(form.scales);
+    : computeProposalTotal(form);
 
   const payload = {
     tenant_id: tenantId,
@@ -218,6 +232,76 @@ async function saveScales(proposalId, scales = []) {
   return savedScales;
 }
 
+async function saveWeightItems(proposalId, weightItems = []) {
+  const existingRes = await supabase
+    .from("commercial_proposal_weight_items")
+    .select("id, collection_id")
+    .eq("proposal_id", proposalId);
+  if (existingRes.error) throw existingRes.error;
+
+  const existingById = Object.fromEntries((existingRes.data || []).map((w) => [w.id, w]));
+  const formIds = new Set((weightItems || []).map((w) => w.id).filter(Boolean));
+
+  for (const ex of existingRes.data || []) {
+    if (formIds.has(ex.id)) continue;
+    if (ex.collection_id) {
+      throw new Error(
+        "Não é possível remover peso que já possui coleta de dados vinculada. Exclua a coleta primeiro.",
+      );
+    }
+    await supabase.from("commercial_proposal_weight_items").delete().eq("id", ex.id);
+  }
+
+  const saved = [];
+  const items = (weightItems || []).filter((w) =>
+    String(w.identification || "").trim()
+    || String(w.nominal_value || "").trim()
+    || w.standard_weight_item_id
+    || w.collection_id
+    || w.id,
+  );
+
+  for (let i = 0; i < items.length; i++) {
+    const norm = normalizeWeightItemForSave(items[i], i + 1);
+    const rowPayload = {
+      proposal_id: proposalId,
+      item_number: norm.item_number,
+      identification: norm.identification,
+      nominal_value: norm.nominal_value,
+      nominal_unit: norm.nominal_unit,
+      uut_class: norm.uut_class,
+      uut_material: norm.uut_material,
+      manufacturer: norm.manufacturer,
+      serial_number: norm.serial_number,
+      unit_value: norm.unit_value,
+      standard_weight_item_id: norm.standard_weight_item_id,
+      collection_id: norm.collection_id,
+    };
+
+    let row;
+    if (items[i].id && existingById[items[i].id]) {
+      const { data, error } = await supabase
+        .from("commercial_proposal_weight_items")
+        .update(rowPayload)
+        .eq("id", items[i].id)
+        .select()
+        .single();
+      if (error) throw error;
+      row = data;
+    } else {
+      const { data, error } = await supabase
+        .from("commercial_proposal_weight_items")
+        .insert(rowPayload)
+        .select()
+        .single();
+      if (error) throw error;
+      row = data;
+    }
+    saved.push(row);
+  }
+  return saved;
+}
+
 export async function createCommercialProposal(tenantId, form, { userId } = {}) {
   assertSupabaseCommercialProposals();
   const docFields = await resolveProposalDocumentFields(tenantId);
@@ -229,6 +313,7 @@ export async function createCommercialProposal(tenantId, form, { userId } = {}) 
     .single();
   if (error) throw error;
   await saveScales(proposal.id, form.scales || []);
+  await saveWeightItems(proposal.id, form.weightItems || []);
   return getCommercialProposal(proposal.id);
 }
 
@@ -239,15 +324,17 @@ export async function updateCommercialProposal(id, form, { userId } = {}) {
   const { error } = await supabase.from("commercial_proposals").update(payload).eq("id", id);
   if (error) throw error;
   await saveScales(id, form.scales || []);
+  await saveWeightItems(id, form.weightItems || []);
   return getCommercialProposal(id);
 }
 
 export async function deleteCommercialProposal(id) {
   assertSupabaseCommercialProposals();
   const proposal = await getCommercialProposal(id);
-  const linked = (proposal.scales || []).some((s) => s.collection_id);
-  if (linked) {
-    throw new Error("Não é possível excluir: existem coletas vinculadas a balanças desta proposta.");
+  const linkedScales = (proposal.scales || []).some((s) => s.collection_id);
+  const linkedWeights = (proposal.weightItems || []).some((w) => w.collection_id);
+  if (linkedScales || linkedWeights) {
+    throw new Error("Não é possível excluir: existem coletas vinculadas a itens desta proposta.");
   }
   const { error } = await supabase.from("commercial_proposals").delete().eq("id", id);
   if (error) throw error;
@@ -275,5 +362,5 @@ export async function enrichProposalFormFromCustomer(form, endCustomerId) {
 }
 
 export function proposalToEditorForm(proposal) {
-  return proposalRowToForm(proposal, proposal.scales || []);
+  return proposalRowToForm(proposal, proposal.scales || [], proposal.weightItems || []);
 }

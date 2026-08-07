@@ -234,7 +234,14 @@ export function buildImportFromColeta({
     scaleSerial: collectionRow?.scale_serial,
     calibrationDate: collectionRow?.calibration_date || payload.controle?.data_calibracao,
     collectionId: collectionRow.id,
-    collectionSnapshot: { id: collectionRow.id, workflow_status: workflowStatus, payload },
+    collectionSnapshot: {
+      id: collectionRow.id,
+      workflow_status: workflowStatus,
+      payload,
+      collection_number: collectionRow.collection_number ?? null,
+      collection_year: collectionRow.collection_year ?? null,
+      commercial_proposal_ref: collectionRow.commercial_proposal_ref || "",
+    },
     isPreviewOnly,
   });
 

@@ -60,15 +60,15 @@ function SectionCard({ num, title, children, headerAction }) {
   );
 }
 
-function RadioRow({ label, options, value, onChange }) {
+function RadioRow({ label, options, value, onChange, disabled = false }) {
   const gid = label.replace(/\s/g, "-");
   return (
     <div>
       <Label className="text-xs text-slate-600 mb-2 block">{label}</Label>
-      <RadioGroup value={value || ""} onValueChange={onChange} className="flex flex-wrap gap-3">
+      <RadioGroup value={value || ""} onValueChange={onChange} disabled={disabled} className="flex flex-wrap gap-3">
         {options.map((o) => (
           <div className="flex items-center gap-1.5" key={o.value}>
-            <RadioGroupItem value={o.value} id={`${gid}-${o.value}`} />
+            <RadioGroupItem value={o.value} id={`${gid}-${o.value}`} disabled={disabled} />
             <Label htmlFor={`${gid}-${o.value}`} className="text-sm font-normal cursor-pointer">
               {o.label}
             </Label>
@@ -85,6 +85,7 @@ export default function ColetaForm({
   commercialProposalRef,
   onProposalChange,
   linkedProposalId = null,
+  headerLocked = false,
   weightItems = [],
   envCerts = [],
   endCustomers = [],
@@ -275,6 +276,11 @@ export default function ColetaForm({
         )}
         <p className="text-sm font-semibold mt-2">COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA</p>
         <p className="text-xs text-slate-500">Cód. RE-7.2A  Ref. PR-7.2  Rev.03 de 14/05/2026</p>
+        {headerLocked && (
+          <p className="text-xs text-blue-700 mt-2 rounded-md border border-blue-200 bg-blue-50 px-2 py-1.5">
+            Dados da proposta em somente leitura. Preencha condições ambientais (TBH) e leituras.
+          </p>
+        )}
       </div>
 
       <SectionCard num="1" title="Dados do Cliente">
@@ -290,7 +296,8 @@ export default function ColetaForm({
             <select
               value={selectedEndCustomerId}
               onChange={(e) => onSelectEndCustomer(e.target.value)}
-              className="w-full border rounded-md h-10 px-3 text-sm bg-white"
+              disabled={headerLocked}
+              className="w-full border rounded-md h-10 px-3 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-700"
             >
               <option value="">— Selecionar —</option>
               {endCustomers.map((c) => (
@@ -301,31 +308,31 @@ export default function ColetaForm({
         )}
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Cliente">
-            <Input value={payload.cliente.cliente || ""} onChange={(e) => setCliente("cliente", e.target.value)} />
+            <Input value={payload.cliente.cliente || ""} disabled={headerLocked} onChange={(e) => setCliente("cliente", e.target.value)} />
           </Field>
           <Field label="Responsável">
-            <Input value={payload.cliente.responsavel || ""} onChange={(e) => setCliente("responsavel", e.target.value)} />
+            <Input value={payload.cliente.responsavel || ""} disabled={headerLocked} onChange={(e) => setCliente("responsavel", e.target.value)} />
           </Field>
           <Field label="CNPJ">
-            <Input value={payload.cliente.cnpj || ""} onChange={(e) => setCliente("cnpj", e.target.value)} />
+            <Input value={payload.cliente.cnpj || ""} disabled={headerLocked} onChange={(e) => setCliente("cnpj", e.target.value)} />
           </Field>
           <Field label="Unidade">
-            <Input value={payload.cliente.unidade || ""} onChange={(e) => setCliente("unidade", e.target.value)} />
+            <Input value={payload.cliente.unidade || ""} disabled={headerLocked} onChange={(e) => setCliente("unidade", e.target.value)} />
           </Field>
           <Field label="Endereço" className="sm:col-span-2">
-            <Input value={payload.cliente.endereco || ""} onChange={(e) => setCliente("endereco", e.target.value)} />
+            <Input value={payload.cliente.endereco || ""} disabled={headerLocked} onChange={(e) => setCliente("endereco", e.target.value)} />
           </Field>
           <Field label="Cidade">
-            <Input value={payload.cliente.cidade || ""} onChange={(e) => setCliente("cidade", e.target.value)} />
+            <Input value={payload.cliente.cidade || ""} disabled={headerLocked} onChange={(e) => setCliente("cidade", e.target.value)} />
           </Field>
           <Field label="Estado">
-            <Input value={payload.cliente.estado || ""} onChange={(e) => setCliente("estado", e.target.value)} />
+            <Input value={payload.cliente.estado || ""} disabled={headerLocked} onChange={(e) => setCliente("estado", e.target.value)} />
           </Field>
           <Field label="E-mail">
-            <Input type="email" value={payload.cliente.email || ""} onChange={(e) => setCliente("email", e.target.value)} />
+            <Input type="email" value={payload.cliente.email || ""} disabled={headerLocked} onChange={(e) => setCliente("email", e.target.value)} />
           </Field>
           <Field label="Telefone">
-            <Input value={payload.cliente.telefone || ""} onChange={(e) => setCliente("telefone", e.target.value)} />
+            <Input value={payload.cliente.telefone || ""} disabled={headerLocked} onChange={(e) => setCliente("telefone", e.target.value)} />
           </Field>
         </div>
       </SectionCard>
@@ -336,7 +343,8 @@ export default function ColetaForm({
             <select
               value={scaleRegistrationId || "__manual__"}
               onChange={(e) => applyScaleRegistration(e.target.value)}
-              className="w-full border rounded-md h-10 px-3 text-sm bg-white"
+              disabled={headerLocked}
+              className="w-full border rounded-md h-10 px-3 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-700"
             >
               <option value="__manual__">— Preencher manualmente —</option>
               {scaleList.map((s) => (
@@ -394,7 +402,11 @@ export default function ColetaForm({
             ["Ponto de trabalho", "ponto_trabalho"],
           ].map(([lbl, key]) => (
             <Field key={key} label={lbl}>
-              <Input value={payload.balanca[key] || ""} onChange={(e) => setBalanca(key, e.target.value)} />
+              <Input
+                value={payload.balanca[key] || ""}
+                disabled={headerLocked}
+                onChange={(e) => setBalanca(key, e.target.value)}
+              />
             </Field>
           ))}
         </div>
@@ -404,13 +416,15 @@ export default function ColetaForm({
             values={payload.balanca}
             unit={payload.balanca.unidade || "g"}
             includeVerificationDivision
+            disabled={headerLocked}
             onChange={(key, value) => setBalanca(key, value)}
           />
           <Field label="Unidade" className="max-w-[12rem]">
             <select
               value={payload.balanca.unidade || ""}
+              disabled={headerLocked}
               onChange={(e) => setBalanca("unidade", e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm disabled:bg-slate-100"
             >
               <option value="">—</option>
               {UNIDADE_OPTIONS.map((o) => (
@@ -424,12 +438,14 @@ export default function ColetaForm({
           label="Tipo de balança"
           options={TIPO_BALANCA_OPTIONS}
           value={payload.balanca.tipo_balanca}
+          disabled={headerLocked}
           onChange={(v) => setBalanca("tipo_balanca", v)}
         />
         {payload.balanca.tipo_balanca === "outros" && (
           <Field label="Outros (especificar)">
             <Input
               value={payload.balanca.tipo_balanca_outros}
+              disabled={headerLocked}
               onChange={(e) => setBalanca("tipo_balanca_outros", e.target.value)}
             />
           </Field>
@@ -438,9 +454,10 @@ export default function ColetaForm({
           label="Tipo de plataforma"
           options={TIPO_PLATAFORMA_OPTIONS}
           value={payload.balanca.tipo_plataforma}
+          disabled={headerLocked}
           onChange={(v) => setBalanca("tipo_plataforma", v)}
         />
-        {onScaleRegistrationChange && !scaleRegistrationId && (
+        {onScaleRegistrationChange && !scaleRegistrationId && !headerLocked && (
           <div className="space-y-1">
             <Button
               type="button"
@@ -653,7 +670,9 @@ export default function ColetaForm({
         title="Calibração da Balança"
       >
         <p className="text-xs text-slate-500 -mt-2">
-          A identificação do peso padrão não altera o valor nominal — preencha-o separadamente.
+          {headerLocked
+            ? "Nominais da proposta em somente leitura — preencha as leituras."
+            : "A identificação do peso padrão não altera o valor nominal — preencha-o separadamente."}
         </p>
         {!isDesktop && (
           <div className="space-y-3">
@@ -664,6 +683,7 @@ export default function ColetaForm({
                     value={pt.peso_nominal_valor || ""}
                     unit={pt.peso_nominal_unidade || defaultUnit}
                     defaultUnit={defaultUnit}
+                    disabled={headerLocked}
                     onValueChange={(v) => setCalPontoNominal(i, v, pt.peso_nominal_unidade || defaultUnit)}
                     onUnitChange={(u) => setCalPontoNominal(i, pt.peso_nominal_valor || "", u)}
                   />
@@ -714,6 +734,7 @@ export default function ColetaForm({
                     <Input
                       inputMode="decimal"
                       value={pt.peso_nominal_valor || ""}
+                      disabled={headerLocked}
                       onChange={(e) => setCalPontoNominal(i, e.target.value, pt.peso_nominal_unidade || defaultUnit)}
                       className="h-10 text-sm"
                     />
@@ -721,8 +742,9 @@ export default function ColetaForm({
                   <td className="p-1 align-top w-16">
                     <select
                       value={pt.peso_nominal_unidade || defaultUnit}
+                      disabled={headerLocked}
                       onChange={(e) => setCalPontoNominal(i, pt.peso_nominal_valor || "", e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-transparent px-1 text-xs shadow-sm"
+                      className="flex h-10 w-full rounded-md border border-input bg-transparent px-1 text-xs shadow-sm disabled:bg-slate-100"
                     >
                       {UNIDADE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>

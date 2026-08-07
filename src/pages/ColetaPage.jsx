@@ -13,10 +13,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import ListRowActionsMenu from "@/components/ui/ListRowActionsMenu";
 import {
-  Plus, PencilSimple, Trash, FilePdf, FileText, Scales, CheckCircle, Clock, MagnifyingGlass, Certificate,
+  Plus, PencilSimple, Trash, FilePdf, FileText, Scales, CheckCircle, Clock, MagnifyingGlass, Certificate, ArrowLeft,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { COLETA_NEW_PATH, coletaEditorPath, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
+import { COLETA_NEW_PATH, COLETA_HUB_PATH, coletaEditorPath, COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "@/lib/certificateRoutes";
 import { coletaWorkflowLabel } from "@/lib/calibrationCertificates/certificateSchema";
 import { canAccessCalibrationCertificates } from "@/lib/roles";
@@ -237,9 +237,14 @@ const ColetaPage = ({ embedded = false }) => {
       <div className="flex flex-wrap items-start justify-between gap-4">
         {!embedded && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Calibração</p>
+            <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2">
+              <Link to={COLETA_HUB_PATH}>
+                <ArrowLeft size={16} className="mr-1" /> Coleta de dados
+              </Link>
+            </Button>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-7.2A · PR-7.2</p>
             <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
-              Coleta de dados
+              Coleta — calibração de balanças
             </h1>
             <p className="text-sm text-slate-600 mt-1">
               {formatColetaDocFullTitle(currentTenant)} — por ambiente.
@@ -428,9 +433,16 @@ const ColetaPage = ({ embedded = false }) => {
                   </td>
                   <td className="p-3">{fmtDmy(row.calibration_date)}</td>
                   <td className="p-3">
-                    <Badge variant="outline" className="text-[10px] font-normal">
-                      {coletaWorkflowLabel(row.workflow_status || "rascunho")}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <Badge variant="outline" className="text-[10px] font-normal">
+                        {coletaWorkflowLabel(row.workflow_status || "rascunho")}
+                      </Badge>
+                      {row.commercial_proposal_id && (row.workflow_status === "rascunho" || !row.workflow_status) && (
+                        <Badge className="text-[10px] font-normal bg-blue-50 text-blue-800 border-blue-200" variant="outline">
+                          Da proposta · leituras
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="p-3">
                     <ExportDownloadBadge row={row} />

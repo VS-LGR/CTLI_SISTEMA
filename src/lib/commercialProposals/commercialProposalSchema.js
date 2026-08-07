@@ -37,6 +37,22 @@ export function emptyScale(itemNumber = 1) {
   };
 }
 
+export function emptyWeightProposalItem(itemNumber = 1) {
+  return {
+    item_number: itemNumber,
+    identification: "",
+    nominal_value: "",
+    nominal_unit: "g",
+    uut_class: "",
+    uut_material: "",
+    manufacturer: "",
+    serial_number: "",
+    unit_value: "",
+    standard_weight_item_id: "",
+    collection_id: "",
+  };
+}
+
 export function emptyProposalForm() {
   const today = new Date().toISOString().slice(0, 10);
   return {
@@ -55,6 +71,7 @@ export function emptyProposalForm() {
     notes: "",
     total_value: "",
     scales: [emptyScale(1)],
+    weightItems: [],
   };
 }
 
@@ -99,19 +116,64 @@ export function computeTotalFromScales(scales = []) {
   }, 0);
 }
 
+export function computeTotalFromWeightItems(weightItems = []) {
+  return weightItems.reduce((sum, w) => {
+    const v = parseFloat(String(w.unit_value || "").replace(",", "."));
+    return sum + (Number.isFinite(v) ? v : 0);
+  }, 0);
+}
+
+export function computeProposalTotal(form = {}) {
+  return computeTotalFromScales(form.scales || []) + computeTotalFromWeightItems(form.weightItems || []);
+}
+
 export function validateProposalForm(form) {
   if (!String(form.proposal_date || "").trim()) return "Informe a data da proposta";
   const company = form.client_snapshot?.company || "";
   if (!company.trim()) return "Informe a empresa (cliente)";
   const scales = form.scales || [];
-  if (!scales.length) return "Adicione ao menos uma balança";
+  const weightItems = form.weightItems || [];
+  const hasScale = scales.some((s) => String(s.serial_number || "").trim());
+  const hasWeight = weightItems.some((w) => String(w.identification || "").trim());
+  if (!hasScale && !hasWeight) {
+    return "Adicione ao menos uma balança ou um peso-padrão";
+  }
   for (let i = 0; i < scales.length; i++) {
     const s = scales[i];
+    const filled = String(s.serial_number || "").trim()
+      || String(s.manufacturer || "").trim()
+      || String(s.model || "").trim();
+    if (!filled) continue;
     if (!String(s.serial_number || "").trim()) {
       return `Informe o número de série da balança ${i + 1}`;
     }
   }
+  for (let i = 0; i < weightItems.length; i++) {
+    const w = weightItems[i];
+    const filled = String(w.identification || "").trim()
+      || String(w.nominal_value || "").trim();
+    if (!filled) continue;
+    if (!String(w.identification || "").trim()) {
+      return `Informe a identificação do peso ${i + 1}`;
+    }
+  }
   return null;
+}
+
+export function normalizeWeightItemForSave(item, itemNumber) {
+  return {
+    item_number: itemNumber,
+    identification: String(item.identification || "").trim(),
+    nominal_value: sanitizeMassNumericInput(String(item.nominal_value || "").trim()),
+    nominal_unit: item.nominal_unit || "g",
+    uut_class: String(item.uut_class || "").trim(),
+    uut_material: String(item.uut_material || "").trim(),
+    manufacturer: String(item.manufacturer || "").trim(),
+    serial_number: String(item.serial_number || "").trim(),
+    unit_value: parseFloat(String(item.unit_value || "0").replace(",", ".")) || 0,
+    standard_weight_item_id: item.standard_weight_item_id || null,
+    collection_id: item.collection_id || null,
+  };
 }
 
 export function normalizeScaleForSave(scale, itemNumber) {
@@ -145,7 +207,7 @@ export function normalizeScaleForSave(scale, itemNumber) {
   };
 }
 
-export function proposalRowToForm(row, scales = []) {
+export function proposalRowToForm(row, scales = [], weightItems = []) {
   return {
     proposal_number: row.proposal_number,
     proposal_year: row.proposal_year,
@@ -179,6 +241,20 @@ export function proposalRowToForm(row, scales = []) {
           calibration_points: mergeCalibrationPoints(s.calibration_points, s.unit || "g"),
         }))
       : [emptyScale(1)],
+    weightItems: (weightItems || []).map((w) => ({
+      id: w.id,
+      item_number: w.item_number,
+      identification: w.identification || "",
+      nominal_value: w.nominal_value || "",
+      nominal_unit: w.nominal_unit || "g",
+      uut_class: w.uut_class || "",
+      uut_material: w.uut_material || "",
+      manufacturer: w.manufacturer || "",
+      serial_number: w.serial_number || "",
+      unit_value: w.unit_value ?? "",
+      standard_weight_item_id: w.standard_weight_item_id || "",
+      collection_id: w.collection_id || "",
+    })),
   };
 }
 

@@ -237,6 +237,16 @@ export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6, metri
   doc.setFontSize(m.singlePage ? 10 : 11);
   doc.text(`Nº ${model.certificateNumber || "—"}`, centerX, headerTop + (m.singlePage ? 12 : 15), { align: "center" });
 
+  const crossParts = [
+    model.proposalRef ? `Proposta ${model.proposalRef}` : "",
+    model.collectionOsRef ? `O.S. ${model.collectionOsRef}` : "",
+  ].filter(Boolean);
+  if (crossParts.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(m.singlePage ? 5.5 : 6);
+    doc.text(crossParts.join("  ·  "), centerX, headerTop + (m.singlePage ? 15.2 : 18.5), { align: "center" });
+  }
+
   if (model.certificateType === "rbc") {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(m.singlePage ? 5 : 5.5);

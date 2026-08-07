@@ -26,6 +26,7 @@ export function buildCommercialProposalPdfViewModel(proposal, tenant) {
   const scaleRows = (proposal.scales || []).map((s) => {
     const scaleUnit = s.unit || "g";
     return {
+      kind: "balança",
       manufacturer: displayValue(s.manufacturer),
       model: displayValue(s.model),
       tag: displayValue(s.tag),
@@ -35,8 +36,29 @@ export function buildCommercialProposalPdfViewModel(proposal, tenant) {
       points: displayValue(calibrationPointsDisplay(s.calibration_points, scaleUnit)),
       clientPoints: s.client_requested_points === "sim" ? "SIM" : s.client_requested_points === "nao" ? "NÃO" : "—",
       unit_value: formatMoney(s.unit_value),
+      collectionLinked: Boolean(s.collection_id),
+      collectionId: s.collection_id || "",
     };
   });
+
+  const weightRows = (proposal.weightItems || []).map((w) => ({
+    kind: "peso",
+    identification: displayValue(w.identification),
+    nominal: displayValue(
+      formatMassDisplay(w.nominal_value, w.nominal_unit || "g", { fallback: "" }) || w.nominal_value,
+    ),
+    class: displayValue(w.uut_class),
+    serial: displayValue(w.serial_number),
+    manufacturer: displayValue(w.manufacturer),
+    unit_value: formatMoney(w.unit_value),
+    collectionLinked: Boolean(w.collection_id),
+    collectionId: w.collection_id || "",
+  }));
+
+  const coletaRefs = [
+    ...scaleRows.filter((r) => r.collectionLinked).map((r, i) => `Balança ${i + 1}: coleta vinculada`),
+    ...weightRows.filter((r) => r.collectionLinked).map((r, i) => `Peso ${i + 1}: coleta vinculada`),
+  ];
 
   const replaceLab = (text) =>
     String(text || "").replace(/laboratório/gi, labName).replace(/RF BALANCAS E AUTOMACAO LTDA/gi, labName);
@@ -62,6 +84,8 @@ export function buildCommercialProposalPdfViewModel(proposal, tenant) {
     subject: displayValue(proposal.subject),
     introText: boilerplate.intro_text,
     scaleRows,
+    weightRows,
+    coletaRefs,
     totalValue: formatMoney(proposal.total_value),
     mileageNote: boilerplate.mileage_note,
     adjustBefore: adjustLabel(proposal.adjust_before),

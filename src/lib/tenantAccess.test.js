@@ -227,7 +227,7 @@ describe("tenantAccess", () => {
   test("dashboard shortcuts cliente — propostas, coleta e certificados", () => {
     const shortcuts = getVisibleDashboardShortcuts("client", portalTenant, clientUser);
     expect(shortcuts.length).toBeGreaterThan(0);
-    expect(shortcuts.every((s) => ["propostas", "coleta", "coleta-pesos", "cert-balanca", "cert-peso"].includes(s.id))).toBe(true);
+    expect(shortcuts.every((s) => ["propostas", "coleta", "cert-balanca", "cert-peso"].includes(s.id))).toBe(true);
   });
 
   test("roles provisionáveis por admin vs client", () => {

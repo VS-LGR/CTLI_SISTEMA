@@ -127,22 +127,32 @@ export async function createColetaFromProposalScale(proposal, scale, { userId } 
 
 export async function generateColetasFromProposal(proposalId, { userId } = {}) {
   const { getCommercialProposal } = await import("./commercialProposalApi");
-  const proposal = await getCommercialProposal(proposalId);
-  const pending = (proposal.scales || []).filter((s) => !s.collection_id);
-  if (!pending.length) {
-    return { created: [], skipped: proposal.scales || [] };
-  }
+  const {
+    generateWeightColetasFromProposal,
+  } = await import("./commercialProposalToWeightColeta");
 
-  const created = [];
-  for (const scale of pending) {
+  const proposal = await getCommercialProposal(proposalId);
+  const pendingScales = (proposal.scales || []).filter((s) => !s.collection_id);
+  const scaleCreated = [];
+  for (const scale of pendingScales) {
     const collection = await createColetaFromProposalScale(
       proposal,
       { ...scale, calibration_points: scale.calibration_points || [] },
       { userId },
     );
-    created.push({ scale, collection });
+    scaleCreated.push({ scale, collection, kind: "scale" });
   }
-  return { created, skipped: (proposal.scales || []).filter((s) => s.collection_id) };
+
+  const weightResult = await generateWeightColetasFromProposal(proposalId, { userId });
+  const weightCreated = (weightResult.created || []).map((row) => ({ ...row, kind: "weight" }));
+
+  return {
+    created: [...scaleCreated, ...weightCreated],
+    createdScales: scaleCreated,
+    createdWeights: weightCreated,
+    skipped: (proposal.scales || []).filter((s) => s.collection_id),
+    skippedWeights: weightResult.skipped || [],
+  };
 }
 
 /** Gera uma coleta para uma balança específica da proposta (com dados pré-preenchidos). */

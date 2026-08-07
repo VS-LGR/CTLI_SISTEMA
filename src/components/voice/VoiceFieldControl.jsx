@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Microphone, MicrophoneSlash } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,18 +7,27 @@ import { useSpeechToText } from "@/hooks/useSpeechToText";
 import VoiceConfirmDialog from "@/components/voice/VoiceConfirmDialog";
 
 /**
- * Input com microfone (Modo 1): clica → fala → confirma/refaz/cancela.
+ * Input/select auxiliar com microfone (Modo campo a campo).
+ * kinds: number | text | lookup | choice
  */
 export default function VoiceFieldControl({
   value = "",
   onChange,
   onConfirmValue,
+  onConfirmAndContinue,
   label = "Valor",
   placeholder,
   disabled = false,
   voiceEnabled = false,
+  kind = "number",
+  options = [],
+  records = [],
+  getLabel,
+  getSearchText,
+  displayValue,
   className,
   inputClassName,
+  children,
   ...inputProps
 }) {
   const speech = useSpeechToText({ enabled: voiceEnabled && !disabled });
@@ -37,17 +46,16 @@ export default function VoiceFieldControl({
     speech.start();
   }, [voiceEnabled, disabled, speech]);
 
-  useEffect(() => {
-    if (!dialogOpen) return;
-    if (speech.finalTranscript && !speech.listening) {
-      // transcript pronto — permanece no dialog para confirmação
-    }
-  }, [dialogOpen, speech.finalTranscript, speech.listening]);
+  const applyPayload = (payload) => {
+    const v = payload?.value;
+    if (onConfirmValue) onConfirmValue(payload);
+    else if (onChange && v != null) onChange(typeof v === "string" || typeof v === "number" ? String(v) : v);
+  };
 
-  const handleConfirm = (parsedValue) => {
-    if (onConfirmValue) onConfirmValue(parsedValue);
-    else if (onChange) onChange(parsedValue);
+  const handleConfirm = (payload) => {
+    applyPayload(payload);
     closeDialog();
+    onConfirmAndContinue?.(payload);
   };
 
   const handleRetry = () => {
@@ -55,16 +63,20 @@ export default function VoiceFieldControl({
     speech.start();
   };
 
+  const shown = displayValue != null ? displayValue : value;
+
   return (
     <div className={cn("flex items-center gap-1 min-w-0", className)}>
-      <Input
-        {...inputProps}
-        disabled={disabled}
-        placeholder={placeholder}
-        className={cn("min-w-0 flex-1", inputClassName)}
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-      />
+      {children || (
+        <Input
+          {...inputProps}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={cn("min-w-0 flex-1", inputClassName)}
+          value={shown}
+          onChange={(e) => onChange?.(e.target.value)}
+        />
+      )}
       {voiceEnabled && (
         <Button
           type="button"
@@ -97,6 +109,12 @@ export default function VoiceFieldControl({
         listening={speech.listening}
         interim={speech.interim}
         error={speech.error}
+        kind={kind}
+        options={options}
+        records={records}
+        getLabel={getLabel}
+        getSearchText={getSearchText}
+        confirmLabel="Confirmar"
         onConfirm={handleConfirm}
         onRetry={handleRetry}
         onCancel={closeDialog}

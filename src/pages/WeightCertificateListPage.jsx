@@ -23,7 +23,7 @@ import {
   WEIGHT_CERTIFICATE_NEW_PATH,
   weightCertificateEditorPath,
 } from "@/lib/weightCalibration/weightCertificateRoutes";
-import { WEIGHT_COLETA_LIST_PATH } from "@/lib/weightCalibration/weightColetaRoutes";
+import { COLETA_HUB_PATH } from "@/lib/coletaRoutes";
 import {
   listWeightCertificates,
   getWeightCertificate,
@@ -309,8 +309,8 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
           <div className="flex flex-wrap gap-2">
             {canAccessColeta(user?.role, user) && (
               <Button asChild variant="outline">
-                <Link to={WEIGHT_COLETA_LIST_PATH}>
-                  <ClipboardText size={18} className="mr-1" /> Coleta de pesos
+                <Link to={COLETA_HUB_PATH}>
+                  <ClipboardText size={18} className="mr-1" /> Coleta de dados
                 </Link>
               </Button>
             )}
@@ -328,8 +328,8 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
         <div className="flex flex-wrap justify-end gap-2">
           {canAccessColeta(user?.role, user) && (
             <Button asChild variant="outline">
-              <Link to={WEIGHT_COLETA_LIST_PATH}>
-                <ClipboardText size={18} className="mr-1" /> Coleta de pesos
+              <Link to={COLETA_HUB_PATH}>
+                <ClipboardText size={18} className="mr-1" /> Coleta de dados
               </Link>
             </Button>
           )}

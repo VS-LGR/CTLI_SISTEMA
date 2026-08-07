@@ -4,7 +4,7 @@ import {
   getClientListaMestraNavItems,
   MANUAL_QUALIDADE_PATH,
 } from "./clientNavConfig";
-import { COLETA_LIST_PATH } from "./coletaRoutes";
+import { COLETA_HUB_PATH, COLETA_LIST_PATH } from "./coletaRoutes";
 import { CERTIFICATE_LIST_PATH } from "./certificateRoutes";
 import { PROPOSAL_LIST_PATH } from "./commercialProposals/commercialProposalRoutes";
 
@@ -26,6 +26,7 @@ describe("clientNavConfig", () => {
     expect(isClientAllowedPath("/dashboard")).toBe(true);
     expect(isClientAllowedPath(PROPOSAL_LIST_PATH)).toBe(true);
     expect(isClientAllowedPath(`${PROPOSAL_LIST_PATH}/nova`)).toBe(true);
+    expect(isClientAllowedPath(COLETA_HUB_PATH)).toBe(true);
     expect(isClientAllowedPath(COLETA_LIST_PATH)).toBe(true);
     expect(isClientAllowedPath(`${COLETA_LIST_PATH}/abc`)).toBe(true);
     expect(isClientAllowedPath(CERTIFICATE_LIST_PATH)).toBe(true);

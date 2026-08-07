@@ -1,4 +1,4 @@
-import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
+import { COLETA_HUB_PATH } from "@/lib/coletaRoutes";
 import { CERTIFICATE_PENDING_APPROVAL_PATH } from "@/lib/certificateRoutes";
 
 /** Cargos com acesso operacional amplo no ambiente (legado / referência). */
@@ -39,7 +39,7 @@ export function isDirectorOnlyNav(role) {
 }
 
 export function restrictedNavHomePath(role) {
-  if (role === "tecnico_campo") return COLETA_LIST_PATH;
+  if (role === "tecnico_campo") return COLETA_HUB_PATH;
   if (role === "signatario") return CERTIFICATE_PENDING_APPROVAL_PATH;
   if (role === "diretor") return "/dashboard";
   return "/dashboard";

@@ -93,6 +93,8 @@ export async function saveWeightColeta(
     calibration_date,
     workflow_status,
     commercial_proposal_ref,
+    commercial_proposal_id,
+    commercial_proposal_weight_item_id,
     userId,
   } = {},
 ) {
@@ -113,6 +115,12 @@ export async function saveWeightColeta(
     workflow_status: workflow_status || "rascunho",
     updated_by: userId || null,
   };
+  if (commercial_proposal_id !== undefined) {
+    row.commercial_proposal_id = commercial_proposal_id || null;
+  }
+  if (commercial_proposal_weight_item_id !== undefined) {
+    row.commercial_proposal_weight_item_id = commercial_proposal_weight_item_id || null;
+  }
 
   if (id) {
     const { data, error } = await supabase
@@ -135,6 +143,15 @@ export async function saveWeightColeta(
     .select()
     .single();
   if (error) throw error;
+
+  if (data?.id && commercial_proposal_weight_item_id) {
+    await supabase
+      .from("commercial_proposal_weight_items")
+      .update({ collection_id: data.id })
+      .eq("id", commercial_proposal_weight_item_id)
+      .is("collection_id", null);
+  }
+
   return data;
 }
 

@@ -76,8 +76,7 @@ import AssinaturasSection from "@/components/documents/AssinaturasSection";
 import { findMasterDocumentByCode } from "@/lib/masterDocuments/masterDocumentsApi";
 import { inferProcedureCodeFromFolder } from "@/lib/masterDocuments/masterDocumentRoutes";
 
-const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
-const WeightColetaPage = lazy(() => import("@/pages/WeightColetaPage"));
+const ColetaHubPage = lazy(() => import("@/pages/ColetaHubPage"));
 const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
 const WeightCertificateListPage = lazy(() => import("@/pages/WeightCertificateListPage"));
 const DeviceTechnicalSheetPage = lazy(() => import("@/pages/DeviceTechnicalSheetPage"));
@@ -633,11 +632,6 @@ const RequirementView = () => {
     && folderKey === COLETA_FOLDER_KEY
     && (section === "coleta_dados" || section === "registro")
     && canAccessColeta(user?.role, user);
-  const isColetaPesoTab =
-    String(id) === COLETA_REQ_ID
-    && folderKey === COLETA_FOLDER_KEY
-    && section === "coleta_dados_peso"
-    && canAccessColeta(user?.role, user);
   const isCertBalancasTab =
     String(id) === COLETA_REQ_ID
     && folderKey === COLETA_FOLDER_KEY
@@ -672,7 +666,6 @@ const RequirementView = () => {
     || masterDocumentTab
     || isCertBalancasTab
     || isCertPesoTab
-    || isColetaPesoTab
     || isFichaTecnicaTab
     || isCronogramaCalibracaoTab
     || isVerificacaoEquipamentoTab
@@ -803,11 +796,7 @@ const RequirementView = () => {
             <CommercialProposalsListPanel tenantId={currentTenantId} tenant={currentTenant} />
           ) : isColetaRegistro ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta…</div>}>
-              <ColetaPage embedded />
-            </Suspense>
-          ) : isColetaPesoTab ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta de pesos…</div>}>
-              <WeightColetaPage embedded />
+              <ColetaHubPage embedded />
             </Suspense>
           ) : isCertBalancasTab ? (
             <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar certificados…</div>}>

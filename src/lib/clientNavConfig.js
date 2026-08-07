@@ -1,4 +1,4 @@
-import { COLETA_LIST_PATH } from "@/lib/coletaRoutes";
+import { COLETA_HUB_PATH, COLETA_LIST_PATH } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH } from "@/lib/certificateRoutes";
 import { WEIGHT_CERTIFICATE_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
 import { WEIGHT_COLETA_LIST_PATH } from "@/lib/weightCalibration/weightColetaRoutes";
@@ -56,8 +56,7 @@ export function getClientListaMestraNavItems() {
 export const CLIENT_TOP_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", to: "/dashboard" },
   { id: "propostas", label: "Propostas", to: PROPOSAL_LIST_PATH, requiresCommercialProposals: true },
-  { id: "coleta", label: "Coleta de dados", to: COLETA_LIST_PATH, requiresColeta: true },
-  { id: "coleta-pesos", label: "Coleta pesos", to: WEIGHT_COLETA_LIST_PATH, requiresColeta: true },
+  { id: "coleta", label: "Coleta de dados", to: COLETA_HUB_PATH, requiresColeta: true },
   { id: "certificados", label: "Cert. balanças", to: CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
   { id: "certificados-peso", label: "Cert. pesos", to: WEIGHT_CERTIFICATE_LIST_PATH, requiresCalibrationCertificates: true },
   { id: "pedidos-compra", label: "Pedidos de compra", to: PEDIDOS_LIST_PATH, requiresPurchaseOrders: true },
@@ -69,6 +68,7 @@ const ALLOWED_PATH_PREFIXES = [
   "/dashboard",
   "/ajuda",
   PROPOSAL_LIST_PATH,
+  COLETA_HUB_PATH,
   COLETA_LIST_PATH,
   WEIGHT_COLETA_LIST_PATH,
   CERTIFICATE_LIST_PATH,
@@ -110,7 +110,7 @@ export function isClientAllowedPath(pathname, user = null) {
       return aclAllowsModule(acl, "propostas")
         || matchesAllowedPrefix(pathname, aclAllowedRequirementPathPrefixes(acl));
     }
-    if (pathname.startsWith(COLETA_LIST_PATH) || (pathname.includes("/pr-7-2") && pathname.includes("/coleta"))) {
+    if (pathname.startsWith(COLETA_HUB_PATH) || pathname.startsWith(COLETA_LIST_PATH) || (pathname.includes("/pr-7-2") && pathname.includes("/coleta"))) {
       return aclAllowsModule(acl, "coleta");
     }
     if (pathname.startsWith(CERTIFICATE_LIST_PATH) || pathname.startsWith(WEIGHT_CERTIFICATE_LIST_PATH)) {

@@ -264,10 +264,19 @@ const ColetaEditorPage = () => {
     try {
       if (isNew) {
         const os = await assignNextCollectionNumber(currentTenantId);
-        const { error } = await supabase
+        const { data: created, error } = await supabase
           .from("scale_calibration_collections")
-          .insert({ ...row, ...os, created_by: user.id });
+          .insert({ ...row, ...os, created_by: user.id })
+          .select("id")
+          .single();
         if (error) throw error;
+        if (created?.id && commercialProposalScaleId) {
+          await supabase
+            .from("commercial_proposal_scales")
+            .update({ collection_id: created.id })
+            .eq("id", commercialProposalScaleId)
+            .is("collection_id", null);
+        }
         toast.success("Coleta criada");
       } else {
         const { error } = await supabase
@@ -276,6 +285,23 @@ const ColetaEditorPage = () => {
           .eq("id", id);
         if (error) throw error;
         toast.success("Coleta guardada");
+        if (["preenchida", "conferida"].includes(workflowStatus)) {
+          const { notifyColetaStatusChange } = await import("@/lib/coletaNotify");
+          await notifyColetaStatusChange({
+            tenantId: currentTenantId,
+            kind: "balanca",
+            status: workflowStatus,
+            clientName: payload?.cliente?.cliente || "",
+            proposalRef: commercialProposalRef || "",
+            collectionNumber,
+            collectionYear,
+          });
+          toast.message(
+            workflowStatus === "conferida"
+              ? "Coleta conferida — aviso no dashboard para certificado."
+              : "Coleta preenchida — aviso no dashboard para o escritório.",
+          );
+        }
       }
       navigate(COLETA_LIST_PATH);
     } catch (e) {
@@ -459,6 +485,7 @@ const ColetaEditorPage = () => {
           commercialProposalRef={commercialProposalRef}
           onProposalChange={setCommercialProposalRef}
           linkedProposalId={commercialProposalId}
+          headerLocked={Boolean(commercialProposalId || commercialProposalScaleId)}
           weightItems={weightItems}
           envCerts={envCerts}
           endCustomers={endCustomers}

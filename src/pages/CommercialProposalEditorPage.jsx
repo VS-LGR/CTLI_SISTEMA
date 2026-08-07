@@ -14,7 +14,7 @@ import {
 } from "@/lib/commercialProposals/commercialProposalApi";
 import { exportCommercialProposalPdf } from "@/lib/commercialProposals/commercialProposalsExport";
 import {
-  computeTotalFromScales,
+  computeProposalTotal,
   emptyProposalForm,
   formatProposalNumber,
   validateProposalForm,
@@ -33,6 +33,7 @@ import { getActiveDocumentByTemplateKey } from "@/lib/masterDocuments/masterDocu
 import DocumentRecordMetaLine from "@/components/masterDocuments/DocumentRecordMetaLine";
 import ProposalClientSection from "@/components/commercialProposals/ProposalClientSection";
 import ProposalScalesTable from "@/components/commercialProposals/ProposalScalesTable";
+import ProposalWeightsTable from "@/components/commercialProposals/ProposalWeightsTable";
 import ProposalCommercialSection from "@/components/commercialProposals/ProposalCommercialSection";
 import ProposalColetasCard from "@/components/commercialProposals/ProposalColetasCard";
 import ProposalExportCadastroDialog from "@/components/commercialProposals/ProposalExportCadastroDialog";
@@ -70,6 +71,7 @@ export default function CommercialProposalEditorPage() {
   const [saving, setSaving] = useState(false);
   const [endCustomers, setEndCustomers] = useState([]);
   const [registeredScales, setRegisteredScales] = useState([]);
+  const [standardWeights, setStandardWeights] = useState([]);
   const [exportOpen, setExportOpen] = useState(false);
   const [fullProposal, setFullProposal] = useState(null);
   const [masterMeta, setMasterMeta] = useState(null);
@@ -99,6 +101,22 @@ export default function CommercialProposalEditorPage() {
       return;
     }
     setRegisteredScales(data || []);
+  }, [currentTenantId]);
+
+  const loadStandardWeights = useCallback(async () => {
+    if (!currentTenantId) return;
+    const { data, error } = await supabase
+      .from("standard_weight_items")
+      .select("id, identification, nominal_value, unit")
+      .eq("tenant_id", currentTenantId)
+      .eq("active", true)
+      .order("identification");
+    if (error) {
+      console.error("[proposta] standard_weight_items", error);
+      setStandardWeights([]);
+      return;
+    }
+    setStandardWeights(data || []);
   }, [currentTenantId]);
 
   const loadNew = useCallback(async () => {
@@ -145,6 +163,7 @@ export default function CommercialProposalEditorPage() {
 
   useEffect(() => { loadCustomers(); }, [loadCustomers]);
   useEffect(() => { loadRegisteredScales(); }, [loadRegisteredScales]);
+  useEffect(() => { loadStandardWeights(); }, [loadStandardWeights]);
   useEffect(() => {
     if (isNew) loadNew();
     else loadExisting();
@@ -166,8 +185,8 @@ export default function CommercialProposalEditorPage() {
   }, [currentTenantId]);
 
   const computedTotal = useMemo(
-    () => computeTotalFromScales(form?.scales || []),
-    [form?.scales],
+    () => computeProposalTotal(form || {}),
+    [form],
   );
 
   const docStale = useMemo(
@@ -320,6 +339,16 @@ export default function CommercialProposalEditorPage() {
 
       <Card className="border-slate-200">
         <CardContent className="p-4">
+          <ProposalWeightsTable
+            weightItems={form.weightItems || []}
+            onChange={(weightItems) => setForm({ ...form, weightItems })}
+            standardWeights={standardWeights}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
+        <CardContent className="p-4">
           <ProposalCommercialSection
             form={form}
             onChange={setForm}
@@ -331,6 +360,7 @@ export default function CommercialProposalEditorPage() {
       <ProposalColetasCard
         proposalId={proposalId}
         scales={form.scales}
+        weightItems={form.weightItems || []}
         userId={user?.id}
         onGenerated={refreshProposal}
       />

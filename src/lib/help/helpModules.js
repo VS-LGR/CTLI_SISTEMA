@@ -1,5 +1,5 @@
 import { PROPOSAL_LIST_PATH, PROPOSAL_NEW_PATH } from "@/lib/commercialProposals/commercialProposalRoutes";
-import { COLETA_LIST_PATH, COLETA_NEW_PATH } from "@/lib/coletaRoutes";
+import { COLETA_HUB_PATH, COLETA_LIST_PATH, COLETA_NEW_PATH } from "@/lib/coletaRoutes";
 import { CERTIFICATE_LIST_PATH, CERTIFICATE_NEW_PATH } from "@/lib/certificateRoutes";
 import { WEIGHT_CERTIFICATE_LIST_PATH, WEIGHT_CERTIFICATE_NEW_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
 import { APPROVAL_HUB_PATH } from "@/lib/approvalRoutes";
@@ -112,14 +112,19 @@ export const HELP_MODULES = [
     moduleKey: "coleta",
     title: "Coleta de dados",
     accessModule: "coleta",
-    tourPath: COLETA_LIST_PATH,
+    tourPath: COLETA_HUB_PATH,
     matchPath: (pathname) =>
-      pathname.startsWith(COLETA_LIST_PATH)
-      || (pathname.includes("/pr-7-2/") && pathname.includes("/coleta") && !pathname.includes("/pesos/")),
+      pathname.startsWith(COLETA_HUB_PATH)
+      || pathname.startsWith(COLETA_LIST_PATH)
+      || (pathname.includes("/pr-7-2/") && pathname.includes("/coleta")),
     steps: [
       {
+        title: "Escolher tipo de coleta",
+        body: "No hub, escolha calibração de balanças ou de pesos-padrão.",
+      },
+      {
         title: "Nova coleta",
-        body: "Toque no botão iluminado “Nova coleta” para começar.",
+        body: "Na listagem escolhida, toque em “Nova coleta” para começar.",
         highlight: "tour-coleta-nova",
       },
       {
