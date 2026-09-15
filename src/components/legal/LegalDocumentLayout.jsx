@@ -17,7 +17,7 @@ export default function LegalDocumentLayout({
       <header className="border-b border-slate-200 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
           <Link to="/login" className="min-w-0 shrink-0" aria-label={`Ir para login ${APP_NAME}`}>
-            <AppBrand className="[&_img]:h-10 [&_img]:sm:h-10 [&_p]:hidden" />
+            <AppBrand variant="header" />
           </Link>
           <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-600">
             <Link to={LEGAL_ROUTES.eula} className="hover:text-blue-700 hover:underline">

@@ -11,17 +11,18 @@ export const APP_SHORT_DESCRIPTION = "Sistema de gestão da qualidade";
 export const APP_DOCUMENT_TITLE = "QUATI | Sistemas";
 export const APP_META_DESCRIPTION =
   "QUATI — Qualidade, Usabilidade, Aplicações, Tecnologia e Inovação.";
-export const APP_THEME_COLOR = "#111111";
+export const APP_THEME_COLOR = "#050505";
+export const APP_BRAND_ORANGE = "#F97316";
+export const APP_BRAND_GOLD = "#FBBF24";
 
 /** © YYYY CTLI. Todos os direitos reservados. */
 export const APP_COPYRIGHT = LEGAL_COPYRIGHT;
 export { APP_RIGHTS_HOLDER, LEGAL_ROUTES };
 
-/** Marca circular (public/Logo_QUATI.png). */
+/** Único ficheiro de marca: símbolo (public/Logo_QUATI.png). */
 export const APP_LOGO = "/Logo_QUATI.png";
 
-/** Wordmark completo QUATI SISTEMAS (public/Logo_QUATI_wide.png). */
-export const APP_LOGO_WIDE = "/Logo_QUATI_wide.png";
+export const APP_LOGO_WIDE = APP_LOGO;
 
 export const APP_LOGO_SQUARE = APP_LOGO;
 export const APP_LOGO_MARK = APP_LOGO;
