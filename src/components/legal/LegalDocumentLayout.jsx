@@ -32,6 +32,12 @@ export default function LegalDocumentLayout({
             <span className="text-slate-300" aria-hidden>
               |
             </span>
+            <Link to={LEGAL_ROUTES.privacy} className="hover:text-blue-700 hover:underline">
+              Privacidade
+            </Link>
+            <span className="text-slate-300" aria-hidden>
+              |
+            </span>
             <Link to="/login" className="hover:text-blue-700 hover:underline">
               Entrar
             </Link>

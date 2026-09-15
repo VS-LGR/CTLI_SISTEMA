@@ -64,6 +64,7 @@ import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { Checkbox } from "@/components/ui/checkbox";
 import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
 import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
+import { useESign } from "@/components/bpx/ESignProvider";
 
 const fieldClass = "h-9 text-sm";
 
@@ -108,6 +109,7 @@ export default function WeightCertificateEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { requestEsign } = useESign();
   const { currentTenantId, currentTenant } = useOutletContext();
 
   const [cert, setCert] = useState(null);
@@ -306,10 +308,16 @@ export default function WeightCertificateEditorPage() {
     if (!cert.signatory_id) return toast.error("Defina o signatário");
     setBusy(true);
     try {
+      const { password, meaning } = await requestEsign({
+        title: "Aprovar certificado",
+        meaning: approvalNotes.trim() || "Aprovo o certificado de calibração de pesos.",
+      });
       const updated = await transitionWeightCertificateStatus(cert.id, "aprovado", {
         userId: user.id,
         employeeId: cert.signatory_id,
         notes: approvalNotes,
+        esignPassword: password,
+        esignMeaning: meaning,
       });
       setCert(updated);
       toast.success("Certificado aprovado");
@@ -370,9 +378,15 @@ export default function WeightCertificateEditorPage() {
     setBusy(true);
     try {
       const { meta, fileName } = await prepareDocMeta();
+      const { password, meaning } = await requestEsign({
+        title: "Emitir certificado",
+        meaning: "Emito o certificado oficial de calibração de pesos.",
+      });
       const emitted = await emitWeightCertificate(cert.id, user.id, {
         documentMeta: meta,
         fileName,
+        esignPassword: password,
+        esignMeaning: meaning,
       });
       setCert(emitted);
       await downloadWeightCertificatePdf(emitted, currentTenant?.name || "", {
@@ -393,6 +407,13 @@ export default function WeightCertificateEditorPage() {
     setBusy(true);
     try {
       const { meta, fileName } = await prepareDocMeta();
+      let esign = {};
+      if (cert.status === "aprovado") {
+        esign = await requestEsign({
+          title: "Emitir e enviar certificado",
+          meaning: "Emito o certificado oficial de pesos e autorizo o envio ao cliente.",
+        });
+      }
       const updated = await emitAndSendWeightCertificate(cert, {
         userId: user.id,
         tenant: currentTenant,
@@ -402,6 +423,8 @@ export default function WeightCertificateEditorPage() {
         recipientEmail: emailTo || undefined,
         documentMeta: meta,
         fileName,
+        esignPassword: esign.password,
+        esignMeaning: esign.meaning,
       });
       setCert(updated);
       setEmailDialogOpen(false);

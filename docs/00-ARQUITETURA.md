@@ -28,7 +28,9 @@ O frontend ProcVault QMS é uma SPA React multi-tenant que gere procedimentos, r
 Duas camadas distintas (ambas necessárias):
 
 1. **DR de plataforma** — backups/PITR do projeto Supabase (infra).
-2. **Export tenant** — Edge Function `tenant-backup` (ZIP no Storage, SHA-256, audit trail, dry-run, replace com reauth). Ver [11-BACKUP-DR-QIQO.md](./11-BACKUP-DR-QIQO.md).
+2. **Export tenant** — Edge Function `tenant-backup` (ZIP no Storage, SHA-256, audit trail, dry-run, replace com reauth). Ver [11-BACKUP-DR-QIQO.md](./11-BACKUP-DR-QIQO.md). Retenção default **2190 dias** (~6 anos).
+
+Controlos BPx (RBAC, e-sign, trilha, lock): rascunho CSV em [csv/README.md](./csv/README.md). **Não** declarar o sistema validado até RFV com vistos.
 
 ### Padrão de páginas
 

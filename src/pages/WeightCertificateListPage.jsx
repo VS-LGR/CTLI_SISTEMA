@@ -54,6 +54,7 @@ import { supabase } from "@/lib/supabaseClient";
 import EllipsisTooltip from "@/components/ui/ellipsis-tooltip";
 import CertificateObsoleteDialog from "@/components/calibrationCertificates/CertificateObsoleteDialog";
 import CertificatePermanentDeleteDialog from "@/components/calibrationCertificates/CertificatePermanentDeleteDialog";
+import { useESign } from "@/components/bpx/ESignProvider";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -85,6 +86,7 @@ function isSendableRow(row) {
 
 export default function WeightCertificateListPage({ embedded = false, approvalMode = false }) {
   const { user } = useAuth();
+  const { requestEsign } = useESign();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentTenantId, currentTenant } = useOutletContext();
@@ -240,7 +242,15 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
     if (!canApprove) return toast.error("Sem permissão para aprovar");
     setBatchBusy(true);
     try {
-      const { approved } = await bulkApproveWeightCertificates(ids, user.id);
+      const { password, meaning } = await requestEsign({
+        title: "Aprovar certificados",
+        meaning: "Aprovo os certificados de calibração de pesos selecionados.",
+      });
+      const { approved } = await bulkApproveWeightCertificates(ids, {
+        userId: user.id,
+        esignPassword: password,
+        esignMeaning: meaning,
+      });
       toast.success(`${approved} certificado(s) aprovado(s)`);
       load();
     } catch (e) {

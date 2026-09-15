@@ -9,6 +9,7 @@ export const PRODUCT_NAME = "QualiProc";
 export const LEGAL_ROUTES = Object.freeze({
   eula: "/termos",
   license: "/licenca",
+  privacy: "/privacidade",
 });
 
 /** Frase padrão de copyright: © 2026 CTLI. Todos os direitos reservados. */

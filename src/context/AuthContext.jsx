@@ -19,6 +19,10 @@ function mapProfileToUser(row, fallbackEmail) {
     access_acl: coerceAccessAcl(row.access_acl),
     legal_accepted_at: row.legal_accepted_at ?? null,
     legal_accepted_version: row.legal_accepted_version ?? null,
+    privacy_accepted_at: row.privacy_accepted_at ?? null,
+    privacy_accepted_version: row.privacy_accepted_version ?? null,
+    must_change_password: Boolean(row.must_change_password),
+    is_disabled: Boolean(row.is_disabled),
   };
 }
 
@@ -32,7 +36,7 @@ async function loadUserFromSupabaseSession(session) {
   const u = session.user;
   const { data: row, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, tenant_id, access_coleta, access_certificados, access_acl, legal_accepted_at, legal_accepted_version")
+    .select("id, email, full_name, role, tenant_id, access_coleta, access_certificados, access_acl, legal_accepted_at, legal_accepted_version, privacy_accepted_at, privacy_accepted_version, must_change_password, is_disabled")
     .eq("id", u.id)
     .maybeSingle();
   if (error) throw error;
@@ -53,6 +57,8 @@ export const AuthProvider = ({ children }) => {
         ...data,
         legal_accepted_at: data?.legal_accepted_at ?? mockLegal?.accepted_at ?? null,
         legal_accepted_version: data?.legal_accepted_version ?? mockLegal?.version ?? null,
+        privacy_accepted_at: data?.privacy_accepted_at ?? mockLegal?.accepted_at ?? null,
+        privacy_accepted_version: data?.privacy_accepted_version ?? mockLegal?.privacy_version ?? null,
       };
       setUser(shaped);
       if (profileIndicatesTenant(shaped)) {
@@ -74,7 +80,10 @@ export const AuthProvider = ({ children }) => {
     }
     localStorage.setItem("pv_token", session.access_token);
     const shaped = await loadUserFromSupabaseSession(session);
-    if (!shaped) {
+    if (!shaped || shaped.is_disabled) {
+      if (shaped?.is_disabled) {
+        try { await supabase.auth.signOut(); } catch { /* ignore */ }
+      }
       setUser(false);
       return null;
     }
@@ -132,6 +141,8 @@ export const AuthProvider = ({ children }) => {
           ...data,
           legal_accepted_at: data?.legal_accepted_at ?? mockLegal?.accepted_at ?? null,
           legal_accepted_version: data?.legal_accepted_version ?? mockLegal?.version ?? null,
+          privacy_accepted_at: data?.privacy_accepted_at ?? mockLegal?.accepted_at ?? null,
+          privacy_accepted_version: data?.privacy_accepted_version ?? mockLegal?.privacy_version ?? null,
         };
         setUser(shaped);
         if (profileIndicatesTenant(shaped)) {
@@ -145,9 +156,20 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
+      if (supabase) {
+        const { data: blocked } = await supabase.rpc("login_is_blocked", { p_email: email });
+        if (blocked) {
+          return { ok: false, error: "Conta bloqueada ou desativada. Aguarde 15 minutos ou contacte o administrador." };
+        }
+      }
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { ok: false, error: error.message };
+      if (error) {
+        try { await supabase.rpc("register_login_attempt", { p_email: email, p_success: false, p_origin: "login-ui" }); } catch { /* ignore */ }
+        return { ok: false, error: error.message };
+      }
+      try { await supabase.rpc("register_login_attempt", { p_email: email, p_success: true, p_origin: "login-ui" }); } catch { /* ignore */ }
       const shaped = await applySupabaseSession(data.session);
+      if (!shaped) return { ok: false, error: "Conta desativada." };
       return { ok: true, user: shaped };
     } catch (e) {
       return { ok: false, error: e?.message || "Falha no login" };
@@ -170,7 +192,15 @@ export const AuthProvider = ({ children }) => {
     setCurrentTenantId(tid);
     if (tid) localStorage.setItem("pv_current_tenant", tid);
     else localStorage.removeItem("pv_current_tenant");
-  }, []);
+    if (user && user.role === "admin" && supabase && tid) {
+      supabase.from("admin_sensitive_actions").insert({
+        actor_id: user.id,
+        action: "switch_tenant",
+        target_tenant_id: tid,
+        details: { origin: "layout-switcher" },
+      }).then(() => {}).catch(() => {});
+    }
+  }, [user]);
 
   const contextValue = useMemo(
     () => ({

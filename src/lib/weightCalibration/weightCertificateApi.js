@@ -11,6 +11,8 @@ import {
   canDeleteCertificate,
 } from "./weightCertificateSchema";
 import { validateWeightCalcPayload } from "./weightColetaSchema";
+import { invokeCriticalEsign } from "@/lib/bpx/criticalEsign";
+import { requireEsignCredentials } from "@/lib/bpx/requireEsign";
 
 export function assertSupabaseWeightCertificates() {
   if (!isSupabaseAuthMode) throw new Error("Certificados de pesos requerem ligação Supabase.");
@@ -778,7 +780,7 @@ export async function recalculateWeightCertificate(id) {
 export async function transitionWeightCertificateStatus(
   id,
   toStatus,
-  { userId, notes, checklist, employeeId } = {},
+  { userId, notes, checklist, employeeId, esignPassword, esignMeaning } = {},
 ) {
   const full = await getWeightCertificate(id);
   if (!canTransitionCertificateStatus(full.status, toStatus)) {
@@ -799,22 +801,12 @@ export async function transitionWeightCertificateStatus(
   }
 
   if (toStatus === "aprovado") {
-    const cad = await loadCadastrosForImport(full.tenant_id);
-    const signatory = cad.employees.find((e) => e.id === (employeeId || full.signatory_id));
-    await supabase.from("weight_calibration_certificate_reviews").insert({
-      certificate_id: id,
-      review_type: "aprovacao",
-      notes: notes || "",
-      reviewed_by: userId || null,
-      employee_id: employeeId || full.signatory_id,
+    await bulkApproveWeightCertificates([id], {
+      userId,
+      notes,
+      esignPassword,
+      esignMeaning: esignMeaning || notes || "Aprovo o certificado de calibração de pesos.",
     });
-    await updateWeightCertificateHeader(id, {
-      status: toStatus,
-      approval_date: new Date().toISOString().slice(0, 10),
-      approval_notes: notes || "",
-      signatory_id: employeeId || full.signatory_id || null,
-      signatory_name: signatory?.full_name || full.signatory_name || "",
-    }, userId);
     return getWeightCertificate(id);
   }
 
@@ -842,21 +834,25 @@ export async function transitionWeightCertificateStatus(
   return updated;
 }
 
-export async function bulkApproveWeightCertificates(ids, userId, notes = "") {
+export async function bulkApproveWeightCertificates(ids, { userId, notes = "", esignPassword, esignMeaning } = {}) {
   assertSupabaseWeightCertificates();
   if (!ids?.length) return { approved: 0, ids: [] };
+  const esign = requireEsignCredentials(
+    { esignPassword, esignMeaning: esignMeaning || notes },
+    "Aprovo o(s) certificado(s) de calibração de pesos.",
+  );
 
-  const { data, error } = await supabase.rpc("approve_weight_calibration_certificates", {
-    p_certificate_ids: ids,
-    p_user_id: userId || null,
-    p_notes: notes || "",
+  const data = await invokeCriticalEsign({
+    action: "approve_weight",
+    password: esign.password,
+    meaning: esign.meaning,
+    certificate_ids: ids,
   });
-  if (error) throw error;
 
-  return { approved: Number(data) || 0, ids };
+  return { approved: Number(data?.approved) || 0, ids };
 }
 
-export async function emitWeightCertificate(id, userId, { documentMeta, fileName } = {}) {
+export async function emitWeightCertificate(id, userId, { documentMeta, fileName, esignPassword, esignMeaning } = {}) {
   const full = await getWeightCertificate(id);
   if (!canTransitionCertificateStatus(full.status, "emitido")) {
     throw new Error(`Transição inválida: ${full.status} → emitido`);
@@ -924,27 +920,25 @@ export async function emitWeightCertificate(id, userId, { documentMeta, fileName
       generatedBy: userId,
     };
 
-  await updateWeightCertificateHeader(id, {
-    status: "emitido",
-    issue_date: new Date().toISOString().slice(0, 10),
-    validity_date: full.validity_date || defaultValidityDate(full.calibration_date),
-    emitted_by: userId || null,
-    is_preview_only: false,
-    signatory_name: signatory?.full_name || full.signatory_name || "",
-    executor_name: executor?.full_name || full.executor_name || "",
-    technical_snapshot: technicalSnapshot,
-    document_snapshot: documentSnapshot,
-  }, userId);
+  const esign = requireEsignCredentials(
+    { esignPassword, esignMeaning },
+    "Emito o certificado oficial de calibração de pesos.",
+  );
 
-  if (full.collection_id) {
-    await supabase
-      .from("weight_calibration_collections")
-      .update({
-        workflow_status: "certificado_gerado",
-        certificate_id: id,
-      })
-      .eq("id", full.collection_id);
-  }
+  await invokeCriticalEsign({
+    action: "emit_weight",
+    password: esign.password,
+    meaning: esign.meaning,
+    certificate_id: id,
+    fields: {
+      issue_date: new Date().toISOString().slice(0, 10),
+      validity_date: full.validity_date || defaultValidityDate(full.calibration_date),
+      signatory_name: signatory?.full_name || full.signatory_name || "",
+      executor_name: executor?.full_name || full.executor_name || "",
+      technical_snapshot: technicalSnapshot,
+      document_snapshot: documentSnapshot,
+    },
+  });
 
   return getWeightCertificate(id);
 }

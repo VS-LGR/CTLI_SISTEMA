@@ -9,9 +9,11 @@ import {
   LEGAL_ACCEPTANCE_TITLE,
   LEGAL_ACCEPTANCE_VERSION,
 } from "@/lib/legal/acceptance";
+import { needsLegalAcceptance } from "@/lib/legal/needsLegalAcceptance";
 import { LEGAL_ROUTES, APP_COPYRIGHT, PRODUCT_NAME } from "@/lib/legal/copyright";
 import { EULA_SECTIONS, EULA_TITLE } from "@/lib/legal/eulaContent";
 import { LICENSE_SECTIONS, LICENSE_TITLE } from "@/lib/legal/licenseContent";
+import { PRIVACY_SECTIONS, PRIVACY_TITLE, PRIVACY_VERSION } from "@/lib/legal/privacyContent";
 
 function TermsPreview({ title, sections }) {
   return (
@@ -41,13 +43,7 @@ export default function EulaAcceptanceGate({ children }) {
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const needsAcceptance = useMemo(() => {
-    if (!user || user === false) return false;
-    const version = user.legal_accepted_version;
-    const at = user.legal_accepted_at;
-    if (!at) return true;
-    return String(version || "") !== LEGAL_ACCEPTANCE_VERSION;
-  }, [user]);
+  const needsAcceptance = useMemo(() => needsLegalAcceptance(user), [user]);
 
   if (!needsAcceptance) return children;
 
@@ -58,7 +54,7 @@ export default function EulaAcceptanceGate({ children }) {
     }
     setBusy(true);
     try {
-      await acceptLegalTerms(LEGAL_ACCEPTANCE_VERSION);
+      await acceptLegalTerms(LEGAL_ACCEPTANCE_VERSION, PRIVACY_VERSION);
       await refreshMe?.();
       toast.success("Termos aceites. Bem-vindo ao " + PRODUCT_NAME + ".");
     } catch (e) {
@@ -92,8 +88,8 @@ export default function EulaAcceptanceGate({ children }) {
             {LEGAL_ACCEPTANCE_TITLE}
           </h1>
           <p className="text-sm text-slate-600 mt-2">
-            Antes de continuar e de ver os tutoriais, leia e aceite os Termos de Adesão (EULA) e a
-            Licença de Uso do {PRODUCT_NAME}. Sem aceite, a sessão será encerrada.
+            Antes de continuar e de ver os tutoriais, leia e aceite os Termos de Adesão (EULA), a
+            Licença de Uso e a Política de Privacidade do {PRODUCT_NAME}. Sem aceite, a sessão será encerrada.
           </p>
           <p className="text-xs text-slate-400 mt-1">{APP_COPYRIGHT}</p>
         </div>
@@ -101,6 +97,7 @@ export default function EulaAcceptanceGate({ children }) {
         <div className="px-5 sm:px-6 py-4 space-y-5 max-h-[min(55vh,28rem)] overflow-y-auto">
           <TermsPreview title={EULA_TITLE} sections={EULA_SECTIONS} />
           <TermsPreview title={LICENSE_TITLE} sections={LICENSE_SECTIONS} />
+          <TermsPreview title={PRIVACY_TITLE} sections={PRIVACY_SECTIONS} />
           <p className="text-xs text-slate-500">
             Documentos completos:{" "}
             <Link to={LEGAL_ROUTES.eula} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
@@ -109,6 +106,10 @@ export default function EulaAcceptanceGate({ children }) {
             {" · "}
             <Link to={LEGAL_ROUTES.license} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
               Licença
+            </Link>
+            {" · "}
+            <Link to={LEGAL_ROUTES.privacy} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+              Privacidade
             </Link>
           </p>
         </div>
@@ -122,8 +123,8 @@ export default function EulaAcceptanceGate({ children }) {
               data-testid="eula-accept-checkbox"
             />
             <span className="text-sm text-slate-700 leading-snug">
-              Li e aceito todos os Termos de Adesão ao Serviço (EULA) e a Licença de Uso, com todos os
-              direitos reservados à CTLI.
+              Li e aceito todos os Termos de Adesão ao Serviço (EULA), a Licença de Uso e a Política
+              de Privacidade, com todos os direitos reservados à CTLI.
             </span>
           </label>
 

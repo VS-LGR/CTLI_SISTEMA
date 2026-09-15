@@ -217,6 +217,8 @@ export async function exportCertificatePdfOfficial(cert, tenantName, opts = {}) 
   const { emitCertificate } = await import("./calibrationCertificates/certificateApi");
   const emitted = opts.alreadyEmitted ? cert : await emitCertificate(cert.id, {
     userId: opts.userId,
+    esignPassword: opts.esignPassword,
+    esignMeaning: opts.esignMeaning,
   });
 
   return exportCertificatePdfPreview(emitted, tenantName, {

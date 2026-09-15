@@ -93,6 +93,7 @@ serve(async (req) => {
       access_coleta: access.access_coleta,
       access_certificados: access.access_certificados,
       access_acl: access.access_acl,
+      must_change_password: true,
       updated_at: new Date().toISOString(),
     };
     if (employee_registration_id) profilePatch.employee_registration_id = employee_registration_id;

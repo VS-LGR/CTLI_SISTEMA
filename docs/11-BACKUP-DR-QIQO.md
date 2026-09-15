@@ -26,7 +26,7 @@ Demonstrar que é possível:
 | Item | Critério |
 |------|----------|
 | Papel | Utilizador `admin` CTLI |
-| Migrations | Inclui `20250730010000`, `20250730020000`, `20250730030000`, `20250730100000` (auto 90d) |
+| Migrations | Inclui `20250730010000`, `20250730020000`, `20250730030000`, `20250730100000` (auto) e **`20250915120000`** (retenção default **2190** dias) |
 | Edge Function | `tenant-backup` deployada (manifest v3+; auth cron `BACKUP_CRON_SECRET`) |
 | Ambiente de teste | Tenant de ensaio (não produção, salvo drill aprovado) |
 | Evidências | Screenshots + export de `tenant_backup_events` + hash do ZIP |
@@ -40,7 +40,7 @@ Demonstrar que é possível:
 |----|-------|----------|-----------|
 | QI-01 | Bucket `tenant-backups` existe, privado, limite ≥ 500 MiB | OK | Dashboard Storage |
 | QI-02 | Tabela `tenant_backup_events` existe; RLS sem update/delete autenticado | OK | SQL / policies |
-| QI-03 | Coluna `tenants.backup_retention_days` (default 90) e `auto_interval_days` (default 90) | OK | `\d tenants` / select |
+| QI-03 | Coluna `tenants.backup_retention_days` (default **2190**) e `auto_interval_days` (default 90) | OK | `\d tenants` / select |
 | QI-04 | Função `tenant-backup` responde `action=list` com `storage_mode=storage_signed` | OK | Network / UI Backup |
 | QI-05 | Segredo `CTLI_SERVICE_ROLE_KEY` configurado | OK | Edge Secrets |
 | QI-06 | Segredo `BACKUP_CRON_SECRET` + job `tenant-backup-auto-daily` agendado | OK | Edge Secrets + `cron.job` |
@@ -96,6 +96,6 @@ Assinaturas: Executor ____________  Qualidade ____________  Data ____________
 - **Contemporâneo:** `created_at` no evento  
 - **Original / íntegro:** SHA-256 + verify no restore  
 - **Disponível:** Storage privado + cópia offsite SOP; auto a cada 90 dias  
-- **Duradouro:** retenção 90 dias (purga) + arquivamento empresarial  
+- **Duradouro:** retenção **2190 dias** (~6 anos; purga) + arquivamento empresarial  
 
 Mudanças futuras no módulo de backup exigem **controlo de mudanças** e reexecução dos QI/QO afetados.

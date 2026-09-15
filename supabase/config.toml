@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.send-weight-calibration-certificate]
 verify_jwt = false
+
+[functions.critical-esign]
+verify_jwt = true

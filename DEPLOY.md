@@ -18,9 +18,9 @@ Defina no painel do projeto Vercel (Settings → Environment Variables):
 O backup gera um `.zip` completo do tenant, grava-o no bucket privado **`tenant-backups`** e devolve uma **URL assinada** (1 h) para download. Guarde também uma cópia na rede da empresa. Para recuperar, faça **upload** do ZIP na UI.
 
 **Modos:**
-- **Automático (90 dias):** job `pg_cron` diário (`tenant-backup-auto-daily`, 03:00 UTC) chama a Edge Function para tenants com `last_backup_at` nulo ou mais antigo que `auto_interval_days` (default **90**). ZIP fica só no Storage (`source: auto`).
+- **Automático (intervalo default 90 dias):** job `pg_cron` diário (`tenant-backup-auto-daily`, 03:00 UTC) chama a Edge Function para tenants com `last_backup_at` nulo ou mais antigo que `auto_interval_days` (default **90**). ZIP fica só no Storage (`source: auto`).
 - **Manual:** botão «Gerar cópia» na UI (admin CTLI) — Storage + download local (`source: manual`).
-- **Retenção / espaço:** `backup_retention_days` (default **90**) — ZIPs mais antigos são purgados em `list`/`create`.
+- **Retenção / espaço:** `backup_retention_days` (default **2190** ≈ 6 anos BPx, migração `20250915120000`) — ZIPs mais antigos são purgados em `list`/`create`.
 
 Cobertura (manifest v3): cadastros, certificados, lista mestra, propostas, equipamentos, pedidos, anexos + **integrity.json** (SHA-256 por ficheiro).
 
@@ -47,7 +47,7 @@ ALTER DATABASE postgres SET app.settings.backup_cron_secret = 'o-mesmo-valor-de-
 
 Ativar extensões **pg_cron** e **pg_net** (Database → Extensions) se ainda não estiverem ativas.
 
-Migrações: `20250623000000`, `20250624000000`, `20250730010000`, `20250730020000`, `20250730030000`, **`20250730100000_tenant_backup_auto_90d.sql`**.
+Migrações: `20250623000000`, `20250624000000`, `20250730010000`, `20250730020000`, `20250730030000`, **`20250730100000_tenant_backup_auto_90d.sql`**, **`20250915120000_bpx_electronic_controls.sql`**.
 
 Após alterar a função: `supabase functions deploy tenant-backup`.
 
@@ -55,9 +55,13 @@ Acesso manual: **apenas role `admin`** (CTLI). Acesso automático: segredo `BACK
 
 O build usa `npm install --legacy-peer-deps && npm run build` (ver `vercel.json`).
 
-### Aceite EULA / Licença (primeiro login)
+### Aceite EULA / Licença / Privacidade (primeiro login)
 
-Migração **`20250803140000_profiles_legal_acceptance.sql`**: colunas `profiles.legal_accepted_at` / `legal_accepted_version` + RPC `accept_legal_terms`. No primeiro acesso (ou se a versão dos termos mudar), a UI bloqueia o tutorial até o utilizador aceitar; recusar faz logout.
+Migração **`20250803140000_profiles_legal_acceptance.sql`** + **`20250915120000_bpx_electronic_controls.sql`**: colunas de aceite legal e privacidade + RPC `accept_legal_terms(p_version, p_privacy_version)`. No primeiro acesso (ou se a versão mudar), a UI bloqueia até aceitar EULA, licença e política (`/privacidade`); recusar faz logout. Aprovação/emissão no servidor exigem aceite.
+
+### Controlos eletrónicos BPx
+
+Aplicar **`20250915120000_bpx_electronic_controls.sql`** (RLS por papel, lock de certificado, audit trail, lockout de login, retenção de backup 2190 dias). Publicar **`critical-esign`**. Dossiê CSV (rascunho): `docs/csv/README.md`. O produto **não** está validado até RFV com vistos da Qualidade.
 
 ## Supabase (CLI)
 
@@ -65,14 +69,15 @@ Migração **`20250803140000_profiles_legal_acceptance.sql`**: colunas `profiles
 2. Publicar **todas** as Edge Functions usadas pelo frontend (segredos automáticos `SUPABASE_URL`, `SUPABASE_ANON_KEY`; adicionar **`CTLI_SERVICE_ROLE_KEY`** em Dashboard → Edge Functions → Secrets):
 
 ```bash
-supabase functions deploy admin-create-user admin-update-user admin-delete-user tenant-manage-technician tenant-backup
+supabase functions deploy admin-create-user admin-update-user admin-delete-user tenant-manage-technician tenant-manage-user tenant-backup critical-esign
 ```
 
 | Função | Uso |
 |--------|-----|
-| `admin-create-user`, `admin-update-user`, `admin-delete-user` | Utilizadores do ambiente (Admin → Ambientes) |
-| `tenant-manage-technician` | Técnicos de campo (Cadastros → Técnicos de campo) |
+| `admin-create-user`, `admin-update-user`, `admin-delete-user` | Utilizadores do ambiente (Admin → Ambientes). Delete = **desativação lógica**. |
+| `tenant-manage-user`, `tenant-manage-technician` | Utilizadores/técnicos do tenant |
 | `tenant-backup` | Backup/restore ZIP por tenant |
+| `critical-esign` | Reautenticação + aprovação/emissão (`verify_jwt = true`) |
 3. **Primeiro administrador CTLI:** criar o primeiro utilizador em **Authentication** (ou convite). Na tabela `public.profiles`, garantir `role = 'admin'` e `tenant_id IS NULL` (por trigger com metadata, ou `UPDATE` manual no SQL Editor). Sem isto, **não** consegue inserir linhas em `tenants` nem gerir contas (RLS).
 
 4. **Contas de portal:** utilize papel `client` (ou outros papéis com `tenant_id`) ao convidar utilizadores; o separador **Conta cliente (portal)** aparece no ecrã de criação de utilizadores quando o frontend está atualizado.

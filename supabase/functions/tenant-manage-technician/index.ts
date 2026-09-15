@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getServiceRoleKey } from "../_shared/env.ts";
+import { disableAuthUser } from "../_shared/disableUser.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -224,15 +225,16 @@ serve(async (req) => {
         });
       }
 
-      const { error: delErr } = await adminClient.auth.admin.deleteUser(user_id);
-      if (delErr) {
-        return new Response(JSON.stringify({ error: delErr.message }), {
+      try {
+        await disableAuthUser(adminClient, user_id, user.id, "tenant-manage-technician: desativação lógica");
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String(e) }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({ ok: true, disabled: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

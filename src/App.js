@@ -28,6 +28,7 @@ const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const HelpPage = lazy(() => import("@/pages/HelpPage"));
 const EulaPage = lazy(() => import("@/pages/EulaPage"));
 const LicensePage = lazy(() => import("@/pages/LicensePage"));
+const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
 const RequirementView = lazy(() => import("@/pages/RequirementView"));
 const DocumentEditor = lazyWithRetry(() => import("@/pages/DocumentEditor"));
 const AdminClients = lazy(() => import("@/pages/AdminClients"));
@@ -158,6 +159,14 @@ const App = () => (
             element={(
               <Suspense fallback={pageSuspenseFallback}>
                 <LicensePage />
+              </Suspense>
+            )}
+          />
+          <Route
+            path="/privacidade"
+            element={(
+              <Suspense fallback={pageSuspenseFallback}>
+                <PrivacyPage />
               </Suspense>
             )}
           />

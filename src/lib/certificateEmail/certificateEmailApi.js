@@ -120,11 +120,19 @@ export async function emitAndSendCertificate(
     recipientEmail,
     documentMeta,
     fileName,
+    esignPassword,
+    esignMeaning,
   } = {},
 ) {
   let current = cert;
   if (current.status === "aprovado") {
-    current = await emitCertificate(current.id, { userId, documentMeta, fileName });
+    current = await emitCertificate(current.id, {
+      userId,
+      documentMeta,
+      fileName,
+      esignPassword,
+      esignMeaning,
+    });
   } else if (!["emitido", "enviado"].includes(current.status)) {
     throw new Error(`Certificado não pode ser enviado no status: ${current.status}`);
   }
@@ -152,6 +160,8 @@ export async function sendCertificatesByEmailBatch(
     logoDataUrl,
     endCustomers = [],
     onProgress,
+    esignPassword,
+    esignMeaning,
   },
 ) {
   const results = [];
@@ -165,6 +175,8 @@ export async function sendCertificatesByEmailBatch(
         tenantName,
         logoDataUrl,
         endCustomers,
+        esignPassword,
+        esignMeaning,
       });
       results.push({ id, ok: true, cert: updated });
       onProgress?.({ index: i + 1, total: certificateIds.length, certificateId: id, status: "done" });

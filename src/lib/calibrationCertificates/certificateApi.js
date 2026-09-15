@@ -8,6 +8,8 @@ import { canTransitionCertificateStatus, canColetaGenerateOfficial, canMarkCerti
 import { defaultValidityDate } from "./certificateDateUtils";
 import { calculateCertificatePoints, calculateConformityForCertificate } from "@/lib/certificateCalculations";
 import { evaluateCertificateMaxTolerance } from "@/lib/certificateCalculations/pointMaxToleranceVerification";
+import { invokeCriticalEsign } from "@/lib/bpx/criticalEsign";
+import { requireEsignCredentials } from "@/lib/bpx/requireEsign";
 
 export function assertSupabaseCertificates() {
   if (!isSupabaseAuthMode) throw new Error("Certificados requerem ligação Supabase.");
@@ -396,7 +398,7 @@ export async function recalculateCertificate(id, { weightItems, weightCerts } = 
   return getCertificate(id);
 }
 
-export async function transitionCertificateStatus(id, newStatus, { userId, notes, checklist, employeeId } = {}) {
+export async function transitionCertificateStatus(id, newStatus, { userId, notes, checklist, employeeId, esignPassword, esignMeaning } = {}) {
   const full = await getCertificate(id);
   if (!canTransitionCertificateStatus(full.status, newStatus)) {
     throw new Error(`Transição inválida: ${full.status} → ${newStatus}`);
@@ -418,22 +420,12 @@ export async function transitionCertificateStatus(id, newStatus, { userId, notes
   }
 
   if (newStatus === "aprovado") {
-    const signatory = (await loadCadastrosForImport(full.tenant_id)).employees
-      .find((e) => e.id === (employeeId || full.signatory_id));
-    await supabase.from("calibration_certificate_reviews").insert({
-      certificate_id: id,
-      review_type: "aprovacao",
-      notes: notes || "",
-      reviewed_by: userId || null,
-      employee_id: employeeId || full.signatory_id,
+    await bulkApproveCertificates([id], {
+      userId,
+      notes,
+      esignPassword,
+      esignMeaning: esignMeaning || notes || "Aprovo o certificado de calibração.",
     });
-    await updateCertificateHeader(id, {
-      status: newStatus,
-      approval_date: new Date().toISOString().slice(0, 10),
-      approval_notes: notes || "",
-      signatory_id: employeeId || full.signatory_id || null,
-      signatory_name: signatory?.full_name || full.signatory_name || "",
-    }, userId);
     return getCertificate(id);
   }
 
@@ -461,21 +453,25 @@ export async function transitionCertificateStatus(id, newStatus, { userId, notes
   return updated;
 }
 
-export async function bulkApproveCertificates(certificateIds, { userId, notes = "" } = {}) {
+export async function bulkApproveCertificates(certificateIds, { userId, notes = "", esignPassword, esignMeaning } = {}) {
   assertSupabaseCertificates();
   if (!certificateIds?.length) return { approved: 0, ids: [] };
+  const esign = requireEsignCredentials(
+    { esignPassword, esignMeaning: esignMeaning || notes },
+    "Aprovo o(s) certificado(s) de calibração.",
+  );
 
-  const { data, error } = await supabase.rpc("approve_calibration_certificates", {
-    p_certificate_ids: certificateIds,
-    p_user_id: userId || null,
-    p_notes: notes || "",
+  const data = await invokeCriticalEsign({
+    action: "approve_scale",
+    password: esign.password,
+    meaning: esign.meaning,
+    certificate_ids: certificateIds,
   });
-  if (error) throw error;
 
-  return { approved: Number(data) || 0, ids: certificateIds };
+  return { approved: Number(data?.approved) || 0, ids: certificateIds };
 }
 
-export async function emitCertificate(id, { userId, documentMeta, fileName } = {}) {
+export async function emitCertificate(id, { userId, documentMeta, fileName, esignPassword, esignMeaning } = {}) {
   const full = await getCertificate(id);
   if (!canTransitionCertificateStatus(full.status, "emitido")) {
     throw new Error(`Transição inválida: ${full.status} → emitido`);
@@ -522,24 +518,26 @@ export async function emitCertificate(id, { userId, documentMeta, fileName } = {
     generatedBy: userId,
   } : {};
 
-  await updateCertificateHeader(id, {
-    status: "emitido",
-    issue_date: new Date().toISOString().slice(0, 10),
-    validity_date: full.validity_date || defaultValidityDate(full.calibration_date),
-    emitted_by: userId || null,
-    is_preview_only: false,
-    signatory_name: signatory?.full_name || full.signatory_name || "",
-    executor_name: executor?.full_name || full.executor_name || "",
-    technical_snapshot: technicalSnapshot,
-    document_snapshot: documentSnapshot,
-  }, userId);
+  const esign = requireEsignCredentials(
+    { esignPassword, esignMeaning },
+    "Emito o certificado oficial de calibração.",
+  );
 
-  if (full.collection_id) {
-    await supabase.from("scale_calibration_collections").update({
-      workflow_status: "certificado_gerado",
-      certificate_id: id,
-    }).eq("id", full.collection_id);
-  }
+  const issueDate = new Date().toISOString().slice(0, 10);
+  await invokeCriticalEsign({
+    action: "emit_scale",
+    password: esign.password,
+    meaning: esign.meaning,
+    certificate_id: id,
+    fields: {
+      issue_date: issueDate,
+      validity_date: full.validity_date || defaultValidityDate(full.calibration_date),
+      signatory_name: signatory?.full_name || full.signatory_name || "",
+      executor_name: executor?.full_name || full.executor_name || "",
+      technical_snapshot: technicalSnapshot,
+      document_snapshot: documentSnapshot,
+    },
+  });
 
   return getCertificate(id);
 }

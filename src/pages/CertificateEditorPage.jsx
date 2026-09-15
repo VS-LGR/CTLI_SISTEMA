@@ -87,6 +87,7 @@ import {
 } from "@/components/calibrationCertificates/MaxTolerancePointFlag";
 import CertificateEmitSendDialog from "@/components/calibrationCertificates/CertificateEmitSendDialog";
 import { resolveClientEmail, emitAndSendCertificate } from "@/lib/certificateEmail/certificateEmailApi";
+import { useESign } from "@/components/bpx/ESignProvider";
 import { toast } from "sonner";
 
 function certificatePointDisplay(cert, point) {
@@ -123,6 +124,7 @@ export default function CertificateEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { requestEsign } = useESign();
   const { currentTenantId, currentTenant } = useOutletContext();
   const [cert, setCert] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -455,6 +457,13 @@ export default function CertificateEditorPage() {
     if (!targetCert || !canSendEmail) return;
     setEmitSendBusy(true);
     try {
+      let esign = {};
+      if (targetCert.status === "aprovado") {
+        esign = await requestEsign({
+          title: "Emitir e enviar certificado",
+          meaning: "Emito o certificado oficial e autorizo o envio ao cliente.",
+        });
+      }
       const { prepareMasterDocumentExport } = await import("@/lib/masterDocuments/masterDocumentExportHelper");
       const { meta, fileName } = await prepareMasterDocumentExport({
         tenantId: currentTenantId,
@@ -476,6 +485,8 @@ export default function CertificateEditorPage() {
         endCustomers,
         documentMeta: meta,
         fileName,
+        esignPassword: esign.password,
+        esignMeaning: esign.meaning,
       });
       setCert(updated);
       setPendingApprovedCert(null);
@@ -492,10 +503,16 @@ export default function CertificateEditorPage() {
     if (!cert.signatory_id) return toast.error("Defina o signatário");
     if (!canApprove) return toast.error("Sem permissão para aprovar certificados");
     try {
+      const { password, meaning } = await requestEsign({
+        title: "Aprovar certificado",
+        meaning: approvalNotes.trim() || "Aprovo o certificado de calibração.",
+      });
       const updated = await transitionCertificateStatus(cert.id, "aprovado", {
         userId: user.id,
         employeeId: cert.signatory_id,
         notes: approvalNotes,
+        esignPassword: password,
+        esignMeaning: meaning,
       });
       setCert(updated);
       toast.success("Certificado aprovado");
@@ -536,7 +553,17 @@ export default function CertificateEditorPage() {
           numeroSerie: cert.scale_serial,
         },
       });
-      const emitted = await emitCertificate(cert.id, { userId: user.id, documentMeta: meta, fileName });
+      const { password, meaning } = await requestEsign({
+        title: "Emitir certificado",
+        meaning: "Emito o certificado oficial de calibração.",
+      });
+      const emitted = await emitCertificate(cert.id, {
+        userId: user.id,
+        documentMeta: meta,
+        fileName,
+        esignPassword: password,
+        esignMeaning: meaning,
+      });
       await recordMasterDocumentExport({
         tenantId: currentTenantId,
         meta,

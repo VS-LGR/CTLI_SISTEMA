@@ -25,6 +25,12 @@ export default function LegalCopyrightLinks({
         <Link to={LEGAL_ROUTES.license} className={linkClassName}>
           Licença
         </Link>
+        <span className="text-slate-400" aria-hidden>
+          {separator}
+        </span>
+        <Link to={LEGAL_ROUTES.privacy} className={linkClassName}>
+          Privacidade
+        </Link>
       </p>
     </div>
   );

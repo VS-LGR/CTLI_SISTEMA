@@ -194,7 +194,10 @@ export async function exportWeightCertificatePdfOfficial(cert, tenantName, opts 
   const { emitWeightCertificate } = await import("./weightCertificateApi");
   const emitted = opts.alreadyEmitted
     ? cert
-    : await emitWeightCertificate(cert.id, opts.userId);
+    : await emitWeightCertificate(cert.id, opts.userId, {
+      esignPassword: opts.esignPassword,
+      esignMeaning: opts.esignMeaning,
+    });
   return exportWeightCertificatePdfPreview(emitted, tenantName, {
     ...opts,
     cancelled: emitted.status === "cancelado",

@@ -58,6 +58,7 @@ import { loadTenantLogoDataUrl } from "@/lib/tenantBranding";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import RequirementFolderQuickAccess from "@/components/requirements/RequirementFolderQuickAccess";
+import { useESign } from "@/components/bpx/ESignProvider";
 
 function fmtDmy(iso) {
   if (!iso) return "—";
@@ -89,6 +90,7 @@ function isApprovableRow(row) {
 
 export default function CertificateListPage({ embedded = false, approvalMode = false }) {
   const { user } = useAuth();
+  const { requestEsign } = useESign();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentTenantId, currentTenant } = useOutletContext();
@@ -222,6 +224,14 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
     setBatchBusy(true);
     setBatchProgress(`0/${ids.length}`);
     try {
+      const needsEmit = ids.some((id) => rows.find((r) => r.id === id)?.status === "aprovado");
+      let esign = {};
+      if (needsEmit) {
+        esign = await requestEsign({
+          title: "Emitir e enviar",
+          meaning: "Emito oficialmente os certificados selecionados e autorizo o envio.",
+        });
+      }
       const results = await sendCertificatesByEmailBatch(ids, {
         loadCertificate: getCertificate,
         tenant: currentTenant,
@@ -229,6 +239,8 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
         logoDataUrl,
         endCustomers,
         onProgress: ({ index, total }) => setBatchProgress(`${index}/${total}`),
+        esignPassword: esign.password,
+        esignMeaning: esign.meaning,
       });
       const ok = results.filter((r) => r.ok).length;
       const fail = results.length - ok;
@@ -253,7 +265,15 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
     if (!ids.length) return toast.error("Selecione certificados aguardando aprovação");
     setBatchBusy(true);
     try {
-      const { approved } = await bulkApproveCertificates(ids, { userId: user.id });
+      const { password, meaning } = await requestEsign({
+        title: "Aprovar certificados",
+        meaning: "Aprovo os certificados de calibração selecionados.",
+      });
+      const { approved } = await bulkApproveCertificates(ids, {
+        userId: user.id,
+        esignPassword: password,
+        esignMeaning: meaning,
+      });
       toast.success(`${approved} certificado(s) aprovado(s)`);
       await load();
       if (canSend && approved > 0) {
