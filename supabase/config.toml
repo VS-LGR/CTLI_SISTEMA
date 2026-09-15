@@ -1,4 +1,4 @@
-# ProcVault — Supabase local / deploy (CLI: npx supabase …)
+# QUATI — Supabase local / deploy (CLI: npx supabase …)
 # Ligue o projeto: npx supabase link --project-ref SEU_PROJECT_REF
 
 [api]

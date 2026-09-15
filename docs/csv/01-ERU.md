@@ -1,7 +1,7 @@
-# Especificação de Requisitos do Usuário (ERU) — ProcVault QMS
+# Especificação de Requisitos do Usuário (ERU) — QUATI
 
 **Documento:** rascunho DevSistem (15/09/2026). Não é ERU aprovada.  
-**Dono:** CTLI. **Sistema:** QualiProc / ProcVault QMS `0.1.0`.  
+**Dono:** CTLI. **Sistema:** QUATI `0.1.0`.  
 **Impacto BPx:** SIM (rastreabilidade, resultados de calibração, documentação, treino, equipamentos).  
 **Referências:** Guia ANVISA CSV; GAMP 5; ISO/IEC 17025; ALCOA+; REQ-F-ER-001–007.
 

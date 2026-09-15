@@ -1,4 +1,4 @@
-# Reverificação live — ProcVault QMS / QualiProc (passagem 2)
+# Reverificação live — QUATI (passagem 2)
 
 | Campo | Valor |
 |-------|-------|

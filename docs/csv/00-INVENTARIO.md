@@ -1,10 +1,10 @@
-# Inventário do sistema computadorizado — ProcVault QMS
+# Inventário do sistema computadorizado — QUATI
 
 **Documento:** rascunho DevSistem (15/09/2026). Não substitui o inventário controlado da Qualidade.
 
 | Campo | Valor |
 |-------|-------|
-| Nome comercial | QualiProc (ProcVault QMS) |
+| Nome comercial | QUATI |
 | Dono / área | CTLI — laboratório de calibração (balanças e pesos-padrão) |
 | Versão de software | npm `0.1.0` (congelar no RFV na data de go-live) |
 | Tipo | Sistema já desenvolvido; validação **prospectiva do produto** |

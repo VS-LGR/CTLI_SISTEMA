@@ -4,7 +4,7 @@
 
 ## 1. Identificação
 
-QualiProc / ProcVault QMS `0.1.0`. Dono: CTLI.
+QUATI `0.1.0`. Dono: CTLI.
 
 ## 2. Âmbito executado
 

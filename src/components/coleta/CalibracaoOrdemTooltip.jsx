@@ -86,7 +86,7 @@ export default function CalibracaoOrdemTooltip({ tipoPlataforma = "" }) {
         Selecione o tipo de plataforma na secção 2 para destacar o diagrama correspondente.
       </p>
       <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
-        <img src={APP_LOGO} alt="" aria-hidden className="h-5 w-auto object-contain opacity-80" />
+        <img src={APP_LOGO} alt="" aria-hidden className="h-5 w-5 object-contain rounded-sm bg-black" />
         <span className="text-[9px] uppercase tracking-wide text-slate-400">{APP_NAME}</span>
       </div>
     </>

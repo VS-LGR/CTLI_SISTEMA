@@ -4,7 +4,7 @@
 
 ## 1. Resumo
 
-O frontend ProcVault QMS é uma SPA React multi-tenant que gere procedimentos, registros e dados operacionais de um laboratório de calibração. A arquitetura separa **páginas** (rotas), **componentes** (UI) e **lib** (lógica, APIs, exportações).
+O frontend QUATI é uma SPA React multi-tenant que gere procedimentos, registros e dados operacionais de um laboratório de calibração. A arquitetura separa **páginas** (rotas), **componentes** (UI) e **lib** (lógica, APIs, exportações).
 
 ---
 

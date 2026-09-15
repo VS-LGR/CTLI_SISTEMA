@@ -4,7 +4,7 @@ export const RIGHTS_HOLDER = "CTLI";
 /** Ano de referência do aviso de copyright (atualize conforme necessário). */
 export const COPYRIGHT_YEAR = 2026;
 
-export const PRODUCT_NAME = "QualiProc";
+export const PRODUCT_NAME = "QUATI";
 
 export const LEGAL_ROUTES = Object.freeze({
   eula: "/termos",

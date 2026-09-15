@@ -23,7 +23,7 @@ $functions = @(
   "critical-esign"
 )
 
-Write-Host "ProcVault — deploy Edge Functions" -ForegroundColor Cyan
+Write-Host "QUATI — deploy Edge Functions" -ForegroundColor Cyan
 Write-Host ""
 
 if ($ProjectRef) {

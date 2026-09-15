@@ -1,4 +1,4 @@
-# Análise do frontend ProcVault e verificação de ambiente local
+# Análise do frontend QUATI e verificação de ambiente local
 
 **Data da verificação:** 14 de maio de 2026  
 **Escopo:** pasta `frontend` (Create React App + CRACO + Tailwind + Radix/shadcn-style UI).
@@ -7,7 +7,7 @@
 
 ## 1. Resumo executivo
 
-O projeto é uma SPA React 19 para um sistema de gestão de qualidade (QMS) chamado **ProcVault**, com autenticação baseada em API REST, multi-tenant (clientes), dashboard com gráficos, listagem de requisitos, editor de documentos ricos (TipTap) e áreas administrativas.
+O projeto é uma SPA React 19 para um sistema de gestão de qualidade (QMS) chamado **QUATI**, com autenticação baseada em API REST, multi-tenant (clientes), dashboard com gráficos, listagem de requisitos, editor de documentos ricos (TipTap) e áreas administrativas.
 
 A verificação local incluiu instalação de dependências e **build de produção** (`npm run build`), que **concluiu com sucesso** após ajustes de dependência descritos na secção 3. O servidor de desenvolvimento espera-se que funcione da mesma forma (`npm start`), desde que a variável de ambiente do backend esteja definida e o backend esteja acessível.
 

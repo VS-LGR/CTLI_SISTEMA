@@ -1,4 +1,4 @@
-# ProcVault
+# QUATI
 
 Sistema de gestão de procedimentos, cadastros e coleta (ISO 17025). Este repositório contém a aplicação React e o backend Supabase (migrações SQL, Storage, Edge Functions). A pasta chama-se `frontend` por histórico; não é um cliente separado à espera de outra API.
 

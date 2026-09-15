@@ -1,7 +1,7 @@
 # Protocolo QI/QO — Backup & Disaster Recovery (tenant)
 
 **Código sugerido:** QI/QO-BACKUP-DR  
-**Sistema:** ProcVault / Lista Mestra + cadastros (impacto BPx)  
+**Sistema:** QUATI / Lista Mestra + cadastros (impacto BPx)  
 **Classificação:** Software Classe 3 (export/restore customizado)  
 **Camadas:**  
 1. **DR de plataforma** — PITR / backups do projeto Supabase (infra).  

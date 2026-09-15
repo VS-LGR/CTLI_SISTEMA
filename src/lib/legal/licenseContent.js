@@ -5,7 +5,7 @@ export const LICENSE_SHORT_TITLE = "Licença";
 export const LICENSE_EFFECTIVE_DATE = `1 de janeiro de ${COPYRIGHT_YEAR}`;
 
 /**
- * Licença proprietária do QualiProc.
+ * Licença proprietária do QUATI.
  * Alinhar com o ficheiro LICENSE na raiz do repositório.
  */
 export const LICENSE_SECTIONS = [
@@ -38,7 +38,7 @@ export const LICENSE_SECTIONS = [
       "Realizar engenharia reversa, descompilação ou desmontagem, salvo quando a lei imperativa o permitir;",
       "Alugar, vender, ceder, sublicenciar ou disponibilizar o software a terceiros fora do ambiente autorizado;",
       "Remover ou alterar avisos de copyright, marcas ou “todos os direitos reservados” da CTLI;",
-      "Utilizar o nome, marcas ou logótipos QualiProc ou CTLI sem autorização.",
+      "Utilizar o nome, marcas ou logótipos QUATI ou CTLI sem autorização.",
     ],
   },
   {
@@ -85,7 +85,7 @@ export function getLicenseFileText() {
     `property of ${RIGHTS_HOLDER}. All rights reserved.`,
     ``,
     `This software is licensed, not sold. Use is permitted only under the`,
-    `QualiProc Terms of Service (EULA) and any applicable commercial agreement`,
+    `QUATI Terms of Service (EULA) and any applicable commercial agreement`,
     `with ${RIGHTS_HOLDER}.`,
     ``,
     `Unauthorized copying, modification, distribution, reverse engineering,`,

@@ -5,7 +5,7 @@ export const EULA_SHORT_TITLE = "Termos de Adesão";
 export const EULA_EFFECTIVE_DATE = `1 de janeiro de ${COPYRIGHT_YEAR}`;
 
 /**
- * Termos de adesão / EULA do QualiProc.
+ * Termos de adesão / EULA do QUATI.
  * Texto contratual de referência — não constitui parecer jurídico.
  */
 export const EULA_SECTIONS = [
@@ -51,7 +51,7 @@ export const EULA_SECTIONS = [
     bullets: [
       "Copiar, modificar, distribuir, vender, alugar, sublicenciar ou de outra forma explorar comercialmente o software, a interface, a documentação ou partes destes;",
       "Realizar engenharia reversa, descompilação ou tentativa de obter o código-fonte, salvo na medida em que a lei aplicável o permita de forma imperativa;",
-      "Remover, ocultar ou alterar avisos de copyright, marcas ou direitos reservados da CTLI ou do QualiProc;",
+      "Remover, ocultar ou alterar avisos de copyright, marcas ou direitos reservados da CTLI ou do QUATI;",
       "Utilizar o Serviço de forma ilícita, fraudulenta, ou que prejudique a segurança, a disponibilidade ou a integridade do sistema ou de terceiros;",
       "Partilhar credenciais de forma indevida ou conceder acesso a pessoas não autorizadas pelo titular do ambiente.",
     ],

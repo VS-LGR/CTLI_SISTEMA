@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |-------|-------|
-| Sistema / versão atual | QualiProc / ProcVault QMS `0.1.0` |
+| Sistema / versão atual | QUATI `0.1.0` |
 | Solicitante | DevSistem (endurecimento pós-reverificação live CTLI) |
 | Data | 15/09/2026 |
 | Tipo | Planejada |

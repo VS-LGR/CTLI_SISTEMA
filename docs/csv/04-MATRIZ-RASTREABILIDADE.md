@@ -1,4 +1,4 @@
-# Matriz de rastreabilidade — ProcVault QMS
+# Matriz de rastreabilidade — QUATI
 
 **Documento:** rascunho DevSistem (15/09/2026). Execução dos TEST = campos em branco até o protocolo corrido.
 

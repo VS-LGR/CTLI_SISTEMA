@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera SQL de importação de pesos padrão a partir da planilha QualiProc."""
+"""Gera SQL de importação de pesos padrão a partir da planilha QUATI."""
 
 from __future__ import annotations
 
@@ -124,7 +124,7 @@ def sql_escape(s: str) -> str:
 
 def main() -> None:
     lines: list[str] = []
-    lines.append("-- Importação de pesos padrão (planilha QualiProc)")
+    lines.append("-- Importação de pesos padrão (planilha QUATI)")
     lines.append("-- Execute no SQL Editor do Supabase ou via psql.")
     lines.append("--")
     lines.append("-- 1. Ajuste v_tenant_code abaixo (código do ambiente/cliente).")
@@ -134,7 +134,7 @@ def main() -> None:
     lines.append("DO $$")
     lines.append("DECLARE")
     lines.append("  v_tenant_id uuid;")
-    lines.append("  v_tenant_code text := 'SEU_TENANT_CODE';  -- ex.: qualiproc")
+    lines.append("  v_tenant_code text := 'SEU_TENANT_CODE';  -- ex.: laboratorio")
     lines.append("BEGIN")
     lines.append("  SELECT id INTO v_tenant_id FROM public.tenants WHERE code = v_tenant_code LIMIT 1;")
     lines.append("  IF v_tenant_id IS NULL THEN")

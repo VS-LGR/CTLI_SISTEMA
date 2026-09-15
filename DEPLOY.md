@@ -1,6 +1,6 @@
 # Deploy (Vercel + Supabase)
 
-Este repositório é o **sistema ProcVault completo** (interface React em `src/`, base de dados e Edge Functions em `supabase/`). O nome da pasta `frontend` é histórico; não depende de outro backend externo para cadastros, coleta, lembretes ou **documentos** (`tenant_documents` + bucket `tenant-documents`).
+Este repositório é o **sistema QUATI completo** (interface React em `src/`, base de dados e Edge Functions em `supabase/`). O nome da pasta `frontend` é histórico; não depende de outro backend externo para cadastros, coleta, lembretes ou **documentos** (`tenant_documents` + bucket `tenant-documents`).
 
 ## Variáveis de ambiente no Vercel
 

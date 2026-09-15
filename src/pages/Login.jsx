@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Eye, EyeSlash, Spinner } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { isMockApiMode, isSupabaseAuthMode } from "@/lib/api";
 import { restrictedNavHomePath } from "@/lib/roleNav";
-import { APP_NAME, APP_TAGLINE, APP_LOGO_WIDE } from "@/lib/appBranding";
+import { APP_NAME, APP_TAGLINE, APP_LOGO_TAGLINE, APP_LOGO_WIDE, APP_DOCUMENT_TITLE } from "@/lib/appBranding";
 import AppBrand from "@/components/branding/AppBrand";
 import LegalCopyrightLinks from "@/components/legal/LegalCopyrightLinks";
 
@@ -51,6 +51,11 @@ function DevHints() {
 const Login = () => {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = APP_DOCUMENT_TITLE;
+  }, []);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -179,7 +184,7 @@ const Login = () => {
           className="absolute right-[-5%] bottom-[-2%] w-[min(380px,55%)] opacity-[0.06] pointer-events-none select-none object-contain"
         />
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 py-16 text-white max-w-xl">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-blue-400 mb-4">{APP_TAGLINE}</p>
+          <p className="text-[10px] uppercase tracking-[0.28em] text-blue-400 mb-4">{APP_LOGO_TAGLINE}</p>
           <h2 className="font-display text-4xl xl:text-[2.75rem] font-bold leading-tight mb-6">
             Qualidade metrológica centralizada em um só lugar.
           </h2>

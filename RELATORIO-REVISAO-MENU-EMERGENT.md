@@ -13,7 +13,7 @@
 | Estrutural leve | Sim — nova rota `/requirement/:id/:folderKey`, sem mover pastas do projeto |
 | Técnica | Sim — parâmetro opcional `folder_key` em listagem/criação de documentos; mock atualizado; CRACO sem `withVisualEdits` |
 | Performance | Não relevante |
-| SEO | Sim de forma mínima — `title` e `meta description` passam a ProcVault/QMS (antes referiam Emergent) |
+| SEO | Sim de forma mínima — `title` e `meta description` passam a QUATI (antes referiam Emergent) |
 
 ---
 

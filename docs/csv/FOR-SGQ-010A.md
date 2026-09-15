@@ -2,7 +2,7 @@
 
 - **Documento:** rascunho DevSistem (não substitui o registo controlado da Qualidade)
 - **Resultado do impacto BPF:** **IMPACTA**
-- **Sistema:** QualiProc / ProcVault QMS `0.1.0`
+- **Sistema:** QUATI `0.1.0`
 - **Data:** 15/09/2026
 
 Se a Qualidade adotar este formulário no SGQ, **ele prevalece** sobre o ciclo GAMP Classe 3 genérico. Até ser impresso, vistado e arquivado no FOR controlado, permanece rascunho.
@@ -11,7 +11,7 @@ Se a Qualidade adotar este formulário no SGQ, **ele prevalece** sobre o ciclo G
 
 | Campo | Valor |
 | --- | --- |
-| Nome | QualiProc (ProcVault QMS) |
+| Nome | QUATI |
 | Versão | 0.1.0 |
 | Tipo | Legado / já desenvolvido (validação prospectiva de produto) |
 | Tela principal | `/dashboard` + editores de coleta e certificado |

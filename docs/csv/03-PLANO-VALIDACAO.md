@@ -1,11 +1,11 @@
-# Plano de Validação (PV) — ProcVault QMS
+# Plano de Validação (PV) — QUATI
 
 **Documento:** rascunho DevSistem (15/09/2026). Não é PV aprovado.  
 **Não usar** o termo “revalidação”: o estado validado mantém-se por **mudança controlada** + **revisão periódica**.
 
 ## 1. Introdução e escopo
 
-Validação **prospectiva** do produto QualiProc (Classe 3) para uso em laboratório de calibração com impacto BPx. Infra Vercel/Supabase = GAMP 1 (qualificar instalação/configuração, não o código da plataforma).
+Validação **prospectiva** do produto QUATI (Classe 3) para uso em laboratório de calibração com impacto BPx. Infra Vercel/Supabase = GAMP 1 (qualificar instalação/configuração, não o código da plataforma).
 
 ## 2. Visão geral
 

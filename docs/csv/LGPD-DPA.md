@@ -1,4 +1,4 @@
-# LGPD / DPA — QualiProc (rascunho operacional)
+# LGPD / DPA — QUATI (rascunho operacional)
 
 **Documento:** rascunho DevSistem (15/09/2026). **Não substitui** parecer jurídico nem o DPA assinado com o cliente.  
 **Política ao titular:** rota `/privacidade` (`PRIVACY_VERSION` = `2026-09-15`).
@@ -8,7 +8,7 @@
 | Papel | Quem |
 |-------|------|
 | Controlador (dados do laboratório) | Cliente (titular do tenant) |
-| Operador / subprocessador da aplicação | CTLI (QualiProc) |
+| Operador / subprocessador da aplicação | CTLI (QUATI) |
 | Subprocessadores de infra | Hospedagem (Vercel) e base de dados/auth/storage (Supabase), nos termos dos respetivos DPAs |
 
 ## 2. Dados e bases legais
@@ -19,7 +19,7 @@ PII típica: nome, e-mail, papel; eventualmente CPF/RG e imagem de assinatura de
 
 ## 3. Acordo de tratamento (cláusulas mínimas a incluir no contrato)
 
-1. CTLI trata dados só para prestar o QualiProc, backup e suporte.  
+1. CTLI trata dados só para prestar o QUATI, backup e suporte.  
 2. O Cliente define bases legais internamente e é responsável pelos utilizadores do tenant.  
 3. Instruções documentadas; subprocessadores listados; confidencialidade.  
 4. Medidas: contas individuais, lockout, idle, trilha, desativação lógica, aceite no servidor.  

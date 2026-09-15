@@ -1,8 +1,8 @@
-# Dossiê CSV — ProcVault QMS (rascunho DevSistem)
+# Dossiê CSV — QUATI (rascunho DevSistem)
 
 **Estado:** rascunho técnico. **Não** é registo oficial da Qualidade (sem vistos, sem evidências de execução).  
 **Data:** 15/09/2026  
-**Produto:** QualiProc / ProcVault QMS — versão npm `0.1.0`  
+**Produto:** QUATI — versão npm `0.1.0`  
 **Classificação:** software GAMP **Classe 3** (customizado) sobre infra GAMP 1 (Vercel + Supabase).  
 **Afirmação comercial “sistema validado BPx”:** **NO-GO** até execução aprovada dos protocolos e RFV com vistos GQ.
 
@@ -18,6 +18,7 @@ O pack DevSistem **não inclui** o formulário controlado FOR-SGQ-010A no SGQ da
 | FOR-SGQ-010A (rascunho) | [FOR-SGQ-010A.md](./FOR-SGQ-010A.md) |
 | CC-010 controlos eletrónicos | [CC-010-CONTROLOS-ELETRONICOS.md](./CC-010-CONTROLOS-ELETRONICOS.md) |
 | CC-011 endurecimento live CTLI | [CC-011-VALIDACAO-HARDENING.md](./CC-011-VALIDACAO-HARDENING.md) |
+| CC-012 nome e marca QUATI | [CC-012-RENOMEACAO-QUATI.md](./CC-012-RENOMEACAO-QUATI.md) |
 | Relatório final (pré-execução) | [05-RFV.md](./05-RFV.md) |
 | QO fórmulas | [QO-FORMULAS.md](./QO-FORMULAS.md) |
 | QO proposta → coleta → cert | [QO-PROPOSTA-COLETA-CERT.md](./QO-PROPOSTA-COLETA-CERT.md) |

@@ -1,4 +1,4 @@
-# Análise de riscos CSV — ProcVault QMS
+# Análise de riscos CSV — QUATI
 
 **Documento:** rascunho DevSistem (15/09/2026). Não é FMEA aprovada nem FOR controlado.  
 **Método (enquanto FOR-SGQ-010A não for adotado):** FMEA SIPOC, escalas pares 0–10, **NR = S × O × D**, limiar inaceitável **> 256**.  

@@ -1,4 +1,4 @@
--- Importação de pesos padrão (planilha QualiProc)
+-- Importação de pesos padrão (planilha QUATI)
 -- Execute no SQL Editor do Supabase ou via psql.
 --
 -- 1. Ajuste v_tenant_code abaixo (código do ambiente/cliente).
@@ -8,7 +8,7 @@
 DO $$
 DECLARE
   v_tenant_id uuid;
-  v_tenant_code text := 'SEU_TENANT_CODE';  -- ex.: qualiproc
+  v_tenant_code text := 'SEU_TENANT_CODE';  -- ex.: laboratorio
 BEGIN
   SELECT id INTO v_tenant_id FROM public.tenants WHERE code = v_tenant_code LIMIT 1;
   IF v_tenant_id IS NULL THEN

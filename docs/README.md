@@ -1,6 +1,6 @@
-# ProcVault QMS — Documentação do Sistema
+# QUATI — Documentação do Sistema
 
-Documentação modular para **revisão e controle** do frontend ProcVault QMS (gestão de qualidade para laboratório de calibração CTLI, requisitos ISO 17025 — pastas 4 a 8).
+Documentação modular para **revisão e controle** do frontend QUATI (gestão de qualidade para laboratório de calibração CTLI, requisitos ISO 17025 — pastas 4 a 8).
 
 Cada módulo descreve **utilização** (manual operacional) e **referência técnica** (arquivos, fluxos de código, APIs). Atualize sob pedido quando novas funcionalidades forem implementadas.
 

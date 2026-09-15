@@ -1,4 +1,4 @@
--- ProcVault — schema inicial (clientes, perfis, responsáveis)
+-- QUATI — schema inicial (clientes, perfis, responsáveis)
 -- Roles alinhados a src/lib/roles.js + 'client' para acesso por tenant
 
 -- Extensão para gen_random_uuid (geralmente já habilitada no Supabase)
