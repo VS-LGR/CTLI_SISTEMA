@@ -17,6 +17,7 @@ O pack DevSistem **não inclui** o formulário controlado FOR-SGQ-010A no SGQ da
 | Matriz REQ–RISK–DES–TEST | [04-MATRIZ-RASTREABILIDADE.md](./04-MATRIZ-RASTREABILIDADE.md) |
 | FOR-SGQ-010A (rascunho) | [FOR-SGQ-010A.md](./FOR-SGQ-010A.md) |
 | CC-010 controlos eletrónicos | [CC-010-CONTROLOS-ELETRONICOS.md](./CC-010-CONTROLOS-ELETRONICOS.md) |
+| CC-011 endurecimento live CTLI | [CC-011-VALIDACAO-HARDENING.md](./CC-011-VALIDACAO-HARDENING.md) |
 | Relatório final (pré-execução) | [05-RFV.md](./05-RFV.md) |
 | QO fórmulas | [QO-FORMULAS.md](./QO-FORMULAS.md) |
 | QO proposta → coleta → cert | [QO-PROPOSTA-COLETA-CERT.md](./QO-PROPOSTA-COLETA-CERT.md) |

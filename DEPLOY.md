@@ -61,7 +61,7 @@ Migração **`20250803140000_profiles_legal_acceptance.sql`** + **`2025091512000
 
 ### Controlos eletrónicos BPx
 
-Aplicar **`20250915120000_bpx_electronic_controls.sql`** (RLS por papel, lock de certificado, audit trail, lockout de login, retenção de backup 2190 dias). Publicar **`critical-esign`**. Dossiê CSV (rascunho): `docs/csv/README.md`. O produto **não** está validado até RFV com vistos da Qualidade.
+Aplicar **`20250915120000_bpx_electronic_controls.sql`** e **`20250915140000_bpx_validation_hardening.sql`** (RLS por papel, lock, audit trail, lockout, retenção 2190 dias, REVOKE de RPCs críticas). Publicar **`critical-esign`** (`verify_jwt = true`). Dossiê CSV (rascunho): `docs/csv/README.md`. O produto **não** está validado até RFV com vistos da Qualidade.
 
 ## Supabase (CLI)
 
