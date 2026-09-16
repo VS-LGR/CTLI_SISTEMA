@@ -247,17 +247,17 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
   };
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-between gap-2">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Pesos padrão individuais e lotes de carga (aba CAD PESOS-PADRÃO).
           </p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => openNew(true)}>
               <Plus size={16} className="mr-1" /> Novo lote
             </Button>
-            <Button size="sm" className="bg-blue-600 text-white" onClick={() => openNew(false)}>
+            <Button size="sm" className="bg-primary" onClick={() => openNew(false)}>
               <Plus size={16} className="mr-1" /> Novo peso
             </Button>
           </div>
@@ -274,7 +274,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
             testIdPrefix="peso-item"
           />
           <div className="flex flex-wrap items-center gap-2 px-1">
-            <Label className="text-xs text-slate-500 shrink-0">Tipo</Label>
+            <Label className="text-xs text-muted-foreground shrink-0">Tipo</Label>
             <select
               value={kindFilter}
               onChange={(e) => setKindFilter(e.target.value)}
@@ -290,7 +290,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
 
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <thead className="bg-background text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-2">ID</th>
                 <th className="p-2">Tipo</th>
@@ -309,14 +309,14 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={13} className="p-4 text-center text-slate-500">Nenhum registro encontrado.</td></tr>
+                <tr><td colSpan={13} className="p-4 text-center text-muted-foreground">Nenhum registro encontrado.</td></tr>
               )}
               {filtered.map((r) => {
                 const st = weightItemCertStatus(r, weightCerts);
                 const lot = isLoadBatchItem(r);
                 const certNum = weightItemCertNumber(r, weightCerts);
                 return (
-                  <tr key={r.id} className="border-t border-slate-100">
+                  <tr key={r.id} className="border-t border-border">
                     <td className="p-2 font-mono max-w-[6rem]">
                       <EllipsisTooltip label={r.identification || ""} className="block">
                         {r.identification}
@@ -349,7 +349,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                     </td>
                     <td className="p-2">
                       {st.vigente == null ? (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-muted-foreground">—</span>
                       ) : (
                         <Badge
                           className={
@@ -436,7 +436,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                       </select>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Lotes de carga são usados nos pontos P2+ com substituição (PR-7.6).
                     A densidade do material e o empuxo são definidos no ponto, como nos pesos padrão.
                   </p>
@@ -476,7 +476,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   <Label>Deriva do padrão (calculada)</Label>
                   <Input
                     readOnly
-                    className="bg-slate-50"
+                    className="bg-background"
                     value={computedDrift.valid ? String(computedDrift.value).replace(".", ",") : "—"}
                   />
                   {!computedDrift.valid && computedDrift.reason && weightStatus && (
@@ -548,7 +548,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   </select>
                 </div>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Deriva: 1ª calibração = Ue; 2ª+ = V.V.C − V.V.C anterior.
                 Classe e material alimentam a calibração RE-5.4.2 (podem ser ajustados no item).
               </p>
@@ -585,7 +585,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 text-white" onClick={save}>Guardar</Button>
+              <Button className="bg-primary" onClick={save}>Guardar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

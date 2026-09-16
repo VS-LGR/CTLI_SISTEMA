@@ -7,9 +7,9 @@ import { APP_COPYRIGHT, LEGAL_ROUTES } from "@/lib/appBranding";
  */
 export default function LegalCopyrightLinks({
   className = "",
-  noticeClassName = "text-xs text-slate-500",
-  linksClassName = "text-xs text-slate-500",
-  linkClassName = "text-blue-600 hover:underline",
+  noticeClassName = "text-xs text-muted-foreground",
+  linksClassName = "text-xs text-muted-foreground",
+  linkClassName = "text-primary hover:underline",
   separator = " | ",
 }) {
   return (
@@ -19,13 +19,13 @@ export default function LegalCopyrightLinks({
         <Link to={LEGAL_ROUTES.eula} className={linkClassName}>
           Termos de Adesão
         </Link>
-        <span className="text-slate-400" aria-hidden>
+        <span className="text-muted-foreground" aria-hidden>
           {separator}
         </span>
         <Link to={LEGAL_ROUTES.license} className={linkClassName}>
           Licença
         </Link>
-        <span className="text-slate-400" aria-hidden>
+        <span className="text-muted-foreground" aria-hidden>
           {separator}
         </span>
         <Link to={LEGAL_ROUTES.privacy} className={linkClassName}>

@@ -296,30 +296,30 @@ export default function PedidoCompraEditorPage() {
   const employees = cadastro.employees || [];
 
   if (!canAccessPurchaseOrders(user?.role, user)) {
-    return <div className="text-slate-600">Sem permissão.</div>;
+    return <div className="text-muted-foreground">Sem permissão.</div>;
   }
   if (!isSupabaseAuthMode || !currentTenantId) {
-    return <div className="text-slate-600">Selecione ambiente Supabase.</div>;
+    return <div className="text-muted-foreground">Selecione ambiente Supabase.</div>;
   }
   if (loading || !form) {
-    return <div className="text-slate-600">Carregando…</div>;
+    return <div className="text-muted-foreground">Carregando…</div>;
   }
 
   return (
     <div className="space-y-6 min-w-0" data-testid="pedido-compra-editor">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to={PR_66_PEDIDOS_PATH} className="text-xs text-slate-500 hover:text-blue-600 inline-flex items-center gap-1">
+          <Link to={PR_66_PEDIDOS_PATH} className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
             <ArrowLeft size={12} /> Voltar ao PR-6.6
           </Link>
-          <h1 className="font-display text-2xl font-bold text-slate-900 mt-1">
+          <h1 className="font-display text-2xl font-bold text-foreground mt-1">
             {isNew ? "Novo pedido" : formatOrderNumber(form.order_number, form.order_year)}
           </h1>
-          <p className="text-sm text-slate-600">{statusLabel(form.status)}</p>
+          <p className="text-sm text-muted-foreground">{statusLabel(form.status)}</p>
           {form.quotation_request_id && (
             <Link
               to={quotationEditorPath(form.quotation_request_id)}
-              className="inline-flex items-center gap-1.5 text-sm text-blue-700 hover:underline mt-1"
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-1"
             >
               Origem: Solicitação {form.quotation_number || "—"}
               <ArrowSquareOut size={14} />
@@ -328,7 +328,7 @@ export default function PedidoCompraEditorPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           {!readOnly && (
-            <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={save} disabled={saving} className="bg-primary">
               <FloppyDisk size={16} className="mr-1" /> {saving ? "Salvando…" : "Salvar"}
             </Button>
           )}
@@ -354,7 +354,7 @@ export default function PedidoCompraEditorPage() {
       )}
 
       {isNew && !form.type && (
-        <Card className="border-slate-200">
+        <Card className="border-border">
           <CardHeader><CardTitle>Tipo de pedido</CardTitle></CardHeader>
           <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {PURCHASE_ORDER_TYPES.map((t) => (
@@ -373,7 +373,7 @@ export default function PedidoCompraEditorPage() {
 
       {form.type && (
         <Tabs defaultValue="dados" className="min-w-0">
-          <TabsList className="flex flex-wrap h-auto gap-1 bg-white border">
+          <TabsList className="flex flex-wrap h-auto gap-1 bg-card border">
             <TabsTrigger value="dados">Dados</TabsTrigger>
             <TabsTrigger value="servicos">Serviços</TabsTrigger>
             <TabsTrigger value="inspecao">Inspeção</TabsTrigger>
@@ -381,7 +381,7 @@ export default function PedidoCompraEditorPage() {
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 mt-4">
-            <Card className="border-slate-200">
+            <Card className="border-border">
               <CardHeader className="pb-2"><CardTitle className="text-base">Cabeçalho do documento</CardTitle></CardHeader>
               <CardContent className="p-5 pt-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div><Label>Código (RE)</Label><Input className="mt-1" value={form.document_code || ""} disabled={readOnly} onChange={(e) => patchForm({ document_code: e.target.value })} /></div>
@@ -390,7 +390,7 @@ export default function PedidoCompraEditorPage() {
                 <div>
                   <Label>Emissão (versão do formulário)</Label>
                   <Input
-                    className="mt-1 bg-slate-50"
+                    className="mt-1 bg-background"
                     readOnly
                     value={`${form.document_code || "RE-6.6D"} Rev. ${form.document_revision ?? "00"}`}
                   />
@@ -398,7 +398,7 @@ export default function PedidoCompraEditorPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200">
+            <Card className="border-border">
               <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label>Nº pedido</Label>
@@ -410,7 +410,7 @@ export default function PedidoCompraEditorPage() {
                       disabled={readOnly}
                       onChange={(e) => patchForm({ order_number: Number(e.target.value) })}
                     />
-                    <span className="self-center text-slate-500">/</span>
+                    <span className="self-center text-muted-foreground">/</span>
                     <Input
                       type="number"
                       value={form.order_year}
@@ -426,7 +426,7 @@ export default function PedidoCompraEditorPage() {
             </Card>
 
             <div className="grid lg:grid-cols-2 gap-4">
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardHeader><CardTitle className="text-base">Provedor</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <select
@@ -440,7 +440,7 @@ export default function PedidoCompraEditorPage() {
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
-                  <div className="text-sm space-y-1 text-slate-700">
+                  <div className="text-sm space-y-1 text-foreground/90">
                     <p><strong>Empresa:</strong> {formatDisplayValue(supplier.company)}</p>
                     <p><strong>At.:</strong> {formatDisplayValue(supplier.contact)}</p>
                     <p><strong>Endereço:</strong> {formatDisplayValue(supplier.address)}</p>
@@ -449,9 +449,9 @@ export default function PedidoCompraEditorPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardHeader><CardTitle className="text-base">Dados para faturamento</CardTitle></CardHeader>
-                <CardContent className="text-sm space-y-1 text-slate-700">
+                <CardContent className="text-sm space-y-1 text-foreground/90">
                   <p><strong>Razão Social:</strong> {formatDisplayValue(billing.legal_name || billing.trade_name)}</p>
                   <p><strong>Endereço:</strong> {formatDisplayValue(billing.address)}</p>
                   <p><strong>CEP:</strong> {formatDisplayValue(billing.cep)}</p>
@@ -461,7 +461,7 @@ export default function PedidoCompraEditorPage() {
               </Card>
             </div>
 
-            <Card className="border-slate-200">
+            <Card className="border-border">
               <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div><Label>Condições de pagamento *</Label><Input className="mt-1" value={form.payment_terms} disabled={readOnly} onChange={(e) => patchForm({ payment_terms: e.target.value })} /></div>
                 <div><Label>Frete por conta</Label><Input className="mt-1" value={form.freight_responsibility} disabled={readOnly} onChange={(e) => patchForm({ freight_responsibility: e.target.value })} /></div>
@@ -474,7 +474,7 @@ export default function PedidoCompraEditorPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200">
+            <Card className="border-border">
               <CardHeader><CardTitle className="text-base">Responsáveis</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {employees.length === 0 && (

@@ -27,7 +27,7 @@ export default function MultiSelectStandardOptions({
 
   return (
     <div className="space-y-1 min-w-0">
-      {label && <label className="text-sm font-medium text-slate-700">{label}</label>}
+      {label && <label className="text-sm font-medium text-foreground/90">{label}</label>}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -44,14 +44,14 @@ export default function MultiSelectStandardOptions({
         </PopoverTrigger>
         <PopoverContent className="w-[min(100vw-2rem,28rem)] p-2 max-h-64 overflow-y-auto" align="start">
           {options.length === 0 && (
-            <p className="text-xs text-slate-500 p-2">Nenhuma opção cadastrada.</p>
+            <p className="text-xs text-muted-foreground p-2">Nenhuma opção cadastrada.</p>
           )}
           {options.map((opt) => {
             const checked = value.some((v) => (v.id && v.id === opt.id) || v.label === opt.label);
             return (
               <label
                 key={opt.id || opt.label}
-                className="flex items-start gap-2 p-2 rounded hover:bg-slate-50 cursor-pointer text-sm"
+                className="flex items-start gap-2 p-2 rounded hover:bg-accent cursor-pointer text-sm"
               >
                 <Checkbox checked={checked} onCheckedChange={() => toggle(opt)} />
                 <span className="break-words">{opt.label}</span>

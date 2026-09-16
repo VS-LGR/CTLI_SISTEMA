@@ -79,7 +79,7 @@ export default function DashboardReminders({
         />
         <Button
           size="sm"
-          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+          className="w-full sm:w-auto bg-primary"
           onClick={add}
           disabled={busy}
           data-testid="dashboard-reminder-add"
@@ -89,14 +89,14 @@ export default function DashboardReminders({
         </Button>
       </div>
       {reminders.length === 0 ? (
-        <p className="text-sm text-slate-500">Nenhum lembrete ainda.</p>
+        <p className="text-sm text-muted-foreground">Nenhum lembrete ainda.</p>
       ) : (
-        <ul className="divide-y divide-slate-100 max-h-[280px] overflow-y-auto">
+        <ul className="divide-y divide-border max-h-[280px] overflow-y-auto">
           {reminders.map((r) => (
             <li key={r.id} className="py-3 flex gap-2 min-w-0">
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-slate-800 whitespace-pre-wrap break-words">{r.text}</p>
-                <p className="text-[10px] text-slate-500 mt-1">
+                <p className="text-sm text-foreground whitespace-pre-wrap break-words">{r.text}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
                   {r.created_by_name} • {formatWhen(r.created_at)}
                 </p>
               </div>

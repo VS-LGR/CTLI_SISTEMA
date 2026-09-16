@@ -52,7 +52,7 @@ function PointsTable({ points, onChange }) {
       </div>
       <div className="overflow-x-auto border rounded-md">
         <table className="w-full text-xs">
-          <thead className="bg-amber-50 text-slate-600">
+          <thead className="bg-amber-50 text-muted-foreground">
             <tr>
               <th className="p-2 text-left">Indicado pelo equipamento</th>
               <th className="p-2 text-left">Indicado pelo provedor</th>
@@ -61,7 +61,7 @@ function PointsTable({ points, onChange }) {
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={i} className="border-t border-slate-100">
+              <tr key={i} className="border-t border-border">
                 <td className="p-1">
                   <Input
                     value={row.device ?? ""}
@@ -107,10 +107,10 @@ function RangeBlock({ range, rangeIndex, unit, onChange, onRemove, canRemove }) 
   };
 
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50/50 p-3 space-y-2">
+    <div className="rounded-md border border-border bg-background/50 p-3 space-y-2">
       <div className="flex flex-wrap items-end gap-2">
         <div className="flex-1 min-w-[8rem]">
-          <Label className="text-xs text-slate-500">Faixa</Label>
+          <Label className="text-xs text-muted-foreground">Faixa</Label>
           <Input
             value={range.label ?? ""}
             onChange={(e) => setField("label", e.target.value)}
@@ -119,7 +119,7 @@ function RangeBlock({ range, rangeIndex, unit, onChange, onRemove, canRemove }) 
           />
         </div>
         <div className="w-24">
-          <Label className="text-xs text-slate-500">Mín. ({unit})</Label>
+          <Label className="text-xs text-muted-foreground">Mín. ({unit})</Label>
           <Input
             value={range.min ?? ""}
             onChange={(e) => setField("min", e.target.value)}
@@ -128,7 +128,7 @@ function RangeBlock({ range, rangeIndex, unit, onChange, onRemove, canRemove }) 
           />
         </div>
         <div className="w-24">
-          <Label className="text-xs text-slate-500">Máx. ({unit})</Label>
+          <Label className="text-xs text-muted-foreground">Máx. ({unit})</Label>
           <Input
             value={range.max ?? ""}
             onChange={(e) => setField("max", e.target.value)}
@@ -147,11 +147,11 @@ function RangeBlock({ range, rangeIndex, unit, onChange, onRemove, canRemove }) 
         onChange={(pts) => setField("points", pts)}
       />
       {preview ? (
-        <p className="text-xs text-slate-600 font-mono">
+        <p className="text-xs text-muted-foreground font-mono">
           y = m·x + b → m = {preview.slope.toFixed(8).replace(".", ",")} ; b = {preview.intercept.toFixed(8).replace(".", ",")} ({preview.pointCount} pts)
         </p>
       ) : (
-        <p className="text-xs text-slate-500">Informe ao menos 2 pares válidos para calcular inclinação e intercepção.</p>
+        <p className="text-xs text-muted-foreground">Informe ao menos 2 pares válidos para calcular inclinação e intercepção.</p>
       )}
     </div>
   );
@@ -206,10 +206,10 @@ export default function TbhCalibrationPointsEditor({ value, onChange, equipmentT
   };
 
   return (
-    <div className="space-y-4 pt-2 border-t border-slate-200">
+    <div className="space-y-4 pt-2 border-t border-border">
       <div>
-        <h4 className="text-sm font-semibold text-slate-800">Tabela de correção (RE-6.4E)</h4>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <h4 className="text-sm font-semibold text-foreground">Tabela de correção (RE-6.4E)</h4>
+        <p className="text-xs text-muted-foreground mt-0.5">
           Pontos de calibração por faixa para regressão linear: leitura corrigida = (leitura do aparelho × inclinação) + intercepção.
         </p>
       </div>

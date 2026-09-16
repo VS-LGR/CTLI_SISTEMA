@@ -219,9 +219,9 @@ export default function ExperienceEvaluationEditorPage() {
         )}
       </div>
       {returnTo && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
-          <span className="text-slate-700">A registar avaliação no fluxo de integração de pessoal.</span>
-          <Button variant="link" size="sm" className="h-auto p-0 text-blue-700" asChild>
+        <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+          <span className="text-foreground/90">A registar avaliação no fluxo de integração de pessoal.</span>
+          <Button variant="link" size="sm" className="h-auto p-0 text-primary" asChild>
             <Link to={returnTo}>Voltar ao fluxo</Link>
           </Button>
         </div>
@@ -264,8 +264,8 @@ export default function ExperienceEvaluationEditorPage() {
           </div>
           <div>
             <Label>Data final do período de experiência</Label>
-            <Input type="date" value={form.period_end_date} readOnly className="h-10 bg-slate-50 text-slate-700" />
-            <p className="text-xs text-slate-500 mt-1">
+            <Input type="date" value={form.period_end_date} readOnly className="h-10 bg-background text-foreground/90" />
+            <p className="text-xs text-muted-foreground mt-1">
               Parecer conclusivo emitido ao final deste período (NBR 17025 — 6.2 b).
             </p>
           </div>
@@ -282,10 +282,10 @@ export default function ExperienceEvaluationEditorPage() {
         </div>
 
         {sourceSelection && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-            <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">Seleção de origem (PR-6.2F)</div>
-            <div className="font-medium text-slate-900">{sourceSelection.candidate_name}</div>
-            <div className="text-xs text-slate-600 mt-0.5">
+          <div className="rounded-lg border border-border bg-background px-4 py-3 text-sm">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Seleção de origem (PR-6.2F)</div>
+            <div className="font-medium text-foreground">{sourceSelection.candidate_name}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">
               {[sourceSelection.vacancy || sourceSelection.position_title, sourceSelection.selection_date?.slice?.(0, 10)]
                 .filter(Boolean)
                 .join(" · ")}
@@ -294,14 +294,14 @@ export default function ExperienceEvaluationEditorPage() {
         )}
 
         {form.admission_date && (
-          <div className="rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm text-slate-700">
+          <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground/90">
             <strong>Período de experiência:</strong> {formatExperiencePeriodLabel(form.admission_date)}
           </div>
         )}
 
         <div className="border rounded-lg overflow-x-auto">
           <table className="w-full text-xs min-w-[640px]">
-            <thead className="bg-slate-50">
+            <thead className="bg-background">
               <tr>
                 <th className="p-2 text-left">Item</th>
                 {EXPERIENCE_EVALUATION_SCORES.map((s) => (
@@ -338,13 +338,13 @@ export default function ExperienceEvaluationEditorPage() {
             ? "border-green-300 bg-green-50"
             : form.conclusive_opinion === EXPERIENCE_OPINION_REJECTED
               ? "border-red-300 bg-red-50"
-              : "border-slate-200 bg-slate-50"
+              : "border-border bg-background"
         }`}>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-slate-600">
+            <span className="text-sm text-muted-foreground">
               Média: <strong className="text-base">{form.average_score ?? "—"}</strong>
             </span>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-muted-foreground">
               (mínimo {EXPERIENCE_APPROVAL_MIN_AVERAGE},0 para aprovação)
             </span>
             {form.conclusive_opinion && (
@@ -373,7 +373,7 @@ export default function ExperienceEvaluationEditorPage() {
 
         <div className="flex gap-2 mt-6">
           <Button variant="outline" onClick={() => navigate(registrosBack)}>Cancelar</Button>
-          <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
+          <Button className="bg-primary" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>
     </div>

@@ -78,13 +78,13 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
   }, [load]);
 
   if (!canAccessPurchaseOrders(user?.role, user)) {
-    return <div className="text-slate-600 text-sm">Sem permissão para pedidos de compra.</div>;
+    return <div className="text-muted-foreground text-sm">Sem permissão para pedidos de compra.</div>;
   }
   if (!isSupabaseAuthMode) {
-    return <div className="text-slate-600 text-sm">Pedidos de compra requerem modo Supabase.</div>;
+    return <div className="text-muted-foreground text-sm">Pedidos de compra requerem modo Supabase.</div>;
   }
   if (!tenantId) {
-    return <div className="text-slate-600 text-sm">Selecione um ambiente no topo.</div>;
+    return <div className="text-muted-foreground text-sm">Selecione um ambiente no topo.</div>;
   }
 
   const exportPdf = async (row) => {
@@ -153,13 +153,13 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
   return (
     <div className="space-y-4 min-w-0" data-testid="pedidos-compra-panel">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">Formulários do PR-6.6 — produtos e serviços providos externamente.</p>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700 shrink-0">
+        <p className="text-sm text-muted-foreground">Formulários do PR-6.6 — produtos e serviços providos externamente.</p>
+        <Button asChild className="bg-primary hover:bg-primary/90 shrink-0">
           <Link to={PEDIDOS_NEW_PATH} data-tour="tour-pedidos-novo"><Plus size={18} className="mr-1" /> Novo pedido</Link>
         </Button>
       </div>
 
-      <Card className="border-slate-200" data-tour="tour-pedidos-lista">
+      <Card className="border-border" data-tour="tour-pedidos-lista">
         <CardContent className="p-4 flex flex-wrap gap-3">
           <select
             className="border rounded-md h-10 px-3 text-sm"
@@ -192,11 +192,11 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
       </Card>
 
       {loading ? (
-        <p className="text-slate-600">Carregando…</p>
+        <p className="text-muted-foreground">Carregando…</p>
       ) : (
-        <div className="border border-slate-200 rounded-lg overflow-x-auto">
+        <div className="border border-border rounded-lg overflow-x-auto">
           <table className="w-full text-sm min-w-[800px]">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+            <thead className="bg-background text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="p-3">Nº</th>
                 <th className="p-3">Tipo</th>
@@ -209,10 +209,10 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={7} className="p-8 text-center text-slate-500">Nenhum pedido encontrado.</td></tr>
+                <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
               )}
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50/50">
+                <tr key={r.id} className="border-t border-border hover:bg-accent/50">
                   <td className="p-3 font-mono">{formatOrderNumber(r.order_number, r.order_year)}</td>
                   <td className="p-3">{typeLabel(r.type)}</td>
                   <td className="p-3 max-w-[160px] truncate" title={r.supplier_data_snapshot?.company}>
@@ -227,7 +227,7 @@ export default function PurchaseOrdersListPanel({ tenantId, tenant }) {
                       onClick={() => setStatusDialogRow(r)}
                       title="Alterar status"
                     >
-                      <Badge variant="outline" className="cursor-pointer hover:bg-slate-100">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-accent">
                         {statusLabel(r.status)}
                       </Badge>
                     </button>

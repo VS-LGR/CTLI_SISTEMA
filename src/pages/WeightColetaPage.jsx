@@ -36,7 +36,7 @@ function fmtDmy(iso) {
 }
 
 const filterFieldClass =
-  "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
+  "h-10 rounded-lg border-border bg-card text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring";
 
 export default function WeightColetaPage({ embedded = false }) {
   const { user } = useAuth();
@@ -74,15 +74,15 @@ export default function WeightColetaPage({ embedded = false }) {
 
   if (!isSupabaseAuthMode) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16 text-slate-600">
-        <p className="font-medium text-slate-900 mb-2">Coleta de pesos requer Supabase</p>
+      <div className="max-w-lg mx-auto text-center py-16 text-muted-foreground">
+        <p className="font-medium text-foreground mb-2">Coleta de pesos requer Supabase</p>
       </div>
     );
   }
 
   if (!currentTenantId) {
     return (
-      <div className="text-center py-16 text-slate-500">
+      <div className="text-center py-16 text-muted-foreground">
         Selecione um ambiente (cliente) no topo para aceder às coletas de pesos.
       </div>
     );
@@ -140,13 +140,13 @@ export default function WeightColetaPage({ embedded = false }) {
                   <ArrowLeft size={16} className="mr-1" /> Coleta de dados
                 </Link>
               </Button>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-5.4.2A · PR-7.2</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">RE-5.4.2A · PR-7.2</p>
             </>
           )}
-          <h1 className={`${embedded ? "text-xl" : "font-display text-2xl sm:text-3xl"} font-bold tracking-tight text-slate-900 ${embedded ? "" : "mt-1"}`}>
+          <h1 className={`${embedded ? "text-xl" : "font-display text-2xl sm:text-3xl"} font-bold tracking-tight text-foreground ${embedded ? "" : "mt-1"}`}>
             Coleta de pesos-padrão
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Registros de calibração de pesos (método ABA). A entrada por voz fica no editor da coleta.
           </p>
         </div>
@@ -158,7 +158,7 @@ export default function WeightColetaPage({ embedded = false }) {
               </Link>
             </Button>
           )}
-          <Button asChild className="bg-blue-600 hover:bg-blue-700">
+          <Button asChild className="bg-primary hover:bg-primary/90">
             <Link to={WEIGHT_COLETA_NEW_PATH}>
               <Plus size={18} className="mr-1" /> Nova coleta
             </Link>
@@ -166,7 +166,7 @@ export default function WeightColetaPage({ embedded = false }) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm text-blue-950 flex gap-2 items-start">
+      <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-sm text-foreground flex gap-2 items-start">
         <Microphone size={18} className="shrink-0 mt-0.5" />
         <p>
           <span className="font-medium">Preenchimento por voz:</span>{" "}
@@ -181,11 +181,11 @@ export default function WeightColetaPage({ embedded = false }) {
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-3 sm:p-4 shadow-sm">
         <div className="relative min-w-0 max-w-xl">
           <MagnifyingGlass
             size={18}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <Input
@@ -198,16 +198,16 @@ export default function WeightColetaPage({ embedded = false }) {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500 py-8 text-center">A carregar…</p>
+        <p className="text-sm text-muted-foreground py-8 text-center">A carregar…</p>
       ) : rows.length === 0 ? (
-        <div className="text-center py-12 border rounded-lg bg-slate-50">
-          <p className="text-slate-600">
+        <div className="text-center py-12 border rounded-lg bg-background">
+          <p className="text-muted-foreground">
             {query.trim()
               ? "Nenhuma coleta corresponde à busca."
               : "Nenhuma coleta de pesos registada neste ambiente."}
           </p>
           {!query.trim() && (
-            <Button asChild className="mt-4 bg-blue-600 hover:bg-blue-700">
+            <Button asChild className="mt-4 bg-primary hover:bg-primary/90">
               <Link to={WEIGHT_COLETA_NEW_PATH}>Criar primeira coleta</Link>
             </Button>
           )}
@@ -215,7 +215,7 @@ export default function WeightColetaPage({ embedded = false }) {
       ) : (
         <div className="border rounded-lg overflow-x-auto">
           <table className="w-full text-sm min-w-[640px]">
-            <thead className="bg-slate-50 border-b">
+            <thead className="bg-background border-b">
               <tr>
                 <th className="text-left p-3 font-medium">Cliente</th>
                 <th className="text-left p-3 font-medium">Identificação</th>
@@ -228,7 +228,7 @@ export default function WeightColetaPage({ embedded = false }) {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50/50">
+                <tr key={row.id} className="border-b last:border-0 hover:bg-accent/50">
                   <td className="p-3 max-w-[160px]">
                     <EllipsisTooltip label={row.client_name || ""} className="block">
                       {row.client_name || "—"}
@@ -247,13 +247,13 @@ export default function WeightColetaPage({ embedded = false }) {
                         {coletaWorkflowLabel(row.workflow_status || "rascunho")}
                       </Badge>
                       {row.commercial_proposal_id && (row.workflow_status === "rascunho" || !row.workflow_status) && (
-                        <Badge className="text-[10px] font-normal bg-blue-50 text-blue-800 border-blue-200" variant="outline">
+                        <Badge className="text-[10px] font-normal bg-primary/10 text-primary border-primary/30" variant="outline">
                           Da proposta · leituras
                         </Badge>
                       )}
                     </div>
                   </td>
-                  <td className="p-3 text-slate-500 text-xs">
+                  <td className="p-3 text-muted-foreground text-xs">
                     {row.updated_at ? new Date(row.updated_at).toLocaleString("pt-BR") : "—"}
                   </td>
                   <td className="p-3 text-right">

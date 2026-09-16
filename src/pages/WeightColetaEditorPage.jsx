@@ -126,11 +126,11 @@ function TraceRows({ title, rows, onChange, voiceEnabled = false }) {
         </Button>
       </div>
       {(rows || []).length === 0 ? (
-        <p className="text-xs text-slate-500">Nenhum registo.</p>
+        <p className="text-xs text-muted-foreground">Nenhum registo.</p>
       ) : (
         <div className="space-y-2">
           {(rows || []).map((row, idx) => (
-            <div key={idx} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end border rounded-lg p-2 bg-slate-50/50">
+            <div key={idx} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end border rounded-lg p-2 bg-background/50">
               <div>
                 <Label className="text-[11px]">Identificação</Label>
                 <VoiceFieldControl
@@ -234,7 +234,7 @@ function WeightItemCard({
   };
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-3 sm:p-4 space-y-3">
         <button
           type="button"
@@ -242,12 +242,12 @@ function WeightItemCard({
           onClick={onToggle}
         >
           <div className="min-w-0">
-            <span className="text-xs text-slate-500 mr-2">Item {index + 1}</span>
-            <span className="font-medium text-sm text-slate-900">
+            <span className="text-xs text-muted-foreground mr-2">Item {index + 1}</span>
+            <span className="font-medium text-sm text-foreground">
               {item.identification || "Sem identificação"}
             </span>
             {item.nominal_value && (
-              <span className="text-xs text-slate-500 ml-2">
+              <span className="text-xs text-muted-foreground ml-2">
                 {item.nominal_value} {item.nominal_unit || "g"}
               </span>
             )}
@@ -370,7 +370,7 @@ function WeightItemCard({
                     </Select>
                   </div>
                 </VoiceFieldControl>
-                <p className="text-[10px] text-slate-500 mt-0.5">Peso sob calibração — densidade no empuxo</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Peso sob calibração — densidade no empuxo</p>
               </div>
               <div>
                 <Label className="text-[11px]">Material do padrão</Label>
@@ -395,7 +395,7 @@ function WeightItemCard({
                     </Select>
                   </div>
                 </VoiceFieldControl>
-                <p className="text-[10px] text-slate-500 mt-0.5">Preenchido pelo cadastro; editável se necessário</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Preenchido pelo cadastro; editável se necessário</p>
               </div>
             </div>
 
@@ -542,7 +542,7 @@ function WeightItemCard({
               <div className="space-y-1">
                 {(item.cycles || []).map((c, ci) => (
                   <div key={ci} className="grid grid-cols-[2rem_1fr_1fr] gap-2 items-center">
-                    <span className="text-xs text-slate-500">{ci + 1}</span>
+                    <span className="text-xs text-muted-foreground">{ci + 1}</span>
                     <VoiceFieldControl
                       voiceEnabled={voiceEnabled}
                       kind="number"
@@ -1032,7 +1032,7 @@ export default function WeightColetaEditorPage() {
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500 py-12 text-center">A carregar formulário…</p>;
+    return <p className="text-sm text-muted-foreground py-12 text-center">A carregar formulário…</p>;
   }
 
   const showGenerate = !isNew
@@ -1046,7 +1046,7 @@ export default function WeightColetaEditorPage() {
           <Button asChild variant="ghost" size="sm">
             <Link to={WEIGHT_COLETA_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
           </Button>
-          <h1 className="font-display text-xl font-semibold text-slate-900">
+          <h1 className="font-display text-xl font-semibold text-foreground">
             {isNew ? "Nova coleta de pesos" : "Editar coleta de pesos"}
           </h1>
         </div>
@@ -1064,14 +1064,14 @@ export default function WeightColetaEditorPage() {
               {generating ? "A gerar…" : "Gerar certificado"}
             </Button>
           )}
-          <Button onClick={() => save()} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => save()} disabled={saving} className="bg-primary hover:bg-primary/90">
             <FloppyDisk size={18} className="mr-1" />
             {saving ? "A guardar…" : "Salvar"}
           </Button>
         </div>
       </div>
 
-      <Card className="border-blue-200 bg-blue-50/60">
+      <Card className="border-primary/30 bg-primary/10">
         <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-end gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Checkbox
@@ -1079,7 +1079,7 @@ export default function WeightColetaEditorPage() {
               checked={voiceEnabled}
               onCheckedChange={(v) => toggleVoice(Boolean(v))}
             />
-            <Label htmlFor="voice-enabled" className="text-sm cursor-pointer flex items-center gap-1.5 font-medium text-slate-900">
+            <Label htmlFor="voice-enabled" className="text-sm cursor-pointer flex items-center gap-1.5 font-medium text-foreground">
               <Microphone size={16} />
               Entrada por voz (PR-7.2 — luvas/pinças)
             </Label>
@@ -1115,7 +1115,7 @@ export default function WeightColetaEditorPage() {
             </p>
           )}
           {voiceEnabled && speechSupported && (
-            <p className="text-xs text-slate-600 max-w-xl">
+            <p className="text-xs text-muted-foreground max-w-xl">
               Cada valor ditado exige Confirmar ou Refazer antes de gravar. Método ABA (P→M) conforme PR-7.2 Rev.06.
             </p>
           )}
@@ -1164,16 +1164,16 @@ export default function WeightColetaEditorPage() {
 
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
-          <h2 className="font-medium text-slate-900">Cliente</h2>
+          <h2 className="font-medium text-foreground">Cliente</h2>
           {headerLocked && (
-            <p className="text-xs text-blue-700 rounded-md border border-blue-200 bg-blue-50 px-2 py-1.5">
+            <p className="text-xs text-primary rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5">
               Dados da proposta em somente leitura. Confirme o cabeçalho e preencha TBH/ambiente e leituras ABA.
             </p>
           )}
           {customerOptions.length === 0 ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               Nenhum cliente cadastrado.{" "}
-              <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+              <Link to={cadastroSectionPath("clientes")} className="text-primary hover:underline">
                 PR-7.1 → Clientes
               </Link>
             </p>
@@ -1203,7 +1203,7 @@ export default function WeightColetaEditorPage() {
                   value={selectedEndCustomerId}
                   onChange={(e) => applyCustomer(e.target.value)}
                   disabled={headerLocked}
-                  className="w-full border rounded-md h-10 px-3 text-sm bg-white min-w-0 flex-1 disabled:bg-slate-100"
+                  className="w-full border rounded-md h-10 px-3 text-sm bg-card min-w-0 flex-1 disabled:bg-muted"
                 >
                   <option value="">— Selecionar para preencher automaticamente —</option>
                   {customerOptions.map((c) => (
@@ -1211,9 +1211,9 @@ export default function WeightColetaEditorPage() {
                   ))}
                 </select>
               </VoiceFieldControl>
-              <p className="text-[11px] text-slate-500 mt-1">
+              <p className="text-[11px] text-muted-foreground mt-1">
                 Cadastro em{" "}
-                <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+                <Link to={cadastroSectionPath("clientes")} className="text-primary hover:underline">
                   PR-7.1 → Clientes
                 </Link>
               </p>
@@ -1250,7 +1250,7 @@ export default function WeightColetaEditorPage() {
 
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
-          <h2 className="font-medium text-slate-900">Geral</h2>
+          <h2 className="font-medium text-foreground">Geral</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label className="text-[11px]">Data de calibração</Label>
@@ -1414,7 +1414,7 @@ export default function WeightColetaEditorPage() {
 
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-6">
-          <h2 className="font-medium text-slate-900">Rastreabilidade</h2>
+          <h2 className="font-medium text-foreground">Rastreabilidade</h2>
           <TraceRows
             title="Balanças"
             rows={payload.rastreabilidade?.balancas}
@@ -1438,7 +1438,7 @@ export default function WeightColetaEditorPage() {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-medium text-slate-900">
+          <h2 className="font-medium text-foreground">
             Itens ({(payload.itens || []).length}/{MAX_WEIGHT_ITEMS})
           </h2>
           <Button type="button" variant="outline" size="sm" onClick={addItem}>
@@ -1486,7 +1486,7 @@ export default function WeightColetaEditorPage() {
       />
 
       <div className="flex flex-wrap gap-2 justify-end pb-8">
-        <Button onClick={() => save()} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => save()} disabled={saving} className="bg-primary hover:bg-primary/90">
           <FloppyDisk size={18} className="mr-1" />
           {saving ? "A guardar…" : "Salvar"}
         </Button>

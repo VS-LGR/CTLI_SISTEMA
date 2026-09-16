@@ -3,7 +3,8 @@ import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import PageErrorBoundary from "@/components/PageErrorBoundary";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams, useOutletContext } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import { canAccessColeta, canAccessPurchaseOrders, canAccessQuotationRequests, canAccessPersonnel, canAccessMasterDocuments, canAccessCalibrationCertificates, canAccessCommercialProposals } from "@/lib/roles";
@@ -68,7 +69,7 @@ const AttendanceListEditorPage = lazy(() => import("@/pages/AttendanceListEditor
 const MasterDocumentDetailPage = lazy(() => import("@/pages/MasterDocumentDetailPage"));
 
 const pageSuspenseFallback = (
-  <div className="p-8 text-center text-slate-500 text-sm">A carregar…</div>
+  <div className="p-8 text-center text-muted-foreground text-sm">A carregar…</div>
 );
 
 const ColetaLegacyRedirect = () => {
@@ -100,7 +101,7 @@ const Protected = ({ children, adminOnly = false, coletaOnly = false, certificat
   const { user } = useAuth();
   const loc = useLocation();
   if (user === null) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm">Carregando…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">Carregando…</div>;
   }
   if (user === false) {
     return <Navigate to="/login" replace state={{ from: loc }} />;
@@ -141,6 +142,7 @@ const HomeRedirect = () => {
 
 const App = () => (
   <div className="App">
+    <ThemeProvider defaultTheme="light" storageKey="quati-theme">
     <BrowserRouter>
       <AuthProvider>
         <Toaster richColors position="top-right" />
@@ -626,6 +628,7 @@ const App = () => (
         </Routes>
       </AuthProvider>
     </BrowserRouter>
+    </ThemeProvider>
   </div>
 );
 

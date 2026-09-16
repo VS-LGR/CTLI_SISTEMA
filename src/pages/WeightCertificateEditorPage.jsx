@@ -193,7 +193,7 @@ export default function WeightCertificateEditorPage() {
     return <Navigate to={WEIGHT_CERTIFICATE_LIST_PATH} replace />;
   }
   if (loading || !cert) {
-    return <p className="text-sm text-slate-500 py-12 text-center">A carregar certificado…</p>;
+    return <p className="text-sm text-muted-foreground py-12 text-center">A carregar certificado…</p>;
   }
 
   const editable = isCertificateEditable(cert.status) && canEdit;
@@ -495,8 +495,8 @@ export default function WeightCertificateEditorPage() {
             </Link>
           </Button>
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-5.4.2B</p>
-            <h1 className="font-display text-xl font-semibold text-slate-900 truncate">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">RE-5.4.2B</p>
+            <h1 className="font-display text-xl font-semibold text-foreground truncate">
               Certificado {certLabel}
             </h1>
             <div className="flex flex-wrap gap-2 mt-1">
@@ -535,7 +535,7 @@ export default function WeightCertificateEditorPage() {
 
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
-          <h2 className="font-medium text-slate-900">Cabeçalho</h2>
+          <h2 className="font-medium text-foreground">Cabeçalho</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
               <Label className="text-[11px]">Cliente</Label>
@@ -670,15 +670,15 @@ export default function WeightCertificateEditorPage() {
 
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-3">
-          <h2 className="font-medium text-slate-900">
+          <h2 className="font-medium text-foreground">
             Itens ({(cert.items || []).length})
           </h2>
           {!cert.items?.length ? (
-            <p className="text-sm text-slate-500">Sem itens.</p>
+            <p className="text-sm text-muted-foreground">Sem itens.</p>
           ) : (
             <div className="overflow-x-auto border rounded-lg">
               <table className="w-full text-sm min-w-[780px]">
-                <thead className="bg-slate-50 border-b">
+                <thead className="bg-background border-b">
                   <tr>
                     <th className="text-left p-2 font-medium">#</th>
                     <th className="text-left p-2 font-medium">Identificação</th>
@@ -695,7 +695,7 @@ export default function WeightCertificateEditorPage() {
                     const decimals = itemDecimalPlaces(it);
                     return (
                       <tr key={it.id || it.item_number} className="border-b last:border-0 align-top">
-                        <td className="p-2 text-xs text-slate-500">{it.item_number}</td>
+                        <td className="p-2 text-xs text-muted-foreground">{it.item_number}</td>
                         <td className="p-2">{it.identification || "—"}</td>
                         <td className="p-2 font-mono text-xs whitespace-nowrap">
                           {fmtNum(it.nominal_value, decimals)} {it.nominal_unit || "g"}
@@ -706,7 +706,7 @@ export default function WeightCertificateEditorPage() {
                         <td className="p-2">
                           {it.approved === true && <Badge className="bg-emerald-100 text-emerald-800 text-[10px]">Sim</Badge>}
                           {it.approved === false && <Badge className="bg-red-100 text-red-800 text-[10px]">Não</Badge>}
-                          {it.approved == null && <span className="text-slate-400">—</span>}
+                          {it.approved == null && <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="p-2 text-xs max-w-[16rem]">
                           {it.calc_status === "erro" ? (
@@ -733,15 +733,15 @@ export default function WeightCertificateEditorPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4 space-y-2">
-            <h2 className="font-medium text-slate-900">Padrões</h2>
+            <h2 className="font-medium text-foreground">Padrões</h2>
             {!cert.standards?.length ? (
-              <p className="text-sm text-slate-500">Nenhum padrão registado.</p>
+              <p className="text-sm text-muted-foreground">Nenhum padrão registado.</p>
             ) : (
               <ul className="text-sm space-y-1">
                 {cert.standards.map((s) => (
-                  <li key={s.id || `${s.identification_code}-${s.sort_order}`} className="flex justify-between gap-2 border-b border-slate-100 py-1">
+                  <li key={s.id || `${s.identification_code}-${s.sort_order}`} className="flex justify-between gap-2 border-b border-border py-1">
                     <span>{s.identification_code || "—"}</span>
-                    <span className="text-xs text-slate-500 truncate">
+                    <span className="text-xs text-muted-foreground truncate">
                       {s.certificate_number} · {s.laboratory}
                     </span>
                   </li>
@@ -762,7 +762,7 @@ export default function WeightCertificateEditorPage() {
             fieldClass={fieldClass}
           />
           {cert.environmental?.air_density != null && (
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Densidade do ar persistida: {formatAirDensityDisplay(cert.environmental.air_density)} kg/m³
               {" · "}
               média T {fmtNum(cert.environmental.mean_temperature, 2)} °C /
@@ -775,7 +775,7 @@ export default function WeightCertificateEditorPage() {
 
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
-          <h2 className="font-medium text-slate-900">Ciclo de vida</h2>
+          <h2 className="font-medium text-foreground">Ciclo de vida</h2>
           <div className="flex flex-wrap gap-2">
             {editable && (cert.status === "calculado" || cert.status === "reprovado" || cert.status === "em_revisao_tecnica") && (
               <Button
@@ -824,7 +824,7 @@ export default function WeightCertificateEditorPage() {
 
           {canEdit && (
             <div className="pt-4 mt-2 border-t space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Remoção</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Remoção</p>
               {canMarkCertificateObsolete(cert.status) && (
                 <Button
                   type="button"
@@ -837,7 +837,7 @@ export default function WeightCertificateEditorPage() {
                 </Button>
               )}
               {cert.status === "emitido" && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Certificados emitidos devem ser cancelados ou substituídos antes de marcar como obsoleto.
                 </p>
               )}
@@ -852,13 +852,13 @@ export default function WeightCertificateEditorPage() {
                 </Button>
               )}
               {!canMarkCertificateObsolete(cert.status) && !canDeleteCertificate(cert.status) && cert.status !== "emitido" && (
-                <p className="text-xs text-slate-500">Este certificado não pode ser removido no estado atual.</p>
+                <p className="text-xs text-muted-foreground">Este certificado não pode ser removido no estado atual.</p>
               )}
             </div>
           )}
 
           {criticalOpen && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <div className="rounded-lg border border-border bg-background p-4 space-y-3">
               <p className="text-sm font-medium">Análise crítica</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {CRITICAL_ANALYSIS_CHECKLIST.map((item) => (
@@ -883,7 +883,7 @@ export default function WeightCertificateEditorPage() {
           )}
 
           {emailDialogOpen && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3 max-w-md">
+            <div className="rounded-lg border border-border bg-background p-4 space-y-3 max-w-md">
               <p className="text-sm font-medium">
                 {cert.status === "aprovado" ? "Emitir e enviar por e-mail" : "Enviar PDF por e-mail"}
               </p>

@@ -48,8 +48,8 @@ const ACTION_STYLE = {
   revision: {
     label: MASTER_DOCUMENT_CHANGE_ACTION_LABELS.revision,
     Icon: FileText,
-    className: "bg-slate-100 text-slate-800 border-slate-200",
-    dot: "bg-slate-500",
+    className: "bg-muted text-foreground border-border",
+    dot: "bg-background0",
   },
   approve_revision: {
     label: MASTER_DOCUMENT_CHANGE_ACTION_LABELS.approve_revision,
@@ -150,11 +150,11 @@ export default function MasterDocumentActivityFeed({
   const body = (
     <div className={className} data-testid="lista-mestra-activity-feed">
       {loading && (
-        <p className="text-sm text-slate-500 py-6 text-center">A carregar alterações…</p>
+        <p className="text-sm text-muted-foreground py-6 text-center">A carregar alterações…</p>
       )}
       {!loading && rows.length === 0 && (
-        <div className="py-8 text-center text-sm text-slate-500 flex flex-col items-center gap-2">
-          <ClockCounterClockwise size={28} className="text-slate-300" />
+        <div className="py-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+          <ClockCounterClockwise size={28} className="text-muted-foreground" />
           Nenhuma alteração registada ainda na Lista Mestra.
         </div>
       )}
@@ -171,13 +171,13 @@ export default function MasterDocumentActivityFeed({
               <li
                 key={row.id}
                 className={`relative flex gap-3 ${compact ? "py-2.5" : "py-3"} ${
-                  idx < rows.length - 1 ? "border-b border-slate-100" : ""
+                  idx < rows.length - 1 ? "border-b border-border" : ""
                 }`}
               >
                 <div className="flex flex-col items-center pt-1 shrink-0">
                   <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} aria-hidden />
                   {idx < rows.length - 1 && (
-                    <span className="mt-1 w-px flex-1 min-h-[1.25rem] bg-slate-200" aria-hidden />
+                    <span className="mt-1 w-px flex-1 min-h-[1.25rem] bg-muted" aria-hidden />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -186,39 +186,39 @@ export default function MasterDocumentActivityFeed({
                       <Icon size={12} weight="bold" />
                       {style.label}
                     </Badge>
-                    <span className="text-[10px] text-slate-400">{formatRelative(row.created_at)}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatRelative(row.created_at)}</span>
                   </div>
                   <div className="mt-1 min-w-0">
                     {label && row.master_document_id ? (
                       <Link
                         to={masterDocumentDetailPath(row.master_document_id)}
-                        className="text-sm font-medium text-slate-800 hover:text-blue-600 truncate block"
+                        className="text-sm font-medium text-foreground hover:text-primary truncate block"
                       >
                         {label}
                       </Link>
                     ) : (
-                      <p className="text-sm font-medium text-slate-800 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {label || row.summary || "Alteração na Lista Mestra"}
                       </p>
                     )}
                     {!compact && row.summary && label && (
-                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{row.summary}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{row.summary}</p>
                     )}
                     {fields.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {fields.map((f) => (
                           <span
                             key={f.field}
-                            className="inline-flex max-w-full items-center gap-1 rounded-md bg-slate-50 px-1.5 py-0.5 text-[10px] text-slate-600 border border-slate-100"
+                            className="inline-flex max-w-full items-center gap-1 rounded-md bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground border border-border"
                             title={`${f.field}: ${f.from ?? "—"} → ${f.to ?? "—"}`}
                           >
-                            <span className="font-mono text-slate-500">{f.field}</span>
-                            <span className="truncate max-w-[7rem] text-slate-800">{String(f.to ?? "—")}</span>
+                            <span className="font-mono text-muted-foreground">{f.field}</span>
+                            <span className="truncate max-w-[7rem] text-foreground">{String(f.to ?? "—")}</span>
                           </span>
                         ))}
                       </div>
                     )}
-                    <p className="text-[11px] text-slate-500 mt-1 truncate">
+                    <p className="text-[11px] text-muted-foreground mt-1 truncate">
                       {who}
                       {role ? ` · ${role}` : ""}
                     </p>
@@ -235,19 +235,19 @@ export default function MasterDocumentActivityFeed({
   if (!showHeader) return body;
 
   return (
-    <Card className="border-slate-200 min-w-0" data-testid="lista-mestra-activity-card">
+    <Card className="border-border min-w-0" data-testid="lista-mestra-activity-card">
       <CardHeader className="pb-2 flex flex-row items-start justify-between gap-3 space-y-0">
         <div>
           <CardTitle className="font-display text-lg flex items-center gap-2">
             <ClockCounterClockwise size={18} /> Últimas alterações
           </CardTitle>
-          <p className="text-xs text-slate-500 font-normal mt-1">
+          <p className="text-xs text-muted-foreground font-normal mt-1">
             Adições e mudanças recentes na Lista Mestra
           </p>
         </div>
         <Link
           to={masterDocumentListPath("lista_mestra_revisoes")}
-          className="text-xs font-medium text-blue-600 hover:underline shrink-0 pt-1"
+          className="text-xs font-medium text-primary hover:underline shrink-0 pt-1"
         >
           Ver tudo
         </Link>

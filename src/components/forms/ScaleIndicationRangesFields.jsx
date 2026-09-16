@@ -17,7 +17,7 @@ const RANGE_MAPS = {
 };
 
 function FieldHint({ children }) {
-  return <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{children}</p>;
+  return <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{children}</p>;
 }
 
 /**
@@ -39,18 +39,18 @@ export default function ScaleIndicationRangesFields({
   return (
     <div className="space-y-4">
       {ranges.length > 1 && (
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-muted-foreground">
           Balanças multi-escala: informe cada faixa em ordem crescente de capacidade
           {" "}(ex.: até 5 {unitLabel} com d=0,005; até 10 {unitLabel} com d=0,01; até 30 {unitLabel} com d=0,1).
           Os cálculos do certificado usam a resolução da faixa correspondente a cada ponto.
         </p>
       )}
       {ranges.map((range, idx) => (
-        <div key={range.capacity} className={idx > 0 ? "pt-3 border-t border-slate-100" : ""}>
+        <div key={range.capacity} className={idx > 0 ? "pt-3 border-t border-border" : ""}>
           {ranges.length > 1 && (
-            <p className="text-xs font-semibold text-slate-700 mb-2">
+            <p className="text-xs font-semibold text-foreground/90 mb-2">
               {range.title}
-              {idx > 0 && <span className="font-normal text-slate-500"> (opcional)</span>}
+              {idx > 0 && <span className="font-normal text-muted-foreground"> (opcional)</span>}
             </p>
           )}
           <div className={`grid gap-3 ${includeVerificationDivision ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>

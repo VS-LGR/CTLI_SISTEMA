@@ -51,7 +51,7 @@ export default function WeightItemCalculationMemory({ item }) {
     : null;
 
   if (status === "pendente") {
-    return <span className="text-[10px] text-slate-400 italic">Pendente</span>;
+    return <span className="text-[10px] text-muted-foreground italic">Pendente</span>;
   }
 
   if (status === "erro") {
@@ -68,7 +68,7 @@ export default function WeightItemCalculationMemory({ item }) {
     || item?.conventional_value != null;
 
   if (!hasMemory) {
-    return <span className="text-[10px] text-slate-400">Sem memória</span>;
+    return <span className="text-[10px] text-muted-foreground">Sem memória</span>;
   }
 
   return (
@@ -76,7 +76,7 @@ export default function WeightItemCalculationMemory({ item }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs font-medium text-blue-700 hover:text-blue-900"
+        className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs font-medium text-primary hover:text-primary"
         aria-expanded={open}
       >
         {open ? <CaretDown size={12} /> : <CaretRight size={12} />}
@@ -85,51 +85,51 @@ export default function WeightItemCalculationMemory({ item }) {
       {open && (
         <div
           className={cn(
-            "mt-2 rounded-md border border-slate-200 bg-slate-50/80 p-2 sm:p-3",
+            "mt-2 rounded-md border border-border bg-background/80 p-2 sm:p-3",
             "grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5 text-[10px] sm:text-xs",
             "max-w-md",
           )}
         >
           <div className="flex justify-between gap-2 min-w-0">
-            <span className="text-slate-500 truncate">VVC</span>
-            <span className="font-mono text-slate-800 shrink-0">{fmt(item.conventional_value, memory.decimals ?? 4)}</span>
+            <span className="text-muted-foreground truncate">VVC</span>
+            <span className="font-mono text-foreground shrink-0">{fmt(item.conventional_value, memory.decimals ?? 4)}</span>
           </div>
           <div className="flex justify-between gap-2 min-w-0">
-            <span className="text-slate-500 truncate">Desvio</span>
-            <span className="font-mono text-slate-800 shrink-0">{fmt(item.deviation, memory.decimals ?? 4)}</span>
+            <span className="text-muted-foreground truncate">Desvio</span>
+            <span className="font-mono text-foreground shrink-0">{fmt(item.deviation, memory.decimals ?? 4)}</span>
           </div>
           <div className="flex justify-between gap-2 min-w-0">
-            <span className="text-slate-500 truncate">U expandida</span>
-            <span className="font-mono text-slate-800 shrink-0">{fmt(item.expanded_uncertainty, memory.decimals ?? 4)}</span>
+            <span className="text-muted-foreground truncate">U expandida</span>
+            <span className="font-mono text-foreground shrink-0">{fmt(item.expanded_uncertainty, memory.decimals ?? 4)}</span>
           </div>
           <div className="flex justify-between gap-2 min-w-0">
-            <span className="text-slate-500 truncate">k</span>
-            <span className="font-mono text-slate-800 shrink-0">{fmt(item.coverage_factor, 2)}</span>
+            <span className="text-muted-foreground truncate">k</span>
+            <span className="font-mono text-foreground shrink-0">{fmt(item.coverage_factor, 2)}</span>
           </div>
           {item.specific_density != null && (
             <div className="flex justify-between gap-2 min-w-0">
-              <span className="text-slate-500 truncate">Densidade UUT (kg/m³)</span>
-              <span className="font-mono text-slate-800 shrink-0">{fmt(item.specific_density, 1)}</span>
+              <span className="text-muted-foreground truncate">Densidade UUT (kg/m³)</span>
+              <span className="font-mono text-foreground shrink-0">{fmt(item.specific_density, 1)}</span>
             </div>
           )}
           {item.uut_material && (
             <div className="flex justify-between gap-2 min-w-0">
-              <span className="text-slate-500 truncate">Material UUT</span>
-              <span className="font-mono text-slate-800 shrink-0">{item.uut_material}</span>
+              <span className="text-muted-foreground truncate">Material UUT</span>
+              <span className="font-mono text-foreground shrink-0">{item.uut_material}</span>
             </div>
           )}
           {item.reference_material && (
             <div className="flex justify-between gap-2 min-w-0">
-              <span className="text-slate-500 truncate">Material padrão</span>
-              <span className="font-mono text-slate-800 shrink-0">{item.reference_material}</span>
+              <span className="text-muted-foreground truncate">Material padrão</span>
+              <span className="font-mono text-foreground shrink-0">{item.reference_material}</span>
             </div>
           )}
 
           {MEMORY_FIELDS.map((field) => (
             memory[field.key] != null && (
               <div key={field.key} className="flex justify-between gap-2 min-w-0">
-                <span className="text-slate-500 truncate">{field.label}</span>
-                <span className="font-mono text-slate-800 shrink-0">
+                <span className="text-muted-foreground truncate">{field.label}</span>
+                <span className="font-mono text-foreground shrink-0">
                   {fmt(memory[field.key], field.decimals)}
                 </span>
               </div>
@@ -138,16 +138,16 @@ export default function WeightItemCalculationMemory({ item }) {
 
           {memory.assume_class_uncertainty != null && (
             <div className="flex justify-between gap-2 min-w-0">
-              <span className="text-slate-500 truncate">Assume U classe</span>
-              <span className="font-mono text-slate-800 shrink-0">
+              <span className="text-muted-foreground truncate">Assume U classe</span>
+              <span className="font-mono text-foreground shrink-0">
                 {fmt(memory.assume_class_uncertainty)}
               </span>
             </div>
           )}
 
           {item.approved != null && (
-            <div className="col-span-full flex justify-between gap-2 min-w-0 pt-1 border-t border-slate-200">
-              <span className="text-slate-500 truncate">Parecer (G57)</span>
+            <div className="col-span-full flex justify-between gap-2 min-w-0 pt-1 border-t border-border">
+              <span className="text-muted-foreground truncate">Parecer (G57)</span>
               <span className={`font-mono shrink-0 ${item.approved ? "text-emerald-700" : "text-red-700"}`}>
                 {item.approved ? "Aprovado" : "Não aprovado"}
               </span>
@@ -155,14 +155,14 @@ export default function WeightItemCalculationMemory({ item }) {
           )}
 
           {components && Object.keys(components).length > 0 && (
-            <div className="col-span-full pt-1.5 mt-0.5 border-t border-slate-200 space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <div className="col-span-full pt-1.5 mt-0.5 border-t border-border space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Componentes de incerteza
               </p>
               {Object.entries(components).map(([key, u]) => (
                 <div key={key} className="flex justify-between gap-2 min-w-0">
-                  <span className="text-slate-500 truncate">{COMPONENT_LABELS[key] || key}</span>
-                  <span className="font-mono text-slate-800 shrink-0">{fmt(u, 6)}</span>
+                  <span className="text-muted-foreground truncate">{COMPONENT_LABELS[key] || key}</span>
+                  <span className="font-mono text-foreground shrink-0">{fmt(u, 6)}</span>
                 </div>
               ))}
             </div>

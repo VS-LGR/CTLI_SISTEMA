@@ -81,7 +81,7 @@ export default function StandardOptionsPanel({ tenantId }) {
   return (
     <div className="space-y-3 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           {PERSONNEL_OPTION_CATEGORIES.length} categorias · {totalOptions} opções
         </p>
         <div className="flex flex-wrap gap-2">
@@ -94,7 +94,7 @@ export default function StandardOptionsPanel({ tenantId }) {
           {canEdit && (
             <Button
               size="sm"
-              className="bg-blue-600 text-white"
+              className="bg-primary"
               onClick={() => {
                 setEditing(null);
                 setLabel("");
@@ -120,19 +120,19 @@ export default function StandardOptionsPanel({ tenantId }) {
               open={isOpen}
               onOpenChange={(open) => setCategoryOpen(cat.value, open)}
             >
-              <Card className="border-slate-200 overflow-hidden">
+              <Card className="border-border overflow-hidden">
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
-                    className="w-full flex items-center gap-2 px-4 py-3 text-left bg-slate-50/80 hover:bg-slate-100/80 transition-colors border-b border-slate-100"
+                    className="w-full flex items-center gap-2 px-4 py-3 text-left bg-background/80 hover:bg-accent/80 transition-colors border-b border-border"
                     aria-expanded={isOpen}
                   >
                     <CaretRight
                       size={16}
-                      className={`shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                      className={`shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`}
                     />
-                    <span className="font-semibold text-slate-800 flex-1 min-w-0 truncate">{cat.label}</span>
-                    <span className="text-xs text-slate-500 shrink-0 tabular-nums">
+                    <span className="font-semibold text-foreground flex-1 min-w-0 truncate">{cat.label}</span>
+                    <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
                       {activeCount}{items.length !== activeCount ? ` / ${items.length}` : ""} itens
                     </span>
                   </button>
@@ -143,9 +143,9 @@ export default function StandardOptionsPanel({ tenantId }) {
                       {items.map((opt) => (
                         <li
                           key={opt.id}
-                          className="flex items-start justify-between gap-2 py-2 px-2 rounded-md hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                          className="flex items-start justify-between gap-2 py-2 px-2 rounded-md hover:bg-accent border-b border-border last:border-0"
                         >
-                          <span className={`break-words min-w-0 ${opt.is_active ? "text-slate-800" : "text-slate-400 line-through"}`}>
+                          <span className={`break-words min-w-0 ${opt.is_active ? "text-foreground" : "text-muted-foreground line-through"}`}>
                             {opt.label}
                           </span>
                           {canEdit && (
@@ -169,7 +169,7 @@ export default function StandardOptionsPanel({ tenantId }) {
                         </li>
                       ))}
                       {items.length === 0 && (
-                        <li className="py-2 px-2 text-slate-500">Nenhuma opção nesta categoria.</li>
+                        <li className="py-2 px-2 text-muted-foreground">Nenhuma opção nesta categoria.</li>
                       )}
                     </ul>
                   </CardContent>
@@ -205,7 +205,7 @@ export default function StandardOptionsPanel({ tenantId }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="bg-blue-600 text-white" onClick={save}>Guardar</Button>
+            <Button className="bg-primary" onClick={save}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

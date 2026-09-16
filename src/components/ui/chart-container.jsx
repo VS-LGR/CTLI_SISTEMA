@@ -20,7 +20,7 @@ export function ChartContainer({
     >
       {!ready ? (
         <div
-          className="absolute inset-0 rounded-md bg-slate-100/80 animate-pulse"
+          className="absolute inset-0 rounded-md bg-muted/80 animate-pulse"
           aria-hidden
         />
       ) : (

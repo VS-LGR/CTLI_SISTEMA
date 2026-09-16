@@ -264,8 +264,8 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
             <Label>Método de distribuição</Label>
             <Input value={form.distribution_method} onChange={(e) => set("distribution_method", e.target.value)} />
           </div>
-          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
-            <p className="text-xs font-medium text-slate-700">Responsáveis (obrigatório para ativar)</p>
+          <div className="rounded-md border border-border bg-background p-3 space-y-3">
+            <p className="text-xs font-medium text-foreground/90">Responsáveis (obrigatório para ativar)</p>
             <div className="grid grid-cols-2 gap-3">
               <ResponsibleSelect
                 label="Emissor"
@@ -336,8 +336,8 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
             <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} />
           </div>
           {isCertificateMasterDocument(form) && (
-            <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs font-medium text-slate-700">
+            <div className="space-y-3 rounded-md border border-border bg-background p-3">
+              <p className="text-xs font-medium text-foreground/90">
                 Observações do PDF (RE-7.2B) — uma linha por item numerado no certificado
               </p>
               <div>

@@ -22,8 +22,8 @@ function fmtDate(d) {
 }
 
 const STAGE_BADGE = {
-  aguardando_admissao: "bg-slate-100 text-slate-700",
-  em_experiencia: "bg-blue-100 text-blue-800",
+  aguardando_admissao: "bg-muted text-foreground/90",
+  em_experiencia: "bg-primary/15 text-primary",
   experiencia_aprovada: "bg-emerald-100 text-emerald-800",
   adequacao_concluida: "bg-green-100 text-green-900",
 };
@@ -64,7 +64,7 @@ function PipelineRowActions({ row, variant = "active" }) {
   const nextPath = getOnboardingNextPath(row);
   return (
     <div className="flex flex-col gap-1 items-start">
-      <Button size="sm" className="bg-blue-600 text-white h-8" asChild>
+      <Button size="sm" className="bg-primary h-8" asChild>
         <Link to={nextPath}>{actionLabel}</Link>
       </Button>
       <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
@@ -81,22 +81,22 @@ function PipelineRowCard({ row }) {
     : row.selection.vacancy || row.selection.position_title;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2 sm:hidden">
+    <div className="rounded-lg border border-border bg-card p-3 space-y-2 sm:hidden">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="font-medium text-slate-900 truncate">{name}</div>
-          <div className="text-xs text-slate-500 truncate">{role || "—"}</div>
+          <div className="font-medium text-foreground truncate">{name}</div>
+          <div className="text-xs text-muted-foreground truncate">{role || "—"}</div>
         </div>
         <StageBadge stage={row.stage} />
       </div>
-      <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-slate-600">
+      <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <dt>Seleção</dt><dd>{fmtDate(row.selection.selection_date)}</dd>
         <dt>Admissão</dt><dd>{fmtDate(row.employee?.admission_date)}</dd>
         <dt>Fim período</dt>
         <dd>
           {fmtDate(row.periodEnd)}
           {row.daysRemaining != null && row.daysRemaining > 0 && (
-            <span className="text-slate-400"> ({row.daysRemaining}d)</span>
+            <span className="text-muted-foreground"> ({row.daysRemaining}d)</span>
           )}
         </dd>
       </dl>
@@ -112,13 +112,13 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
 
   if (loading) {
     return (
-      <div className="text-sm text-slate-500 py-4" data-testid="personnel-pipeline-loading">
+      <div className="text-sm text-muted-foreground py-4" data-testid="personnel-pipeline-loading">
         A carregar integração de pessoal…
       </div>
     );
   }
 
-  const titleClass = compact ? "text-sm font-medium text-slate-700" : "text-xs font-semibold uppercase tracking-[0.15em] text-slate-500";
+  const titleClass = compact ? "text-sm font-medium text-foreground/90" : "text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground";
 
   return (
     <div className={`space-y-4 ${compact ? "mb-6" : ""}`} data-testid="personnel-pipeline">
@@ -126,21 +126,21 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
         <div>
           <h2 className={titleClass}>Integração de pessoal</h2>
           {!compact && (
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Fluxo guiado: seleção aprovada → período experimental → adequação de competência.
             </p>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           {STEPPER_STEPS.map((step, idx) => (
             <React.Fragment key={step.key}>
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
-                <span className="font-medium text-slate-800">{step.label}</span>
-                <span className="text-slate-400">({stageCounts[step.key] ?? 0})</span>
+              <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5">
+                <span className="font-medium text-foreground">{step.label}</span>
+                <span className="text-muted-foreground">({stageCounts[step.key] ?? 0})</span>
               </div>
               {idx < STEPPER_STEPS.length - 1 && (
-                <ArrowRight size={14} className="text-slate-400 shrink-0" />
+                <ArrowRight size={14} className="text-muted-foreground shrink-0" />
               )}
             </React.Fragment>
           ))}
@@ -148,7 +148,7 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
 
         <div className="space-y-2 sm:hidden">
           {active.length === 0 ? (
-            <p className="text-sm text-slate-500 py-2 text-center">
+            <p className="text-sm text-muted-foreground py-2 text-center">
               Nenhum fluxo pendente. Aprove uma seleção (RE-6.2F) e vincule o colaborador.
             </p>
           ) : (
@@ -156,10 +156,10 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
           )}
         </div>
 
-        <Card className="border-slate-200 hidden sm:block" data-testid="personnel-pipeline-active">
+        <Card className="border-border hidden sm:block" data-testid="personnel-pipeline-active">
           <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
-              <thead className="bg-slate-50 text-xs text-slate-600 text-left">
+              <thead className="bg-background text-xs text-muted-foreground text-left">
                 <tr>
                   <th className="p-2">Candidato / Colaborador</th>
                   <th className="p-2">Cargo / Vaga</th>
@@ -173,7 +173,7 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
               <tbody>
                 {active.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-4 text-center text-slate-500 text-sm">
+                    <td colSpan={7} className="p-4 text-center text-muted-foreground text-sm">
                       Nenhum fluxo pendente. Aprove uma seleção (RE-6.2F) e vincule o colaborador no cadastro.
                     </td>
                   </tr>
@@ -184,7 +184,7 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
                     ? row.selection.position_title
                     : row.selection.vacancy || row.selection.position_title;
                   return (
-                    <tr key={row.selection.id} className="border-t border-slate-100">
+                    <tr key={row.selection.id} className="border-t border-border">
                       <td className="p-2 font-medium">{name}</td>
                       <td className="p-2">{role || "—"}</td>
                       <td className="p-2"><StageBadge stage={row.stage} /></td>
@@ -193,7 +193,7 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
                       <td className="p-2">
                         {fmtDate(row.periodEnd)}
                         {row.daysRemaining != null && row.daysRemaining > 0 && (
-                          <span className="text-xs text-slate-400 block">{row.daysRemaining} dia(s)</span>
+                          <span className="text-xs text-muted-foreground block">{row.daysRemaining} dia(s)</span>
                         )}
                       </td>
                       <td className="p-2">
@@ -209,33 +209,33 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
       </div>
 
       <Collapsible open={completedOpen} onOpenChange={setCompletedOpen}>
-        <Card className="border-slate-200" data-testid="personnel-pipeline-completed">
+        <Card className="border-border" data-testid="personnel-pipeline-completed">
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-accent transition-colors"
             >
               <div>
-                <h3 className="font-semibold text-slate-900">Integrações concluídas</h3>
-                <p className="text-xs text-slate-500 mt-0.5">{completed.length} registo(s)</p>
+                <h3 className="font-semibold text-foreground">Integrações concluídas</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{completed.length} registo(s)</p>
               </div>
               <CaretDown
                 size={18}
-                className={`shrink-0 text-slate-500 transition-transform ${completedOpen ? "rotate-180" : ""}`}
+                className={`shrink-0 text-muted-foreground transition-transform ${completedOpen ? "rotate-180" : ""}`}
               />
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <CardContent className="px-4 pb-4 pt-0 border-t border-slate-100">
+            <CardContent className="px-4 pb-4 pt-0 border-t border-border">
               {completed.length === 0 ? (
-                <p className="text-sm text-slate-500 py-2">Nenhuma integração concluída ainda.</p>
+                <p className="text-sm text-muted-foreground py-2">Nenhuma integração concluída ainda.</p>
               ) : (
                 <div className="space-y-2">
                   {completed.map((row) => (
-                    <div key={row.selection.id} className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-slate-100 last:border-0">
+                    <div key={row.selection.id} className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-border last:border-0">
                       <div className="min-w-0">
                         <div className="font-medium text-sm">{row.employee?.full_name || row.selection.candidate_name}</div>
-                        <div className="text-xs text-slate-500">{row.selection.position_title || row.selection.vacancy || "—"}</div>
+                        <div className="text-xs text-muted-foreground">{row.selection.position_title || row.selection.vacancy || "—"}</div>
                       </div>
                       <PipelineRowActions row={row} variant="completed" />
                     </div>
@@ -248,30 +248,30 @@ export default function PersonnelOnboardingPipeline({ pipeline, loading, compact
       </Collapsible>
 
       <Collapsible open={rejectedOpen} onOpenChange={setRejectedOpen}>
-        <Card className="border-slate-200" data-testid="personnel-pipeline-rejected">
+        <Card className="border-border" data-testid="personnel-pipeline-rejected">
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-accent transition-colors"
             >
               <div>
-                <h3 className="font-semibold text-slate-900">Reprovados e encerrados</h3>
-                <p className="text-xs text-slate-500 mt-0.5">{rejected.length} registo(s)</p>
+                <h3 className="font-semibold text-foreground">Reprovados e encerrados</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{rejected.length} registo(s)</p>
               </div>
               <CaretDown
                 size={18}
-                className={`shrink-0 text-slate-500 transition-transform ${rejectedOpen ? "rotate-180" : ""}`}
+                className={`shrink-0 text-muted-foreground transition-transform ${rejectedOpen ? "rotate-180" : ""}`}
               />
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <CardContent className="px-4 pb-4 pt-0 border-t border-slate-100 space-y-4">
+            <CardContent className="px-4 pb-4 pt-0 border-t border-border space-y-4">
               {rejected.length === 0 ? (
-                <p className="text-sm text-slate-500 py-2">Nenhuma reprovação registada.</p>
+                <p className="text-sm text-muted-foreground py-2">Nenhuma reprovação registada.</p>
               ) : (
                 <div className="overflow-x-auto border rounded-md">
                   <table className="w-full text-sm min-w-[520px]">
-                    <thead className="bg-slate-50 text-xs text-slate-600 text-left">
+                    <thead className="bg-background text-xs text-muted-foreground text-left">
                       <tr>
                         <th className="p-2">Motivo</th>
                         <th className="p-2">Candidato / Colaborador</th>

@@ -23,10 +23,10 @@ export default function DocumentTemplatesPanel({ tenantId }) {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <Card className="overflow-x-auto border-slate-200">
+    <Card className="overflow-x-auto border-border">
       <table className="w-full text-sm min-w-[600px]">
-        <thead className="bg-slate-50 border-b">
-          <tr className="text-[10px] uppercase text-slate-500">
+        <thead className="bg-background border-b">
+          <tr className="text-[10px] uppercase text-muted-foreground">
             <th className="px-3 py-2 text-left">Documento</th>
             <th className="px-3 py-2 text-left">Template key</th>
             <th className="px-3 py-2 text-left">Módulo</th>

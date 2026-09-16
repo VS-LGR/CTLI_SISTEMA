@@ -153,8 +153,8 @@ export default function CertificateBalanceSection({
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-        <p className="text-xs font-semibold text-slate-700 mb-2">
+      <div className="rounded-lg border border-border bg-background/60 p-3">
+        <p className="text-xs font-semibold text-foreground/90 mb-2">
           Tolerância máxima por valor de pesagem
         </p>
         <PointMaxToleranceFields
@@ -184,7 +184,7 @@ export default function CertificateBalanceSection({
       )}
 
       {readOnly && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted-foreground">
           Dados da balança vinculados à coleta — somente leitura.
         </p>
       )}

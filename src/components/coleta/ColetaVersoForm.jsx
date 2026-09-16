@@ -15,7 +15,7 @@ import FormRowsTableShell, { FormRowsTableHead, FormRowsTableBody } from "@/comp
 function Field({ label, children, className = "" }) {
   return (
     <div className={className}>
-      <Label className="text-xs text-slate-600">{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
       <div className="mt-1">{children}</div>
     </div>
   );
@@ -30,7 +30,7 @@ function SimNaoRow({ label, value, onChange, disabled }) {
   const gid = label.replace(/\s/g, "-");
   return (
     <div>
-      <Label className="text-xs text-slate-600 mb-2 block">{label}</Label>
+      <Label className="text-xs text-muted-foreground mb-2 block">{label}</Label>
       <RadioGroup
         value={value || ""}
         onValueChange={onChange}
@@ -65,7 +65,7 @@ function RepetitividadeLinhaFields({ def, row, soloL, aplicavel, setLinha, globa
   const ambientField = (field, label) => (
     <Field key={field} label={label}>
       {soloL ? (
-        <span className="text-slate-400 block text-center py-2 text-sm">—</span>
+        <span className="text-muted-foreground block text-center py-2 text-sm">—</span>
       ) : (
         <Input
           value={row[field] || ""}
@@ -113,11 +113,11 @@ function RepetitividadeLinhaFields({ def, row, soloL, aplicavel, setLinha, globa
       {ambientField("pressao", "hPa")}
       <Field label="Massa específica (calc.)">
         {soloL ? (
-          <span className="text-slate-400 block text-center py-2 text-sm">—</span>
+          <span className="text-muted-foreground block text-center py-2 text-sm">—</span>
         ) : (
           <Input
             readOnly
-            className={`${inputCls} bg-slate-50`}
+            className={`${inputCls} bg-background`}
             value={`${formatAirDensityDisplay(lineAirDensity.valid ? lineAirDensity.value : null)} kg/m³`}
             disabled={!aplicavel}
           />
@@ -162,7 +162,7 @@ export default function ColetaVersoForm({ payload, onChange, defaultUnit = "g" }
 
   return (
     <div className="space-y-6 border-t pt-6">
-      <p className="text-center text-sm font-semibold text-slate-800">
+      <p className="text-center text-sm font-semibold text-foreground">
         Verso — Repetitividade com Lote de Carga
       </p>
 
@@ -237,7 +237,7 @@ export default function ColetaVersoForm({ payload, onChange, defaultUnit = "g" }
               <Field label="Massa específica estimada (kg/m³) — calculada">
                 <Input
                   readOnly
-                  className="bg-slate-50"
+                  className="bg-background"
                   value={`${formatAirDensityDisplay(globalAirDensity.valid ? globalAirDensity.value : null)} kg/m³`}
                   disabled={!aplicavel}
                 />
@@ -278,7 +278,7 @@ export default function ColetaVersoForm({ payload, onChange, defaultUnit = "g" }
               <FormRowsTableShell tableMinWidth="960px">
                 <FormRowsTableHead>
                   <tr>
-                    <th className="p-2 text-left sticky left-0 z-[1] bg-slate-50 font-semibold">Linha</th>
+                    <th className="p-2 text-left sticky left-0 z-[1] bg-background font-semibold">Linha</th>
                     <th className="p-2 font-semibold">Valor</th>
                     <th className="p-2 font-semibold w-14">Un.</th>
                     <th className="p-2 font-semibold">Leitura 1</th>
@@ -296,7 +296,7 @@ export default function ColetaVersoForm({ payload, onChange, defaultUnit = "g" }
                     const soloL = isSubstituicaoLinhaSoloL(def);
                     const ambientCell = (field) => (
                       soloL ? (
-                        <span className="text-slate-400 block text-center py-2">—</span>
+                        <span className="text-muted-foreground block text-center py-2">—</span>
                       ) : (
                         <Input
                           value={row[field] || ""}
@@ -317,8 +317,8 @@ export default function ColetaVersoForm({ payload, onChange, defaultUnit = "g" }
                       })
                       : globalAirDensity;
                     return (
-                      <tr key={def.key} className="border-b border-slate-100">
-                        <td className="p-2 font-mono align-top whitespace-nowrap sticky left-0 z-[1] bg-white font-medium">
+                      <tr key={def.key} className="border-b border-border">
+                        <td className="p-2 font-mono align-top whitespace-nowrap sticky left-0 z-[1] bg-card font-medium">
                           {def.label}
                         </td>
                         <td className="p-1 align-top">
@@ -358,11 +358,11 @@ export default function ColetaVersoForm({ payload, onChange, defaultUnit = "g" }
                                 disabled={!aplicavel}
                               />
                             ) : (
-                              <span className="text-slate-300 block text-center py-2">—</span>
+                              <span className="text-muted-foreground block text-center py-2">—</span>
                             )}
                           </td>
                         ))}
-                        <td className="p-1 align-top text-xs text-slate-700">
+                        <td className="p-1 align-top text-xs text-foreground/90">
                           {soloL ? "—" : `${formatAirDensityDisplay(lineAirDensity.valid ? lineAirDensity.value : null)} kg/m³`}
                         </td>
                         <td className="p-1 align-top">{ambientCell("temp")}</td>

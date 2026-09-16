@@ -176,11 +176,11 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
         </Button>
       </div>
 
-      <Card className="border-slate-200 overflow-hidden">
+      <Card className="border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr className="text-left text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+            <thead className="bg-background border-b border-border">
+              <tr className="text-left text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 <th className="px-3 py-2">Código</th>
                 <th className="px-3 py-2">Título</th>
                 <th className="px-3 py-2">Tipo</th>
@@ -193,15 +193,15 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
                 <th className="px-3 py-2 text-right w-[7.5rem]">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-border bg-card">
               {loading && (
-                <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
+                <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">Carregando…</td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">Nenhum documento encontrado.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">Nenhum documento encontrado.</td></tr>
               )}
               {rows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50/80">
+                <tr key={row.id} className="hover:bg-accent/80">
                   <td className="px-3 py-2 font-mono text-xs">{row.code || "—"}</td>
                   <td className="px-3 py-2 max-w-[200px] truncate" title={row.title}>{row.title}</td>
                   <td className="px-3 py-2 text-xs">{typeLabel(row.type)}</td>

@@ -177,17 +177,17 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
   return (
     <div className="space-y-4" data-testid="tenant-users-panel">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Gerir acessos operacionais do ambiente (técnico, signatário, gerentes, etc.).
         </p>
-        <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button onClick={openCreate} size="sm" className="bg-primary">
           <Plus size={16} className="mr-1" /> Novo usuário
         </Button>
       </div>
 
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left">
+          <thead className="bg-background text-left">
             <tr>
               <th className="p-3 font-medium">Nome</th>
               <th className="p-3 font-medium">E-mail</th>
@@ -197,9 +197,9 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="border-t border-slate-100">
+              <tr key={row.id} className="border-t border-border">
                 <td className="p-3">{row.full_name}</td>
-                <td className="p-3 text-slate-600">{row.email}</td>
+                <td className="p-3 text-muted-foreground">{row.email}</td>
                 <td className="p-3">{roleShort(row.role)}</td>
                 <td className="p-3 text-right space-x-1">
                   {(row.role !== "client" || row.id === user?.id || isAdmin) && (
@@ -219,7 +219,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={4} className="p-6 text-center text-slate-500">Nenhum usuário cadastrado.</td>
+                <td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum usuário cadastrado.</td>
               </tr>
             )}
           </tbody>
@@ -296,7 +296,7 @@ export default function TenantUsersPanel({ tenantId, isAdmin }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={save} disabled={saving} className="bg-primary">
               {saving ? "A guardar…" : editing ? "Guardar" : "Criar"}
             </Button>
           </DialogFooter>

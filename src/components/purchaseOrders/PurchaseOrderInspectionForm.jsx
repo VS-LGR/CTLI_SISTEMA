@@ -15,7 +15,7 @@ function BoolSelect({ label, value, onChange, disabled }) {
           if (e.target.value === "") onChange(null);
           else onChange(e.target.value === "sim");
         }}
-        className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white disabled:opacity-60"
+        className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card disabled:opacity-60"
       >
         <option value="">—</option>
         <option value="sim">Sim</option>
@@ -40,7 +40,7 @@ export default function PurchaseOrderInspectionForm({
   const showReport = type === "ensaio_proficiencia" || type === "auditoria_interna";
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardHeader className="pb-2">
         <CardTitle className="font-display text-lg">Inspeção de recebimento</CardTitle>
       </CardHeader>
@@ -136,7 +136,7 @@ export default function PurchaseOrderInspectionForm({
             value={inspection?.result || ""}
             disabled={readOnly}
             onChange={(e) => set({ result: e.target.value || null })}
-            className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+            className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card"
           >
             <option value="">—</option>
             <option value="aceito">Aceito</option>
@@ -154,7 +154,7 @@ export default function PurchaseOrderInspectionForm({
           <div>
             <Label>Responsável pela inspeção</Label>
             {employees.length === 0 ? (
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Cadastre colaboradores em PR-6.2 → Colaboradores para selecionar o responsável.
               </p>
             ) : (
@@ -162,7 +162,7 @@ export default function PurchaseOrderInspectionForm({
                 value={inspection?.inspection_responsible_id || ""}
                 disabled={readOnly}
                 onChange={(e) => set({ inspection_responsible_id: e.target.value || null })}
-                className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card"
               >
                 <option value="">Selecione…</option>
                 {employees.map((e) => (

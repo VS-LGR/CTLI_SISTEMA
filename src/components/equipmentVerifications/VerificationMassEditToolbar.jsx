@@ -22,7 +22,7 @@ const MONTH_SHORT = MONTH_LABELS.map((m) => m.slice(0, 3));
 function Field({ label, className, children }) {
   return (
     <div className={cn("space-y-1 min-w-0", className)}>
-      <Label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+      <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
         {label}
       </Label>
       {children}
@@ -32,14 +32,14 @@ function Field({ label, className, children }) {
 
 function ActionBlock({ icon: Icon, title, description, children }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 space-y-3 min-w-0">
+    <div className="rounded-lg border border-border bg-card p-3 sm:p-4 space-y-3 min-w-0">
       <div className="flex items-start gap-2.5 min-w-0">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
           <Icon size={16} weight="duotone" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-slate-900">{title}</div>
-          <p className="text-xs text-slate-500 mt-0.5 leading-snug">{description}</p>
+          <div className="text-sm font-semibold text-foreground">{title}</div>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{description}</p>
         </div>
       </div>
       {children}
@@ -95,40 +95,40 @@ export default function VerificationMassEditToolbar({
 
   return (
     <div
-      className="sticky top-2 z-20 rounded-xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/90"
+      className="sticky top-2 z-20 rounded-xl border border-border bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/90"
       data-testid="verification-mass-edit"
     >
       <button
         type="button"
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50/80 rounded-xl transition-colors"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent/80 rounded-xl transition-colors"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Stack size={18} weight="duotone" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-slate-900">Edição em massa</span>
-            <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-medium">
+            <span className="text-sm font-semibold text-foreground">Edição em massa</span>
+            <Badge variant="secondary" className="bg-muted text-foreground/90 font-medium">
               {countLabel}
             </Badge>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5 truncate">
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
             Preencher item, copiar mês ou definir responsável em todos de uma vez.
           </p>
         </div>
         <CaretDown
           size={16}
           className={cn(
-            "shrink-0 text-slate-400 transition-transform",
+            "shrink-0 text-muted-foreground transition-transform",
             open && "rotate-180",
           )}
         />
       </button>
 
       {open && (
-        <div className="border-t border-slate-100 px-3 sm:px-4 pb-4 pt-3 space-y-3">
+        <div className="border-t border-border px-3 sm:px-4 pb-4 pt-3 space-y-3">
           <ActionBlock
             icon={CheckCircle}
             title="Preencher item do checklist"
@@ -137,7 +137,7 @@ export default function VerificationMassEditToolbar({
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-end">
               <Field label="Item" className="sm:flex-[2] sm:min-w-[200px]">
                 <Select value={itemKey} onValueChange={setItemKey}>
-                  <SelectTrigger className="h-9 bg-white">
+                  <SelectTrigger className="h-9 bg-card">
                     <SelectValue placeholder="Item" />
                   </SelectTrigger>
                   <SelectContent>
@@ -149,7 +149,7 @@ export default function VerificationMassEditToolbar({
               </Field>
               <Field label="Mês" className="sm:w-[110px]">
                 <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger className="h-9 bg-white">
+                  <SelectTrigger className="h-9 bg-card">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -161,7 +161,7 @@ export default function VerificationMassEditToolbar({
               </Field>
               <Field label="Valor" className="sm:w-[120px]">
                 <Select value={value} onValueChange={setValue}>
-                  <SelectTrigger className="h-9 bg-white">
+                  <SelectTrigger className="h-9 bg-card">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -190,7 +190,7 @@ export default function VerificationMassEditToolbar({
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-end">
               <Field label="De" className="sm:w-[120px]">
                 <Select value={fromMonth} onValueChange={setFromMonth}>
-                  <SelectTrigger className="h-9 bg-white">
+                  <SelectTrigger className="h-9 bg-card">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -202,7 +202,7 @@ export default function VerificationMassEditToolbar({
               </Field>
               <Field label="Para" className="sm:w-[120px]">
                 <Select value={toMonth} onValueChange={setToMonth}>
-                  <SelectTrigger className="h-9 bg-white">
+                  <SelectTrigger className="h-9 bg-card">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -236,7 +236,7 @@ export default function VerificationMassEditToolbar({
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-end">
               <Field label="Mês" className="sm:w-[110px]">
                 <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger className="h-9 bg-white">
+                  <SelectTrigger className="h-9 bg-card">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

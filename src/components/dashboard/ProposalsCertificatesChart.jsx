@@ -5,7 +5,7 @@ import {
 import { ChartContainer } from "@/components/ui/chart-container";
 
 const COLORS = {
-  certificados: "#2563EB",
+  certificados: "#C2410C",
   propostas: "#059669",
 };
 
@@ -25,9 +25,9 @@ function CustomTooltip({ active, payload }) {
   const total = payload[0]?.payload?.total ?? 0;
   const share = pct(p.value, total);
   return (
-    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
-      <div className="font-medium text-slate-800">{p.name}</div>
-      <div className="text-slate-600">{p.value} registo(s) · {share}%</div>
+    <div className="rounded-md border border-border bg-card px-3 py-2 text-xs shadow-md">
+      <div className="font-medium text-foreground">{p.name}</div>
+      <div className="text-muted-foreground">{p.value} registo(s) · {share}%</div>
     </div>
   );
 }
@@ -52,8 +52,8 @@ function renderLegend({ payload }) {
               style={{ backgroundColor: entry.color }}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-800 truncate">{entry.value}</p>
-              <p className="text-xs text-slate-500 tabular-nums">
+              <p className="text-sm font-medium text-foreground truncate">{entry.value}</p>
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {entry.payload?.value ?? 0} · {share}%
               </p>
             </div>
@@ -84,7 +84,7 @@ export default function ProposalsCertificatesChart({
 
   if (loading) {
     return (
-      <div className="h-[220px] sm:h-[240px] flex items-center justify-center text-sm text-slate-500">
+      <div className="h-[220px] sm:h-[240px] flex items-center justify-center text-sm text-muted-foreground">
         A carregar gráfico…
       </div>
     );
@@ -93,8 +93,8 @@ export default function ProposalsCertificatesChart({
   if (total === 0) {
     return (
       <div className="h-[220px] sm:h-[240px] flex flex-col items-center justify-center text-center px-4">
-        <p className="text-sm text-slate-600">Ainda não há propostas nem certificados neste ambiente.</p>
-        <p className="text-xs text-slate-400 mt-1">Os registos aparecerão aqui assim que forem criados.</p>
+        <p className="text-sm text-muted-foreground">Ainda não há propostas nem certificados neste ambiente.</p>
+        <p className="text-xs text-muted-foreground mt-1">Os registos aparecerão aqui assim que forem criados.</p>
       </div>
     );
   }
@@ -137,8 +137,8 @@ export default function ProposalsCertificatesChart({
                 className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-4"
                 aria-hidden
               >
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">Total</span>
-                <span className="text-2xl sm:text-3xl font-display font-bold text-slate-900 tabular-nums">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</span>
+                <span className="text-2xl sm:text-3xl font-display font-bold text-foreground tabular-nums">
                   {total}
                 </span>
               </div>

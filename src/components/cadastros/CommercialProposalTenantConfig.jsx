@@ -50,20 +50,20 @@ export default function CommercialProposalTenantConfig({ tenantId, tenant, onSav
   };
 
   return (
-    <Card className="border-slate-200 max-w-3xl">
+    <Card className="border-border max-w-3xl">
       <CardContent className="p-4 space-y-6">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">Formulário RE-7.1A</h3>
-          <p className="text-sm text-slate-600 mt-1">
+          <h3 className="text-sm font-semibold text-foreground">Formulário RE-7.1A</h3>
+          <p className="text-sm text-muted-foreground mt-1">
             Código, título, revisão e referência PR são controlados pela{" "}
-            <Link to={LISTA_MESTRA_PATH} className="text-blue-600 hover:underline">
+            <Link to={LISTA_MESTRA_PATH} className="text-primary hover:underline">
               Lista Mestra
             </Link>
             {" "}(documento <strong>RE-7.1A</strong>). Aqui configure apenas os textos institucionais do PDF.
           </p>
         </div>
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-800">Textos institucionais (PDF)</h3>
+          <h3 className="text-sm font-semibold text-foreground">Textos institucionais (PDF)</h3>
           {BOILERPLATE_FIELDS.map(({ key, label, rows }) => (
             <div key={key}>
               <Label className="text-xs">{label}</Label>

@@ -129,7 +129,7 @@ export default function WeightCertificateNewPage() {
             <ArrowLeft size={18} className="mr-1" /> Voltar
           </Link>
         </Button>
-        <h1 className="font-display text-xl font-semibold text-slate-900">
+        <h1 className="font-display text-xl font-semibold text-foreground">
           Novo certificado de pesos
         </h1>
       </div>
@@ -154,7 +154,7 @@ export default function WeightCertificateNewPage() {
       <Card>
         <CardContent className="p-6 space-y-4">
           <div>
-            <label className="text-sm font-medium text-slate-700">Tipo de certificado</label>
+            <label className="text-sm font-medium text-foreground/90">Tipo de certificado</label>
             <Select value={certType} onValueChange={setCertType}>
               <SelectTrigger className="mt-1 h-10"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -168,11 +168,11 @@ export default function WeightCertificateNewPage() {
           {mode === "coleta" ? (
             <>
               <div>
-                <label className="text-sm font-medium text-slate-700">Coleta RE-5.4.2A</label>
+                <label className="text-sm font-medium text-foreground/90">Coleta RE-5.4.2A</label>
                 {loading ? (
-                  <p className="text-sm text-slate-500 mt-2">A carregar coletas…</p>
+                  <p className="text-sm text-muted-foreground mt-2">A carregar coletas…</p>
                 ) : !coletas.length ? (
-                  <p className="text-sm text-slate-500 mt-2">Nenhuma coleta disponível.</p>
+                  <p className="text-sm text-muted-foreground mt-2">Nenhuma coleta disponível.</p>
                 ) : (
                   <div className="mt-2 space-y-2 max-h-64 overflow-y-auto border rounded-lg divide-y">
                     {coletas.map((c) => (
@@ -180,8 +180,8 @@ export default function WeightCertificateNewPage() {
                         key={c.id}
                         type="button"
                         onClick={() => setSelectedId(c.id)}
-                        className={`w-full text-left p-3 hover:bg-slate-50 transition ${
-                          selectedId === c.id ? "bg-blue-50 ring-1 ring-blue-200" : ""
+                        className={`w-full text-left p-3 hover:bg-accent transition ${
+                          selectedId === c.id ? "bg-primary/10 ring-1 ring-primary/30" : ""
                         }`}
                       >
                         <div className="flex justify-between gap-2">
@@ -190,7 +190,7 @@ export default function WeightCertificateNewPage() {
                             {coletaWorkflowLabel(c.workflow_status)}
                           </Badge>
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           {c.weight_tag || "—"} · {fmtDmy(c.calibration_date)}
                           {!canColetaGenerateOfficial(c.workflow_status) && " · somente prévia"}
                         </div>

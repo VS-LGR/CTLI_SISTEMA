@@ -10,7 +10,7 @@ export default function QuotationGeneratedOrdersCard({ conversions = [] }) {
   if (!conversions.length) return null;
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Pedidos de compra gerados</CardTitle>
       </CardHeader>
@@ -23,18 +23,18 @@ export default function QuotationGeneratedOrdersCard({ conversions = [] }) {
               <li key={conv.id}>
                 <Link
                   to={pedidoEditorPath(po.id)}
-                  className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm hover:border-blue-200 hover:bg-blue-50/40 transition-colors"
+                  className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-background/80 px-3 py-2.5 text-sm hover:border-primary/30 hover:bg-primary/10 transition-colors"
                 >
-                  <span className="font-mono font-semibold text-blue-700">
+                  <span className="font-mono font-semibold text-primary">
                     {formatOrderNumber(po.order_number, po.order_year)}
                   </span>
-                  <span className="text-slate-400">·</span>
-                  <span className="text-slate-700">{getTitleForType(po.type)}</span>
-                  <span className="text-slate-400 hidden sm:inline">·</span>
-                  <span className="text-slate-500 text-xs w-full sm:w-auto">
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-foreground/90">{getTitleForType(po.type)}</span>
+                  <span className="text-muted-foreground hidden sm:inline">·</span>
+                  <span className="text-muted-foreground text-xs w-full sm:w-auto">
                     Origem: {sectionTypeLabel(conv.section_type)}
                   </span>
-                  <ArrowSquareOut size={14} className="text-slate-400 ml-auto shrink-0" />
+                  <ArrowSquareOut size={14} className="text-muted-foreground ml-auto shrink-0" />
                 </Link>
               </li>
             );

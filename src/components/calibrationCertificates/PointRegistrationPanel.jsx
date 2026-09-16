@@ -39,7 +39,7 @@ function ReadingRow({ label, readings, onChange, disabled, minCount = 0, maxCoun
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Label className="text-xs font-semibold text-slate-700">{label}</Label>
+        <Label className="text-xs font-semibold text-foreground/90">{label}</Label>
         {!disabled && readings.length < maxCount && (
           <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={add}>
             <Plus size={14} className="mr-1" /> Leitura
@@ -49,7 +49,7 @@ function ReadingRow({ label, readings, onChange, disabled, minCount = 0, maxCoun
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {readings.map((val, idx) => (
           <div key={idx} className="relative">
-            <Label className="text-[10px] text-slate-500 mb-0.5 block">L{idx + 1}</Label>
+            <Label className="text-[10px] text-muted-foreground mb-0.5 block">L{idx + 1}</Label>
             <Input
               value={val}
               disabled={disabled}
@@ -59,7 +59,7 @@ function ReadingRow({ label, readings, onChange, disabled, minCount = 0, maxCoun
             {!disabled && readings.length > minCount && (
               <button
                 type="button"
-                className="absolute right-1 top-7 p-1 text-slate-400 hover:text-red-600"
+                className="absolute right-1 top-7 p-1 text-muted-foreground hover:text-red-600"
                 onClick={() => remove(idx)}
                 aria-label={`Remover leitura L${idx + 1}`}
               >
@@ -110,10 +110,10 @@ function PointTabContent({
       )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">
+          <h3 className="text-sm font-semibold text-foreground">
             <MaxTolerancePointLabel pointNumber={point.point_number} isAlert={maxToleranceAlert} />
           </h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-xl">
+          <p className="text-xs text-muted-foreground mt-1 max-w-xl">
             Preencha leituras, V.R. ou pesos padrão. Resolução e divisão de verificação vêm dos dados da balança.
           </p>
         </div>
@@ -209,7 +209,7 @@ function PointTabContent({
                 <Input
                   value={point.load_batch_formation || formationKeyForPoint(point.point_number, true) || ""}
                   disabled
-                  className="h-9 mt-1 bg-white"
+                  className="h-9 mt-1 bg-card"
                 />
               </div>
               <div className="sm:col-span-2 lg:col-span-2">
@@ -343,7 +343,7 @@ export default function PointRegistrationPanel({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-800">Cadastro de Pontos</p>
+        <p className="text-sm font-semibold text-foreground">Cadastro de Pontos</p>
         {showLegalMetrologyToggle && onLegalMetrologyChange && (
           <Button
             type="button"
@@ -359,7 +359,7 @@ export default function PointRegistrationPanel({
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-slate-100 p-1">
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted p-1">
           <TabsTrigger value="cadastro" className="text-xs">Cadastro</TabsTrigger>
           {Array.from({ length: 10 }, (_, i) => {
             const n = i + 1;
@@ -378,7 +378,7 @@ export default function PointRegistrationPanel({
                   <span className="ml-1 w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" title="Acima da tolerância máxima" />
                 )}
                 {!isTolAlert(n) && filled && (
-                  <span className="ml-1 w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" title="Ponto preenchido" />
+                  <span className="ml-1 w-1.5 h-1.5 rounded-full bg-primary/100 inline-block" title="Ponto preenchido" />
                 )}
               </TabsTrigger>
             );
@@ -386,8 +386,8 @@ export default function PointRegistrationPanel({
         </TabsList>
 
         <TabsContent value="cadastro" className="mt-4">
-          <div className="border rounded-lg p-4 space-y-3 bg-slate-50/50">
-            <p className="text-sm text-slate-600">
+          <div className="border rounded-lg p-4 space-y-3 bg-background/50">
+            <p className="text-sm text-muted-foreground">
               Configure cada ponto P1–P10 nas abas correspondentes. O sistema identifica automaticamente quais pontos estão preenchidos.
               Mínimo de {MIN_READINGS_AFTER} leituras depois do ajuste por ponto utilizado.
             </p>
@@ -395,7 +395,7 @@ export default function PointRegistrationPanel({
               <Badge variant="outline">{filledCount} ponto(s) preenchido(s)</Badge>
               <Badge variant="outline">{weightItems.length} peso(s) cadastrado(s)</Badge>
             </div>
-            <ul className="text-xs text-slate-500 list-disc pl-4 space-y-1">
+            <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
               <li>Resolução (d) e divisão de verificação vêm da balança cadastrada ou manual no certificado</li>
               <li>Deriva do padrão: 1ª calibração = Ue; 2ª+ = V.V.C − V.V.C anterior</li>
               <li>Seleção de pesos preenche automaticamente o V.R. (soma dos V.V.C)</li>

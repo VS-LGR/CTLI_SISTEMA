@@ -30,7 +30,7 @@ function FormulaTable({ rows }) {
     <div className="overflow-x-auto -mx-1 px-1">
       <table className="w-full text-xs sm:text-sm min-w-[280px]">
         <thead>
-          <tr className="border-b border-slate-200 text-left text-[10px] uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
             <th className="py-2 pr-2 font-medium">Resultado</th>
             <th className="py-2 pr-2 font-medium">Fórmula</th>
             <th className="py-2 font-medium hidden sm:table-cell">Origem</th>
@@ -38,14 +38,14 @@ function FormulaTable({ rows }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-slate-100 last:border-0">
-              <td className="py-2 pr-2 font-medium text-slate-800 align-top whitespace-nowrap">
+            <tr key={row.id} className="border-b border-border last:border-0">
+              <td className="py-2 pr-2 font-medium text-foreground align-top whitespace-nowrap">
                 {row.result}
               </td>
-              <td className="py-2 pr-2 text-slate-700 align-top font-mono text-[11px] sm:text-xs leading-relaxed">
+              <td className="py-2 pr-2 text-foreground/90 align-top font-mono text-[11px] sm:text-xs leading-relaxed">
                 {row.formula}
               </td>
-              <td className="py-2 text-slate-500 align-top hidden sm:table-cell text-xs">
+              <td className="py-2 text-muted-foreground align-top hidden sm:table-cell text-xs">
                 {row.source}
               </td>
             </tr>
@@ -59,26 +59,26 @@ function FormulaTable({ rows }) {
 function DialogBody({ initialSection = "pontos" }) {
   return (
     <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-5">
-      <section id="calc-section-pontos" className={initialSection === "pontos" ? "ring-1 ring-blue-100 rounded-lg p-3 -m-1" : ""}>
-        <h3 className="text-sm font-semibold text-slate-900 mb-2">
+      <section id="calc-section-pontos" className={initialSection === "pontos" ? "ring-1 ring-primary/20 rounded-lg p-3 -m-1" : ""}>
+        <h3 className="text-sm font-semibold text-foreground mb-2">
           Por ponto de calibração (P1–P10)
         </h3>
         <FormulaTable rows={perPointFormulas} />
       </section>
 
-      <section id="calc-section-conformidade" className={initialSection === "conformidade" ? "ring-1 ring-blue-100 rounded-lg p-3 -m-1" : ""}>
-        <h3 className="text-sm font-semibold text-slate-900 mb-2">
+      <section id="calc-section-conformidade" className={initialSection === "conformidade" ? "ring-1 ring-primary/20 rounded-lg p-3 -m-1" : ""}>
+        <h3 className="text-sm font-semibold text-foreground mb-2">
           Metrologia legal / conformidade
         </h3>
-        <p className="text-xs text-slate-600 mb-2">
+        <p className="text-xs text-muted-foreground mb-2">
           Aplicável quando o certificado marca metrologia legal (portaria INmetro ou etiqueta IPEM).
         </p>
         <FormulaTable rows={conformityFormulas} />
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-slate-900 mb-2">Pré-requisitos para Calcular</h3>
-        <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-slate-700">
+        <h3 className="text-sm font-semibold text-foreground mb-2">Pré-requisitos para Calcular</h3>
+        <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-foreground/90">
           {dataRequirements.map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -86,8 +86,8 @@ function DialogBody({ initialSection = "pontos" }) {
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-slate-900 mb-2">Comportamento do sistema</h3>
-        <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-slate-600">
+        <h3 className="text-sm font-semibold text-foreground mb-2">Comportamento do sistema</h3>
+        <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-muted-foreground">
           {calculationNotes.map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -95,12 +95,12 @@ function DialogBody({ initialSection = "pontos" }) {
       </section>
 
       <section id="calc-section-checklist">
-        <h3 className="text-sm font-semibold text-slate-900 mb-2">Checklist Matriz (2)</h3>
-        <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-slate-600">
+        <h3 className="text-sm font-semibold text-foreground mb-2">Checklist Matriz (2)</h3>
+        <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm text-muted-foreground">
           {conformityChecklist.map((row) => (
             <li key={row.id}>
               <span className="font-medium">{row.item}</span>
-              <span className="text-slate-400"> — {row.status}</span>
+              <span className="text-muted-foreground"> — {row.status}</span>
             </li>
           ))}
         </ul>
@@ -140,7 +140,7 @@ export default function CertificateCalculationsHelp({
   const trigger = variant === "link" ? (
     <button
       type="button"
-      className="text-xs text-blue-600 hover:text-blue-800 hover:underline text-left"
+      className="text-xs text-primary hover:text-primary hover:underline text-left"
       aria-label="Ver fórmulas de conformidade"
     >
       Ver fórmulas de conformidade
@@ -156,7 +156,7 @@ export default function CertificateCalculationsHelp({
       )}
       aria-label="Ver fórmulas de cálculo do certificado"
     >
-      <Info size={16} weight="duotone" className="text-blue-600 shrink-0" />
+      <Info size={16} weight="duotone" className="text-primary shrink-0" />
       {!iconOnly && (
         <>
           <span className="hidden sm:inline">Como calculamos</span>
@@ -176,7 +176,7 @@ export default function CertificateCalculationsHelp({
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             Fórmulas aplicadas ao clicar em Calcular, conforme a planilha de emissão e o motor em{" "}
-            <code className="text-[10px] bg-slate-100 px-1 rounded">pointCalculations.js</code>.
+            <code className="text-[10px] bg-muted px-1 rounded">pointCalculations.js</code>.
           </DialogDescription>
         </DialogHeader>
         <DialogBody initialSection={initialSection} />

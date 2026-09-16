@@ -25,10 +25,10 @@ export default function DocumentRevisionsPanel({ tenantId }) {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <Card className="overflow-x-auto border-slate-200">
+    <Card className="overflow-x-auto border-border">
       <table className="w-full text-sm min-w-[700px]">
-        <thead className="bg-slate-50 border-b">
-          <tr className="text-[10px] uppercase text-slate-500">
+        <thead className="bg-background border-b">
+          <tr className="text-[10px] uppercase text-muted-foreground">
             <th className="px-3 py-2 text-left">Documento</th>
             <th className="px-3 py-2 text-left">Revisão</th>
             <th className="px-3 py-2 text-left">Emissão</th>

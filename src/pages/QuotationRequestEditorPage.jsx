@@ -78,16 +78,16 @@ function employeeOptionLabel(e) {
 
 function PartyPreview({ icon: Icon, title, lines }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 space-y-2 min-w-0">
-      <div className="flex items-center gap-2 text-slate-700">
-        <Icon size={18} className="text-blue-600 shrink-0" />
+    <div className="rounded-lg border border-border bg-background/60 p-4 space-y-2 min-w-0">
+      <div className="flex items-center gap-2 text-foreground/90">
+        <Icon size={18} className="text-primary shrink-0" />
         <span className="text-xs font-semibold uppercase tracking-wide">{title}</span>
       </div>
       <dl className="space-y-1.5 text-sm">
         {lines.map(({ label, value }) => (
           <div key={label} className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 min-w-0">
-            <dt className="text-slate-500 shrink-0">{label}</dt>
-            <dd className="text-slate-800 break-words">{value || "—"}</dd>
+            <dt className="text-muted-foreground shrink-0">{label}</dt>
+            <dd className="text-foreground break-words">{value || "—"}</dd>
           </div>
         ))}
       </dl>
@@ -290,10 +290,10 @@ export default function QuotationRequestEditorPage() {
   };
 
   if (!canAccessQuotationRequests(user?.role, user)) {
-    return <div className="p-8 text-slate-600">Sem permissão.</div>;
+    return <div className="p-8 text-muted-foreground">Sem permissão.</div>;
   }
   if (loading || !form) {
-    return <div className="p-8 text-slate-500">A carregar…</div>;
+    return <div className="p-8 text-muted-foreground">A carregar…</div>;
   }
 
   const selectedSections = sections.filter((s) => s.is_selected);
@@ -307,13 +307,13 @@ export default function QuotationRequestEditorPage() {
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-1">
-            <Link to={PR_66_QUOTATION_PATH} className="text-xs text-slate-500 hover:text-blue-600 inline-flex items-center gap-1">
+            <Link to={PR_66_QUOTATION_PATH} className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
               <ArrowLeft size={12} /> Voltar às solicitações
             </Link>
-            <h1 className="font-display text-2xl font-bold text-slate-900 truncate min-w-0">
+            <h1 className="font-display text-2xl font-bold text-foreground truncate min-w-0">
               {isNew ? "Nova solicitação de orçamento" : formatRequestNumber(form.request_number, form.request_year)}
             </h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {form.document_code} · {form.document_reference} · Rev. {form.document_revision} · Emissão do modelo 30/06/2025
             </p>
           </div>
@@ -346,7 +346,7 @@ export default function QuotationRequestEditorPage() {
                 <Copy size={16} className="mr-1.5" /> Duplicar
               </Button>
             )}
-            <Button size="sm" onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button size="sm" onClick={save} disabled={saving} className="bg-primary">
               <FloppyDisk size={16} className="mr-1.5" /> {saving ? "Salvando…" : "Salvar"}
             </Button>
           </div>
@@ -362,7 +362,7 @@ export default function QuotationRequestEditorPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
-        <TabsList className="w-full sm:w-auto flex flex-wrap h-auto gap-1 bg-white border border-slate-200 p-1 rounded-lg">
+        <TabsList className="w-full sm:w-auto flex flex-wrap h-auto gap-1 bg-card border border-border p-1 rounded-lg">
           <TabsTrigger value="geral" className="flex-1 sm:flex-none">Dados gerais</TabsTrigger>
           <TabsTrigger value="conteudo" className="flex-1 sm:flex-none">
             Tipo e conteúdo
@@ -371,13 +371,13 @@ export default function QuotationRequestEditorPage() {
         </TabsList>
 
         <TabsContent value="geral" className="space-y-4 mt-5">
-          <Card className="border-slate-200">
+          <Card className="border-border">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Identificação da solicitação</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="sm:col-span-2">
-                <Label className="text-xs text-slate-500">Nº da solicitação</Label>
+                <Label className="text-xs text-muted-foreground">Nº da solicitação</Label>
                 <div className="flex items-center gap-2 mt-1.5">
                   <Input
                     type="number"
@@ -386,20 +386,20 @@ export default function QuotationRequestEditorPage() {
                     value={form.request_number}
                     onChange={(e) => patchForm({ request_number: Number(e.target.value) })}
                   />
-                  <span className="text-slate-400 font-medium">/</span>
+                  <span className="text-muted-foreground font-medium">/</span>
                   <Input
                     type="number"
                     className="w-24 h-10 font-mono"
                     value={form.request_year}
                     onChange={(e) => patchForm({ request_year: Number(e.target.value) })}
                   />
-                  <span className="text-sm text-slate-500 hidden sm:inline">
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
                     → {formatRequestNumber(form.request_number, form.request_year)}
                   </span>
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <Label className="text-xs text-slate-500">Data da solicitação</Label>
+                <Label className="text-xs text-muted-foreground">Data da solicitação</Label>
                 <Input
                   type="date"
                   className="mt-1.5 h-10"
@@ -411,13 +411,13 @@ export default function QuotationRequestEditorPage() {
           </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card className="border-slate-200">
+            <Card className="border-border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Provedor e envio</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-xs text-slate-500">Provedor *</Label>
+                  <Label className="text-xs text-muted-foreground">Provedor *</Label>
                   <select
                     className={`${selectClass} mt-1.5`}
                     value={form.supplier_id || ""}
@@ -430,7 +430,7 @@ export default function QuotationRequestEditorPage() {
                   </select>
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-500">Enviado por *</Label>
+                  <Label className="text-xs text-muted-foreground">Enviado por *</Label>
                   <select
                     className={`${selectClass} mt-1.5`}
                     value={form.sent_by_id || ""}
@@ -443,9 +443,9 @@ export default function QuotationRequestEditorPage() {
                   </select>
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-500">Observações gerais</Label>
+                  <Label className="text-xs text-muted-foreground">Observações gerais</Label>
                   <textarea
-                    className="mt-1.5 w-full min-h-[80px] border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    className="mt-1.5 w-full min-h-[80px] border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                     value={form.notes || ""}
                     placeholder="Informações adicionais para o PDF…"
                     onChange={(e) => patchForm({ notes: e.target.value })}
@@ -483,10 +483,10 @@ export default function QuotationRequestEditorPage() {
         </TabsContent>
 
         <TabsContent value="conteudo" className="space-y-5 mt-5">
-          <Card className="border-slate-200">
+          <Card className="border-border">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Tipo de solicitação</CardTitle>
-              <p className="text-sm text-slate-500 font-normal mt-1">
+              <p className="text-sm text-muted-foreground font-normal mt-1">
                 Escolha um tipo. O preenchimento técnico aparece abaixo.
               </p>
             </CardHeader>
@@ -496,9 +496,9 @@ export default function QuotationRequestEditorPage() {
           </Card>
 
           {selectedSections.length === 0 ? (
-            <div className="text-center py-10 px-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50">
-              <p className="text-sm text-slate-600">Nenhum tipo selecionado.</p>
-              <p className="text-xs text-slate-500 mt-1">Selecione um tipo acima para preencher os dados técnicos.</p>
+            <div className="text-center py-10 px-4 rounded-xl border border-dashed border-border bg-background/50">
+              <p className="text-sm text-muted-foreground">Nenhum tipo selecionado.</p>
+              <p className="text-xs text-muted-foreground mt-1">Selecione um tipo acima para preencher os dados técnicos.</p>
             </div>
           ) : (
             <div className="space-y-4">

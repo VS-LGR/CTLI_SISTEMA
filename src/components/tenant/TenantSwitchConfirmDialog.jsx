@@ -34,8 +34,8 @@ export default function TenantSwitchConfirmDialog({
           <AlertDialogDescription asChild>
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>
-                Vai sair de <strong className="text-slate-800">{fromName}</strong> e passar a
-                pré-visualizar <strong className="text-slate-800">{toName}</strong>.
+                Vai sair de <strong className="text-foreground">{fromName}</strong> e passar a
+                pré-visualizar <strong className="text-foreground">{toName}</strong>.
               </p>
               <p>
                 Documentos, coletas, cadastros e ficheiros passam a ser apenas deste cliente.
@@ -49,7 +49,7 @@ export default function TenantSwitchConfirmDialog({
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-primary hover:bg-primary/90"
             disabled={busy || !pendingTenant}
             onClick={(e) => {
               e.preventDefault();

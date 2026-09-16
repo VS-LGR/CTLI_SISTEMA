@@ -9,7 +9,7 @@ export default function ProposalCommercialSection({ form, onChange, computedTota
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-slate-800">Condições comerciais</h3>
+      <h3 className="text-sm font-semibold text-foreground">Condições comerciais</h3>
       <div>
         <Label className="text-xs">Assunto</Label>
         <Input className="mt-1" value={form.subject || ""} onChange={(e) => set("subject", e.target.value)} />
@@ -18,7 +18,7 @@ export default function ProposalCommercialSection({ form, onChange, computedTota
         <div>
           <Label className="text-xs">Calibração antes de ajustes?</Label>
           <select
-            className="mt-1 w-full h-10 rounded-md border border-slate-200 bg-white px-2 text-sm"
+            className="mt-1 w-full h-10 rounded-md border border-border bg-card px-2 text-sm"
             value={form.adjust_before || ""}
             onChange={(e) => set("adjust_before", e.target.value)}
           >
@@ -28,7 +28,7 @@ export default function ProposalCommercialSection({ form, onChange, computedTota
         <div>
           <Label className="text-xs">Calibração depois de ajustes?</Label>
           <select
-            className="mt-1 w-full h-10 rounded-md border border-slate-200 bg-white px-2 text-sm"
+            className="mt-1 w-full h-10 rounded-md border border-border bg-card px-2 text-sm"
             value={form.adjust_after || ""}
             onChange={(e) => set("adjust_after", e.target.value)}
           >
@@ -47,7 +47,7 @@ export default function ProposalCommercialSection({ form, onChange, computedTota
           value={form.total_value !== "" && form.total_value != null ? form.total_value : computedTotal}
           onChange={(e) => set("total_value", e.target.value)}
         />
-        <p className="text-xs text-slate-500 mt-1">Soma das balanças: {computedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+        <p className="text-xs text-muted-foreground mt-1">Soma das balanças: {computedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
       </div>
     </div>
   );

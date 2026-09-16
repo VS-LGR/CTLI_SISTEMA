@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DASHBOARD_CERTIFICATE_STATUSES } from "@/lib/dashboardPortalMetrics";
 
-const PIE_COLORS = ["#1E3A5F", "#2563EB", "#0D9488", "#64748B", "#94A3B8"];
+const PIE_COLORS = ["#C2410C", "#EA580C", "#0D9488", "#B45309", "#78716C"];
 
 async function countTable(table, tenantId, extra = (q) => q) {
   let q = supabase
@@ -130,7 +130,7 @@ export default function DirectorMetricsDashboard({ tenantId, tenantName }) {
   }, [load]);
 
   if (loading && !metrics) {
-    return <div className="text-slate-600">Carregando métricas…</div>;
+    return <div className="text-muted-foreground">Carregando métricas…</div>;
   }
 
   if (error) {
@@ -150,11 +150,11 @@ export default function DirectorMetricsDashboard({ tenantId, tenantName }) {
   return (
     <div className="space-y-6" data-testid="director-metrics-dashboard">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Diretoria</p>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Diretoria</p>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
           Métricas {tenantName ? `— ${tenantName}` : ""}
         </h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Visualização dos indicadores do ambiente. Sem criação ou edição de documentos.
         </p>
       </div>
@@ -163,8 +163,8 @@ export default function DirectorMetricsDashboard({ tenantId, tenantName }) {
         {kpis.map((k) => (
           <Card key={k.label}>
             <CardContent className="p-4">
-              <p className="text-xs text-slate-500">{k.label}</p>
-              <p className="text-xl font-semibold text-slate-900 mt-1 tabular-nums">{k.value}</p>
+              <p className="text-xs text-muted-foreground">{k.label}</p>
+              <p className="text-xl font-semibold text-foreground mt-1 tabular-nums">{k.value}</p>
             </CardContent>
           </Card>
         ))}
@@ -203,7 +203,7 @@ export default function DirectorMetricsDashboard({ tenantId, tenantName }) {
           </CardHeader>
           <CardContent className="h-64">
             {metrics.monthly.length === 0 ? (
-              <p className="text-sm text-slate-500 py-12 text-center">Sem propostas no período.</p>
+              <p className="text-sm text-muted-foreground py-12 text-center">Sem propostas no período.</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={metrics.monthly}>
@@ -216,7 +216,7 @@ export default function DirectorMetricsDashboard({ tenantId, tenantName }) {
                       name === "receita" ? moneyBr(value) : value
                     }
                   />
-                  <Bar yAxisId="left" dataKey="propostas" fill="#2563EB" name="propostas" />
+                  <Bar yAxisId="left" dataKey="propostas" fill="#EA580C" name="propostas" />
                   <Bar yAxisId="right" dataKey="receita" fill="#0D9488" name="receita" />
                 </BarChart>
               </ResponsiveContainer>

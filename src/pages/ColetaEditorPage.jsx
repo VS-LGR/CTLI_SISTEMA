@@ -378,7 +378,7 @@ const ColetaEditorPage = () => {
     && canAccessCalibrationCertificates(user?.role, user);
 
   if (loading) {
-    return <p className="text-sm text-slate-500 py-12 text-center">A carregar formulário…</p>;
+    return <p className="text-sm text-muted-foreground py-12 text-center">A carregar formulário…</p>;
   }
 
   return (
@@ -388,7 +388,7 @@ const ColetaEditorPage = () => {
           <Button asChild variant="ghost" size="sm">
             <Link to={COLETA_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
           </Button>
-          <h1 className="font-display text-xl font-semibold text-slate-900">
+          <h1 className="font-display text-xl font-semibold text-foreground">
             {isNew ? "Nova coleta" : (
               formatColetaWorkOrderHeaderText({
                 commercial_proposal_ref: commercialProposalRef,
@@ -436,7 +436,7 @@ const ColetaEditorPage = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700" data-tour="tour-coleta-guardar">
+          <Button onClick={save} disabled={saving} className="bg-primary hover:bg-primary/90" data-tour="tour-coleta-guardar">
             <FloppyDisk size={18} className="mr-1" />
             {saving ? "A guardar…" : "Guardar"}
           </Button>
@@ -478,7 +478,7 @@ const ColetaEditorPage = () => {
         </div>
       )}
 
-      <Suspense fallback={<p className="text-sm text-slate-500 py-8 text-center">A carregar formulário…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted-foreground py-8 text-center">A carregar formulário…</p>}>
         <ColetaForm
           payload={payload}
           onChange={setPayload}

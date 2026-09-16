@@ -63,11 +63,11 @@ export default function ColetaTenantConfig({ tenantId, tenant, onSaved }) {
   };
 
   return (
-    <Card className="border-slate-200 max-w-2xl">
+    <Card className="border-border max-w-2xl">
       <CardContent className="p-4 space-y-6">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">Formulário RE-7.2A</h3>
-          <p className="text-sm text-slate-600 mt-1">
+          <h3 className="text-sm font-semibold text-foreground">Formulário RE-7.2A</h3>
+          <p className="text-sm text-muted-foreground mt-1">
             Título exibido no formulário e PDF: <strong>{code} {title} {revision}</strong>
           </p>
           <div className="grid sm:grid-cols-3 gap-3 mt-3">
@@ -77,7 +77,7 @@ export default function ColetaTenantConfig({ tenantId, tenant, onSaved }) {
           </div>
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">Laboratório (cabeçalho do certificado)</h3>
+          <h3 className="text-sm font-semibold text-foreground">Laboratório (cabeçalho do certificado)</h3>
           <div className="grid gap-3 mt-3">
             <div><Label className="text-xs">Endereço</Label><Input value={labAddress} onChange={(e) => setLabAddress(e.target.value)} /></div>
             <div className="grid sm:grid-cols-2 gap-3">
@@ -91,7 +91,7 @@ export default function ColetaTenantConfig({ tenantId, tenant, onSaved }) {
             <div><Label className="text-xs">POP de calibração</Label><Input value={popCode} onChange={(e) => setPopCode(e.target.value)} /></div>
           </div>
         </div>
-        <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button onClick={save} disabled={saving} className="bg-primary">
           {saving ? "A guardar…" : "Guardar configuração"}
         </Button>
       </CardContent>

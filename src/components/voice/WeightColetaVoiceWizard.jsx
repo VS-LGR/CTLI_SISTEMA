@@ -461,12 +461,12 @@ export default function WeightColetaVoiceWizard({
             </p>
           ) : field ? (
             <div className="space-y-3">
-              <p className="text-base font-medium text-slate-900">{field.label}</p>
-              <div className="rounded-md border bg-slate-50 px-3 py-3 min-h-[3.5rem]">
-                <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
+              <p className="text-base font-medium text-foreground">{field.label}</p>
+              <div className="rounded-md border bg-background px-3 py-3 min-h-[3.5rem]">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
                   {phase === "listening" || speech.listening ? "A ouvir" : "Aguardando"}
                 </p>
-                <p className="text-base text-slate-900 break-words">
+                <p className="text-base text-foreground break-words">
                   {speech.listening
                     ? (speech.interim || "A ouvir…")
                     : (speech.finalTranscript || "Fale o valor quando solicitado.")}
@@ -479,7 +479,7 @@ export default function WeightColetaVoiceWizard({
               ) : null}
             </div>
           ) : (
-            <p className="text-sm text-slate-600">Sequência vazia.</p>
+            <p className="text-sm text-muted-foreground">Sequência vazia.</p>
           )}
 
           <DialogFooter className="flex-col sm:flex-row gap-2">

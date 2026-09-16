@@ -21,11 +21,11 @@ export default function CertificateBulkActionBar({
   if (!selectedCount && mode !== "approval") return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
       {onToggleAll && (
         <label className="inline-flex items-center gap-2 cursor-pointer">
           <Checkbox checked={allSelected} onCheckedChange={onToggleAll} disabled={busy || !totalSelectable} />
-          <span className="text-slate-700">
+          <span className="text-foreground/90">
             {selectedCount ? `${selectedCount} selecionado(s)` : "Selecionar"}
           </span>
         </label>
@@ -37,7 +37,7 @@ export default function CertificateBulkActionBar({
         </Button>
       )}
       {canSend && onSendEmail && (
-        <Button type="button" size="sm" variant="default" className="bg-blue-600 hover:bg-blue-700" onClick={onSendEmail} disabled={busy || !selectedCount}>
+        <Button type="button" size="sm" variant="default" className="bg-primary hover:bg-primary/90" onClick={onSendEmail} disabled={busy || !selectedCount}>
           <PaperPlaneTilt size={16} className="mr-1" />
           Enviar por e-mail ({selectedCount || 0})
         </Button>

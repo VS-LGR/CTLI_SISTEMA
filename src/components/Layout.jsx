@@ -40,6 +40,7 @@ import { useAdminTenantSwitch } from "@/hooks/useAdminTenantSwitch";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import TenantSwitchConfirmDialog from "@/components/tenant/TenantSwitchConfirmDialog";
 import { ModuleTourProvider } from "@/components/help/ModuleTourProvider";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 import { HELP_PATH } from "@/lib/help/helpModules";
 import { TOUR_ENSURE_NAV_EVENT } from "@/lib/help/tourNavBridge";
 
@@ -70,7 +71,7 @@ const REQ_ICONS = {
 
 function SidebarBrand({ collapsed = false }) {
   return (
-    <div className="px-4 sm:px-6 py-5 border-b border-slate-800 shrink-0">
+    <div className="px-4 sm:px-6 py-5 border-b border-sidebar-border shrink-0">
       <AppBrand variant={collapsed ? "sidebar-collapsed" : "sidebar"} />
     </div>
   );
@@ -196,15 +197,15 @@ const Layout = () => {
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all ${
       isActive
-        ? "bg-blue-600 text-white font-medium shadow-sm"
-        : "text-slate-300 hover:bg-slate-800 hover:text-white"
+        ? "bg-primary text-primary-foreground font-medium shadow-sm"
+        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
     }`;
 
   const subNavLinkClass = ({ isActive }) =>
     `flex items-center gap-2 pl-9 pr-3 py-2 rounded-md text-xs transition-all leading-snug ${
       isActive
-        ? "bg-slate-800 text-white font-medium ring-1 ring-inset ring-blue-500/40"
-        : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
+        ? "bg-sidebar-accent text-sidebar-foreground font-medium ring-1 ring-inset ring-primary/50"
+        : "text-sidebar-muted hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
     }`;
 
   const reqGroupPathPrefix = (rid) => `/requirement/${rid}`;
@@ -276,7 +277,7 @@ const Layout = () => {
         >
           <CollapsibleTrigger
             className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
-              isListaMestraActive ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              isListaMestraActive ? "text-sidebar-foreground bg-sidebar-accent" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
             }`}
             data-testid="nav-client-lista-mestra"
           >
@@ -335,7 +336,7 @@ const Layout = () => {
 
       {!restrictedNav && (
         <>
-          <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+          <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-sidebar-muted">
             Requisitos
           </div>
           {reqMenuItems.map((r) => {
@@ -365,7 +366,7 @@ const Layout = () => {
               >
                 <CollapsibleTrigger
                   className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-md text-sm text-left transition-all ${
-                    isReqGroupActive(r.id) ? "text-white bg-slate-800/80" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                    isReqGroupActive(r.id) ? "text-sidebar-foreground bg-sidebar-accent" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   }`}
                   data-testid={`nav-req-group-${r.id}`}
                 >
@@ -397,7 +398,7 @@ const Layout = () => {
             );
           })}
 
-          <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+          <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-sidebar-muted">
             Sistema
           </div>
           {showBackupNav && (
@@ -408,7 +409,7 @@ const Layout = () => {
 
           {isAdmin && (
             <>
-              <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+              <div className="pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-sidebar-muted">
                 Administração
               </div>
               <NavLink to="/admin/clients" className={navLinkClass} data-testid="nav-admin-clients" onClick={onNavigate}>
@@ -423,7 +424,7 @@ const Layout = () => {
   );
 
   const renderUserMenu = (onNavigate) => (
-    <div className="p-3 border-t border-slate-800 shrink-0 space-y-1">
+    <div className="p-3 border-t border-sidebar-border shrink-0 space-y-1">
       <NavLink
         to={HELP_PATH}
         className={navLinkClass}
@@ -436,13 +437,13 @@ const Layout = () => {
       </NavLink>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 transition" data-testid="user-menu-trigger">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold shrink-0">
+          <button type="button" className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-sidebar-accent transition" data-testid="user-menu-trigger">
+            <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold shrink-0">
               {user?.name?.[0]?.toUpperCase() || "U"}
             </div>
             <div className="flex-1 text-left min-w-0">
               <div className="text-sm font-medium truncate">{user?.name}</div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400">{roleShort(user?.role)}</div>
+              <div className="text-[10px] uppercase tracking-wider text-sidebar-muted">{roleShort(user?.role)}</div>
             </div>
             <CaretDown size={14} className="shrink-0" />
           </button>
@@ -475,10 +476,10 @@ const Layout = () => {
     <EulaAcceptanceGate>
     <IdleSessionGuard />
     <ModuleTourProvider currentTenant={currentTenant}>
-    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Desktop sidebar — fixo quando expandido; overlay quando recolhido */}
       <aside
-        className={`hidden lg:flex w-64 fixed inset-y-0 left-0 bg-slate-900 text-white border-r border-slate-800 z-40 flex-col transition-transform duration-200 ease-out ${
+        className={`hidden lg:flex w-64 fixed inset-y-0 left-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border z-40 flex-col transition-transform duration-200 ease-out ${
           desktopSidebarVisible ? "translate-x-0" : "-translate-x-full pointer-events-none"
         }`}
         aria-hidden={!desktopSidebarVisible}
@@ -489,7 +490,7 @@ const Layout = () => {
       {sidebarCollapsed && desktopSidebarOverlay && (
         <button
           type="button"
-          className="hidden lg:block fixed inset-0 z-[35] bg-slate-900/40 backdrop-blur-[1px]"
+          className="hidden lg:block fixed inset-0 z-[35] bg-background/40 backdrop-blur-[1px]"
           aria-label="Fechar menu"
           onClick={closeDesktopSidebarOverlay}
         />
@@ -499,7 +500,7 @@ const Layout = () => {
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <SheetContent
           side="left"
-          className="w-[min(18rem,88vw)] max-w-xs p-0 gap-0 flex flex-col bg-slate-900 text-white border-slate-800 [&>button]:text-slate-300 [&>button]:hover:text-white [&>button]:right-3 [&>button]:top-4"
+          className="w-[min(18rem,88vw)] max-w-xs p-0 gap-0 flex flex-col bg-sidebar text-sidebar-foreground border-sidebar-border [&>button]:text-sidebar-muted [&>button]:hover:text-sidebar-foreground [&>button]:right-3 [&>button]:top-4"
         >
           {sidebarInner(closeMobileNav)}
         </SheetContent>
@@ -510,12 +511,12 @@ const Layout = () => {
           sidebarCollapsed ? "lg:pl-0" : "lg:pl-64"
         }`}
       >
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200 flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-3 min-h-[4rem]">
+        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-3 min-h-[4rem]">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="shrink-0 text-slate-700 hover:bg-slate-100"
+            className="shrink-0 h-11 w-11 text-foreground hover:bg-accent"
             onClick={() => {
               if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
                 toggleDesktopMenu();
@@ -541,7 +542,7 @@ const Layout = () => {
             </span>
           </Button>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 truncate">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
               {isAdmin ? "Ambiente atual (pré-visualização)" : "O seu ambiente"}
             </div>
             {isAdmin ? (
@@ -549,7 +550,7 @@ const Layout = () => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-2 text-left text-base sm:text-lg font-display font-semibold text-slate-900 hover:text-blue-600 transition max-w-full"
+                    className="flex items-center gap-2 text-left text-base sm:text-lg font-display font-semibold text-foreground hover:text-primary transition max-w-full"
                     data-testid="tenant-switcher"
                   >
                     <span className="truncate">
@@ -562,39 +563,40 @@ const Layout = () => {
                   <DropdownMenuLabel>Trocar de ambiente (cliente)</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {tenants.length === 0 && (
-                    <div className="px-3 py-2 text-sm text-slate-500">Nenhum ambiente. Crie um em Administração CTLI → Ambientes.</div>
+                    <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum ambiente. Crie um em Administração CTLI → Ambientes.</div>
                   )}
                   {tenants.map((t) => (
                     <DropdownMenuItem
                       key={t.id}
                       onClick={() => requestAdminTenantSwitch(t.id)}
                       data-testid={`tenant-option-${t.id}`}
-                      className={t.id === currentTenantId ? "bg-blue-50 text-blue-700" : ""}
+                      className={t.id === currentTenantId ? "bg-primary/10 text-primary" : ""}
                     >
                       <div className="min-w-0">
                         <div className="font-medium truncate">{t.name}</div>
-                        {t.code && <div className="text-xs text-slate-500 truncate">{t.code}</div>}
+                        {t.code && <div className="text-xs text-muted-foreground truncate">{t.code}</div>}
                       </div>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="text-base sm:text-lg font-display font-semibold text-slate-900 mt-0.5 truncate" data-testid="tenant-switcher">
+              <div className="text-base sm:text-lg font-display font-semibold text-foreground mt-0.5 truncate" data-testid="tenant-switcher">
                 {currentTenant?.name || "—"}
               </div>
             )}
           </div>
+          <ThemeToggle className="shrink-0" />
         </header>
 
         <main className="relative flex-1 p-4 sm:p-6 lg:p-8 fade-in min-w-0 max-w-full overflow-x-hidden">
           {tenantSwitching && (
             <div
-              className="absolute inset-0 z-20 flex items-center justify-center bg-white/75 backdrop-blur-sm"
+              className="absolute inset-0 z-20 flex items-center justify-center bg-background/75 backdrop-blur-sm"
               aria-busy="true"
               aria-live="polite"
             >
-              <span className="text-sm text-slate-600">A mudar de ambiente…</span>
+              <span className="text-sm text-muted-foreground">A mudar de ambiente…</span>
             </div>
           )}
           <RoleRouteGuard
@@ -611,7 +613,7 @@ const Layout = () => {
           />
         </main>
 
-        <footer className="shrink-0 border-t border-slate-200 bg-white/80 px-4 sm:px-6 lg:px-8 py-3">
+        <footer className="shrink-0 border-t border-border bg-card/80 px-4 sm:px-6 lg:px-8 py-3">
           <LegalCopyrightLinks />
         </footer>
       </div>

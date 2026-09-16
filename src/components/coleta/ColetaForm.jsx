@@ -42,8 +42,8 @@ const READING_INPUT = "h-11 text-base sm:text-sm font-mono tabular-nums";
 function Field({ label, children, className = "", hint }) {
   return (
     <div className={className}>
-      <Label className="text-xs text-slate-600">{label}</Label>
-      {hint ? <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{hint}</p> : null}
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      {hint ? <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{hint}</p> : null}
       <div className="mt-1">{children}</div>
     </div>
   );
@@ -53,13 +53,13 @@ function SectionCard({ id, num, title, children, headerAction, emphasis = false,
   return (
     <Card
       id={id}
-      className={emphasis ? "border-blue-300 shadow-sm ring-1 ring-blue-100 scroll-mt-24" : "scroll-mt-24"}
+      className={emphasis ? "border-primary/40 shadow-sm ring-1 ring-primary/20 scroll-mt-24" : "scroll-mt-24"}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="text-base font-display">{num}) {title}</CardTitle>
-            {subtitle ? <p className="text-xs text-slate-600 mt-1">{subtitle}</p> : null}
+            {subtitle ? <p className="text-xs text-muted-foreground mt-1">{subtitle}</p> : null}
           </div>
           {headerAction}
         </div>
@@ -73,7 +73,7 @@ function FieldNav({ items }) {
   return (
     <nav
       aria-label="Secções da coleta"
-      className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-white/95 backdrop-blur border-b border-slate-200 mb-4"
+      className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-white/95 backdrop-blur border-b border-border mb-4"
     >
       <div className="flex gap-1.5 overflow-x-auto pb-0.5">
         {items.map((item) => (
@@ -83,8 +83,8 @@ function FieldNav({ items }) {
             onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
             className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
               item.primary
-                ? "border-blue-300 bg-blue-50 text-blue-800"
-                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-border bg-background text-foreground/90 hover:bg-accent"
             }`}
           >
             {item.label}
@@ -99,7 +99,7 @@ function RadioRow({ label, options, value, onChange, disabled = false }) {
   const gid = label.replace(/\s/g, "-");
   return (
     <div>
-      <Label className="text-xs text-slate-600 mb-2 block">{label}</Label>
+      <Label className="text-xs text-muted-foreground mb-2 block">{label}</Label>
       <RadioGroup value={value || ""} onValueChange={onChange} disabled={disabled} className="flex flex-wrap gap-3">
         {options.map((o) => (
           <div className="flex items-center gap-1.5" key={o.value}>
@@ -323,22 +323,22 @@ export default function ColetaForm({
     <div className="space-y-5">
       <FieldNav items={navItems} />
 
-      <div className="rounded-lg border bg-slate-50 px-4 py-3 text-center space-y-1">
+      <div className="rounded-lg border bg-background px-4 py-3 text-center space-y-1">
         {formatColetaProposalLine(commercialProposalRef) && (
-          <p className="text-xs text-slate-600">{formatColetaProposalLine(commercialProposalRef)}</p>
+          <p className="text-xs text-muted-foreground">{formatColetaProposalLine(commercialProposalRef)}</p>
         )}
         {!isNew && formatColetaOsTitle({ collectionNumber, collectionYear }) && (
-          <p className="text-sm font-semibold text-slate-800">
+          <p className="text-sm font-semibold text-foreground">
             {formatColetaOsTitle({ collectionNumber, collectionYear })}
           </p>
         )}
         {isNew && (
           <>
-            <p className="text-xs text-slate-600">Referente à Proposta Comercial:</p>
+            <p className="text-xs text-muted-foreground">Referente à Proposta Comercial:</p>
             {linkedProposalId ? (
               <div className="mt-1 space-y-1">
                 <p className="font-mono text-sm font-semibold">{commercialProposalRef || "—"}</p>
-                <Link to={proposalEditorPath(linkedProposalId)} className="text-xs text-blue-600 hover:underline">
+                <Link to={proposalEditorPath(linkedProposalId)} className="text-xs text-primary hover:underline">
                   Ver proposta vinculada
                 </Link>
               </div>
@@ -353,9 +353,9 @@ export default function ColetaForm({
           </>
         )}
         <p className="text-sm font-semibold mt-2">COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA</p>
-        <p className="text-xs text-slate-500">Cód. RE-7.2A  Ref. PR-7.2  Rev.03 de 14/05/2026</p>
+        <p className="text-xs text-muted-foreground">Cód. RE-7.2A  Ref. PR-7.2  Rev.03 de 14/05/2026</p>
         {headerLocked && (
-          <p className="text-xs text-blue-800 mt-2 rounded-md border border-blue-200 bg-blue-50 px-2 py-1.5 text-left sm:text-center">
+          <p className="text-xs text-primary mt-2 rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5 text-left sm:text-center">
             Fluxo de campo: confirme o cadastro abaixo e avance para <strong>Ambiente/TBH</strong>, depois <strong>leituras</strong>.
           </p>
         )}
@@ -363,10 +363,10 @@ export default function ColetaForm({
 
       <div id="coleta-cadastro" className="scroll-mt-24 space-y-3">
         {headerLocked && (
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+          <div className="rounded-lg border border-border bg-card px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-slate-900">Dados da proposta (somente leitura)</p>
-              <p className="text-xs text-slate-600 truncate mt-0.5">
+              <p className="text-sm font-medium text-foreground">Dados da proposta (somente leitura)</p>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
                 {[payload.cliente?.cliente, payload.balanca?.serie && `Série ${payload.balanca.serie}`, payload.balanca?.fabricante, payload.balanca?.modelo]
                   .filter(Boolean)
                   .join(" · ") || "Cliente e balança pré-preenchidos"}
@@ -380,9 +380,9 @@ export default function ColetaForm({
         <div className={`space-y-4 ${headerLocked && !headerOpen ? "hidden" : ""}`}>
       <SectionCard num="1" title="Dados do Cliente">
         {endCustomers.length === 0 ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Nenhum cliente cadastrado.{" "}
-            <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+            <Link to={cadastroSectionPath("clientes")} className="text-primary hover:underline">
               PR-7.1 → Clientes
             </Link>
           </p>
@@ -392,7 +392,7 @@ export default function ColetaForm({
               value={selectedEndCustomerId}
               onChange={(e) => onSelectEndCustomer(e.target.value)}
               disabled={headerLocked}
-              className="w-full border rounded-md h-10 px-3 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-700"
+              className="w-full border rounded-md h-10 px-3 text-sm bg-card disabled:bg-muted disabled:text-foreground/90"
             >
               <option value="">— Selecionar —</option>
               {endCustomers.map((c) => (
@@ -439,7 +439,7 @@ export default function ColetaForm({
               value={scaleRegistrationId || "__manual__"}
               onChange={(e) => applyScaleRegistration(e.target.value)}
               disabled={headerLocked}
-              className="w-full border rounded-md h-10 px-3 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-700"
+              className="w-full border rounded-md h-10 px-3 text-sm bg-card disabled:bg-muted disabled:text-foreground/90"
             >
               <option value="__manual__">— Preencher manualmente —</option>
               {scaleList.map((s) => (
@@ -471,7 +471,7 @@ export default function ColetaForm({
               </p>
             )}
             {showAllScales && selectedEndCustomerId && (
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 A mostrar todas as balanças do ambiente.{" "}
                 <button
                   type="button"
@@ -519,7 +519,7 @@ export default function ColetaForm({
               value={payload.balanca.unidade || ""}
               disabled={headerLocked}
               onChange={(e) => setBalanca("unidade", e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm disabled:bg-slate-100"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm disabled:bg-muted"
             >
               <option value="">—</option>
               {UNIDADE_OPTIONS.map((o) => (
@@ -528,7 +528,7 @@ export default function ColetaForm({
             </select>
           </Field>
         </div>
-        <p className="text-xs text-slate-500 mt-1">Unidade padrão dos pontos de calibração (secção 6).</p>
+        <p className="text-xs text-muted-foreground mt-1">Unidade padrão dos pontos de calibração (secção 6).</p>
         <RadioRow
           label="Tipo de balança"
           options={TIPO_BALANCA_OPTIONS}
@@ -643,8 +643,8 @@ export default function ColetaForm({
           envCerts={envCerts}
           onAmbienteChange={(ambiente) => onChange({ ...payload, ambiente })}
         />
-        <div className="rounded-md border border-slate-100 bg-slate-50/60 p-3 space-y-3">
-          <p className="text-xs font-medium text-slate-700">Condições do local</p>
+        <div className="rounded-md border border-border bg-background/60 p-3 space-y-3">
+          <p className="text-xs font-medium text-foreground/90">Condições do local</p>
           <RadioRow label="A balança foi ajustada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_ajustada} onChange={(v) => setAmbiente("balanca_ajustada", v)} />
           <RadioRow label="A balança foi nivelada?" options={TRI_STATE_OPTIONS} value={payload.ambiente.balanca_nivelada} onChange={(v) => setAmbiente("balanca_nivelada", v)} />
           <RadioRow label="Existe vibração no local?" options={BINARY_OPTIONS} value={payload.ambiente.existe_vibracao} onChange={(v) => setAmbiente("existe_vibracao", v)} />
@@ -689,9 +689,9 @@ export default function ColetaForm({
               })}
             />
           </Field>
-          <div className="rounded-md border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-border overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-background border-b border-border">
                 <tr>
                   <th className="px-2 py-1.5 text-left font-semibold w-12">Ponto</th>
                   <th className="px-2 py-1.5 text-left font-semibold">Antes</th>
@@ -700,8 +700,8 @@ export default function ColetaForm({
               </thead>
               <tbody>
                 {payload.excentricidade.pontos.map((pt, i) => (
-                  <tr key={i} className="border-b border-slate-100 last:border-0">
-                    <td className="px-2 py-1 font-mono text-xs text-slate-600 align-middle">{i + 1}</td>
+                  <tr key={i} className="border-b border-border last:border-0">
+                    <td className="px-2 py-1 font-mono text-xs text-muted-foreground align-middle">{i + 1}</td>
                     <td className="px-1.5 py-1 align-middle">
                       <Input
                         inputMode="decimal"
@@ -791,9 +791,9 @@ export default function ColetaForm({
         ) : null}
       >
         {!calPointEntries.length ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Nenhum ponto com valor nominal.{" "}
-            <button type="button" className="text-blue-700 underline" onClick={() => setShowEmptyCalPoints(true)}>
+            <button type="button" className="text-primary underline" onClick={() => setShowEmptyCalPoints(true)}>
               Mostrar todos os pontos
             </button>
           </p>
@@ -840,7 +840,7 @@ export default function ColetaForm({
           <FormRowsTableShell tableMinWidth="800px">
             <FormRowsTableHead>
               <tr>
-                <th className="p-2 font-semibold sticky left-0 z-[1] bg-slate-50">Ponto</th>
+                <th className="p-2 font-semibold sticky left-0 z-[1] bg-background">Ponto</th>
                 <th className="p-2 font-semibold" title="Valor nominal do Peso de Referência aplicado">Valor nominal</th>
                 <th className="p-2 font-semibold w-16" title="Unidade de massa">Un.</th>
                 <th className="p-2 font-semibold">Leitura antes do ajuste</th>
@@ -852,8 +852,8 @@ export default function ColetaForm({
             </FormRowsTableHead>
             <FormRowsTableBody>
               {calPointEntries.map(({ pt, index: i }) => (
-                <tr key={i} className="border-b border-slate-100">
-                  <td className="p-2 font-mono align-top sticky left-0 z-[1] bg-white">P{i + 1}</td>
+                <tr key={i} className="border-b border-border">
+                  <td className="p-2 font-mono align-top sticky left-0 z-[1] bg-card">P{i + 1}</td>
                   <td className="p-1 align-top min-w-[88px]">
                     <Input
                       inputMode="decimal"
@@ -868,7 +868,7 @@ export default function ColetaForm({
                       value={pt.peso_nominal_unidade || defaultUnit}
                       disabled={headerLocked}
                       onChange={(e) => setCalPontoNominal(i, pt.peso_nominal_valor || "", e.target.value)}
-                      className="flex h-11 w-full rounded-md border border-input bg-transparent px-1 text-xs shadow-sm disabled:bg-slate-100"
+                      className="flex h-11 w-full rounded-md border border-input bg-transparent px-1 text-xs shadow-sm disabled:bg-muted"
                     >
                       {UNIDADE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>

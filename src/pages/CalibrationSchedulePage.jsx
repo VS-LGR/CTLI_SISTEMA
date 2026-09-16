@@ -142,7 +142,7 @@ export default function CalibrationSchedulePage({ embedded = false }) {
   };
 
   if (!isSupabaseAuthMode || !currentTenantId) {
-    return <p className="text-sm text-slate-500 p-8">Ligação Supabase e ambiente necessários.</p>;
+    return <p className="text-sm text-muted-foreground p-8">Ligação Supabase e ambiente necessários.</p>;
   }
 
   return (
@@ -150,9 +150,9 @@ export default function CalibrationSchedulePage({ embedded = false }) {
       {!embedded && (
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4 · RE-6.4A</div>
-            <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Cronograma de Calibração</h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">PR-6.4 · RE-6.4A</div>
+            <h1 className="font-display text-xl font-semibold text-foreground mt-1">Cronograma de Calibração</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Agenda Previsto / Realizado por certificado (peso e thermo).
             </p>
           </div>
@@ -177,10 +177,10 @@ export default function CalibrationSchedulePage({ embedded = false }) {
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm text-slate-600">
+        <label className="text-sm text-muted-foreground">
           Ano inicial
           <select
-            className="ml-2 h-9 rounded border border-slate-200 bg-white px-2 text-sm"
+            className="ml-2 h-9 rounded border border-border bg-card px-2 text-sm"
             value={yearStart}
             onChange={(e) => setYearStart(Number(e.target.value))}
           >
@@ -189,7 +189,7 @@ export default function CalibrationSchedulePage({ embedded = false }) {
             ))}
           </select>
         </label>
-        <span className="text-xs text-slate-500">Exibindo marcações de {focusYear} (exportação PDF).</span>
+        <span className="text-xs text-muted-foreground">Exibindo marcações de {focusYear} (exportação PDF).</span>
         {overdueCount > 0 && (
           <Badge variant="secondary" className="bg-amber-100 text-amber-900 gap-1">
             <Warning size={12} /> {overdueCount} vencido(s)
@@ -197,12 +197,12 @@ export default function CalibrationSchedulePage({ embedded = false }) {
         )}
       </div>
 
-      <Card className="border-slate-200 overflow-hidden">
+      <Card className="border-border overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-xs min-w-[1100px]">
-            <thead className="bg-slate-50 text-slate-600">
+            <thead className="bg-background text-muted-foreground">
               <tr>
-                <th className="p-2 text-left sticky left-0 bg-slate-50 min-w-[200px]">Certificado</th>
+                <th className="p-2 text-left sticky left-0 bg-background min-w-[200px]">Certificado</th>
                 <th className="p-2 text-left min-w-[90px]">Situação</th>
                 {MONTH_SHORT.map((m) => (
                   <th key={m} className="p-2 text-center min-w-[52px]">{m}</th>
@@ -211,16 +211,16 @@ export default function CalibrationSchedulePage({ embedded = false }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={14} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={14} className="p-8 text-center text-muted-foreground">A carregar…</td></tr>
               ) : !rows.length ? (
-                <tr><td colSpan={14} className="p-8 text-center text-slate-500">Nenhum certificado cadastrado.</td></tr>
+                <tr><td colSpan={14} className="p-8 text-center text-muted-foreground">Nenhum certificado cadastrado.</td></tr>
               ) : rows.map((r) => (
                 <React.Fragment key={`${r.source}-${r.sourceId}`}>
-                  <tr className={`border-t border-slate-100 ${r.overdue ? "bg-amber-50/40" : ""}`}>
+                  <tr className={`border-t border-border ${r.overdue ? "bg-amber-50/40" : ""}`}>
                     <td className="p-2 sticky left-0 bg-inherit font-medium max-w-[220px]" rowSpan={2}>
                       <EllipsisTooltip label={r.label} className="block">{r.label}</EllipsisTooltip>
                     </td>
-                    <td className="p-2 text-slate-600">Previsto</td>
+                    <td className="p-2 text-muted-foreground">Previsto</td>
                     {MONTH_SHORT.map((_, i) => {
                       const m = i + 1;
                       const on = r.marks?.[focusYear]?.previsto?.[m];
@@ -233,7 +233,7 @@ export default function CalibrationSchedulePage({ embedded = false }) {
                             aria-pressed={Boolean(on)}
                             aria-busy={cellPending}
                             className={`h-7 w-7 rounded text-xs font-semibold transition-opacity ${
-                              on ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
+                              on ? "bg-primary" : "bg-muted text-muted-foreground"
                             } ${cellPending ? "opacity-60" : ""}`}
                             onClick={() => toggle(r, "previsto", m)}
                           >
@@ -244,7 +244,7 @@ export default function CalibrationSchedulePage({ embedded = false }) {
                     })}
                   </tr>
                   <tr className={r.overdue ? "bg-amber-50/40" : ""}>
-                    <td className="p-2 text-slate-600">Realizado</td>
+                    <td className="p-2 text-muted-foreground">Realizado</td>
                     {MONTH_SHORT.map((_, i) => {
                       const m = i + 1;
                       const on = r.marks?.[focusYear]?.realizado?.[m];
@@ -257,7 +257,7 @@ export default function CalibrationSchedulePage({ embedded = false }) {
                             aria-pressed={Boolean(on)}
                             aria-busy={cellPending}
                             className={`h-7 w-7 rounded text-xs font-semibold transition-opacity ${
-                              on ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400"
+                              on ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground"
                             } ${cellPending ? "opacity-60" : ""}`}
                             onClick={() => toggle(r, "realizado", m)}
                           >

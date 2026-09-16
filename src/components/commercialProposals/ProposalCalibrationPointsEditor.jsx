@@ -19,7 +19,7 @@ export default function ProposalCalibrationPointsEditor({ points = [], onChange,
       <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {points.map((p, i) => (
           <div key={p.point_number ?? i + 1} className="min-w-0">
-            <Label className="text-[10px] text-slate-500">P{p.point_number ?? i + 1}</Label>
+            <Label className="text-[10px] text-muted-foreground">P{p.point_number ?? i + 1}</Label>
             <MassValueField
               compact
               showUnit={false}
@@ -35,11 +35,11 @@ export default function ProposalCalibrationPointsEditor({ points = [], onChange,
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-slate-500 mt-1">
+      <p className="text-[10px] text-muted-foreground mt-1">
         Unidade dos pontos: {defaultUnit}
       </p>
       {filled.length > 0 && (
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-xs text-muted-foreground mt-2">
           Resumo: {filled.map((p) => formatMassDisplay(p.nominal_value, p.nominal_unit || defaultUnit, { fallback: "" })).filter(Boolean).join(", ")}
         </p>
       )}

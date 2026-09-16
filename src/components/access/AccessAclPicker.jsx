@@ -111,7 +111,7 @@ export default function AccessAclPicker({
   return (
     <div className={`space-y-3 min-w-0 ${className}`} data-testid="access-acl-picker">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium text-slate-800">Liberações de acesso</p>
+        <p className="text-sm font-medium text-foreground">Liberações de acesso</p>
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={selectAll}>
             Tudo
@@ -121,15 +121,15 @@ export default function AccessAclPicker({
           </Button>
         </div>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Marque apenas os módulos e sub-procedimentos (ex.: PR-7.1, PR-6.2) que esta conta pode usar.
         A seleção gravada prevalece sobre o padrão do nível; alterações manuais não são apagadas ao
         mudar o nível (use “Padrão do nível” para repor).
       </p>
 
-      <div className="max-h-[min(24rem,50vh)] overflow-y-auto overscroll-contain rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+      <div className="max-h-[min(24rem,50vh)] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card divide-y divide-border">
         <div className="p-3 space-y-2">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Módulos operacionais</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Módulos operacionais</p>
           <ul className="space-y-2">
             {catalog.modules.map((m) => (
               <li key={m.id} className="flex items-start gap-2 min-w-0">
@@ -139,7 +139,7 @@ export default function AccessAclPicker({
                   disabled={disabled}
                   onCheckedChange={(v) => toggleModule(m.id, v === true)}
                 />
-                <label htmlFor={`acl-mod-${m.id}`} className="text-sm text-slate-700 leading-snug cursor-pointer min-w-0">
+                <label htmlFor={`acl-mod-${m.id}`} className="text-sm text-foreground/90 leading-snug cursor-pointer min-w-0">
                   {m.label}
                 </label>
               </li>
@@ -163,7 +163,7 @@ export default function AccessAclPicker({
                     if (el) el.indeterminate = st.indeterminate;
                   }}
                 />
-                <label htmlFor={`acl-req-${req.id}`} className="text-sm font-medium text-slate-800 cursor-pointer min-w-0">
+                <label htmlFor={`acl-req-${req.id}`} className="text-sm font-medium text-foreground cursor-pointer min-w-0">
                   {req.id}. {req.label}
                 </label>
               </div>
@@ -178,7 +178,7 @@ export default function AccessAclPicker({
                     />
                     <label
                       htmlFor={`acl-folder-${req.id}-${f.folderKey}`}
-                      className="text-sm text-slate-600 leading-snug cursor-pointer min-w-0 break-words"
+                      className="text-sm text-muted-foreground leading-snug cursor-pointer min-w-0 break-words"
                     >
                       {f.label}
                     </label>

@@ -42,10 +42,10 @@ export default function MustChangePasswordGate({ children }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true">
-      <form onSubmit={submit} className="w-full max-w-md rounded-xl border bg-white p-6 space-y-4">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/70 p-4" role="dialog" aria-modal="true">
+      <form onSubmit={submit} className="w-full max-w-md rounded-xl border border-border bg-card p-6 space-y-4">
         <h1 className="font-display text-xl font-semibold">Troca de senha obrigatória</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           A senha provisória tem de ser substituída no primeiro acesso (controlo eletrónico BPx).
         </p>
         <div className="space-y-2">
@@ -58,7 +58,7 @@ export default function MustChangePasswordGate({ children }) {
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => logout()}>Sair</Button>
-          <Button type="submit" disabled={busy} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button type="submit" disabled={busy}>
             {busy ? "A guardar…" : "Atualizar senha"}
           </Button>
         </div>

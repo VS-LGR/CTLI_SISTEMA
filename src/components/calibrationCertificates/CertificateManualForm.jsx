@@ -268,8 +268,8 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
           </div>
 
           {isManualBalance && (
-            <div className="pt-3 border-t border-slate-100 space-y-3">
-              <p className="text-sm font-semibold text-slate-800">Dados da balança (preenchimento manual)</p>
+            <div className="pt-3 border-t border-border space-y-3">
+              <p className="text-sm font-semibold text-foreground">Dados da balança (preenchimento manual)</p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {[
                   ["Fabricante", "fabricante"],
@@ -299,7 +299,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                 >
                   {UNIDADE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-muted-foreground mt-1">
                   As capacidades, resoluções e leituras serão tratadas nesta unidade no certificado.
                 </p>
               </div>
@@ -335,8 +335,8 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                <p className="text-xs font-semibold text-slate-700 mb-2">
+              <div className="rounded-lg border border-border bg-background/60 p-3">
+                <p className="text-xs font-semibold text-foreground/90 mb-2">
                   Tolerância máxima por valor de pesagem
                 </p>
                 <PointMaxToleranceFields
@@ -347,8 +347,8 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
               </div>
 
               {endCustomerId ? (
-                <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-3">
-                  <label className="flex items-start gap-2 cursor-pointer text-sm text-slate-700">
+                <div className="rounded-lg border border-border bg-background/80 p-3 space-y-3">
+                  <label className="flex items-start gap-2 cursor-pointer text-sm text-foreground/90">
                     <Checkbox
                       checked={registerScaleForFuture}
                       onCheckedChange={(v) => setRegisterScaleForFuture(Boolean(v))}
@@ -356,7 +356,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
                     />
                     <span>
                       Cadastrar esta balança no cadastro do cliente para uso futuro
-                      <span className="block text-xs text-slate-500 mt-0.5">
+                      <span className="block text-xs text-muted-foreground mt-0.5">
                         Ao criar o certificado, a balança ficará disponível na lista de cadastro deste cliente.
                       </span>
                     </span>
@@ -386,7 +386,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
           <div className="grid sm:grid-cols-3 gap-3">
             <div><Label className="text-xs">Temp. inicial</Label><Input value={payload.ambiente.temp_inicial} onChange={(e) => setAmbiente("temp_inicial", e.target.value)} /></div>
             <div><Label className="text-xs">Temp. final</Label><Input value={payload.ambiente.temp_final} onChange={(e) => setAmbiente("temp_final", e.target.value)} /></div>
-            <div><Label className="text-xs">Massa específica do ar (calculada)</Label><Input readOnly className="bg-slate-50" value={`${formatAirDensityDisplay(calculatedAirDensity.valid ? calculatedAirDensity.value : null)} kg/m³`} /></div>
+            <div><Label className="text-xs">Massa específica do ar (calculada)</Label><Input readOnly className="bg-background" value={`${formatAirDensityDisplay(calculatedAirDensity.valid ? calculatedAirDensity.value : null)} kg/m³`} /></div>
             <div><Label className="text-xs">UR inicial</Label><Input value={payload.ambiente.umidade_inicial} onChange={(e) => setAmbiente("umidade_inicial", e.target.value)} /></div>
             <div><Label className="text-xs">UR final</Label><Input value={payload.ambiente.umidade_final} onChange={(e) => setAmbiente("umidade_final", e.target.value)} /></div>
             <div>
@@ -422,7 +422,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
             onChange={onVersoChange}
             defaultUnit={defaultUnit}
           />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             A linha <strong>L1 + P1</strong> no verso corresponde ao lote de carga do <strong>P2</strong> (formação <code className="text-xs">l1_p1</code>).
           </p>
         </CardContent>
@@ -455,7 +455,7 @@ export default function CertificateManualForm({ tenantId, certType, onSubmit, su
         </CardContent>
       </Card>
 
-      <Button onClick={handleSubmit} disabled={submitting} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+      <Button onClick={handleSubmit} disabled={submitting} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
         {submitting ? "A criar certificado…" : "Criar certificado manual"}
       </Button>
     </div>

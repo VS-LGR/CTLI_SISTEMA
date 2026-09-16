@@ -187,9 +187,9 @@ export default function WeightCertificateManualForm({
       <div>
         <Label className="text-sm font-medium">Cliente (cadastro)</Label>
         {customers.length === 0 ? (
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Nenhum cliente cadastrado.{" "}
-            <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+            <Link to={cadastroSectionPath("clientes")} className="text-primary hover:underline">
               PR-7.1 → Clientes
             </Link>
           </p>
@@ -198,16 +198,16 @@ export default function WeightCertificateManualForm({
             <select
               value={endCustomerId}
               onChange={(e) => setEndCustomerId(e.target.value)}
-              className="w-full border rounded-md h-10 px-3 text-sm bg-white mt-1"
+              className="w-full border rounded-md h-10 px-3 text-sm bg-card mt-1"
             >
               <option value="">— Selecionar para preencher automaticamente —</option>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-muted-foreground mt-1">
               Novos clientes em{" "}
-              <Link to={cadastroSectionPath("clientes")} className="text-blue-600 hover:underline">
+              <Link to={cadastroSectionPath("clientes")} className="text-primary hover:underline">
                 PR-7.1 → Clientes
               </Link>
             </p>
@@ -308,9 +308,9 @@ export default function WeightCertificateManualForm({
         </div>
 
         {(payload.itens || []).map((item, idx) => (
-          <div key={idx} className="border rounded-lg p-3 space-y-2 bg-slate-50/40">
+          <div key={idx} className="border rounded-lg p-3 space-y-2 bg-background/40">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-500">Item {idx + 1}</span>
+              <span className="text-xs text-muted-foreground">Item {idx + 1}</span>
               {(payload.itens || []).length > 1 && (
                 <Button
                   type="button"
@@ -369,7 +369,7 @@ export default function WeightCertificateManualForm({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-slate-500 mt-0.5">Peso sob calibração — densidade no empuxo</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Peso sob calibração — densidade no empuxo</p>
               </div>
               <div>
                 <Label className="text-[11px]">Material do padrão</Label>
@@ -385,7 +385,7 @@ export default function WeightCertificateManualForm({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-slate-500 mt-0.5">Preenchido pelo cadastro; editável se necessário</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Preenchido pelo cadastro; editável se necessário</p>
               </div>
               <div className="sm:col-span-3 space-y-2">
                 <Label className="text-[11px]">Referência (cadastro)</Label>
@@ -400,7 +400,7 @@ export default function WeightCertificateManualForm({
                   singleSelect
                   emptyMessage="Cadastre pesos padrão em PR-6.4 → Peso Padrão."
                 />
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-muted-foreground">
                   Ao selecionar, VVC, Ue e material do padrão são preenchidos do cadastro (podem ser editados).
                 </p>
               </div>
@@ -448,7 +448,7 @@ export default function WeightCertificateManualForm({
         ))}
       </div>
 
-      <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" disabled={submitting} className="bg-primary hover:bg-primary/90">
         <FloppyDisk size={18} className="mr-1" />
         {submitting ? "A criar…" : "Criar certificado"}
       </Button>

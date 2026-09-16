@@ -70,7 +70,7 @@ export default function CriticalAnalysisDialog({
         <DialogHeader>
           <DialogTitle>Registrar análise crítica</DialogTitle>
         </DialogHeader>
-        {documentTitle && <p className="text-sm text-slate-600 truncate">{documentTitle}</p>}
+        {documentTitle && <p className="text-sm text-muted-foreground truncate">{documentTitle}</p>}
         <div className="grid gap-3 py-2">
           <div>
             <Label>Data da análise</Label>

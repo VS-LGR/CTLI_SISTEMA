@@ -160,9 +160,9 @@ export default function PersonnelSelectionEditorPage() {
         )}
       </div>
       {returnTo && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
-          <span className="text-slate-700">A registar seleção no fluxo de integração de pessoal.</span>
-          <Button variant="link" size="sm" className="h-auto p-0 text-blue-700" asChild>
+        <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+          <span className="text-foreground/90">A registar seleção no fluxo de integração de pessoal.</span>
+          <Button variant="link" size="sm" className="h-auto p-0 text-primary" asChild>
             <Link to={returnTo}>Voltar ao fluxo</Link>
           </Button>
         </div>
@@ -187,7 +187,7 @@ export default function PersonnelSelectionEditorPage() {
           </Field>
         </div>
 
-        <div className="border rounded-lg p-4 space-y-2 bg-slate-50/50">
+        <div className="border rounded-lg p-4 space-y-2 bg-background/50">
           <Label>Nível de Formação (checklist)</Label>
           <div className="grid gap-1 sm:grid-cols-2">
             {PERSONNEL_SELECTION_EDUCATION_LEVELS.map((lvl) => (
@@ -232,7 +232,7 @@ export default function PersonnelSelectionEditorPage() {
             <input type="radio" name="parecer" checked={form.conclusive_opinion_approved === false} onChange={() => set("conclusive_opinion_approved", false)} /> Não
           </label>
           {form.conclusive_opinion_approved === true && (
-            <p className="text-xs text-slate-600 mt-2">{SELECTION_APPROVAL_TEXT}</p>
+            <p className="text-xs text-muted-foreground mt-2">{SELECTION_APPROVAL_TEXT}</p>
           )}
           {form.conclusive_opinion_approved === false && (
             <Textarea value={form.conclusive_opinion_text} onChange={(e) => set("conclusive_opinion_text", e.target.value)} rows={3} placeholder="Justificativa" />
@@ -248,7 +248,7 @@ export default function PersonnelSelectionEditorPage() {
 
         <div className="flex gap-2 mt-6">
           <Button variant="outline" onClick={() => navigate(registrosBack)}>Cancelar</Button>
-          <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
+          <Button className="bg-primary" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>
     </div>

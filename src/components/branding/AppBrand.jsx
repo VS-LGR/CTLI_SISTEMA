@@ -33,10 +33,10 @@ export default function AppBrand({ variant = "login", className }) {
           className="h-9 w-9 object-contain rounded-md shrink-0 bg-black"
         />
         <div className="min-w-0">
-          <div className="font-display text-[15px] font-extrabold tracking-[0.18em] text-slate-900 leading-none">
+          <div className="font-display text-[15px] font-extrabold tracking-[0.18em] text-foreground leading-none">
             {APP_NAME}
           </div>
-          <div className="mt-1 text-[9px] uppercase tracking-[0.22em] text-slate-500 truncate">
+          <div className="mt-1 text-[9px] uppercase tracking-[0.22em] text-muted-foreground truncate">
             {APP_TAGLINE}
           </div>
         </div>

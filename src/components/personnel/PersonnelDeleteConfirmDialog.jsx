@@ -49,13 +49,13 @@ export default function PersonnelDeleteConfirmDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className="space-y-3 text-left text-sm text-slate-600">
+            <div className="space-y-3 text-left text-sm text-muted-foreground">
               {step === 1 ? (
                 <p>{description}</p>
               ) : (
                 <>
                   <p>Esta ação é irreversível. Para confirmar, digite o nome exato do cargo:</p>
-                  <p className="font-semibold text-slate-900">{expectedText}</p>
+                  <p className="font-semibold text-foreground">{expectedText}</p>
                   {hasBlockingUsage && (
                     <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">
                       <p className="font-medium mb-1">Exclusão bloqueada — vínculos encontrados:</p>

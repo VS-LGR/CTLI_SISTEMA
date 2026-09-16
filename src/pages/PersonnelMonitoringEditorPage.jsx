@@ -227,7 +227,7 @@ export default function PersonnelMonitoringEditorPage() {
               value={form.training_classification}
               onChange={(e) => set("training_classification", e.target.value)}
               disabled={!trainingDetailsEnabled}
-              className="w-full border rounded-md h-10 px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50"
+              className="w-full border rounded-md h-10 px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-background"
             >
               <option value="">—</option>
               {(optionsByCategory.training_classification || []).map((o) => (
@@ -246,7 +246,7 @@ export default function PersonnelMonitoringEditorPage() {
         />
 
         {lastMonitoringHint && isNew && (
-          <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">{lastMonitoringHint}</p>
+          <p className="text-sm text-primary bg-primary/10 border border-primary/30 rounded-md px-3 py-2">{lastMonitoringHint}</p>
         )}
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -306,7 +306,7 @@ export default function PersonnelMonitoringEditorPage() {
 
         <div className="flex gap-2 mt-6">
           <Button variant="outline" onClick={() => navigate(PERSONNEL_MONITORAMENTO_PATH)}>Cancelar</Button>
-          <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
+          <Button className="bg-primary" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>
     </div>

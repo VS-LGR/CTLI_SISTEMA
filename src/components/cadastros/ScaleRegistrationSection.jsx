@@ -56,9 +56,9 @@ const emptyForm = () => ({
 
 function SectionHeading({ title, description }) {
   return (
-    <div className="sm:col-span-2 pt-2 border-t border-slate-100 first:border-0 first:pt-0">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">{title}</p>
-      {description && <p className="text-[11px] text-slate-500 mt-0.5">{description}</p>}
+    <div className="sm:col-span-2 pt-2 border-t border-border first:border-0 first:pt-0">
+      <p className="text-xs font-semibold uppercase tracking-wide text-foreground/90">{title}</p>
+      {description && <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>}
     </div>
   );
 }
@@ -70,7 +70,7 @@ function FieldLabel({ title, hint, required }) {
         {title}
         {required && <span className="text-red-600"> *</span>}
       </Label>
-      {hint && <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{hint}</p>}
+      {hint && <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{hint}</p>}
     </div>
   );
 }
@@ -165,11 +165,11 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
   };
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-between gap-2">
-          <p className="text-sm text-slate-600">Cadastro de balanças por cliente do ambiente (aba BALANÇAS da planilha matriz).</p>
-          <Button size="sm" className="bg-blue-600 text-white" data-tour="tour-cadastro-novo" onClick={() => { reset(); setOpen(true); }}>
+          <p className="text-sm text-muted-foreground">Cadastro de balanças por cliente do ambiente (aba BALANÇAS da planilha matriz).</p>
+          <Button size="sm" className="bg-primary" data-tour="tour-cadastro-novo" onClick={() => { reset(); setOpen(true); }}>
             <Plus size={16} className="mr-1" /> Nova balança
           </Button>
         </div>
@@ -184,7 +184,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
         />
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <thead className="bg-background text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-2">Cliente</th>
                 <th className="p-2">Série</th>
@@ -198,10 +198,10 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-slate-500">Nenhuma balança cadastrada.</td></tr>
+                <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">Nenhuma balança cadastrada.</td></tr>
               )}
               {filtered.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-border">
                   <td className="p-2 max-w-[9rem]">
                     <EllipsisTooltip label={customerName(r.end_customer_id) || ""} className="block">
                       {customerName(r.end_customer_id)}
@@ -227,7 +227,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
                       {r.model}
                     </EllipsisTooltip>
                   </td>
-                  <td className="p-2 text-xs text-slate-600">{countScaleRanges(r) || "—"}</td>
+                  <td className="p-2 text-xs text-muted-foreground">{countScaleRanges(r) || "—"}</td>
                   <td className="p-2">{r.instrument_class || "—"}</td>
                   <td className="p-2">
                     <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><PencilSimple size={16} /></Button>
@@ -349,7 +349,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <div key={n}>
-                      <Label className="text-[10px] text-slate-600">Ponto P{n}</Label>
+                      <Label className="text-[10px] text-muted-foreground">Ponto P{n}</Label>
                       <Input
                         type="number"
                         min={0}
@@ -378,7 +378,7 @@ export default function ScaleRegistrationSection({ rows = [], endCustomers = [],
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 text-white" onClick={save}>Guardar</Button>
+              <Button className="bg-primary" onClick={save}>Guardar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

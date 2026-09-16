@@ -68,12 +68,12 @@ export default function WeightAmbientSection({
 
   return (
     <div className="space-y-4">
-      <h2 className="font-medium text-slate-900">Condições ambientais durante a calibração</h2>
+      <h2 className="font-medium text-foreground">Condições ambientais durante a calibração</h2>
 
       {envCerts.length === 0 ? (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Nenhum termo-baro-higrômetro cadastrado.{" "}
-          <Link to={cadastroSectionPath("thermo")} className="text-blue-600 hover:underline">
+          <Link to={cadastroSectionPath("thermo")} className="text-primary hover:underline">
             PR-6.4 → Termobarohigrômetro
           </Link>
         </p>
@@ -103,7 +103,7 @@ export default function WeightAmbientSection({
                   disabled={disabled}
                   value={ambiente[key] || ""}
                   onChange={(e) => setField(key, e.target.value)}
-                  className="w-full border rounded-md h-10 px-3 text-sm bg-white min-w-0 flex-1"
+                  className="w-full border rounded-md h-10 px-3 text-sm bg-card min-w-0 flex-1"
                 >
                   <option value="">Selecionar equipamento…</option>
                   {envCerts.map((e) => (
@@ -162,7 +162,7 @@ export default function WeightAmbientSection({
           <Label className="text-[11px]">Massa específica do ar (calculada)</Label>
           <Input
             readOnly
-            className={`${fieldClass} bg-slate-50`}
+            className={`${fieldClass} bg-background`}
             value={`${formatAirDensityDisplay(airDensity.valid ? airDensity.value : null)} kg/m³`}
           />
         </div>

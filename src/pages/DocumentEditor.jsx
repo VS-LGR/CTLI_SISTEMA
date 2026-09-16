@@ -34,7 +34,7 @@ const LazyDocxEditorPanel = lazyWithRetry(
 
 const DOCX_EDITOR_FALLBACK = (
   <div
-    className="flex items-center justify-center min-h-[560px] text-slate-600 text-sm border border-slate-200 rounded-xl bg-white"
+    className="flex items-center justify-center min-h-[560px] text-muted-foreground text-sm border border-border rounded-xl bg-card"
     aria-busy="true"
     data-testid="docx-editor-loading"
   >
@@ -86,7 +86,7 @@ const SaveAsDialog = ({ doc, onCreated }) => {
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="font-display">Salvar como nova cópia</DialogTitle>
-          <p className="text-sm text-slate-500 mt-1">O documento original não será sobrescrito.</p>
+          <p className="text-sm text-muted-foreground mt-1">O documento original não será sobrescrito.</p>
         </DialogHeader>
         <div className="space-y-3 mt-2">
           <div>
@@ -100,7 +100,7 @@ const SaveAsDialog = ({ doc, onCreated }) => {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={save} disabled={busy} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-save-as">Salvar nova cópia</Button>
+          <Button onClick={save} disabled={busy} className="bg-primary" data-testid="confirm-save-as">Salvar nova cópia</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -376,17 +376,17 @@ const DocumentEditor = () => {
     };
   }, [editorDoc, readOnly, activeWordMode, printMode, authorName, reloadToken, handleOriginalBufferLoaded]);
 
-  if (!doc) return <div className="text-slate-600">Carregando documento…</div>;
+  if (!doc) return <div className="text-muted-foreground">Carregando documento…</div>;
 
   return (
     <div className="space-y-6 min-w-0" data-testid="document-editor">
       <div className="flex items-start justify-between gap-3 flex-wrap min-w-0">
         <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-          <div className="text-xs text-slate-500 flex items-center gap-1.5">
-            <Link to={buildRequirementListPath(doc.requirement, doc.folder_key)} className="hover:text-blue-600 inline-flex items-center gap-1"><ArrowLeft size={12} /> Voltar para {doc.requirement}. {REQ_NAMES[String(doc.requirement)]}</Link>
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Link to={buildRequirementListPath(doc.requirement, doc.folder_key)} className="hover:text-primary inline-flex items-center gap-1"><ArrowLeft size={12} /> Voltar para {doc.requirement}. {REQ_NAMES[String(doc.requirement)]}</Link>
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold break-words tracking-tight text-slate-900 mt-1">{doc.title || "Sem título"}</h1>
-          <div className="text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold break-words tracking-tight text-foreground mt-1">{doc.title || "Sem título"}</h1>
+          <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
             <span className="font-mono">Emissão: {doc.code || "—"}</span>
             <span>•</span>
             <span>Rev. {doc.version || "—"}</span>
@@ -451,7 +451,7 @@ const DocumentEditor = () => {
           </Button>
           {!readOnly && <SaveAsDialog doc={doc} />}
           {!readOnly && (
-          <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="save-doc-btn">
+          <Button onClick={save} disabled={saving} className="bg-primary" data-testid="save-doc-btn">
             <FloppyDisk size={16} className="mr-1.5" /> {saving ? "Salvando…" : "Salvar"}
           </Button>
           )}
@@ -481,11 +481,11 @@ const DocumentEditor = () => {
               </Suspense>
             </EditorErrorBoundary>
           ) : readOnly && doc.content_html ? (
-            <Card className="border-slate-200 p-6 prose prose-slate max-w-none min-h-[320px]"
-              dangerouslySetInnerHTML={{ __html: doc.content_html || "<p class='text-slate-500'>Sem conteúdo.</p>" }}
+            <Card className="border-border p-6 prose prose-slate max-w-none min-h-[320px]"
+              dangerouslySetInnerHTML={{ __html: doc.content_html || "<p class='text-muted-foreground'>Sem conteúdo.</p>" }}
             />
           ) : (
-            <p className="text-sm text-slate-600">Este tipo de documento usa apenas ficheiro anexo — utilize download na lista.</p>
+            <p className="text-sm text-muted-foreground">Este tipo de documento usa apenas ficheiro anexo — utilize download na lista.</p>
           )}
         </div>
       </div>

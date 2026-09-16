@@ -27,11 +27,11 @@ export default function DocumentDistributionPanel({ tenantId }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-600">Lista de distribuição de todos os documentos. Edite na página de detalhes de cada documento.</p>
-      <Card className="overflow-x-auto border-slate-200">
+      <p className="text-sm text-muted-foreground">Lista de distribuição de todos os documentos. Edite na página de detalhes de cada documento.</p>
+      <Card className="overflow-x-auto border-border">
         <table className="w-full text-sm min-w-[700px]">
-          <thead className="bg-slate-50 border-b">
-            <tr className="text-[10px] uppercase text-slate-500">
+          <thead className="bg-background border-b">
+            <tr className="text-[10px] uppercase text-muted-foreground">
               <th className="px-3 py-2 text-left">Área</th>
               <th className="px-3 py-2 text-left">Cópia nº</th>
               <th className="px-3 py-2 text-left">Tipo</th>
@@ -42,7 +42,7 @@ export default function DocumentDistributionPanel({ tenantId }) {
           </thead>
           <tbody className="divide-y">
             {loading && <tr><td colSpan={6} className="p-6 text-center">Carregando…</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-slate-500">Nenhuma distribuição cadastrada.</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma distribuição cadastrada.</td></tr>}
             {rows.map((r) => (
               <tr key={r.id}>
                 <td className="px-3 py-2">{r.area}</td>

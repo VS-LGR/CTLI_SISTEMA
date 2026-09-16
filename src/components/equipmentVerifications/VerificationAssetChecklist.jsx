@@ -22,15 +22,15 @@ export default function VerificationAssetChecklist({
   const label = formatAssetLabel(asset, kind);
 
   return (
-    <Card className="border-slate-200 overflow-hidden">
+    <Card className="border-border overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{label}</CardTitle>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <table className="w-full text-xs min-w-[1100px]">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-background text-muted-foreground">
             <tr>
-              <th className="p-2 text-left sticky left-0 bg-slate-50 min-w-[200px]">Item</th>
+              <th className="p-2 text-left sticky left-0 bg-background min-w-[200px]">Item</th>
               {MONTH_LABELS.map((m) => (
                 <th key={m} className="p-2 text-center min-w-[72px]">{m.slice(0, 3)}</th>
               ))}
@@ -38,12 +38,12 @@ export default function VerificationAssetChecklist({
           </thead>
           <tbody>
             {checklist.map((item) => (
-              <tr key={item.key} className="border-t border-slate-100">
-                <td className="p-2 sticky left-0 bg-white font-medium text-slate-800">{item.label}</td>
+              <tr key={item.key} className="border-t border-border">
+                <td className="p-2 sticky left-0 bg-card font-medium text-foreground">{item.label}</td>
                 {MONTH_KEYS.map((m) => (
                   <td key={m} className="p-1">
                     <select
-                      className="w-full h-8 rounded border border-slate-200 bg-white px-1 text-xs"
+                      className="w-full h-8 rounded border border-border bg-card px-1 text-xs"
                       value={responses[item.key]?.[m] || ""}
                       onChange={(e) => onCellChange(item.key, m, e.target.value)}
                     >
@@ -55,8 +55,8 @@ export default function VerificationAssetChecklist({
                 ))}
               </tr>
             ))}
-            <tr className="border-t border-slate-200 bg-slate-50/80">
-              <td className="p-2 sticky left-0 bg-slate-50 font-medium">Responsável</td>
+            <tr className="border-t border-border bg-background/80">
+              <td className="p-2 sticky left-0 bg-background font-medium">Responsável</td>
               {MONTH_KEYS.map((m) => (
                 <td key={m} className="p-1">
                   <Input

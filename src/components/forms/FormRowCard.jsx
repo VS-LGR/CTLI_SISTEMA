@@ -14,9 +14,9 @@ export default function FormRowCard({
   const title = label ?? `Item ${index + 1}`;
 
   return (
-    <Card className="border-slate-200 shadow-sm min-w-0">
-      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 bg-slate-50/80 border-b border-slate-100">
-        <span className="text-sm font-semibold text-slate-700">{title}</span>
+    <Card className="border-border shadow-sm min-w-0">
+      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 bg-background/80 border-b border-border">
+        <span className="text-sm font-semibold text-foreground/90">{title}</span>
         {!readOnly && canRemove && onRemove && (
           <Button
             type="button"

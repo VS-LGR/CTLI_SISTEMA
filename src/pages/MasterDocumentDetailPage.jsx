@@ -97,24 +97,24 @@ export default function MasterDocumentDetailPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-500">Carregando…</div>;
-  if (!doc) return <div className="p-8 text-center text-slate-500">Documento não encontrado.</div>;
+  if (loading) return <div className="p-8 text-center text-muted-foreground">Carregando…</div>;
+  if (!doc) return <div className="p-8 text-center text-muted-foreground">Documento não encontrado.</div>;
 
   return (
     <div className="space-y-6 min-w-0">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <Link to={masterDocumentListPath()} className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 mb-2">
+          <Link to={masterDocumentListPath()} className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
             <ArrowLeft size={14} /> Voltar à Lista Mestra
           </Link>
-          <h1 className="font-display text-2xl font-bold text-slate-900">
-            {doc.code && <span className="font-mono text-slate-500 mr-2">{doc.code}</span>}
+          <h1 className="font-display text-2xl font-bold text-foreground">
+            {doc.code && <span className="font-mono text-muted-foreground mr-2">{doc.code}</span>}
             {doc.title}
           </h1>
           <div className="flex gap-2 mt-2 flex-wrap">
             <Badge>{typeLabel(doc.type)}</Badge>
             <Badge variant="secondary">{statusLabel(doc.status)}</Badge>
-            <span className="text-xs text-slate-500">Rev. {doc.current_revision} · Emissão {formatDateBr(doc.current_issue_date)}</span>
+            <span className="text-xs text-muted-foreground">Rev. {doc.current_revision} · Emissão {formatDateBr(doc.current_issue_date)}</span>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -141,28 +141,28 @@ export default function MasterDocumentDetailPage() {
             <Card>
               <CardHeader><CardTitle className="text-sm">Controle</CardTitle></CardHeader>
               <CardContent className="text-sm space-y-1">
-                <p><span className="text-slate-500">Referência:</span> {doc.reference || "—"}</p>
-                <p><span className="text-slate-500">Categoria:</span> {doc.category || "—"}</p>
-                <p><span className="text-slate-500">Módulo:</span> {doc.linked_module || "—"}</p>
-                <p><span className="text-slate-500">Últ. análise crítica:</span> {formatDateBr(doc.last_critical_analysis_date)}</p>
+                <p><span className="text-muted-foreground">Referência:</span> {doc.reference || "—"}</p>
+                <p><span className="text-muted-foreground">Categoria:</span> {doc.category || "—"}</p>
+                <p><span className="text-muted-foreground">Módulo:</span> {doc.linked_module || "—"}</p>
+                <p><span className="text-muted-foreground">Últ. análise crítica:</span> {formatDateBr(doc.last_critical_analysis_date)}</p>
                 <p className="flex items-center gap-2 flex-wrap">
-                  <span className="text-slate-500">Próx. análise crítica:</span>
+                  <span className="text-muted-foreground">Próx. análise crítica:</span>
                   {formatDateBr(doc.next_critical_analysis_date)}
                   <Badge variant={dueStatusBadgeVariant(getDueStatus(doc.next_critical_analysis_date))} className="text-[10px]">
                     {dueStatusLabel(getDueStatus(doc.next_critical_analysis_date))}
                   </Badge>
                 </p>
                 {doc.critical_analysis_result && (
-                  <p><span className="text-slate-500">Resultado:</span> {doc.critical_analysis_result}</p>
+                  <p><span className="text-muted-foreground">Resultado:</span> {doc.critical_analysis_result}</p>
                 )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle className="text-sm">Retenção e proteção</CardTitle></CardHeader>
               <CardContent className="text-sm space-y-1">
-                <p><span className="text-slate-500">Retenção:</span> {doc.retention_time ? `${doc.retention_time} ${doc.retention_unit}` : "—"}</p>
-                <p><span className="text-slate-500">Local:</span> {doc.storage_location || "—"}</p>
-                <p><span className="text-slate-500">Proteção:</span> {doc.protection_method || "—"}</p>
+                <p><span className="text-muted-foreground">Retenção:</span> {doc.retention_time ? `${doc.retention_time} ${doc.retention_unit}` : "—"}</p>
+                <p><span className="text-muted-foreground">Local:</span> {doc.storage_location || "—"}</p>
+                <p><span className="text-muted-foreground">Proteção:</span> {doc.protection_method || "—"}</p>
               </CardContent>
             </Card>
           </div>
@@ -189,9 +189,9 @@ export default function MasterDocumentDetailPage() {
         <TabsContent value="exportacao" className="mt-4">
           <Card>
             <CardContent className="pt-4 text-sm space-y-2">
-              <p><span className="text-slate-500">Template:</span> <code className="text-xs">{doc.template_key || "—"}</code></p>
-              <p><span className="text-slate-500">Regra de nome:</span> {doc.file_naming_rule || "—"}</p>
-              <p><span className="text-slate-500">Padrão:</span> <code className="text-xs break-all">{doc.export_file_name_pattern || "—"}</code></p>
+              <p><span className="text-muted-foreground">Template:</span> <code className="text-xs">{doc.template_key || "—"}</code></p>
+              <p><span className="text-muted-foreground">Regra de nome:</span> {doc.file_naming_rule || "—"}</p>
+              <p><span className="text-muted-foreground">Padrão:</span> <code className="text-xs break-all">{doc.export_file_name_pattern || "—"}</code></p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -199,8 +199,8 @@ export default function MasterDocumentDetailPage() {
         <TabsContent value="gerados" className="mt-4">
           <Card>
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-[10px] uppercase text-slate-500">
+              <thead className="bg-background border-b">
+                <tr className="text-[10px] uppercase text-muted-foreground">
                   <th className="px-3 py-2 text-left">Arquivo</th>
                   <th className="px-3 py-2 text-left">Rev.</th>
                   <th className="px-3 py-2 text-left">Módulo</th>
@@ -209,7 +209,7 @@ export default function MasterDocumentDetailPage() {
               </thead>
               <tbody className="divide-y">
                 {snapshots.length === 0 && (
-                  <tr><td colSpan={4} className="p-6 text-center text-slate-500">Nenhum registro gerado.</td></tr>
+                  <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum registro gerado.</td></tr>
                 )}
                 {snapshots.map((s) => (
                   <tr key={s.id}>

@@ -109,7 +109,7 @@ function maxToleranceLabel(value) {
 function maxToleranceBadgeClass(value) {
   if (value === "aprovado") return "bg-emerald-100 text-emerald-800";
   if (value === "alerta") return "bg-amber-100 text-amber-900";
-  return "bg-slate-100 text-slate-700";
+  return "bg-muted text-foreground/90";
 }
 
 function resolveCertMaxTolerances(cert, scales = []) {
@@ -217,7 +217,7 @@ export default function CertificateEditorPage() {
   }
 
   if (loading || !cert) {
-    return <p className="text-sm text-slate-500 py-12 text-center">A carregar certificado…</p>;
+    return <p className="text-sm text-muted-foreground py-12 text-center">A carregar certificado…</p>;
   }
 
   const editable = isCertificateEditable(cert.status) && canEditCalibrationCertificate(user?.role, user);
@@ -661,7 +661,7 @@ export default function CertificateEditorPage() {
             <Link to={CERTIFICATE_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
           </Button>
           <div className="min-w-0">
-            <h1 className="font-display text-xl font-semibold text-slate-900 truncate min-w-0">
+            <h1 className="font-display text-xl font-semibold text-foreground truncate min-w-0">
               <EllipsisTooltip
                 label={cert?.certificate_number ? `Certificado ${formatCertificateNumber(cert.certificate_number, cert.certificate_year)}` : "Certificado"}
                 className="block"
@@ -711,7 +711,7 @@ export default function CertificateEditorPage() {
       )}
 
       {isStandalone && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+        <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm text-foreground">
           Certificado manual — sem vínculo com coleta RE-7.2A. Pontos, ambiente e dados do instrumento são editáveis.
         </div>
       )}
@@ -946,17 +946,17 @@ export default function CertificateEditorPage() {
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <div className="px-4 pt-4 pb-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Antes do ajuste
                 </p>
                 {parseBalanceAdjustmentPerformed(cert.environmental?.balance_adjusted) === false && (
-                  <p className="mt-1 text-xs italic text-slate-500">
+                  <p className="mt-1 text-xs italic text-muted-foreground">
                     Não foi realizado o ajuste do equipamento
                   </p>
                 )}
               </div>
               <table className="w-full text-sm min-w-[480px]">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <thead className="bg-background text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="p-2 text-left">Ponto</th>
                     <th className="p-2 text-left">Nominal (V.R.)</th>
@@ -1012,11 +1012,11 @@ export default function CertificateEditorPage() {
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <div className="px-4 pt-4 pb-2 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Após ajuste
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground">
                     <Checkbox
                       checked={showCalcTrace}
                       onCheckedChange={toggleCalcTrace}
@@ -1034,7 +1034,7 @@ export default function CertificateEditorPage() {
                 </div>
               </div>
               <table className="w-full text-sm min-w-[720px]">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <thead className="bg-background text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="p-2">Ponto</th>
                     {isStandalone && editable && (
@@ -1098,7 +1098,7 @@ export default function CertificateEditorPage() {
                   })}
                 </tbody>
               </table>
-              {!activePoints.length && <p className="p-6 text-sm text-slate-500">Nenhum ponto preenchido.</p>}
+              {!activePoints.length && <p className="p-6 text-sm text-muted-foreground">Nenhum ponto preenchido.</p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1107,7 +1107,7 @@ export default function CertificateEditorPage() {
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <thead className="bg-background text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="p-2">Tipo</th>
                     <th className="p-2">Código</th>
@@ -1190,7 +1190,7 @@ export default function CertificateEditorPage() {
                       <div><Label className="text-xs">UR final</Label><Input className="mt-1 h-9" value={cert.environmental.final_humidity || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_humidity: e.target.value, tbh_correction_applied: false } })} /></div>
                       <div><Label className="text-xs">Pressão inicial</Label><Input className="mt-1 h-9" value={cert.environmental.initial_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, initial_pressure: e.target.value, tbh_correction_applied: false } })} /></div>
                       <div><Label className="text-xs">Pressão final</Label><Input className="mt-1 h-9" value={cert.environmental.final_pressure || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, final_pressure: e.target.value, tbh_correction_applied: false } })} /></div>
-                      <div><Label className="text-xs">Massa específica do ar (calculada)</Label><Input className="mt-1 h-9 bg-slate-50" readOnly value={`${formatAirDensityDisplay(enrichEnvironmentalAirDensity(cert.environmental, cert).air_density)} kg/m³`} /></div>
+                      <div><Label className="text-xs">Massa específica do ar (calculada)</Label><Input className="mt-1 h-9 bg-background" readOnly value={`${formatAirDensityDisplay(enrichEnvironmentalAirDensity(cert.environmental, cert).air_density)} kg/m³`} /></div>
                       <div><Label className="text-xs">Balança ajustada</Label><Input className="mt-1 h-9" value={cert.environmental.balance_adjusted || ""} onChange={(e) => patch({ environmental: { ...cert.environmental, balance_adjusted: e.target.value } })} /></div>
                       <div className="sm:col-span-2">
                         <TbhCorrectionPanel
@@ -1257,7 +1257,7 @@ export default function CertificateEditorPage() {
                           ? "bg-emerald-100 text-emerald-800"
                           : cert.conformity.general_conformity_result === "nao_conforme"
                             ? "bg-red-100 text-red-800"
-                            : "bg-slate-100 text-slate-700"
+                            : "bg-muted text-foreground/90"
                       }
                     >
                       Resultado geral: {conformityLabel(cert.conformity.general_conformity_result)}
@@ -1282,7 +1282,7 @@ export default function CertificateEditorPage() {
                   {cert.conformity.legal_metrology_applicable && (cert.conformity.point_results || []).length > 0 ? (
                     <div className="overflow-x-auto -mx-2 px-2">
                       <table className="w-full text-xs sm:text-sm min-w-[520px]">
-                        <thead className="bg-slate-50 text-[10px] uppercase text-slate-500">
+                        <thead className="bg-background text-[10px] uppercase text-muted-foreground">
                           <tr>
                             <th className="p-2 text-left">Ponto</th>
                             <th className="p-2 text-left">Tolerância (+)</th>
@@ -1297,7 +1297,7 @@ export default function CertificateEditorPage() {
                             const display = pt?.calc_status === "calculado" ? certificatePointDisplay(cert, pt) : null;
                             const decimals = pt?.display_decimals ?? display?.decimals ?? 4;
                             return (
-                              <tr key={pr.pointNumber} className="border-t border-slate-100">
+                              <tr key={pr.pointNumber} className="border-t border-border">
                                 <td className="p-2">P{pr.pointNumber}</td>
                                 <td className="p-2 font-mono text-xs">
                                   {pr.tolerance?.positive != null
@@ -1322,14 +1322,14 @@ export default function CertificateEditorPage() {
                       </table>
                     </div>
                   ) : cert.conformity.legal_metrology_applicable ? (
-                    <p className="text-slate-500 text-xs">
+                    <p className="text-muted-foreground text-xs">
                       Execute Calcular para avaliar conformidade por ponto.
                     </p>
                   ) : null}
 
-                  <div className="pt-4 border-t border-slate-200 space-y-3">
+                  <div className="pt-4 border-t border-border space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-slate-800">
+                      <p className="text-sm font-semibold text-foreground">
                         Verificação — tolerância máxima por pesagem
                       </p>
                       <Badge className={maxToleranceBadgeClass(cert.conformity.general_max_tolerance_result)}>
@@ -1337,7 +1337,7 @@ export default function CertificateEditorPage() {
                       </Badge>
                     </div>
                     {!hasAnyConfiguredTolerance(resolveCertMaxTolerances(cert, scales)) ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {isStandalone && !cert.scale_registration_id
                           ? "Preencha as tolerâncias por pesagem na aba Dados (balança manual) ou vincule uma balança cadastrada."
                           : "Vincule uma balança cadastrada com tolerâncias por pesagem ou preencha manualmente no certificado."}
@@ -1345,7 +1345,7 @@ export default function CertificateEditorPage() {
                     ) : (cert.conformity.max_tolerance_point_results || []).length > 0 ? (
                       <div className="overflow-x-auto -mx-2 px-2">
                         <table className="w-full text-xs sm:text-sm min-w-[560px]">
-                          <thead className="bg-slate-50 text-[10px] uppercase text-slate-500">
+                          <thead className="bg-background text-[10px] uppercase text-muted-foreground">
                             <tr>
                               <th className="p-2 text-left">Ponto</th>
                               <th className="p-2 text-left">V.N. (peso padrão)</th>
@@ -1365,12 +1365,12 @@ export default function CertificateEditorPage() {
                               return (
                                 <tr
                                   key={`max-tol-${pr.pointNumber}`}
-                                  className={maxToleranceRowClass(rowAlert, "border-t border-slate-100")}
+                                  className={maxToleranceRowClass(rowAlert, "border-t border-border")}
                                 >
                                   <td className="p-2">
                                     <MaxTolerancePointLabel pointNumber={pr.pointNumber} isAlert={rowAlert} />
                                   </td>
-                                  <td className="p-2 font-mono text-xs text-slate-700">
+                                  <td className="p-2 font-mono text-xs text-foreground/90">
                                     {formatMaxTolerancePointLabel(pr)}
                                   </td>
                                   <td className="p-2 font-mono text-xs">
@@ -1402,14 +1402,14 @@ export default function CertificateEditorPage() {
                         </table>
                       </div>
                     ) : (
-                      <p className="text-slate-500 text-xs">
+                      <p className="text-muted-foreground text-xs">
                         Execute Calcular para verificar |Erro + Incerteza| contra as tolerâncias configuradas.
                       </p>
                     )}
                   </div>
                 </>
               ) : (
-                <p className="text-slate-500">Metrologia legal não avaliada.</p>
+                <p className="text-muted-foreground">Metrologia legal não avaliada.</p>
               )}
             </CardContent>
           </Card>
@@ -1449,7 +1449,7 @@ export default function CertificateEditorPage() {
               )}
               {cert.status === "aprovado" && !cert.is_preview_only && (
                 <div className="space-y-2">
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs text-muted-foreground">
                     E-mail do cliente: {clientEmailResolved || "— (cadastre em Clientes)"}
                   </p>
                   {cert.conformity?.general_max_tolerance_result === "alerta" && (
@@ -1524,10 +1524,10 @@ export default function CertificateEditorPage() {
               {(cert.reviews || []).length ? cert.reviews.map((r) => (
                 <div key={r.id} className="border-b pb-2 text-sm">
                   <div className="font-medium">{r.review_type}</div>
-                  <div className="text-slate-500 text-xs">{new Date(r.created_at).toLocaleString("pt-BR")}</div>
+                  <div className="text-muted-foreground text-xs">{new Date(r.created_at).toLocaleString("pt-BR")}</div>
                   {r.notes && <p className="mt-1">{r.notes}</p>}
                 </div>
-              )) : <p className="text-sm text-slate-500">Sem revisões registadas.</p>}
+              )) : <p className="text-sm text-muted-foreground">Sem revisões registadas.</p>}
               {cert.replaces_certificate_id && (
                 <p className="text-sm">Substitui certificado anterior (ID: {cert.replaces_certificate_id})</p>
               )}
@@ -1535,7 +1535,7 @@ export default function CertificateEditorPage() {
               {cert.cancellation_reason && <p className="text-sm text-red-700">Cancelado: {cert.cancellation_reason}</p>}
               {cert.obsolete_reason && <p className="text-sm text-amber-800">Obsoleto: {cert.obsolete_reason}</p>}
               <div className="pt-4 mt-4 border-t space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Remoção</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Remoção</p>
                 {canMarkCertificateObsolete(cert.status) && (
                   <Button
                     type="button"
@@ -1547,7 +1547,7 @@ export default function CertificateEditorPage() {
                   </Button>
                 )}
                 {cert.status === "emitido" && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Certificados emitidos devem ser cancelados ou substituídos antes de marcar como obsoleto.
                   </p>
                 )}
@@ -1561,7 +1561,7 @@ export default function CertificateEditorPage() {
                   </Button>
                 )}
                 {!canMarkCertificateObsolete(cert.status) && !canDeleteCertificate(cert.status) && cert.status !== "emitido" && (
-                  <p className="text-xs text-slate-500">Este certificado não pode ser removido no estado atual.</p>
+                  <p className="text-xs text-muted-foreground">Este certificado não pode ser removido no estado atual.</p>
                 )}
               </div>
             </CardContent>

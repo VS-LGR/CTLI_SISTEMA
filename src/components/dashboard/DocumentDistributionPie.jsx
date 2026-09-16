@@ -4,15 +4,15 @@ import {
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart-container";
 
-const REQ_COLORS = ["#2563EB", "#0EA5E9", "#10B981", "#F59E0B", "#8B5CF6"];
+const REQ_COLORS = ["#C2410C", "#EA580C", "#0D9488", "#D97706", "#78716C"];
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const p = payload[0];
   return (
-    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
-      <div className="font-medium text-slate-800">{p.name}</div>
-      <div className="text-slate-600">{p.value} documento(s) vigente(s)</div>
+    <div className="rounded-md border border-border bg-card px-3 py-2 text-xs shadow-md">
+      <div className="font-medium text-foreground">{p.name}</div>
+      <div className="text-muted-foreground">{p.value} documento(s) vigente(s)</div>
     </div>
   );
 }
@@ -43,7 +43,7 @@ export default function DocumentDistributionPie({ byRequirement = {} }) {
 
   if (pieData.length === 0) {
     return (
-      <div className="h-[240px] sm:h-[280px] flex items-center justify-center text-sm text-slate-500">
+      <div className="h-[240px] sm:h-[280px] flex items-center justify-center text-sm text-muted-foreground">
         Sem documentos vigentes por requisito
       </div>
     );
@@ -87,8 +87,8 @@ export default function DocumentDistributionPie({ byRequirement = {} }) {
                 className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-4"
                 aria-hidden
               >
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">Vigentes</span>
-                <span className="text-2xl sm:text-3xl font-display font-bold text-slate-900">{totalVigentes}</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Vigentes</span>
+                <span className="text-2xl sm:text-3xl font-display font-bold text-foreground">{totalVigentes}</span>
               </div>
             </>
           );
@@ -101,9 +101,9 @@ export default function DocumentDistributionPie({ byRequirement = {} }) {
               className="w-2.5 h-2.5 rounded-full shrink-0"
               style={{ backgroundColor: REQ_COLORS[i % REQ_COLORS.length] }}
             />
-            <span className="text-slate-700 truncate" title={d.name}>
+            <span className="text-foreground/90 truncate" title={d.name}>
               {d.name}
-              <span className="text-slate-500 ml-1">({d.value})</span>
+              <span className="text-muted-foreground ml-1">({d.value})</span>
             </span>
           </li>
         ))}

@@ -22,7 +22,7 @@ function HeroButton({ shortcut }) {
 
   const className = cn(
     "flex items-center justify-between gap-3 w-full min-h-[5.5rem] sm:min-h-[6.5rem]",
-    "rounded-lg px-4 py-4 text-white shadow-sm transition-colors",
+    "rounded-lg px-4 py-4 text-white shadow-sm transition-colors ring-1 ring-white/20",
     shortcut.bgClass,
     !shortcut.active && "opacity-60 cursor-not-allowed",
   );
@@ -63,7 +63,7 @@ export default function DashboardHeroSection({ shortcuts = [], greetingName }) {
   return (
     <div className="space-y-3 min-w-0" data-testid="dashboard-hero" data-tour="tour-dashboard-atalhos">
       {greetingName && (
-        <p className="text-base sm:text-lg font-medium text-slate-800">
+        <p className="text-base sm:text-lg font-medium text-foreground">
           Olá, {greetingName}!
         </p>
       )}

@@ -29,14 +29,14 @@ export default class PageErrorBoundary extends React.Component {
       return (
         <div className="min-h-[50vh] flex items-center justify-center p-8" data-testid="page-error-boundary">
           <div className="max-w-md w-full text-center space-y-4">
-            <h1 className="font-display text-xl font-semibold text-slate-900">
+            <h1 className="font-display text-xl font-semibold text-foreground">
               {this.props.title || "Não foi possível abrir esta página"}
             </h1>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               Tente recarregar a página. Se acabou de publicar uma atualização, use Ctrl+Shift+R para limpar a cache.
             </p>
             {showDetail && detail && (
-              <p className="text-xs text-slate-500 font-mono break-words bg-slate-100 rounded-md p-3 text-left">
+              <p className="text-xs text-muted-foreground font-mono break-words bg-muted rounded-md p-3 text-left">
                 {detail}
               </p>
             )}
@@ -47,7 +47,7 @@ export default class PageErrorBoundary extends React.Component {
                 </Link>
               </Button>
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary"
                 onClick={() => window.location.reload()}
               >
                 <ArrowsClockwise size={16} className="mr-1.5" /> Recarregar página

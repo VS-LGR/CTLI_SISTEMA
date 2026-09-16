@@ -94,7 +94,7 @@ export default function PositionEditorPage() {
         <PositionForm form={form} setForm={setForm} optionsByCategory={optionsByCategory} employees={employees} />
         <div className="flex gap-2 mt-6">
           <Button variant="outline" onClick={() => navigate(PERSONNEL_CARGOS_PATH)}>Cancelar</Button>
-          <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
+          <Button className="bg-primary" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>
     </div>

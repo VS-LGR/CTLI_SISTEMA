@@ -33,9 +33,9 @@ function AlertRow({ item }) {
         <div className="min-w-0 flex-1 space-y-1.5">
           <EllipsisTooltip
             label={item.label}
-            className="font-medium text-slate-900 text-sm block"
+            className="font-medium text-foreground text-sm block"
           />
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             <EllipsisTooltip
               label={kindExpanded}
               className="inline-block max-w-full sm:max-w-[14rem]"
@@ -52,7 +52,7 @@ function AlertRow({ item }) {
             >
               {STATUS_LABELS[item.status] || item.status}
             </span>
-            <span className="tabular-nums text-slate-500">
+            <span className="tabular-nums text-muted-foreground">
               {fmtDmyShort(item.expiry_date)}
             </span>
           </div>
@@ -70,7 +70,7 @@ function AlertSection({ title, tone, items }) {
     <div className="space-y-2">
       <p className={`text-xs font-semibold uppercase tracking-wide ${titleClass}`}>
         {title}
-        <span className="ml-1.5 font-normal normal-case tracking-normal text-slate-500">
+        <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground">
           ({items.length})
         </span>
       </p>
@@ -90,7 +90,7 @@ export default function EquipmentExpiryAlerts({ alerts = [], loading = false }) 
 
   return (
     <Card
-      className="border-slate-200 min-w-0 h-full flex flex-col"
+      className="border-border min-w-0 h-full flex flex-col"
       data-testid="equipment-expiry-alerts"
     >
       <CardHeader className="pb-3">
@@ -98,14 +98,14 @@ export default function EquipmentExpiryAlerts({ alerts = [], loading = false }) 
           <CalendarBlank size={20} className="text-amber-600" weight="duotone" />
           Avisos de vencimento
         </CardTitle>
-        <p className="text-xs text-slate-500 font-normal mt-1 max-w-prose">
+        <p className="text-xs text-muted-foreground font-normal mt-1 max-w-prose">
           Pesos padrão e termo-baro-higrômetro vencidos ou a vencer nos próximos 60 dias
         </p>
       </CardHeader>
       <CardContent className="pt-0 flex-1 flex flex-col min-w-0">
-        {loading && <p className="text-sm text-slate-500">A carregar…</p>}
+        {loading && <p className="text-sm text-muted-foreground">A carregar…</p>}
         {!loading && items.length === 0 && (
-          <p className="text-sm text-slate-500 py-2">
+          <p className="text-sm text-muted-foreground py-2">
             Nenhum certificado próximo do vencimento.
           </p>
         )}
@@ -115,7 +115,7 @@ export default function EquipmentExpiryAlerts({ alerts = [], loading = false }) 
             <AlertSection title="Próximos 60 dias" tone="warning" items={warning} />
           </div>
         )}
-        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="mt-5 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-2">
           <RequirementShortcutTile
             to={cadastroSectionPath("cert-peso")}
             label="Certificados de peso padrão"

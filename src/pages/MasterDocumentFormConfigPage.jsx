@@ -39,17 +39,17 @@ export default function MasterDocumentFormConfigPage() {
   return (
     <div className="space-y-6 min-w-0" data-testid={`master-form-config-${configKey}`}>
       <div>
-        <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
-          <Link to="/dashboard" className="hover:text-blue-600">Início</Link>
+        <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+          <Link to="/dashboard" className="hover:text-primary">Início</Link>
           <span>/</span>
-          <Link to={meta.parentPath} className="hover:text-blue-600">{meta.parentLabel}</Link>
+          <Link to={meta.parentPath} className="hover:text-primary">{meta.parentLabel}</Link>
           <span>/</span>
-          <span className="text-slate-700 font-medium">{meta.title}</span>
+          <span className="text-foreground/90 font-medium">{meta.title}</span>
         </div>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-2">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2">
           {meta.title}
         </h1>
-        <p className="text-sm text-slate-600 mt-1">{meta.subtitle}</p>
+        <p className="text-sm text-muted-foreground mt-1">{meta.subtitle}</p>
       </div>
 
       {id && folderKey && (

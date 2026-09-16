@@ -67,14 +67,14 @@ function fmtDmy(iso) {
 }
 
 const statusTone = {
-  rascunho: "bg-slate-100 text-slate-700",
-  calculado: "bg-blue-100 text-blue-800",
+  rascunho: "bg-muted text-foreground/90",
+  calculado: "bg-primary/15 text-primary",
   em_revisao_tecnica: "bg-amber-100 text-amber-800",
   aguardando_aprovacao: "bg-orange-100 text-orange-800",
   aprovado: "bg-emerald-100 text-emerald-800",
   emitido: "bg-emerald-200 text-emerald-900",
-  enviado: "bg-blue-100 text-blue-900",
-  substituido: "bg-slate-200 text-slate-600",
+  enviado: "bg-primary/15 text-foreground",
+  substituido: "bg-muted text-muted-foreground",
   cancelado: "bg-red-100 text-red-800",
   obsoleto: "bg-amber-100 text-amber-900",
   reprovado: "bg-red-100 text-red-700",
@@ -133,7 +133,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (!currentTenantId) return;
+    if (!currentTenantId || !supabase) return;
     supabase
       .from("end_customer_registrations")
       .select("id, email, name")
@@ -182,7 +182,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
     return <Navigate to="/dashboard" replace />;
   }
   if (!isSupabaseAuthMode || !currentTenantId) {
-    return <p className="text-sm text-slate-500 p-8">Ligação Supabase necessária.</p>;
+    return <p className="text-sm text-muted-foreground p-8">Ligação Supabase necessária.</p>;
   }
 
   const toggleSelect = (id) => {
@@ -505,8 +505,8 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
       {!embedded && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="font-display text-xl font-semibold text-slate-900">Certificados de Calibração</h1>
-            <p className="text-sm text-slate-500 mt-1">RE-7.2B — aprovação, emissão e envio ao cliente</p>
+            <h1 className="font-display text-xl font-semibold text-foreground">Certificados de Calibração</h1>
+            <p className="text-sm text-muted-foreground mt-1">RE-7.2B — aprovação, emissão e envio ao cliente</p>
           </div>
           {canCreate && (
             <Button asChild>
@@ -532,7 +532,7 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9 h-10"
             placeholder="Buscar cliente, série ou número…"
@@ -618,13 +618,13 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
         busy={batchBusy}
       />
       {batchProgress && (
-        <p className="text-xs text-slate-600">Progresso: {batchProgress}</p>
+        <p className="text-xs text-muted-foreground">Progresso: {batchProgress}</p>
       )}
 
-      <Card className="border-slate-200 overflow-hidden">
+      <Card className="border-border overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm min-w-[1100px]">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-background text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="p-3 w-10" />
                 <th className="p-3">Nº Certificado</th>
@@ -636,20 +636,20 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
                 <th className="p-3">Tipo</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">E-mail</th>
-                <th className="p-3 sticky right-0 z-20 bg-slate-50 min-w-[7.5rem] text-right shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.18)]">
+                <th className="p-3 sticky right-0 z-20 bg-background min-w-[7.5rem] text-right shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.18)]">
                   Ações
                 </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={11} className="p-8 text-center text-muted-foreground">A carregar…</td></tr>
               ) : !filtered.length ? (
-                <tr><td colSpan={11} className="p-8 text-center text-slate-500">Nenhum certificado encontrado.</td></tr>
+                <tr><td colSpan={11} className="p-8 text-center text-muted-foreground">Nenhum certificado encontrado.</td></tr>
               ) : filtered.map((r) => {
                 const selectable = selectableIds.includes(r.id);
                 return (
-                  <tr key={r.id} className="group border-t border-slate-100 hover:bg-slate-50/50">
+                  <tr key={r.id} className="group border-t border-border hover:bg-accent/50">
                     <td className="p-3 align-middle">
                       {selectable && (
                         <Checkbox
@@ -675,16 +675,16 @@ export default function CertificateListPage({ embedded = false, approvalMode = f
                     </td>
                     <td className="p-3">{certificateTypeLabel(r.certificate_type)}</td>
                     <td className="p-3">
-                      <Badge className={statusTone[r.status] || "bg-slate-100"}>
+                      <Badge className={statusTone[r.status] || "bg-muted"}>
                         {certificateStatusLabel(r.status)}
                       </Badge>
                     </td>
-                    <td className="p-3 text-xs text-slate-600 max-w-[120px]">
+                    <td className="p-3 text-xs text-muted-foreground max-w-[120px]">
                       <EllipsisTooltip label={r.client_email_sent_to || ""} className="block">
                         {r.client_email_sent_to || (r.status === "enviado" ? "—" : "Não enviado")}
                       </EllipsisTooltip>
                     </td>
-                    <td className="p-3 sticky right-0 z-10 bg-white group-hover:bg-slate-50/80 min-w-[7.5rem] text-right shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)]">
+                    <td className="p-3 sticky right-0 z-10 bg-card group-hover:bg-accent/80 min-w-[7.5rem] text-right shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)]">
                       <CertificateRowActions
                         row={r}
                         canSend={canSend}

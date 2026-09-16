@@ -49,7 +49,7 @@ export default function PointMaxToleranceFields({
 
   return (
     <div className={className}>
-      <p className="text-xs text-slate-600 mb-2">
+      <p className="text-xs text-muted-foreground mb-2">
         Limite máximo de |Erro + Incerteza| por valor nominal total da pesagem (V.N.), como definido na proposta.
         Tolerância na mesma unidade do erro/incerteza no certificado.
       </p>
@@ -62,7 +62,7 @@ export default function PointMaxToleranceFields({
       <div className="overflow-x-auto -mx-1 px-1">
         <table className="w-full text-xs min-w-[420px]">
           <thead>
-            <tr className="text-[10px] uppercase text-slate-500 border-b border-slate-200">
+            <tr className="text-[10px] uppercase text-muted-foreground border-b border-border">
               <th className="py-1.5 pr-2 text-left font-medium">Pesagem (V.N.)</th>
               <th className="py-1.5 px-2 text-left font-medium w-16">Un.</th>
               <th className="py-1.5 px-2 text-left font-medium">Tol. máx. |E+U|</th>
@@ -71,7 +71,7 @@ export default function PointMaxToleranceFields({
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={`tol-row-${index}`} className="border-b border-slate-100 last:border-0">
+              <tr key={`tol-row-${index}`} className="border-b border-border last:border-0">
                 <td className="py-1.5 pr-2">
                   <Input
                     inputMode="decimal"
@@ -111,7 +111,7 @@ export default function PointMaxToleranceFields({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 text-slate-400 hover:text-red-600"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
                       onClick={() => removeRow(index)}
                       disabled={rows.length <= 1 && !row.nominal_value && !row.max_tolerance}
                       aria-label="Remover linha"

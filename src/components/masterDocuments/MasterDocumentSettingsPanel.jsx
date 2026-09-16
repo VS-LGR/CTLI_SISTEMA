@@ -130,7 +130,7 @@ export default function MasterDocumentSettingsPanel({ tenantId, tenant }) {
       <Card>
         <CardHeader><CardTitle className="text-base">Catálogo padrão</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             A Lista Mestra reflete os documentos existentes no sistema (criados nos requisitos ou manualmente).
             O catálogo padrão é opcional e serve apenas como ponto de partida — entradas sem ficheiro real não aparecem na lista interna.
           </p>
@@ -141,7 +141,7 @@ export default function MasterDocumentSettingsPanel({ tenantId, tenant }) {
       <Card>
         <CardHeader><CardTitle className="text-base">Remapear família de códigos</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Altera de uma vez todos os códigos PR/RE/MQ de uma base numérica no ambiente ativo
             (ex.: família 6.2 → 5.1). As pastas e rotas internas (pr-6-2) mantêm-se; os códigos exibidos e PDFs passam a usar a nova numeração.
           </p>
@@ -177,8 +177,8 @@ export default function MasterDocumentSettingsPanel({ tenantId, tenant }) {
           {preview?.items?.length > 0 && (
             <div className="border rounded-lg overflow-hidden max-h-56 overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="bg-slate-50 sticky top-0">
-                  <tr className="text-left text-[10px] uppercase text-slate-500">
+                <thead className="bg-background sticky top-0">
+                  <tr className="text-left text-[10px] uppercase text-muted-foreground">
                     <th className="px-2 py-1">De</th>
                     <th className="px-2 py-1">Para</th>
                     <th className="px-2 py-1">Título</th>
@@ -202,7 +202,7 @@ export default function MasterDocumentSettingsPanel({ tenantId, tenant }) {
       <Card>
         <CardHeader><CardTitle className="text-base">Exportação RE-8.3A</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Gera PDF da Lista Mestra de Documentos com histórico de revisões, distribuição e controles periódicos.
             {listaDoc?.code ? ` Documento ativo: ${listaDoc.code}.` : ""}
           </p>
@@ -223,7 +223,7 @@ export default function MasterDocumentSettingsPanel({ tenantId, tenant }) {
         </CardHeader>
         <CardContent>
           {!listaDoc && (
-            <p className="text-sm text-slate-500">Documento da Lista Mestra não encontrado. Importe o catálogo padrão.</p>
+            <p className="text-sm text-muted-foreground">Documento da Lista Mestra não encontrado. Importe o catálogo padrão.</p>
           )}
           {listaDoc && (
             <DocumentRevisionPanel

@@ -101,28 +101,28 @@ export default function CommercialProposalsListPanel({ tenantId, tenant }) {
   };
 
   if (!canAccessCommercialProposals(user?.role, user)) {
-    return <div className="text-slate-600 text-sm">Sem permissão para propostas comerciais.</div>;
+    return <div className="text-muted-foreground text-sm">Sem permissão para propostas comerciais.</div>;
   }
   if (!isSupabaseAuthMode) {
-    return <div className="text-slate-600 text-sm">Propostas comerciais requerem modo Supabase.</div>;
+    return <div className="text-muted-foreground text-sm">Propostas comerciais requerem modo Supabase.</div>;
   }
   if (!tenantId) {
-    return <div className="text-slate-600 text-sm">Selecione um ambiente no topo.</div>;
+    return <div className="text-muted-foreground text-sm">Selecione um ambiente no topo.</div>;
   }
 
   return (
     <div className="space-y-4 min-w-0">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-lg font-semibold text-slate-900">Propostas Comerciais (RE-7.1A)</h2>
-          <p className="text-sm text-slate-600 mt-0.5">Cadastro multi-balança, exportação PDF e geração de coletas.</p>
+          <h2 className="font-display text-lg font-semibold text-foreground">Propostas Comerciais (RE-7.1A)</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Cadastro multi-balança, exportação PDF e geração de coletas.</p>
         </div>
         <Button asChild>
           <Link to={PROPOSAL_NEW_PATH} data-tour="tour-propostas-nova"><Plus size={18} className="mr-1" /> Nova proposta</Link>
         </Button>
       </div>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[200px]">
             <Label className="text-xs">Buscar</Label>
@@ -131,7 +131,7 @@ export default function CommercialProposalsListPanel({ tenantId, tenant }) {
           <div className="w-32">
             <Label className="text-xs">Ano</Label>
             <select
-              className="mt-1 w-full h-10 rounded-md border border-slate-200 bg-white px-2 text-sm"
+              className="mt-1 w-full h-10 rounded-md border border-border bg-card px-2 text-sm"
               value={year}
               onChange={(e) => setYear(e.target.value)}
             >
@@ -143,15 +143,15 @@ export default function CommercialProposalsListPanel({ tenantId, tenant }) {
       </Card>
 
       {loading ? (
-        <div className="text-slate-600 text-sm py-8 text-center">Carregando…</div>
+        <div className="text-muted-foreground text-sm py-8 text-center">Carregando…</div>
       ) : !filtered.length ? (
-        <div className="text-slate-600 text-sm py-8 text-center border border-dashed border-slate-200 rounded-lg">
+        <div className="text-muted-foreground text-sm py-8 text-center border border-dashed border-border rounded-lg">
           Nenhuma proposta encontrada.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-sm min-w-[640px]">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-background border-b border-border">
               <tr>
                 <th className="text-left p-3 font-medium">Nº</th>
                 <th className="text-left p-3 font-medium">Data</th>
@@ -163,7 +163,7 @@ export default function CommercialProposalsListPanel({ tenantId, tenant }) {
             </thead>
             <tbody>
               {filtered.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                <tr key={row.id} className="border-b border-border hover:bg-accent/50">
                   <td className="p-3 font-mono text-xs">{formatProposalNumber(row.proposal_number, row.proposal_year)}</td>
                   <td className="p-3">{formatDateBr(row.proposal_date)}</td>
                   <td className="p-3">{row.client_snapshot?.company || "—"}</td>

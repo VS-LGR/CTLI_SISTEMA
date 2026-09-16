@@ -172,8 +172,8 @@ export default function TourSpotlight({
   const showCard = Boolean(hole) || showCardWithoutTarget;
 
   const cardClass = hole && !isMobile
-    ? "fixed z-[61] w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-4 shadow-xl pointer-events-auto"
-    : "fixed left-3 right-3 bottom-3 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[min(20rem,calc(100vw-3rem))] z-[61] max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-xl pointer-events-auto";
+    ? "fixed z-[61] w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-4 shadow-xl pointer-events-auto"
+    : "fixed left-3 right-3 bottom-3 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[min(20rem,calc(100vw-3rem))] z-[61] max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-3 sm:p-4 shadow-xl pointer-events-auto";
 
   const cardStyle = hole && !isMobile
     ? (() => {
@@ -232,7 +232,7 @@ export default function TourSpotlight({
             onClick={() => onDismiss?.()}
           />
           <div
-            className="pointer-events-none absolute rounded-lg ring-4 ring-blue-400"
+            className="pointer-events-none absolute rounded-lg ring-4 ring-primary"
             style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
             aria-hidden
           />
@@ -248,20 +248,20 @@ export default function TourSpotlight({
 
       {showCard && (
         <div className={cardClass} style={cardStyle}>
-          <p className="text-[10px] uppercase tracking-wide text-blue-700 font-semibold">
+          <p className="text-[10px] uppercase tracking-wide text-primary font-semibold">
             {title} · passo {stepIndex + 1} de {total}
           </p>
-          <h3 className="mt-1 text-base font-semibold text-slate-900 break-words">{stepTitle}</h3>
-          <p className="mt-1.5 text-sm text-slate-600 leading-relaxed break-words">{stepBody}</p>
+          <h3 className="mt-1 text-base font-semibold text-foreground break-words">{stepTitle}</h3>
+          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed break-words">{stepBody}</p>
           {waiting && !hole ? (
-            <p className="mt-2 text-xs text-slate-500">A localizar o botão nesta página…</p>
+            <p className="mt-2 text-xs text-muted-foreground">A localizar o botão nesta página…</p>
           ) : (
             <p className="mt-2 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5">
               Toque ou clique no botão iluminado para seguir o processo.
             </p>
           )}
           <div className="mt-3 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between sm:items-center">
-            <Button asChild variant="link" className="h-auto p-0 text-xs text-slate-600">
+            <Button asChild variant="link" className="h-auto p-0 text-xs text-muted-foreground">
               <Link to={HELP_PATH} onClick={() => onDismiss?.()}>Ver na Ajuda</Link>
             </Button>
             <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
@@ -271,11 +271,11 @@ export default function TourSpotlight({
                 </Button>
               )}
               {!isLast ? (
-                <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onStepChange?.(stepIndex + 1)}>
+                <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-primary" onClick={() => onStepChange?.(stepIndex + 1)}>
                   Seguinte
                 </Button>
               ) : (
-                <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onDismiss?.()}>
+                <Button type="button" size="sm" className="w-full sm:w-auto min-h-10 bg-primary" onClick={() => onDismiss?.()}>
                   Entendi
                 </Button>
               )}

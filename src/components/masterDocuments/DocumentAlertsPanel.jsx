@@ -11,7 +11,7 @@ import ExternalConsultationDialog from "./ExternalConsultationDialog";
 function AlertList({ title, items, variant = "warning", actionLabel, onAction }) {
   if (!items?.length) return null;
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           {title}
@@ -21,14 +21,14 @@ function AlertList({ title, items, variant = "warning", actionLabel, onAction })
       <CardContent className="pt-0">
         <ul className="space-y-1 text-sm">
           {items.map((item) => (
-            <li key={item.id} className="flex justify-between gap-2 border-b border-slate-100 py-1.5 last:border-0 items-center">
+            <li key={item.id} className="flex justify-between gap-2 border-b border-border py-1.5 last:border-0 items-center">
               <span className="truncate min-w-0">{item.code ? `${item.code} — ` : ""}{item.title}</span>
               <div className="flex items-center gap-2 shrink-0">
                 {item.next_critical_analysis_date && (
-                  <span className="text-xs text-slate-500">{formatDateBr(item.next_critical_analysis_date)}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateBr(item.next_critical_analysis_date)}</span>
                 )}
                 {item.next_consultation_date && (
-                  <span className="text-xs text-slate-500">{formatDateBr(item.next_consultation_date)}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateBr(item.next_consultation_date)}</span>
                 )}
                 {item.daysUntil != null && (
                   <span className="text-xs text-amber-600">{item.daysUntil < 0 ? "Vencido" : `${item.daysUntil}d`}</span>
@@ -67,7 +67,7 @@ export default function DocumentAlertsPanel({ tenantId }) {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) return <div className="text-slate-500 text-sm py-8 text-center">Carregando alertas…</div>;
+  if (loading) return <div className="text-muted-foreground text-sm py-8 text-center">Carregando alertas…</div>;
   if (!alerts) return null;
 
   const empty = alerts.totalCount === 0;
@@ -75,7 +75,7 @@ export default function DocumentAlertsPanel({ tenantId }) {
   return (
     <div className="space-y-4">
       {empty && (
-        <p className="text-sm text-slate-600 py-4">Nenhum alerta pendente.</p>
+        <p className="text-sm text-muted-foreground py-4">Nenhum alerta pendente.</p>
       )}
       <AlertList
         title="Análise crítica vencida"

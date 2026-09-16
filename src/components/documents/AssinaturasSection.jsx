@@ -91,21 +91,21 @@ export default function AssinaturasSection({
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button className="bg-blue-600 text-white" size="sm" onClick={() => setOpen(true)}>
+        <Button className="bg-primary" size="sm" onClick={() => setOpen(true)}>
           <Plus size={16} className="mr-1" /> Nova assinatura
         </Button>
       </div>
       {filtered.length === 0 ? (
-        <p className="text-sm text-slate-500 text-center py-12 border rounded-lg bg-slate-50">
+        <p className="text-sm text-muted-foreground text-center py-12 border rounded-lg bg-background">
           Nenhuma assinatura cadastrada.
         </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {filtered.map((d) => (
-            <Card key={d.id} className="border-slate-200 overflow-hidden">
+            <Card key={d.id} className="border-border overflow-hidden">
               <CardContent className="p-3 space-y-2">
                 <p className="text-sm font-medium truncate" title={d.title}>{d.title}</p>
-                <div className="aspect-[3/1] bg-slate-100 rounded flex items-center justify-center text-xs text-slate-400">
+                <div className="aspect-[3/1] bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
                   {d.has_file ? "Imagem" : "—"}
                 </div>
                 <div className="flex gap-1 justify-end">
@@ -134,7 +134,7 @@ export default function AssinaturasSection({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="bg-blue-600 text-white" onClick={save} disabled={busy}>Guardar</Button>
+            <Button className="bg-primary" onClick={save} disabled={busy}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -25,15 +25,15 @@ export default function ColetaHubPage({ embedded = false }) {
 
   if (!isSupabaseAuthMode) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16 text-slate-600">
-        <p className="font-medium text-slate-900 mb-2">Coleta requer autenticação Supabase</p>
+      <div className="max-w-lg mx-auto text-center py-16 text-muted-foreground">
+        <p className="font-medium text-foreground mb-2">Coleta requer autenticação Supabase</p>
       </div>
     );
   }
 
   if (!currentTenantId) {
     return (
-      <div className="text-center py-16 text-slate-500">
+      <div className="text-center py-16 text-muted-foreground">
         Selecione um ambiente (cliente) no topo para aceder às coletas.
       </div>
     );
@@ -43,34 +43,34 @@ export default function ColetaHubPage({ embedded = false }) {
     <div className="space-y-6 max-w-4xl w-full min-w-0" data-testid="coleta-hub-page">
       <div>
         {!embedded && (
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-7.2</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">PR-7.2</p>
         )}
-        <h1 className={`${embedded ? "text-xl" : "font-display text-2xl sm:text-3xl"} font-bold tracking-tight text-slate-900 ${embedded ? "" : "mt-1"}`}>
+        <h1 className={`${embedded ? "text-xl" : "font-display text-2xl sm:text-3xl"} font-bold tracking-tight text-foreground ${embedded ? "" : "mt-1"}`}>
           Coleta de dados
         </h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Escolha o tipo de coleta a registar ou consultar neste ambiente.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="border-slate-200 hover:border-blue-300 transition-colors">
+        <Card className="border-border hover:border-primary/40 transition-colors">
           <CardContent className="p-5 sm:p-6 flex flex-col h-full gap-4">
             <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-md border border-blue-100 bg-blue-50 text-blue-700 shrink-0">
+              <div className="p-2.5 rounded-md border border-primary/20 bg-primary/10 text-primary shrink-0">
                 <ClipboardText size={22} weight="duotone" />
               </div>
               <div className="min-w-0">
-                <h2 className="font-semibold text-slate-900 text-lg leading-snug">
+                <h2 className="font-semibold text-foreground text-lg leading-snug">
                   Calibração de balanças
                 </h2>
-                <p className="text-sm text-slate-600 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Coleta RE-7.2A — pontos, pesos de referência e condições ambientais da balança.
                 </p>
               </div>
             </div>
             <div className="mt-auto flex flex-wrap gap-2">
-              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+              <Button asChild className="bg-primary hover:bg-primary/90">
                 <Link to={COLETA_LIST_PATH}>
                   Abrir listagem <ArrowRight size={16} className="ml-1" />
                 </Link>
@@ -82,17 +82,17 @@ export default function ColetaHubPage({ embedded = false }) {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 hover:border-teal-300 transition-colors">
+        <Card className="border-border hover:border-teal-300 transition-colors">
           <CardContent className="p-5 sm:p-6 flex flex-col h-full gap-4">
             <div className="flex items-start gap-3">
               <div className="p-2.5 rounded-md border border-teal-100 bg-teal-50 text-teal-800 shrink-0">
                 <Scales size={22} weight="duotone" />
               </div>
               <div className="min-w-0">
-                <h2 className="font-semibold text-slate-900 text-lg leading-snug">
+                <h2 className="font-semibold text-foreground text-lg leading-snug">
                   Calibração de pesos-padrão
                 </h2>
-                <p className="text-sm text-slate-600 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Coleta RE-5.4.2A — ensaio ABA (PR-7.2 Rev.06), com opção de preenchimento por voz.
                 </p>
               </div>

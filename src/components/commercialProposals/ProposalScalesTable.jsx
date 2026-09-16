@@ -18,7 +18,7 @@ import ProposalCalibrationPointsEditor from "./ProposalCalibrationPointsEditor";
 function ClientPointsRadio({ value, onChange, idPrefix }) {
   return (
     <div>
-      <Label className="text-xs text-slate-600 mb-2 block">
+      <Label className="text-xs text-muted-foreground mb-2 block">
         Pontos de calibração solicitados pelo cliente
       </Label>
       <RadioGroup value={value || ""} onValueChange={onChange} className="flex flex-wrap gap-4">
@@ -121,7 +121,7 @@ export default function ProposalScalesTable({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-800">Balanças</h3>
+        <h3 className="text-sm font-semibold text-foreground">Balanças</h3>
         <Button type="button" variant="outline" size="sm" onClick={addScale}>
           <Plus size={16} className="mr-1" /> Adicionar balança
         </Button>
@@ -132,9 +132,9 @@ export default function ProposalScalesTable({
           const scaleUnit = scale.unit || "g";
           const linked = Boolean(scale.scale_registration_id);
           return (
-            <div key={scale.id || `scale-${index}`} className="rounded-lg border border-slate-200 p-4 space-y-3 bg-white">
+            <div key={scale.id || `scale-${index}`} className="rounded-lg border border-border p-4 space-y-3 bg-card">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-slate-600 uppercase">Balança {index + 1}</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase">Balança {index + 1}</span>
                 {scales.length > 1 && !scale.collection_id && (
                   <Button type="button" variant="ghost" size="sm" className="text-red-600" onClick={() => removeScale(index)}>
                     <Trash size={16} />
@@ -162,7 +162,7 @@ export default function ProposalScalesTable({
                   </p>
                 )}
                 {endCustomerId && !scaleList.length && registeredScales.length > 0 && (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Nenhuma balança vinculada a este cliente. Preencha manualmente ou selecione outra.
                   </p>
                 )}

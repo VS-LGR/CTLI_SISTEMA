@@ -103,7 +103,7 @@ export default function EquipmentVerificationListPage({ embedded = false }) {
   };
 
   if (!isSupabaseAuthMode || !currentTenantId) {
-    return <p className="text-sm text-slate-500 p-8">Ligação Supabase e ambiente necessários.</p>;
+    return <p className="text-sm text-muted-foreground p-8">Ligação Supabase e ambiente necessários.</p>;
   }
 
   const yearOptions = [...new Set(rows.map((r) => String(r.year)))].sort((a, b) => b.localeCompare(a));
@@ -113,9 +113,9 @@ export default function EquipmentVerificationListPage({ embedded = false }) {
       {!embedded && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4.12 · RE-6.4.12B</div>
-            <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Verificação de Equipamento</h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">PR-6.4.12 · RE-6.4.12B</div>
+            <h1 className="font-display text-xl font-semibold text-foreground mt-1">Verificação de Equipamento</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Checklists anuais por tipo. Vincule vários equipamentos em cada verificação.
             </p>
           </div>
@@ -158,10 +158,10 @@ export default function EquipmentVerificationListPage({ embedded = false }) {
         </Select>
       </div>
 
-      <Card className="border-slate-200 overflow-hidden">
+      <Card className="border-border overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm min-w-[640px]">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-background text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="p-3">Tipo</th>
                 <th className="p-3">Ano</th>
@@ -173,11 +173,11 @@ export default function EquipmentVerificationListPage({ embedded = false }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">A carregar…</td></tr>
               ) : !rows.length ? (
-                <tr><td colSpan={6} className="p-8 text-center text-slate-500">Nenhuma verificação registada.</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhuma verificação registada.</td></tr>
               ) : rows.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-border">
                   <td className="p-3 font-medium">{equipmentKindLabel(r.equipment_kind)}</td>
                   <td className="p-3">{r.year}</td>
                   <td className="p-3">{(r.linked_asset_ids || []).length || "—"}</td>

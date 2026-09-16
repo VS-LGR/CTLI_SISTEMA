@@ -117,7 +117,7 @@ export default function BackupView() {
   }, [dryRunReport]);
 
   if (!currentTenantId) {
-    return <p className="text-sm text-slate-500">Selecione um ambiente de cliente.</p>;
+    return <p className="text-sm text-muted-foreground">Selecione um ambiente de cliente.</p>;
   }
 
   const onPickZip = (file) => {
@@ -209,20 +209,20 @@ export default function BackupView() {
     <div className="space-y-8 max-w-4xl" data-testid="backup-view">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Continuidade</div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Continuidade</div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
             Backup
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {currentTenant?.name}
-            <span className="text-slate-300 mx-2">·</span>
+            <span className="text-muted-foreground mx-2">·</span>
             Cópia automática a cada {status.auto_interval_days} dias no Storage; use «Gerar cópia» para backup manual sob demanda (Storage + download)
           </p>
         </div>
         <Button
           onClick={generateAndDownload}
           disabled={busy}
-          className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+          className="bg-primary shrink-0"
           data-testid="create-backup-btn"
         >
           <DownloadSimple size={16} className="mr-1.5" />
@@ -230,10 +230,10 @@ export default function BackupView() {
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
         <span>
           Última cópia{" "}
-          <span className="font-medium text-slate-900">{formatDate(status.last_backup_at)}</span>
+          <span className="font-medium text-foreground">{formatDate(status.last_backup_at)}</span>
         </span>
         {health === "ok" && (
           <Badge className="bg-emerald-50 text-emerald-800 hover:bg-emerald-50 gap-1 font-normal">
@@ -251,11 +251,11 @@ export default function BackupView() {
           </Badge>
         )}
         {health === "never" && (
-          <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-100 gap-1 font-normal">
+          <Badge className="bg-muted text-muted-foreground hover:bg-accent gap-1 font-normal">
             Sem cópia ainda
           </Badge>
         )}
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-muted-foreground">
           Auto {status.auto_interval_days}d · Retenção {status.backup_retention_days}d
           {lastSha256 ? ` · ${shortHash(lastSha256)}` : ""}
         </span>
@@ -263,26 +263,26 @@ export default function BackupView() {
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-display text-lg font-semibold text-slate-900">Trabalhar com um ZIP</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h2 className="font-display text-lg font-semibold text-foreground">Trabalhar com um ZIP</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Escolha o ficheiro uma vez — depois verifique (sem gravar) ou restaure.
           </p>
         </div>
 
-        <Card className="border-slate-200 shadow-none">
+        <Card className="border-border shadow-none">
           <CardContent className="p-5 sm:p-6 space-y-5">
             <div>
-              <Label className="text-xs text-slate-500">Ficheiro .zip</Label>
+              <Label className="text-xs text-muted-foreground">Ficheiro .zip</Label>
               <input
                 ref={fileRef}
                 type="file"
                 accept=".zip,application/zip"
-                className="mt-1.5 block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+                className="mt-1.5 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground/90 hover:file:bg-muted"
                 onChange={(e) => onPickZip(e.target.files?.[0])}
                 data-testid="restore-file-input"
               />
               {zipFile && (
-                <p className="text-xs text-slate-400 mt-1.5 truncate">{zipFile.name}</p>
+                <p className="text-xs text-muted-foreground mt-1.5 truncate">{zipFile.name}</p>
               )}
             </div>
 
@@ -303,7 +303,7 @@ export default function BackupView() {
                 onClick={restore}
                 className={cn(
                   "text-white",
-                  replace ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700",
+                  replace ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90",
                 )}
                 data-testid="confirm-restore-btn"
                 title={
@@ -324,7 +324,7 @@ export default function BackupView() {
             </div>
 
             <div className="space-y-2">
-              <div className="text-xs font-medium text-slate-500">Modo de restauração</div>
+              <div className="text-xs font-medium text-muted-foreground">Modo de restauração</div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -337,7 +337,7 @@ export default function BackupView() {
                     "rounded-md px-3 py-2 text-xs font-medium transition-colors border",
                     !replace
                       ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                      : "bg-card text-muted-foreground border-border hover:bg-accent",
                   )}
                 >
                   Acrescentar
@@ -349,14 +349,14 @@ export default function BackupView() {
                     "rounded-md px-3 py-2 text-xs font-medium transition-colors border",
                     replace
                       ? "bg-red-600 text-white border-red-600"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                      : "bg-card text-muted-foreground border-border hover:bg-accent",
                   )}
                   data-testid="replace-checkbox"
                 >
                   Substituir
                 </button>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {replace
                   ? "Apaga os dados cobertos do ambiente e importa o ZIP. Exige digitar SUBSTITUIR + senha de admin."
                   : "Mantém os dados atuais e importa o ZIP (novos IDs; chaves naturais iguais são reutilizadas)."}
@@ -370,9 +370,9 @@ export default function BackupView() {
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-slate-600">Digite exatamente SUBSTITUIR</Label>
+                    <Label className="text-xs text-muted-foreground">Digite exatamente SUBSTITUIR</Label>
                     <Input
-                      className="h-9 mt-1 bg-white"
+                      className="h-9 mt-1 bg-card"
                       value={confirmPhrase}
                       onChange={(e) => setConfirmPhrase(e.target.value)}
                       placeholder="SUBSTITUIR"
@@ -383,10 +383,10 @@ export default function BackupView() {
                     )}
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600">Senha do administrador</Label>
+                    <Label className="text-xs text-muted-foreground">Senha do administrador</Label>
                     <Input
                       type="password"
-                      className="h-9 mt-1 bg-white"
+                      className="h-9 mt-1 bg-card"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       autoComplete="current-password"
@@ -403,22 +403,22 @@ export default function BackupView() {
             )}
 
             {dryRunReport && (
-              <div className="pt-4 border-t border-slate-100 space-y-3">
+              <div className="pt-4 border-t border-border space-y-3">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="text-sm font-medium text-slate-800">Resultado da verificação</span>
+                  <span className="text-sm font-medium text-foreground">Resultado da verificação</span>
                   {dryRunReport.integrity_verified ? (
                     <span className="text-xs text-emerald-700">Integridade OK</span>
                   ) : (
                     <span className="text-xs text-amber-700">Sem integrity v3</span>
                   )}
-                  <span className="text-xs font-mono text-slate-400">{shortHash(dryRunReport.sha256)}</span>
+                  <span className="text-xs font-mono text-muted-foreground">{shortHash(dryRunReport.sha256)}</span>
                 </div>
-                <p className="text-sm text-slate-600">{formatDryRunSummary(dryRunReport)}</p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-sm text-muted-foreground">{formatDryRunSummary(dryRunReport)}</p>
+                <p className="text-[11px] text-muted-foreground">
                   Δ = registos no ZIP − registos atuais (por tabela). Positivo = ZIP tem mais; negativo = ambiente tem mais.
                 </p>
                 {dryRunReport.coverage && (
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-muted-foreground">
                     Cobertura do ZIP: {dryRunReport.coverage.tenant_tables} tabelas tenant
                     {" · "}
                     {dryRunReport.coverage.child_tables} tabelas filhas
@@ -437,7 +437,7 @@ export default function BackupView() {
                 {topDeltas.length > 0 && (
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="text-left text-slate-400 border-b border-slate-100">
+                      <tr className="text-left text-muted-foreground border-b border-border">
                         <th className="py-1.5 font-medium">Tabela</th>
                         <th className="py-1.5 font-medium">ZIP</th>
                         <th className="py-1.5 font-medium">Atual</th>
@@ -446,11 +446,11 @@ export default function BackupView() {
                     </thead>
                     <tbody>
                       {topDeltas.map(([table, v]) => (
-                        <tr key={table} className="border-b border-slate-50">
-                          <td className="py-1.5 font-mono text-slate-600">{table}</td>
+                        <tr key={table} className="border-b border-border">
+                          <td className="py-1.5 font-mono text-muted-foreground">{table}</td>
                           <td className="py-1.5">{v.zip}</td>
                           <td className="py-1.5">{v.live ?? "—"}</td>
-                          <td className="py-1.5 text-slate-800">{v.delta > 0 ? `+${v.delta}` : v.delta}</td>
+                          <td className="py-1.5 text-foreground">{v.delta > 0 ? `+${v.delta}` : v.delta}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -464,15 +464,15 @@ export default function BackupView() {
 
       <div className="grid md:grid-cols-2 gap-8">
         <section>
-          <h2 className="font-display text-base font-semibold text-slate-900 mb-3">Storage</h2>
+          <h2 className="font-display text-base font-semibold text-foreground mb-3">Storage</h2>
           {!status.backups?.length ? (
-            <p className="text-sm text-slate-400">Nenhuma cópia listada ainda.</p>
+            <p className="text-sm text-muted-foreground">Nenhuma cópia listada ainda.</p>
           ) : (
             <ul className="space-y-2">
               {status.backups.slice(0, 8).map((b) => (
                 <li key={b.storage_path || b.name} className="text-sm flex justify-between gap-3">
-                  <span className="font-mono text-xs text-slate-600 truncate">{b.name}</span>
-                  <span className="text-xs text-slate-400 shrink-0 whitespace-nowrap">
+                  <span className="font-mono text-xs text-muted-foreground truncate">{b.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
                     {formatDate(b.created_at)}
                   </span>
                 </li>
@@ -482,26 +482,26 @@ export default function BackupView() {
         </section>
 
         <section>
-          <h2 className="font-display text-base font-semibold text-slate-900 mb-3">Histórico</h2>
+          <h2 className="font-display text-base font-semibold text-foreground mb-3">Histórico</h2>
           {!status.events?.length ? (
-            <p className="text-sm text-slate-400">Sem eventos registados.</p>
+            <p className="text-sm text-muted-foreground">Sem eventos registados.</p>
           ) : (
             <ul className="space-y-2.5">
               {status.events.slice(0, 8).map((ev) => (
                 <li key={ev.id} className="text-sm flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-slate-800">
+                    <div className="text-foreground">
                       {ACTION_LABEL[ev.action] || ev.action}
                       {ev.source ? (
-                        <span className="text-slate-400">
+                        <span className="text-muted-foreground">
                           {" "}· {SOURCE_LABEL[ev.source] || ev.source}
                         </span>
                       ) : null}
                       {ev.restore_mode ? (
-                        <span className="text-slate-400"> · {ev.restore_mode}</span>
+                        <span className="text-muted-foreground"> · {ev.restore_mode}</span>
                       ) : null}
                     </div>
-                    <div className="text-xs text-slate-400 truncate">
+                    <div className="text-xs text-muted-foreground truncate">
                       {ev.actor_full_name || ev.actor_email || "—"}
                       {ev.sha256 ? ` · ${shortHash(ev.sha256)}` : ""}
                     </div>
@@ -513,7 +513,7 @@ export default function BackupView() {
                     )}>
                       {ev.outcome}
                     </div>
-                    <div className="text-[11px] text-slate-400 whitespace-nowrap">
+                    <div className="text-[11px] text-muted-foreground whitespace-nowrap">
                       {formatDate(ev.created_at)}
                     </div>
                   </div>

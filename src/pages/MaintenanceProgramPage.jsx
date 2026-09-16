@@ -39,7 +39,7 @@ function cellClass(status, overdue) {
       ? "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-300 hover:bg-amber-100"
       : "bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-200 hover:bg-sky-100";
   }
-  return "bg-white text-slate-300 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-400";
+  return "bg-card text-muted-foreground ring-1 ring-inset ring-slate-200 hover:bg-accent hover:text-muted-foreground";
 }
 
 function MarkIcon({ status }) {
@@ -179,7 +179,7 @@ export default function MaintenanceProgramPage({ embedded = false }) {
   };
 
   if (!isSupabaseAuthMode || !currentTenantId) {
-    return <p className="text-sm text-slate-500 p-8">Ligação Supabase e ambiente necessários.</p>;
+    return <p className="text-sm text-muted-foreground p-8">Ligação Supabase e ambiente necessários.</p>;
   }
 
   return (
@@ -187,9 +187,9 @@ export default function MaintenanceProgramPage({ embedded = false }) {
       {!embedded && (
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4.12 · RE-6.4.12A</div>
-            <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Programa de Manutenção Preventiva</h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">PR-6.4.12 · RE-6.4.12A</div>
+            <h1 className="font-display text-xl font-semibold text-foreground mt-1">Programa de Manutenção Preventiva</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Grelha anual por equipamento — clique no mês para alternar entre planejado e executado.
             </p>
           </div>
@@ -214,10 +214,10 @@ export default function MaintenanceProgramPage({ embedded = false }) {
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm text-slate-600">
+        <label className="text-sm text-muted-foreground">
           Ano
           <select
-            className="ml-2 h-9 rounded border border-slate-200 bg-white px-2 text-sm"
+            className="ml-2 h-9 rounded border border-border bg-card px-2 text-sm"
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
           >
@@ -226,7 +226,7 @@ export default function MaintenanceProgramPage({ embedded = false }) {
             ))}
           </select>
         </label>
-        <span className="text-xs text-slate-500">Exibindo marcações de {year}.</span>
+        <span className="text-xs text-muted-foreground">Exibindo marcações de {year}.</span>
         {overdueCount > 0 && (
           <Badge variant="secondary" className="bg-amber-100 text-amber-900 gap-1">
             <Warning size={12} /> {overdueCount} planejado(s) em atraso
@@ -234,29 +234,29 @@ export default function MaintenanceProgramPage({ embedded = false }) {
         )}
       </div>
 
-      <Card className="border-slate-200 overflow-hidden">
+      <Card className="border-border overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-xs min-w-[1100px]">
-            <thead className="bg-slate-50 text-slate-600">
+            <thead className="bg-background text-muted-foreground">
               <tr>
-                <th className="p-2 text-left sticky left-0 bg-slate-50 min-w-[240px]">Equipamentos</th>
+                <th className="p-2 text-left sticky left-0 bg-background min-w-[240px]">Equipamentos</th>
                 {MONTH_SHORT.map((m) => (
                   <th key={m} className="p-2 text-center min-w-[56px]">{m}</th>
                 ))}
               </tr>
-              <tr className="border-t border-slate-200">
-                <th className="p-1 sticky left-0 bg-slate-50" />
-                <th colSpan={12} className="p-1 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <tr className="border-t border-border">
+                <th className="p-1 sticky left-0 bg-background" />
+                <th colSpan={12} className="p-1 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {year}
                 </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={13} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={13} className="p-8 text-center text-muted-foreground">A carregar…</td></tr>
               ) : rows.map((r) => (
-                <tr key={r.kind} className="border-t border-slate-100">
-                  <td className="p-2 sticky left-0 bg-white font-medium max-w-[280px]">
+                <tr key={r.kind} className="border-t border-border">
+                  <td className="p-2 sticky left-0 bg-card font-medium max-w-[280px]">
                     <EllipsisTooltip label={r.label} className="block">{r.label}</EllipsisTooltip>
                   </td>
                   {MONTH_KEYS.map((m) => {
@@ -296,9 +296,9 @@ export default function MaintenanceProgramPage({ embedded = false }) {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="border-slate-200 md:col-span-1">
+        <Card className="border-border md:col-span-1">
           <CardContent className="p-4 space-y-2">
-            <Label className="text-xs text-slate-500">Elaborado e aprovado por</Label>
+            <Label className="text-xs text-muted-foreground">Elaborado e aprovado por</Label>
             <div className="flex gap-2">
               <Input
                 className="h-9"
@@ -312,9 +312,9 @@ export default function MaintenanceProgramPage({ embedded = false }) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-200">
-          <CardContent className="p-4 text-sm text-slate-600">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Legenda</div>
+        <Card className="border-border">
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Legenda</div>
             <div className="flex flex-wrap gap-4 items-center">
               <span className="inline-flex items-center gap-2">
                 <span className="h-7 w-7 rounded-md bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-200 inline-flex items-center justify-center">
@@ -331,9 +331,9 @@ export default function MaintenanceProgramPage({ embedded = false }) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-200">
-          <CardContent className="p-4 text-sm text-slate-600">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Última atualização</div>
+        <Card className="border-border">
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Última atualização</div>
             <div>{updatedAt ? fmtDmyShort(updatedAt) : "—"}</div>
           </CardContent>
         </Card>

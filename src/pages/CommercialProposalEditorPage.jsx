@@ -201,7 +201,7 @@ export default function CommercialProposalEditorPage() {
   );
 
   if (!canAccessCommercialProposals(user?.role, user) || !isSupabaseAuthMode) {
-    return <div className="text-slate-600 text-sm p-6">Sem permissão ou modo indisponível.</div>;
+    return <div className="text-muted-foreground text-sm p-6">Sem permissão ou modo indisponível.</div>;
   }
 
   const handleSave = async () => {
@@ -252,7 +252,7 @@ export default function CommercialProposalEditorPage() {
   };
 
   if (loading || !form) {
-    return <div className="p-8 text-center text-slate-500 text-sm">Carregando…</div>;
+    return <div className="p-8 text-center text-muted-foreground text-sm">Carregando…</div>;
   }
 
   return (
@@ -262,7 +262,7 @@ export default function CommercialProposalEditorPage() {
           <Button asChild variant="ghost" size="sm">
             <Link to={PROPOSAL_LIST_PATH}><ArrowLeft size={18} className="mr-1" /> Voltar</Link>
           </Button>
-          <h1 className="font-display text-xl font-semibold text-slate-900">
+          <h1 className="font-display text-xl font-semibold text-foreground">
             {isNew ? "Nova Proposta Comercial" : `Proposta ${formatProposalNumber(form.proposal_number, form.proposal_year)}`}
           </h1>
         </div>
@@ -279,7 +279,7 @@ export default function CommercialProposalEditorPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white" data-tour="tour-propostas-guardar">
+        <Button onClick={handleSave} disabled={saving} className="bg-primary" data-tour="tour-propostas-guardar">
           <FloppyDisk size={18} className="mr-1" /> {saving ? "Guardando…" : "Guardar"}
         </Button>
         {proposalId && (
@@ -294,7 +294,7 @@ export default function CommercialProposalEditorPage() {
         )}
       </div>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardContent className="p-4 grid sm:grid-cols-3 gap-3">
           <div>
             <Label className="text-xs">Nº proposta</Label>
@@ -311,7 +311,7 @@ export default function CommercialProposalEditorPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardContent className="p-4">
           <ProposalClientSection
             endCustomers={endCustomers}
@@ -323,11 +323,11 @@ export default function CommercialProposalEditorPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardContent className="p-4 space-y-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">Tipo de calibração</h3>
-            <p className="text-xs text-slate-600 mt-0.5">
+            <h3 className="text-sm font-semibold text-foreground">Tipo de calibração</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Cada proposta cobre apenas um tipo — balanças ou pesos-padrão.
             </p>
           </div>
@@ -372,14 +372,14 @@ export default function CommercialProposalEditorPage() {
                   htmlFor={`proposal-kind-${opt.value}`}
                   className={`flex items-start gap-3 rounded-lg border px-3 py-3 cursor-pointer transition-colors ${
                     selected
-                      ? "border-blue-400 bg-blue-50/70"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-card hover:border-border"
                   }`}
                 >
                   <RadioGroupItem value={opt.value} id={`proposal-kind-${opt.value}`} className="mt-0.5" />
                   <span>
-                    <span className="block text-sm font-medium text-slate-900">{opt.label}</span>
-                    <span className="block text-xs text-slate-600 mt-0.5">{opt.hint}</span>
+                    <span className="block text-sm font-medium text-foreground">{opt.label}</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">{opt.hint}</span>
                   </span>
                 </label>
               );
@@ -389,7 +389,7 @@ export default function CommercialProposalEditorPage() {
       </Card>
 
       {(form.proposal_kind || PROPOSAL_KIND_BALANCAS) === PROPOSAL_KIND_BALANCAS ? (
-        <Card className="border-slate-200">
+        <Card className="border-border">
           <CardContent className="p-4">
             <ProposalScalesTable
               scales={form.scales}
@@ -409,7 +409,7 @@ export default function CommercialProposalEditorPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-slate-200">
+        <Card className="border-border">
           <CardContent className="p-4">
             <ProposalWeightsTable
               weightItems={form.weightItems || []}
@@ -420,7 +420,7 @@ export default function CommercialProposalEditorPage() {
         </Card>
       )}
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardContent className="p-4">
           <ProposalCommercialSection
             form={form}

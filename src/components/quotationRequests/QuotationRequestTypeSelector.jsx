@@ -17,16 +17,16 @@ export default function QuotationRequestTypeSelector({ sections, onSelect }) {
             className={cn(
               "flex items-start gap-3 p-4 rounded-xl border text-left transition-colors min-w-0",
               selected
-                ? "border-blue-500 bg-blue-50/80 ring-1 ring-blue-200"
-                : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
+                ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                : "border-border bg-card hover:border-border hover:bg-accent",
             )}
           >
             {selected ? (
-              <CheckCircle size={22} weight="fill" className="text-blue-600 shrink-0 mt-0.5" />
+              <CheckCircle size={22} weight="fill" className="text-primary shrink-0 mt-0.5" />
             ) : (
-              <Circle size={22} className="text-slate-300 shrink-0 mt-0.5" />
+              <Circle size={22} className="text-muted-foreground shrink-0 mt-0.5" />
             )}
-            <span className="text-sm font-medium text-slate-800 leading-snug">{typeMeta.label}</span>
+            <span className="text-sm font-medium text-foreground leading-snug">{typeMeta.label}</span>
           </button>
         );
       })}

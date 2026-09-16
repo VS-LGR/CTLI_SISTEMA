@@ -102,7 +102,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
         <Button size="sm" onClick={() => setShowForm(!showForm)}><Plus size={14} className="mr-1" /> Nova revisão</Button>
       </div>
       {showForm && (
-        <div className="border rounded-lg p-4 space-y-3 bg-slate-50">
+        <div className="border rounded-lg p-4 space-y-3 bg-background">
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Nº revisão</Label><Input value={form.revision_number} onChange={(e) => setForm((f) => ({ ...f, revision_number: e.target.value }))} /></div>
             <div><Label>Emissão</Label><Input type="date" value={form.issue_date} onChange={(e) => setForm((f) => ({ ...f, issue_date: e.target.value }))} /></div>
@@ -140,8 +140,8 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
         </div>
       )}
       <table className="w-full text-sm border rounded-lg overflow-hidden">
-        <thead className="bg-slate-50 border-b">
-          <tr className="text-[10px] uppercase text-slate-500">
+        <thead className="bg-background border-b">
+          <tr className="text-[10px] uppercase text-muted-foreground">
             <th className="px-3 py-2 text-left">Rev.</th>
             <th className="px-3 py-2 text-left">Data</th>
             <th className="px-3 py-2 text-left">Descrição</th>
@@ -151,7 +151,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
             <th className="px-3 py-2 text-right">Ações</th>
           </tr>
         </thead>
-        <tbody className="divide-y bg-white">
+        <tbody className="divide-y bg-card">
           {revisions.map((r) => (
             <tr key={r.id}>
               <td className="px-3 py-2">{r.revision_number}</td>

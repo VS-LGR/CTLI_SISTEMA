@@ -17,10 +17,10 @@ export default function DocumentRecordMetaLine({
 
   return (
     <div className="space-y-0.5">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         {title ? (
           <>
-            <span className="font-medium text-slate-700">{title}</span>
+            <span className="font-medium text-foreground/90">{title}</span>
             {" · "}
           </>
         ) : null}
@@ -30,7 +30,7 @@ export default function DocumentRecordMetaLine({
             {" · "}
             <Link
               to={masterDocumentDetailPath(masterDocumentId)}
-              className="text-blue-600 hover:underline"
+              className="text-primary hover:underline"
             >
               Lista Mestra
             </Link>

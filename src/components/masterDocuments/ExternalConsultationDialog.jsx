@@ -63,10 +63,10 @@ export default function ExternalConsultationDialog({
           <DialogTitle>Registrar consulta semestral</DialogTitle>
         </DialogHeader>
         {externalDoc && (
-          <p className="text-sm text-slate-600 truncate">{externalDoc.title}</p>
+          <p className="text-sm text-muted-foreground truncate">{externalDoc.title}</p>
         )}
         {externalDoc?.last_consultation_date && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Última consulta: {formatDateBr(externalDoc.last_consultation_date)}
           </p>
         )}

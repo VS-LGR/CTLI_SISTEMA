@@ -58,7 +58,7 @@ function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab })
     <>
       <div className="overflow-x-auto border rounded-md">
         <table className="w-full text-sm min-w-[720px]">
-          <thead className="bg-slate-50 text-left text-xs text-slate-600">
+          <thead className="bg-background text-left text-xs text-muted-foreground">
             <tr>
               <th className="p-2">Cargo</th>
               <th className="p-2">Formação exigida</th>
@@ -72,13 +72,13 @@ function PositionsTable({ rows, tenantId, tenant, busy, onBusy, onReload, tab })
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={tab === "ativos" ? 7 : 6} className="p-4 text-center text-slate-500">
+                <td colSpan={tab === "ativos" ? 7 : 6} className="p-4 text-center text-muted-foreground">
                   {tab === "ativos" ? "Nenhum cargo ativo." : "Nenhum cargo obsoleto."}
                 </td>
               </tr>
             )}
             {rows.map((r) => (
-              <tr key={r.id} className="border-t border-slate-100">
+              <tr key={r.id} className="border-t border-border">
                 <td className="p-2 font-medium">{r.title}</td>
                 <td className="p-2">{r.required_education || "—"}</td>
                 <td className="p-2">{r.desired_education || "—"}</td>
@@ -283,7 +283,7 @@ export default function PositionsListPanel({
               <TabsTrigger value="obsoletos">Cargos obsoletos ({displayObsolete.length})</TabsTrigger>
             </TabsList>
             {tab === "ativos" && (
-              <Button size="sm" className="bg-blue-600 text-white" onClick={() => navigate(positionEditorPath("nova"))}>
+              <Button size="sm" className="bg-primary" onClick={() => navigate(positionEditorPath("nova"))}>
                 <Plus size={16} className="mr-1" /> Novo cargo
               </Button>
             )}
@@ -302,7 +302,7 @@ export default function PositionsListPanel({
           </TabsContent>
 
           <TabsContent value="obsoletos" className="mt-4">
-            <p className="text-sm text-slate-600 mb-3">
+            <p className="text-sm text-muted-foreground mb-3">
               Cargos inativos podem ser reativados ou excluídos permanentemente (com confirmação dupla).
             </p>
             <PositionsTable

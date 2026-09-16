@@ -54,20 +54,20 @@ export default function ProposalExportCadastroDialog({ open, onOpenChange, propo
           <DialogTitle>Exportar para cadastro</DialogTitle>
         </DialogHeader>
         {loading ? (
-          <p className="text-sm text-slate-600">Analisando…</p>
+          <p className="text-sm text-muted-foreground">Analisando…</p>
         ) : preview ? (
           <div className="space-y-4 text-sm">
-            <div className="rounded-md border border-slate-200 p-3 bg-slate-50">
-              <p className="font-medium text-slate-800">Cliente</p>
-              <p className="text-slate-600 mt-1">{customerLabel}: {preview.customer.snapshot?.company}</p>
+            <div className="rounded-md border border-border p-3 bg-background">
+              <p className="font-medium text-foreground">Cliente</p>
+              <p className="text-muted-foreground mt-1">{customerLabel}: {preview.customer.snapshot?.company}</p>
             </div>
             <div>
-              <p className="font-medium text-slate-800 mb-2">Balanças</p>
+              <p className="font-medium text-foreground mb-2">Balanças</p>
               <ul className="space-y-2">
                 {(preview.scales || []).map(({ scale, action, existing }) => (
-                  <li key={scale.id || scale.serial_number} className="rounded-md border border-slate-200 p-2">
+                  <li key={scale.id || scale.serial_number} className="rounded-md border border-border p-2">
                     <span className="font-mono text-xs">Série {scale.serial_number}</span>
-                    <span className="block text-xs text-slate-600 mt-0.5">
+                    <span className="block text-xs text-muted-foreground mt-0.5">
                       {action === "create" && "Será criada no cadastro"}
                       {action === "linked" && "Já vinculada"}
                       {action === "conflict" && `Conflito: série já existe (${existing?.id?.slice(0, 8)}…)`}

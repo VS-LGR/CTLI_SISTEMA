@@ -54,19 +54,19 @@ function formatTraceResult(step) {
 function TraceSteps({ steps = [] }) {
   if (!steps.length) return null;
   return (
-    <div className="col-span-full mt-2 pt-2 border-t border-slate-200 space-y-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Rastreio de cálculo</p>
+    <div className="col-span-full mt-2 pt-2 border-t border-border space-y-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Rastreio de cálculo</p>
       {steps.map((step) => (
-        <div key={step.id} className="rounded border border-slate-100 bg-white/80 p-2 space-y-0.5">
-          <p className="text-[10px] font-medium text-slate-700">{step.label}</p>
+        <div key={step.id} className="rounded border border-border bg-card/80 p-2 space-y-0.5">
+          <p className="text-[10px] font-medium text-foreground/90">{step.label}</p>
           {step.formula && (
-            <p className="text-[10px] text-slate-500 font-mono">{step.formula}</p>
+            <p className="text-[10px] text-muted-foreground font-mono">{step.formula}</p>
           )}
           {step.expression && (
-            <p className="text-[10px] text-blue-800 font-mono break-all">{step.expression}</p>
+            <p className="text-[10px] text-primary font-mono break-all">{step.expression}</p>
           )}
           {step.result != null && step.result !== "" && (
-            <p className="text-[10px] text-slate-800">
+            <p className="text-[10px] text-foreground">
               → <span className="font-mono font-semibold">{formatTraceResult(step)}</span>
               {step.unit ? ` ${step.unit}` : ""}
             </p>
@@ -85,7 +85,7 @@ export default function PointCalculationMemory({ point, showTrace = false }) {
 
   if (status === "pendente") {
     return (
-      <span className="text-[10px] text-slate-400 italic">Pendente</span>
+      <span className="text-[10px] text-muted-foreground italic">Pendente</span>
     );
   }
 
@@ -103,7 +103,7 @@ export default function PointCalculationMemory({ point, showTrace = false }) {
     return (
       <button
         type="button"
-        className="text-[10px] text-blue-600 hover:underline"
+        className="text-[10px] text-primary hover:underline"
         onClick={() => setOpen(!open)}
       >
         Sem memória
@@ -116,7 +116,7 @@ export default function PointCalculationMemory({ point, showTrace = false }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs font-medium text-blue-700 hover:text-blue-900"
+        className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs font-medium text-primary hover:text-primary"
         aria-expanded={open}
       >
         {open ? <CaretDown size={12} /> : <CaretRight size={12} />}
@@ -125,22 +125,22 @@ export default function PointCalculationMemory({ point, showTrace = false }) {
       {open && (
         <div
           className={cn(
-            "mt-2 rounded-md border border-slate-200 bg-slate-50/80 p-2 sm:p-3",
+            "mt-2 rounded-md border border-border bg-background/80 p-2 sm:p-3",
             "grid grid-cols-1 xs:grid-cols-2 gap-x-3 gap-y-1.5 text-[10px] sm:text-xs",
           )}
         >
           {MEMORY_FIELDS.map((field) => (
             memory[field.key] != null && (
               <div key={field.key} className="flex justify-between gap-2 min-w-0">
-                <span className="text-slate-500 truncate">{field.label}</span>
-                <span className="font-mono text-slate-800 shrink-0">
+                <span className="text-muted-foreground truncate">{field.label}</span>
+                <span className="font-mono text-foreground shrink-0">
                   {formatMemoryValue(memory[field.key], field.decimals, field.format)}
                 </span>
               </div>
             )
           ))}
           {memory.readingCount != null && (
-            <div className="col-span-full pt-1 border-t border-slate-200 text-slate-500">
+            <div className="col-span-full pt-1 border-t border-border text-muted-foreground">
               Leituras utilizadas: {memory.readingCount}
             </div>
           )}

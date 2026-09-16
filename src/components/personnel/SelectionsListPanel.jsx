@@ -62,13 +62,13 @@ export default function SelectionsListPanel({
     <Card className={personnelPanelCardClass(compact)}>
       <CardContent className={compact ? "p-0 space-y-4" : "p-4 space-y-4"}>
         <div className="flex justify-end">
-          <Button size="sm" className="bg-blue-600 text-white" onClick={() => navigate(selectionEditorPath("nova"))}>
+          <Button size="sm" className="bg-primary" onClick={() => navigate(selectionEditorPath("nova"))}>
             <Plus size={16} className="mr-1" /> Nova seleção
           </Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm min-w-[800px]">
-            <thead className="bg-slate-50 text-xs text-slate-600 text-left">
+            <thead className="bg-background text-xs text-muted-foreground text-left">
               <tr>
                 <th className="p-2">Data</th>
                 <th className="p-2">Vaga</th>
@@ -81,7 +81,7 @@ export default function SelectionsListPanel({
             </thead>
             <tbody>
               {displayRows.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-center text-slate-500">Nenhuma seleção.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Nenhuma seleção.</td></tr>
               )}
               {displayRows.map((r) => (
                 <tr key={r.id} className="border-t">

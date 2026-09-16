@@ -14,14 +14,14 @@ export default function PurchaseOrderItemsFooter({
   readOnly = false,
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 p-4 bg-background rounded-lg border border-border">
       <div>
-        <Label className="text-xs text-slate-500">Total de peças</Label>
-        <div className="text-lg font-semibold text-slate-900 mt-1">{totalPieces(items)}</div>
+        <Label className="text-xs text-muted-foreground">Total de peças</Label>
+        <div className="text-lg font-semibold text-foreground mt-1">{totalPieces(items)}</div>
       </div>
       <div>
-        <Label className="text-xs text-slate-500">Subtotal</Label>
-        <div className="text-lg font-semibold text-slate-900 mt-1">{formatCurrencyBRL(subtotal)}</div>
+        <Label className="text-xs text-muted-foreground">Subtotal</Label>
+        <div className="text-lg font-semibold text-foreground mt-1">{formatCurrencyBRL(subtotal)}</div>
       </div>
       <div>
         <Label>Desconto (R$)</Label>
@@ -41,13 +41,13 @@ export default function PurchaseOrderItemsFooter({
           value={taxesMode}
           disabled={readOnly}
           onChange={(e) => onTaxesModeChange?.(e.target.value)}
-          className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white disabled:opacity-60"
+          className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card disabled:opacity-60"
         >
           <option value="incluso">Incluso</option>
           <option value="percentual">Percentual extra</option>
           <option value="nenhum">Nenhum</option>
         </select>
-        <div className="text-lg font-display font-bold text-blue-700 mt-3">
+        <div className="text-lg font-display font-bold text-primary mt-3">
           Valor final: {formatCurrencyBRL(finalValue)}
         </div>
       </div>

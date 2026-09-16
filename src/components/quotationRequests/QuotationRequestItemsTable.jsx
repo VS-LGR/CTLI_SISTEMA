@@ -7,12 +7,12 @@ import { getItemColumns, emptyQuotationRequestItem } from "@/lib/quotationReques
 import FormDynamicRows from "@/components/forms/FormDynamicRows";
 import FormRowCard from "@/components/forms/FormRowCard";
 
-const selectClass = "w-full h-10 border border-slate-200 rounded-md px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400";
+const selectClass = "w-full h-10 border border-border rounded-md px-3 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary";
 
 function FieldInput({ col, value, onChange, readOnly }) {
   if (readOnly) {
     return (
-      <span className="text-sm text-slate-800 whitespace-pre-wrap block min-h-[1.25rem]">
+      <span className="text-sm text-foreground whitespace-pre-wrap block min-h-[1.25rem]">
         {String(value ?? "—")}
       </span>
     );
@@ -20,7 +20,7 @@ function FieldInput({ col, value, onChange, readOnly }) {
   if (col.type === "textarea") {
     return (
       <textarea
-        className="w-full min-h-[72px] min-w-0 border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+        className="w-full min-h-[72px] min-w-0 border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={`Preencha ${col.label.toLowerCase()}…`}
@@ -76,7 +76,7 @@ export default function QuotationRequestItemsTable({
         >
           {columns.map((col) => (
             <div key={col.key} className="min-w-0">
-              <Label className="text-xs text-slate-500 mb-1 block break-words">{col.label}</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block break-words">{col.label}</Label>
               <FieldInput
                 col={col}
                 value={item[col.key]}
@@ -101,11 +101,11 @@ export default function QuotationRequestItemsTable({
       renderTableRow={(item, idx) => (
         <tr
           key={idx}
-          className={`border-t border-slate-100 align-top hover:bg-slate-50/40 ${
-            idx % 2 === 1 ? "bg-slate-50/30" : ""
+          className={`border-t border-border align-top hover:bg-accent/40 ${
+            idx % 2 === 1 ? "bg-background/30" : ""
           }`}
         >
-          <td className="p-3 text-slate-500 font-medium">{item.item_number ?? idx + 1}</td>
+          <td className="p-3 text-muted-foreground font-medium">{item.item_number ?? idx + 1}</td>
           {columns.map((col) => (
             <td key={col.key} className="p-3 min-w-[140px]">
               <FieldInput

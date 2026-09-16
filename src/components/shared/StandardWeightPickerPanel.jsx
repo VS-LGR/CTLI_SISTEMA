@@ -42,8 +42,8 @@ function WeightPickerCard({
         checked
           ? isLot
             ? "border-amber-300 bg-amber-50/70"
-            : "border-blue-300 bg-blue-50/60"
-          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80"
+            : "border-primary/40 bg-primary/10"
+          : "border-border bg-card hover:border-border hover:bg-accent/80"
       } ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
     >
       <Checkbox
@@ -54,7 +54,7 @@ function WeightPickerCard({
       />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-2 min-w-0">
-          <p className="font-mono text-sm font-medium text-slate-900 truncate">
+          <p className="font-mono text-sm font-medium text-foreground truncate">
             <EllipsisTooltip label={item.identification || ""} className="block">
               {item.identification || "—"}
             </EllipsisTooltip>
@@ -78,21 +78,21 @@ function WeightPickerCard({
             )}
           </div>
         </div>
-        <p className="text-xs text-slate-600">
-          V.N. <span className="font-mono font-medium text-slate-800">{nominal}</span>
+        <p className="text-xs text-muted-foreground">
+          V.N. <span className="font-mono font-medium text-foreground">{nominal}</span>
         </p>
         {vvc && (
-          <p className="text-xs text-slate-600">
-            V.V.C. <span className="font-mono font-medium text-slate-800">{vvc}</span>
+          <p className="text-xs text-muted-foreground">
+            V.V.C. <span className="font-mono font-medium text-foreground">{vvc}</span>
           </p>
         )}
         {ue && (
-          <p className="text-[10px] text-slate-500">
+          <p className="text-[10px] text-muted-foreground">
             Ue <span className="font-mono">{ue}</span>
           </p>
         )}
         {showDetailPreview && (material || weightClass) && (
-          <p className="text-[10px] text-slate-500 truncate">
+          <p className="text-[10px] text-muted-foreground truncate">
             {[weightClass, material].filter(Boolean).join(" · ")}
           </p>
         )}
@@ -116,13 +116,13 @@ function SelectedWeightPreview({ item, weightCerts }) {
   ];
 
   return (
-    <div className="rounded-md border border-blue-200 bg-blue-50/50 px-3 py-2.5 space-y-1.5">
-      <p className="text-[11px] font-medium text-blue-900">Pré-visualização do peso selecionado</p>
+    <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2.5 space-y-1.5">
+      <p className="text-[11px] font-medium text-foreground">Pré-visualização do peso selecionado</p>
       <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
         {rows.map((row) => (
           <div key={row.label} className="min-w-0">
-            <dt className="text-slate-500">{row.label}</dt>
-            <dd className="font-mono text-slate-800 truncate" title={String(row.value)}>
+            <dt className="text-muted-foreground">{row.label}</dt>
+            <dd className="font-mono text-foreground truncate" title={String(row.value)}>
               {row.value}
             </dd>
           </div>
@@ -199,7 +199,7 @@ export default function StandardWeightPickerPanel({
 
   if (!poolItems.length && !weightItems.length) {
     return (
-      <p className="text-sm text-slate-500 p-3 border rounded-md bg-slate-50">
+      <p className="text-sm text-muted-foreground p-3 border rounded-md bg-background">
         {emptyMessage}
       </p>
     );
@@ -208,26 +208,26 @@ export default function StandardWeightPickerPanel({
   if (!poolItems.length) {
     const kindLabel = effectiveKind === "load_batches" ? "lotes de carga" : "pesos padrão";
     return (
-      <p className="text-sm text-slate-500 p-3 border rounded-md bg-slate-50">
+      <p className="text-sm text-muted-foreground p-3 border rounded-md bg-background">
         Nenhum {kindLabel} cadastrado. Cadastre em PR-6.4 → Peso Padrão.
       </p>
     );
   }
 
   return (
-    <div className={`space-y-3 min-w-0 ${compact ? "" : "rounded-lg border border-slate-200 bg-slate-50/50 p-3"}`}>
+    <div className={`space-y-3 min-w-0 ${compact ? "" : "rounded-lg border border-border bg-background/50 p-3"}`}>
       <div className={`flex flex-col gap-2 ${compact ? "" : "sm:flex-row sm:items-center"}`}>
         <div className="relative min-w-0 flex-1">
           <MagnifyingGlass
             size={16}
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Pesquisar identificação ou valor nominal…"
-            className="h-9 pl-9 text-sm bg-white"
+            className="h-9 pl-9 text-sm bg-card"
             disabled={disabled}
           />
         </div>
@@ -235,7 +235,7 @@ export default function StandardWeightPickerPanel({
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value)}
           disabled={disabled}
-          className="h-9 w-full sm:w-[13.5rem] shrink-0 rounded-md border border-input bg-white px-2 text-xs shadow-sm"
+          className="h-9 w-full sm:w-[13.5rem] shrink-0 rounded-md border border-input bg-card px-2 text-xs shadow-sm"
           aria-label="Ordenar pesos"
         >
           {WEIGHT_PICKER_SORT_OPTIONS.map((o) => (
@@ -247,7 +247,7 @@ export default function StandardWeightPickerPanel({
             value={kindFilter}
             onChange={(e) => setKindFilter(e.target.value)}
             disabled={disabled}
-            className="h-9 w-full sm:w-[10.5rem] shrink-0 rounded-md border border-input bg-white px-2 text-xs shadow-sm"
+            className="h-9 w-full sm:w-[10.5rem] shrink-0 rounded-md border border-input bg-card px-2 text-xs shadow-sm"
             aria-label="Filtrar tipo"
           >
             {WEIGHT_PICKER_KIND_OPTIONS.map((o) => (
@@ -257,12 +257,12 @@ export default function StandardWeightPickerPanel({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>
           {visibleItems.length} de {poolItems.length}{" "}
           {effectiveKind === "load_batches" ? "lote(s)" : "peso(s)"}
           {selected.length > 0 && (
-            <span className="text-slate-700 font-medium"> · {selected.length} selecionado(s)</span>
+            <span className="text-foreground/90 font-medium"> · {selected.length} selecionado(s)</span>
           )}
         </span>
         {selected.length > 0 && !disabled && (
@@ -273,7 +273,7 @@ export default function StandardWeightPickerPanel({
       </div>
 
       {visibleItems.length === 0 ? (
-        <p className="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-200 rounded-lg bg-white">
+        <p className="text-sm text-muted-foreground py-6 text-center border border-dashed border-border rounded-lg bg-card">
           Nenhum peso corresponde à pesquisa.
         </p>
       ) : (
@@ -301,15 +301,15 @@ export default function StandardWeightPickerPanel({
       )}
 
       {composition.valid && selected.length > 0 && !singleSelect && effectiveKind !== "load_batches" && (
-        <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 space-y-1">
+        <div className="rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground/90 space-y-1">
           {composition.parts.length > 1 && (
             <p>
-              <span className="font-medium text-slate-800">Composição (V.N.):</span>{" "}
+              <span className="font-medium text-foreground">Composição (V.N.):</span>{" "}
               <span className="font-mono">{composition.compositionDisplay}</span>
             </p>
           )}
           <p>
-            <span className="font-medium text-slate-800">V.N. total:</span>{" "}
+            <span className="font-medium text-foreground">V.N. total:</span>{" "}
             <span className="font-mono font-semibold">{composition.totalDisplay}</span>
           </p>
         </div>

@@ -27,11 +27,11 @@ export default function HelpPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6 min-w-0 w-full">
       <div className="space-y-1 min-w-0">
-        <div className="flex items-center gap-2 text-slate-800 min-w-0">
-          <Question size={28} weight="duotone" className="text-blue-600 shrink-0" />
+        <div className="flex items-center gap-2 text-foreground min-w-0">
+          <Question size={28} weight="duotone" className="text-primary shrink-0" />
           <h1 className="font-display text-xl sm:text-2xl font-semibold truncate">Ajuda</h1>
         </div>
-        <p className="text-sm text-slate-600 break-words">
+        <p className="text-sm text-muted-foreground break-words">
           Passo a passo das funções disponíveis para o seu nível de acesso. Na primeira visita a cada
           módulo, o tutorial também aparece automaticamente (exceto Administrador CTLI).
         </p>
@@ -41,19 +41,19 @@ export default function HelpPage() {
         {modules.map((mod) => {
           const isOpen = openKey === mod.moduleKey;
           return (
-            <Card key={mod.moduleKey} className="border-slate-200 min-w-0 overflow-hidden">
+            <Card key={mod.moduleKey} className="border-border min-w-0 overflow-hidden">
               <Collapsible
                 open={isOpen}
                 onOpenChange={(next) => setOpenKey(next ? mod.moduleKey : null)}
               >
                 <CardHeader className="p-0">
                   <CollapsibleTrigger
-                    className="flex w-full items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 text-left hover:bg-slate-50 rounded-t-lg min-w-0"
+                    className="flex w-full items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 text-left hover:bg-accent rounded-t-lg min-w-0"
                     data-testid={`help-module-${mod.moduleKey}`}
                   >
                     <CaretRight
                       size={16}
-                      className={`shrink-0 text-slate-400 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                      className={`shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`}
                     />
                     <CardTitle className="text-sm sm:text-base font-semibold flex-1 min-w-0 break-words">
                       {mod.title}
@@ -62,11 +62,11 @@ export default function HelpPage() {
                 </CardHeader>
                 <CollapsibleContent>
                   <CardContent className="pt-0 pb-4 px-3 sm:px-4 space-y-4 min-w-0">
-                    <ol className="space-y-3 list-decimal list-outside ml-4 text-sm text-slate-700">
+                    <ol className="space-y-3 list-decimal list-outside ml-4 text-sm text-foreground/90">
                       {(mod.steps || []).map((step, i) => (
                         <li key={i} className="leading-relaxed pl-1 min-w-0">
-                          <span className="font-medium text-slate-900 break-words">{step.title}</span>
-                          <span className="block text-slate-600 mt-0.5 break-words">{step.body}</span>
+                          <span className="font-medium text-foreground break-words">{step.title}</span>
+                          <span className="block text-muted-foreground mt-0.5 break-words">{step.body}</span>
                         </li>
                       ))}
                     </ol>
@@ -87,24 +87,24 @@ export default function HelpPage() {
           );
         })}
         {!modules.length && (
-          <p className="text-sm text-slate-500">Não há tutoriais para o seu nível de acesso.</p>
+          <p className="text-sm text-muted-foreground">Não há tutoriais para o seu nível de acesso.</p>
         )}
       </div>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Precisa de voltar ao início?{" "}
-        <Link to="/dashboard" className="text-blue-600 hover:underline">
+        <Link to="/dashboard" className="text-primary hover:underline">
           Ir para o Dashboard
         </Link>
       </p>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Documentos legais:{" "}
-        <Link to="/termos" className="text-blue-600 hover:underline">
+        <Link to="/termos" className="text-primary hover:underline">
           Termos de Adesão
         </Link>
         {" · "}
-        <Link to="/licenca" className="text-blue-600 hover:underline">
+        <Link to="/licenca" className="text-primary hover:underline">
           Licença
         </Link>
         {" "}(© CTLI — todos os direitos reservados).

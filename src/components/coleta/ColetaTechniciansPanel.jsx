@@ -102,22 +102,22 @@ export default function ColetaTechniciansPanel({ tenantId, isAdmin }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Contas de técnicos com acesso apenas ao módulo Coleta neste ambiente.
         </p>
-        <Button type="button" onClick={openCreate} className="bg-blue-600 hover:bg-blue-700">
+        <Button type="button" onClick={openCreate} className="bg-primary hover:bg-primary/90">
           <Plus size={16} className="mr-1" /> Novo técnico
         </Button>
       </div>
 
       {techs.length === 0 ? (
-        <p className="text-sm text-slate-500 py-6 text-center border rounded-lg bg-slate-50">
+        <p className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-background">
           Nenhum técnico de campo cadastrado.
         </p>
       ) : (
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b">
+            <thead className="bg-background border-b">
               <tr>
                 <th className="text-left p-3 font-medium">Nome</th>
                 <th className="text-left p-3 font-medium">E-mail</th>
@@ -128,7 +128,7 @@ export default function ColetaTechniciansPanel({ tenantId, isAdmin }) {
               {techs.map((t) => (
                 <tr key={t.id} className="border-b last:border-0">
                   <td className="p-3">{t.full_name}</td>
-                  <td className="p-3 text-slate-600">{t.email}</td>
+                  <td className="p-3 text-muted-foreground">{t.email}</td>
                   <td className="p-3 text-right space-x-1">
                     <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(t)}>
                       <PencilSimple size={16} />
@@ -165,7 +165,7 @@ export default function ColetaTechniciansPanel({ tenantId, isAdmin }) {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button type="button" onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+            <Button type="button" onClick={save} disabled={saving} className="bg-primary hover:bg-primary/90">
               {saving ? "A guardar…" : "Guardar"}
             </Button>
           </DialogFooter>

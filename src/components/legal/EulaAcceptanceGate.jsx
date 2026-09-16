@@ -18,17 +18,17 @@ import { PRIVACY_SECTIONS, PRIVACY_TITLE, PRIVACY_VERSION } from "@/lib/legal/pr
 function TermsPreview({ title, sections }) {
   return (
     <section className="space-y-3 min-w-0">
-      <h2 className="font-display text-base font-semibold text-slate-900">{title}</h2>
-      <div className="max-h-48 sm:max-h-56 overflow-y-auto rounded-md border border-slate-200 bg-slate-50/80 p-3 space-y-3 text-xs text-slate-700 leading-relaxed">
+      <h2 className="font-display text-base font-semibold text-foreground">{title}</h2>
+      <div className="max-h-48 sm:max-h-56 overflow-y-auto rounded-md border border-border bg-background/80 p-3 space-y-3 text-xs text-foreground/90 leading-relaxed">
         {sections.slice(0, 6).map((s) => (
           <div key={s.id} className="space-y-1">
-            <p className="font-medium text-slate-800">{s.title}</p>
+            <p className="font-medium text-foreground">{s.title}</p>
             {(s.paragraphs || []).slice(0, 2).map((p, i) => (
               <p key={`${s.id}-${i}`}>{p}</p>
             ))}
           </div>
         ))}
-        <p className="text-slate-500">… texto completo nas páginas ligadas abaixo.</p>
+        <p className="text-muted-foreground">… texto completo nas páginas ligadas abaixo.</p>
       </div>
     </section>
   );
@@ -75,46 +75,46 @@ export default function EulaAcceptanceGate({ children }) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/70 backdrop-blur-sm p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="eula-gate-title"
       data-testid="eula-acceptance-gate"
     >
-      <div className="w-full max-w-2xl my-4 rounded-xl border border-slate-200 bg-white shadow-lg">
-        <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 border-b border-slate-100">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Primeiro acesso</p>
-          <h1 id="eula-gate-title" className="font-display text-xl sm:text-2xl font-semibold text-slate-900 mt-1">
+      <div className="w-full max-w-2xl my-4 rounded-xl border border-border bg-card shadow-lg">
+        <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 border-b border-border">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Primeiro acesso</p>
+          <h1 id="eula-gate-title" className="font-display text-xl sm:text-2xl font-semibold text-foreground mt-1">
             {LEGAL_ACCEPTANCE_TITLE}
           </h1>
-          <p className="text-sm text-slate-600 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             Antes de continuar e de ver os tutoriais, leia e aceite os Termos de Adesão (EULA), a
             Licença de Uso e a Política de Privacidade do {PRODUCT_NAME}. Sem aceite, a sessão será encerrada.
           </p>
-          <p className="text-xs text-slate-400 mt-1">{APP_COPYRIGHT}</p>
+          <p className="text-xs text-muted-foreground mt-1">{APP_COPYRIGHT}</p>
         </div>
 
         <div className="px-5 sm:px-6 py-4 space-y-5 max-h-[min(55vh,28rem)] overflow-y-auto">
           <TermsPreview title={EULA_TITLE} sections={EULA_SECTIONS} />
           <TermsPreview title={LICENSE_TITLE} sections={LICENSE_SECTIONS} />
           <TermsPreview title={PRIVACY_TITLE} sections={PRIVACY_SECTIONS} />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Documentos completos:{" "}
-            <Link to={LEGAL_ROUTES.eula} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            <Link to={LEGAL_ROUTES.eula} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
               Termos de Adesão
             </Link>
             {" · "}
-            <Link to={LEGAL_ROUTES.license} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            <Link to={LEGAL_ROUTES.license} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
               Licença
             </Link>
             {" · "}
-            <Link to={LEGAL_ROUTES.privacy} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            <Link to={LEGAL_ROUTES.privacy} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
               Privacidade
             </Link>
           </p>
         </div>
 
-        <div className="px-5 sm:px-6 py-4 border-t border-slate-100 space-y-4">
+        <div className="px-5 sm:px-6 py-4 border-t border-border space-y-4">
           <label className="flex items-start gap-3 cursor-pointer select-none">
             <Checkbox
               checked={accepted}
@@ -122,7 +122,7 @@ export default function EulaAcceptanceGate({ children }) {
               className="mt-0.5"
               data-testid="eula-accept-checkbox"
             />
-            <span className="text-sm text-slate-700 leading-snug">
+            <span className="text-sm text-foreground/90 leading-snug">
               Li e aceito todos os Termos de Adesão ao Serviço (EULA), a Licença de Uso e a Política
               de Privacidade, com todos os direitos reservados à CTLI.
             </span>
@@ -142,7 +142,6 @@ export default function EulaAcceptanceGate({ children }) {
               type="button"
               disabled={busy || !accepted}
               onClick={onAccept}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
               data-testid="eula-accept-btn"
             >
               {busy ? "A guardar…" : "Aceitar e continuar"}

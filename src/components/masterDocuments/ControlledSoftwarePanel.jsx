@@ -135,14 +135,14 @@ export default function ControlledSoftwarePanel({ tenantId }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center gap-2 flex-wrap">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Planilhas e softwares controlados pela Lista Mestra (validação periódica).
         </p>
         <Button size="sm" onClick={openNew}><Plus size={14} className="mr-1" /> Novo</Button>
       </div>
 
       {showForm && (
-        <Card className="p-4 space-y-3 bg-slate-50 border-slate-200">
+        <Card className="p-4 space-y-3 bg-background border-border">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <Label>Título</Label>
@@ -206,11 +206,11 @@ export default function ControlledSoftwarePanel({ tenantId }) {
         </Card>
       )}
 
-      <Card className="border-slate-200 overflow-hidden">
+      <Card className="border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[800px]">
-            <thead className="bg-slate-50 border-b">
-              <tr className="text-left text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+            <thead className="bg-background border-b">
+              <tr className="text-left text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 <th className="px-3 py-2">Título</th>
                 <th className="px-3 py-2">Rev.</th>
                 <th className="px-3 py-2">Última validação</th>
@@ -220,12 +220,12 @@ export default function ControlledSoftwarePanel({ tenantId }) {
                 <th className="px-3 py-2 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y bg-white">
+            <tbody className="divide-y bg-card">
               {loading && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Carregando…</td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Nenhuma planilha/software controlado.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Nenhuma planilha/software controlado.</td></tr>
               )}
               {rows.map((row) => (
                 <tr key={row.id}>

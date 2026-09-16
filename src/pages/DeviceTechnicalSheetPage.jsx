@@ -32,7 +32,7 @@ const STATUS_TONE = {
   APROVADO: "bg-emerald-100 text-emerald-800",
   REPROVADO: "bg-red-100 text-red-800",
   VENCIDO: "bg-orange-100 text-orange-900",
-  INATIVO: "bg-slate-200 text-slate-700",
+  INATIVO: "bg-muted text-foreground/90",
   A_VERIFICAR: "bg-amber-100 text-amber-900",
 };
 
@@ -46,7 +46,7 @@ function HeadCell({ children, tip }) {
           <TooltipTrigger asChild>
             <span className="inline-flex items-center gap-1 cursor-help">
               {children}
-              {tip ? <Info size={12} className="text-slate-400" /> : null}
+              {tip ? <Info size={12} className="text-muted-foreground" /> : null}
             </span>
           </TooltipTrigger>
           {tip ? (
@@ -149,7 +149,7 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
   };
 
   if (!isSupabaseAuthMode || !currentTenantId) {
-    return <p className="text-sm text-slate-500 p-8">Ligação Supabase e ambiente necessários.</p>;
+    return <p className="text-sm text-muted-foreground p-8">Ligação Supabase e ambiente necessários.</p>;
   }
 
   return (
@@ -157,9 +157,9 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
       {!embedded && (
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">PR-6.4 · RE-6.4B</div>
-            <h1 className="font-display text-xl font-semibold text-slate-900 mt-1">Ficha Técnica de Dispositivos</h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">PR-6.4 · RE-6.4B</div>
+            <h1 className="font-display text-xl font-semibold text-foreground mt-1">Ficha Técnica de Dispositivos</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Visão consolidada dos pesos padrão e termo-baro-higrômetros (lotes de carga excluídos).
             </p>
             <div className="mt-2">
@@ -171,7 +171,7 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
                 title={docMeta?.title}
                 masterDocumentId={docMeta?.id}
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Última atualização da ficha: {lastUpdate ? fmtDmyShort(lastUpdate) : "—"}
               </p>
             </div>
@@ -206,14 +206,14 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
         />
       )}
 
-      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 flex gap-2 items-start">
-        <Info size={14} className="mt-0.5 shrink-0 text-slate-500" />
+      <div className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground flex gap-2 items-start">
+        <Info size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
         <span>{COL_HELP}</span>
       </div>
 
       <div className="flex flex-col gap-3">
         <div className="relative flex-1 max-w-xl">
-          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9 h-10"
             placeholder="Buscar ID, fabricante, certificado…"
@@ -255,7 +255,7 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>A mostrar {filtered.length} de {rows.length} linha(s).</span>
           {(query || equipmentType !== "all" || quantity !== "all" || status !== "all" || year !== "all") && (
             <Button
@@ -277,10 +277,10 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
         </div>
       </div>
 
-      <Card className="border-slate-200 overflow-hidden">
+      <Card className="border-border overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm min-w-[2200px]">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-background text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <HeadCell tip="Identificação do equipamento no cadastro">Identificação</HeadCell>
                 <HeadCell tip="Tipo (Peso Padrão ou Thermo). Lotes de carga não entram.">Tipo</HeadCell>
@@ -310,11 +310,11 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={24} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+                <tr><td colSpan={24} className="p-8 text-center text-muted-foreground">A carregar…</td></tr>
               ) : !filtered.length ? (
-                <tr><td colSpan={24} className="p-8 text-center text-slate-500">Nenhum equipamento encontrado.</td></tr>
+                <tr><td colSpan={24} className="p-8 text-center text-muted-foreground">Nenhum equipamento encontrado.</td></tr>
               ) : filtered.map((r) => (
-                <tr key={r.sourceId} className="border-t border-slate-100">
+                <tr key={r.sourceId} className="border-t border-border">
                   <td className="p-2 font-medium max-w-[120px]">
                     <EllipsisTooltip label={r.identification} className="block">{r.identification}</EllipsisTooltip>
                   </td>
@@ -360,16 +360,16 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-base font-semibold">Itens alterados (histórico)</CardTitle>
-          <p className="text-xs text-slate-500 font-normal">
+          <p className="text-xs text-muted-foreground font-normal">
             Rastreio de mudanças de equipamento/certificado. O PDF vigente usa sempre os dados atuais; o histórico segue em secção separada.
           </p>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm min-w-[800px]">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-background text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="p-2">Data</th>
                 <th className="p-2">ID</th>
@@ -381,13 +381,13 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
             </thead>
             <tbody>
               {!historyRows.length ? (
-                <tr><td colSpan={6} className="p-6 text-center text-slate-500">Sem alterações registadas.</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Sem alterações registadas.</td></tr>
               ) : historyRows.map((h) => (
-                <tr key={h.id} className="border-t border-slate-100">
+                <tr key={h.id} className="border-t border-border">
                   <td className="p-2 whitespace-nowrap">{fmtDmyShort(h.changed_at)}</td>
                   <td className="p-2 font-medium">{h.identification || h.source_id?.slice?.(0, 8) || "—"}</td>
                   <td className="p-2">{h.field_label || h.field_key}</td>
-                  <td className="p-2 text-xs text-slate-600">{h.old_value || "—"}</td>
+                  <td className="p-2 text-xs text-muted-foreground">{h.old_value || "—"}</td>
                   <td className="p-2 text-xs">{h.new_value || "—"}</td>
                   <td className="p-2 font-mono text-xs">{h.certificate_number_snapshot || "—"}</td>
                 </tr>

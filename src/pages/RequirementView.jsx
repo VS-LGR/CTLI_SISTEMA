@@ -202,7 +202,7 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="create-doc-btn">
+        <Button className="bg-primary" data-testid="create-doc-btn">
           <Plus size={16} className="mr-1.5" /> Novo {sectionLabel || section}
         </Button>
       </DialogTrigger>
@@ -212,23 +212,23 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label className="text-xs uppercase tracking-wider text-slate-500">Título *</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Título *</Label>
             <Input className="mt-1" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Revisão</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Revisão</Label>
               <Input className="mt-1" value={revision} onChange={(e) => setRevision(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Emissão</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Emissão</Label>
               <Input className="mt-1" type="date" value={emission} onChange={(e) => setEmission(e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Responsável</Label>
-              <select value={responsible} onChange={(e) => setResponsible(e.target.value)} className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Responsável</Label>
+              <select value={responsible} onChange={(e) => setResponsible(e.target.value)} className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card">
                 <option value="">Selecione…</option>
                 {responsibles.map((r) => (
                   <option key={r.id} value={r.name}>{r.name}</option>
@@ -236,12 +236,12 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
               </select>
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-wider text-slate-500">Próxima revisão</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Próxima revisão</Label>
               <Input className="mt-1" type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
             </div>
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-wider text-slate-500">Arquivo (opcional)</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Arquivo (opcional)</Label>
             <input
               ref={fileInputRef}
               type="file"
@@ -257,21 +257,21 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
                 <Upload size={16} className="mr-1.5" /> Selecionar arquivo
               </Button>
               {file && (
-                <span className="text-sm text-slate-600 truncate max-w-[220px]" title={file.name}>{file.name}</span>
+                <span className="text-sm text-muted-foreground truncate max-w-[220px]" title={file.name}>{file.name}</span>
               )}
               {file && (
-                <Button type="button" variant="ghost" size="sm" className="text-slate-500" onClick={() => setFile(null)}>
+                <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setFile(null)}>
                   Remover
                 </Button>
               )}
             </div>
             {canImportWord ? (
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Editor Word nativo: envie .docx para abrir no editor (cabeçalho e rodapé preservados).
                 .doc antigo, PDF e outros ficam só como anexo.
               </p>
             ) : (
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 PDF, Word e outros formatos são guardados como ficheiro anexo.
               </p>
             )}
@@ -279,7 +279,7 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={save} disabled={busy} className="bg-blue-600 hover:bg-blue-700 text-white">Criar</Button>
+          <Button onClick={save} disabled={busy} className="bg-primary">Criar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -411,28 +411,28 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
   };
 
   return (
-    <tr className="hover:bg-slate-50 transition" data-testid={`doc-row-${doc.id}`}>
+    <tr className="hover:bg-accent transition" data-testid={`doc-row-${doc.id}`}>
       <td className="px-4 py-3">
         {fileOnly ? (
-          <span className="font-medium text-sm text-slate-900">{doc.title}</span>
+          <span className="font-medium text-sm text-foreground">{doc.title}</span>
         ) : (
           <Link
             to={`/document/${doc.id}`}
-            className="font-medium text-sm text-slate-900 hover:text-blue-600"
+            className="font-medium text-sm text-foreground hover:text-primary"
             onMouseEnter={prefetchEditor}
             onFocus={prefetchEditor}
           >
             {doc.title}
           </Link>
         )}
-        <div className="text-xs text-slate-500 mt-0.5">
+        <div className="text-xs text-muted-foreground mt-0.5">
           {doc.code && <span className="font-mono">Emissão: {doc.code}</span>}
           <span className={doc.code ? "ml-2" : ""}>Rev. {doc.version}</span>
           {doc.has_file && <Badge variant="outline" className="ml-2 text-[10px] py-0">arquivo</Badge>}
         </div>
       </td>
-      <td className="px-4 py-3 text-sm text-slate-600">{doc.responsible || "—"}</td>
-      <td className="px-4 py-3 text-sm text-slate-600">{doc.review_date || "—"}</td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">{doc.responsible || "—"}</td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">{doc.review_date || "—"}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end flex-wrap">
           <input ref={fileInputRef} type="file" hidden accept=".doc,.docx,.pdf" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
@@ -484,20 +484,20 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
 const DocTable = ({ docs, variant, onUpdate, onDelete, fileOnly = false }) => {
   const list = Array.isArray(docs) ? docs : [];
   return (
-    <Card className="border-slate-200 overflow-hidden">
+    <Card className="border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[640px]">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr className="text-left text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+          <thead className="bg-background border-b border-border">
+            <tr className="text-left text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <th className="px-4 py-3">Documento</th>
               <th className="px-4 py-3">Responsável</th>
               <th className="px-4 py-3">Próx. revisão</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-border bg-card">
             {list.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">Nenhum documento aqui ainda.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-muted-foreground">Nenhum documento aqui ainda.</td></tr>
             )}
             {list.map((d) => (
               <DocRow key={d.id} doc={d} variant={variant} onUpdate={onUpdate} onDelete={onDelete} fileOnly={fileOnly} />
@@ -619,7 +619,7 @@ const RequirementView = () => {
     return <Navigate to={`/requirement/${id}`} replace />;
   }
   if (!currentTenantId) {
-    return <div className="text-slate-600">Selecione um ambiente no topo.</div>;
+    return <div className="text-muted-foreground">Selecione um ambiente no topo.</div>;
   }
 
   const folderLabel = folderKey ? getFolderLabel(id, folderKey, currentTenant, user?.role, user) : null;
@@ -691,19 +691,19 @@ const RequirementView = () => {
   return (
     <div className="space-y-6 min-w-0" data-testid={`req-view-${id}`}>
       <div>
-        <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
-          <Link to="/dashboard" className="hover:text-blue-600">Início</Link>
+        <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+          <Link to="/dashboard" className="hover:text-primary">Início</Link>
           <span>/</span>
           <span>Requisitos</span>
           <span>/</span>
-          <span className="text-slate-700 font-medium">{id}. {reqTitle}</span>
-          {folderLabel && (<><span>/</span><span className="text-slate-700 font-medium truncate max-w-md">{folderLabel}</span></>)}
+          <span className="text-foreground/90 font-medium">{id}. {reqTitle}</span>
+          {folderLabel && (<><span>/</span><span className="text-foreground/90 font-medium truncate max-w-md">{folderLabel}</span></>)}
         </div>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-2">
-          <span className="font-mono text-slate-400 mr-2">{id}.</span>{reqTitle}
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2">
+          <span className="font-mono text-muted-foreground mr-2">{id}.</span>{reqTitle}
         </h1>
-        {folderLabel && <p className="text-sm text-slate-700 mt-1 font-medium">{folderLabel}</p>}
-        <p className="text-sm text-slate-600 mt-1">Ambiente: <span className="font-medium">{currentTenant?.name}</span></p>
+        {folderLabel && <p className="text-sm text-foreground/90 mt-1 font-medium">{folderLabel}</p>}
+        <p className="text-sm text-muted-foreground mt-1">Ambiente: <span className="font-medium">{currentTenant?.name}</span></p>
       </div>
 
       {folderMeta && folderKey && (
@@ -712,7 +712,7 @@ const RequirementView = () => {
 
       {!isColetaRegistro && !isPersonnelRegistro && !moduleTab && (
         <div className="relative max-w-md">
-          <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -726,7 +726,7 @@ const RequirementView = () => {
         <div className="flex items-center justify-between flex-wrap gap-3 min-w-0">
           {!hideSectionTabs && (
           <div className="min-w-0 max-w-full flex-1 overflow-x-auto">
-            <TabsList className="bg-white border border-slate-200 w-max max-w-none justify-start">
+            <TabsList className="bg-card border border-border w-max max-w-none justify-start">
               {visibleSections.map((s) => (
                 <TabsTrigger key={s.id} value={s.id} data-testid={`tab-${s.id}`}>{s.label}</TabsTrigger>
               ))}
@@ -736,12 +736,12 @@ const RequirementView = () => {
 
           {!hideSectionTabs && !isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
             <div className="flex items-center gap-2 flex-wrap ml-auto">
-              <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5">
+              <div className="inline-flex rounded-md border border-border bg-card p-0.5">
                 <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
-                  className={status === "vigente" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                  className={status === "vigente" ? "bg-primary" : ""}
                   onClick={() => setStatus("vigente")}>Vigentes</Button>
                 <Button type="button" variant={status === "obsoleto" ? "default" : "ghost"} size="sm"
-                  className={status === "obsoleto" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                  className={status === "obsoleto" ? "bg-primary" : ""}
                   onClick={() => setStatus("obsoleto")}>Obsoletos</Button>
               </div>
               {status === "vigente" && !signatures && (
@@ -762,12 +762,12 @@ const RequirementView = () => {
 
         {hideSectionTabs && !isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
           <div className="flex items-center gap-2 flex-wrap mb-3">
-            <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5">
+            <div className="inline-flex rounded-md border border-border bg-card p-0.5">
               <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
-                className={status === "vigente" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                className={status === "vigente" ? "bg-primary" : ""}
                 onClick={() => setStatus("vigente")}>Vigentes</Button>
               <Button type="button" variant={status === "obsoleto" ? "default" : "ghost"} size="sm"
-                className={status === "obsoleto" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                className={status === "obsoleto" ? "bg-primary" : ""}
                 onClick={() => setStatus("obsoleto")}>Obsoletos</Button>
             </div>
             {status === "vigente" && (
@@ -785,7 +785,7 @@ const RequirementView = () => {
 
         <TabsContent value={section} className="mt-4">
           {masterDocumentTab && canAccessMasterDocuments(user?.role, user) ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar Lista Mestra…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar Lista Mestra…</div>}>
               <MasterDocumentHub tenantId={currentTenantId} tenant={currentTenant} section={section} />
             </Suspense>
           ) : purchaseOrdersTab ? (
@@ -795,39 +795,39 @@ const RequirementView = () => {
           ) : commercialProposalsTab ? (
             <CommercialProposalsListPanel tenantId={currentTenantId} tenant={currentTenant} />
           ) : isColetaRegistro ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar coleta…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar coleta…</div>}>
               <ColetaHubPage embedded />
             </Suspense>
           ) : isCertBalancasTab ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar certificados…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar certificados…</div>}>
               <CertificateListPage embedded />
             </Suspense>
           ) : isCertPesoTab ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar certificados…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar certificados…</div>}>
               <WeightCertificateListPage embedded />
             </Suspense>
           ) : isFichaTecnicaTab ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar ficha técnica…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar ficha técnica…</div>}>
               <DeviceTechnicalSheetPage embedded />
             </Suspense>
           ) : isCronogramaCalibracaoTab ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar cronograma…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar cronograma…</div>}>
               <CalibrationSchedulePage embedded />
             </Suspense>
           ) : isVerificacaoEquipamentoTab ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar verificações…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar verificações…</div>}>
               <EquipmentVerificationListPage embedded />
             </Suspense>
           ) : isProgramaManutencaoTab ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar programa de manutenção…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar programa de manutenção…</div>}>
               <MaintenanceProgramPage embedded />
             </Suspense>
           ) : isPersonnelRegistro ? (
-            <Suspense fallback={<div className="text-slate-600 text-sm py-8 text-center">A carregar registros de pessoal…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar registros de pessoal…</div>}>
               <PersonnelRegistrosPage embedded lockedTopic={personnelLockedTopic} />
             </Suspense>
           ) : loading ? (
-            <div className="text-slate-600">Carregando…</div>
+            <div className="text-muted-foreground">Carregando…</div>
           ) : signatures ? (
             <AssinaturasSection
               docs={filteredDocs}

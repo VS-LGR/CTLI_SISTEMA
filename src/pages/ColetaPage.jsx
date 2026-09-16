@@ -44,22 +44,22 @@ function fmtDmy(iso) {
 const EMPTY_FILTERS = { query: "", exportStatus: "all", date: "" };
 
 const filterFieldClass =
-  "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
+  "h-10 rounded-lg border-border bg-card text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring";
 
 function KpiCard({ label, value, icon: Icon, tint = "blue", testId }) {
   const tones = {
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
+    blue: "bg-primary/10 text-primary border-primary/20",
     green: "bg-emerald-50 text-emerald-700 border-emerald-100",
     amber: "bg-amber-50 text-amber-700 border-amber-100",
-    slate: "bg-slate-50 text-slate-700 border-slate-100",
+    slate: "bg-background text-foreground/90 border-border",
   };
   return (
-    <Card className="border-slate-200" data-testid={testId}>
+    <Card className="border-border" data-testid={testId}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</div>
-            <div className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-slate-900 mt-1.5">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+            <div className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground mt-1.5">
               {value}
             </div>
           </div>
@@ -98,7 +98,7 @@ function ExportDownloadBadge({ row }) {
     );
   }
   return (
-    <Badge variant="outline" className="text-slate-500 text-[10px] font-normal whitespace-nowrap" title={tooltip}>
+    <Badge variant="outline" className="text-muted-foreground text-[10px] font-normal whitespace-nowrap" title={tooltip}>
       <Clock size={12} className="mr-0.5 inline" />
       Pendente
     </Badge>
@@ -184,8 +184,8 @@ const ColetaPage = ({ embedded = false }) => {
 
   if (!isSupabaseAuthMode) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16 text-slate-600">
-        <p className="font-medium text-slate-900 mb-2">Coleta requer Supabase</p>
+      <div className="max-w-lg mx-auto text-center py-16 text-muted-foreground">
+        <p className="font-medium text-foreground mb-2">Coleta requer Supabase</p>
         <p className="text-sm">Configure <span className="font-mono">REACT_APP_SUPABASE_URL</span> e desative o modo mock.</p>
       </div>
     );
@@ -193,7 +193,7 @@ const ColetaPage = ({ embedded = false }) => {
 
   if (!currentTenantId) {
     return (
-      <div className="text-center py-16 text-slate-500">
+      <div className="text-center py-16 text-muted-foreground">
         Selecione um ambiente (cliente) no topo para aceder às coletas.
       </div>
     );
@@ -242,18 +242,18 @@ const ColetaPage = ({ embedded = false }) => {
                 <ArrowLeft size={16} className="mr-1" /> Coleta de dados
               </Link>
             </Button>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">RE-7.2A · PR-7.2</p>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">RE-7.2A · PR-7.2</p>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
               Coleta — calibração de balanças
             </h1>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {formatColetaDocFullTitle(currentTenant)} — por ambiente.
             </p>
           </div>
         )}
         {embedded && (
           <div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               Registros RE-7.2A — coletas de calibração de balança neste ambiente.
             </p>
           </div>
@@ -266,7 +266,7 @@ const ColetaPage = ({ embedded = false }) => {
               </Link>
             </Button>
           )}
-          <Button asChild className="bg-blue-600 hover:bg-blue-700">
+          <Button asChild className="bg-primary hover:bg-primary/90">
             <Link to={COLETA_NEW_PATH} data-tour="tour-coleta-nova">
               <Plus size={18} className="mr-1" /> Nova coleta
             </Link>
@@ -305,14 +305,14 @@ const ColetaPage = ({ embedded = false }) => {
       </div>
 
       <div
-        className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm"
+        className="rounded-xl border border-border bg-card p-3 sm:p-4 shadow-sm"
         data-testid="coleta-filters"
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative min-w-0 flex-1">
             <MagnifyingGlass
               size={18}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <Input
@@ -345,22 +345,22 @@ const ColetaPage = ({ embedded = false }) => {
               type="date"
               value={filters.date}
               onChange={(e) => setFilters((f) => ({ ...f, date: e.target.value }))}
-              className={`${filterFieldClass} w-full sm:w-[11.5rem] text-slate-600 ${!filters.date ? "text-slate-400" : ""}`}
+              className={`${filterFieldClass} w-full sm:w-[11.5rem] text-muted-foreground ${!filters.date ? "text-muted-foreground" : ""}`}
               title="Filtrar por data de calibração"
               data-testid="coleta-filter-date"
             />
           </div>
         </div>
         {filtersActive && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-            <p className="text-xs text-slate-500">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground">
               A mostrar {kpisFiltered.total} de {kpisAll.total} coleta(s).
             </p>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 text-slate-600"
+              className="h-8 text-muted-foreground"
               onClick={clearFilters}
               data-testid="coleta-filter-clear"
             >
@@ -371,16 +371,16 @@ const ColetaPage = ({ embedded = false }) => {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500 py-8 text-center">A carregar…</p>
+        <p className="text-sm text-muted-foreground py-8 text-center">A carregar…</p>
       ) : filteredRows.length === 0 ? (
-        <div className="text-center py-12 border rounded-lg bg-slate-50">
-          <p className="text-slate-600">
+        <div className="text-center py-12 border rounded-lg bg-background">
+          <p className="text-muted-foreground">
             {rows.length === 0
               ? "Nenhuma coleta registada neste ambiente."
               : "Nenhuma coleta corresponde aos filtros."}
           </p>
           {rows.length === 0 ? (
-            <Button asChild className="mt-4 bg-blue-600 hover:bg-blue-700">
+            <Button asChild className="mt-4 bg-primary hover:bg-primary/90">
               <Link to={COLETA_NEW_PATH}>Criar primeira coleta</Link>
             </Button>
           ) : (
@@ -392,7 +392,7 @@ const ColetaPage = ({ embedded = false }) => {
       ) : (
         <div className="border rounded-lg overflow-x-auto" data-testid="coleta-table">
           <table className="w-full text-sm min-w-[720px]">
-            <thead className="bg-slate-50 border-b">
+            <thead className="bg-background border-b">
               <tr>
                 <th className="text-left p-3 font-medium">Cliente</th>
                 <th className="text-left p-3 font-medium">O.S.</th>
@@ -407,7 +407,7 @@ const ColetaPage = ({ embedded = false }) => {
             </thead>
             <tbody>
               {filteredRows.map((row) => (
-                <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50/50" data-testid={`coleta-row-${row.id}`}>
+                <tr key={row.id} className="border-b last:border-0 hover:bg-accent/50" data-testid={`coleta-row-${row.id}`}>
                   <td className="p-3 max-w-[140px]">
                     <EllipsisTooltip label={row.client_name || ""} className="block">
                       {row.client_name || "—"}
@@ -438,7 +438,7 @@ const ColetaPage = ({ embedded = false }) => {
                         {coletaWorkflowLabel(row.workflow_status || "rascunho")}
                       </Badge>
                       {row.commercial_proposal_id && (row.workflow_status === "rascunho" || !row.workflow_status) && (
-                        <Badge className="text-[10px] font-normal bg-blue-50 text-blue-800 border-blue-200" variant="outline">
+                        <Badge className="text-[10px] font-normal bg-primary/10 text-primary border-primary/30" variant="outline">
                           Da proposta · leituras
                         </Badge>
                       )}
@@ -447,7 +447,7 @@ const ColetaPage = ({ embedded = false }) => {
                   <td className="p-3">
                     <ExportDownloadBadge row={row} />
                   </td>
-                  <td className="p-3 text-slate-500 text-xs">
+                  <td className="p-3 text-muted-foreground text-xs">
                     {row.updated_at ? new Date(row.updated_at).toLocaleString("pt-BR") : "—"}
                   </td>
                   <td className="p-3 text-right">

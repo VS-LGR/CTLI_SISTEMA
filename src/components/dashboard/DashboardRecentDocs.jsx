@@ -27,30 +27,30 @@ function formatRelative(iso) {
 export default function DashboardRecentDocs({ documents = [] }) {
   if (!documents.length) {
     return (
-      <div className="py-8 text-center text-sm text-slate-500 flex flex-col items-center gap-2">
-        <FileText size={28} className="text-slate-300" />
+      <div className="py-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+        <FileText size={28} className="text-muted-foreground" />
         Nenhum documento criado ou atualizado recentemente.
       </div>
     );
   }
 
   return (
-    <ul className="divide-y divide-slate-100" data-testid="dashboard-recent-docs">
+    <ul className="divide-y divide-border" data-testid="dashboard-recent-docs">
       {documents.map((r) => (
         <li key={r.id} className="py-3 flex items-start justify-between gap-3 min-w-0">
           <div className="min-w-0 flex-1">
             <Link
               to={`/document/${r.id}`}
-              className="font-medium text-sm text-slate-800 hover:text-blue-600 truncate block"
+              className="font-medium text-sm text-foreground hover:text-primary truncate block"
               data-testid={`recent-doc-${r.id}`}
             >
               {r.title}
             </Link>
-            <div className="text-xs text-slate-500 mt-0.5 truncate">
+            <div className="text-xs text-muted-foreground mt-0.5 truncate">
               Req. {r.requirement} • {r.section}
               {r.version ? ` • Rev. ${r.version}` : ""}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">
+            <div className="text-[10px] text-muted-foreground mt-0.5">
               {formatRelative(r.updated_at || r.created_at)}
             </div>
           </div>

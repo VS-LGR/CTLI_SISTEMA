@@ -8,13 +8,13 @@ export default function DashboardOperationalOverview({
   loading = false,
 }) {
   return (
-    <Card className="border-slate-200 min-w-0 h-full" data-testid="dashboard-operational-overview">
+    <Card className="border-border min-w-0 h-full" data-testid="dashboard-operational-overview">
       <CardHeader className="pb-2">
         <CardTitle className="font-display text-lg flex items-center gap-2">
-          <ChartBar size={20} className="text-blue-600" weight="duotone" />
+          <ChartBar size={20} className="text-primary" weight="duotone" />
           Indicadores
         </CardTitle>
-        <p className="text-xs text-slate-500 font-normal mt-1 max-w-xl">
+        <p className="text-xs text-muted-foreground font-normal mt-1 max-w-xl">
           Quantidade emitida por mês. Pode ver o valor de cada mês no gráfico ou ao passar o cursor sobre as barras.
         </p>
       </CardHeader>

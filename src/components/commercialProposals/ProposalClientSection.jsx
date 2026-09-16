@@ -34,15 +34,15 @@ export default function ProposalClientSection({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-800">Cliente</h3>
-        <Link to={cadastroSectionPath("clientes")} className="text-xs text-blue-600 hover:underline">
+        <h3 className="text-sm font-semibold text-foreground">Cliente</h3>
+        <Link to={cadastroSectionPath("clientes")} className="text-xs text-primary hover:underline">
           Abrir cadastro de clientes
         </Link>
       </div>
       <div>
         <Label className="text-xs">Vincular ao cadastro (opcional)</Label>
         <select
-          className="mt-1 w-full h-10 rounded-md border border-slate-200 bg-white px-2 text-sm"
+          className="mt-1 w-full h-10 rounded-md border border-border bg-card px-2 text-sm"
           value={endCustomerId || ""}
           onChange={(e) => handleCustomerSelect(e.target.value)}
         >

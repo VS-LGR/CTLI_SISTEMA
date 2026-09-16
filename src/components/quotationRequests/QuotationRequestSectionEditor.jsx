@@ -25,23 +25,23 @@ export default function QuotationRequestSectionEditor({
       onClick={onToggleExpand}
     >
       <div>
-        <CardTitle className="text-base font-semibold text-slate-900 break-words">{meta?.label}</CardTitle>
-        <p className="text-xs text-slate-500 mt-0.5">Clique para {expanded ? "recolher" : "expandir"} o preenchimento</p>
+        <CardTitle className="text-base font-semibold text-foreground break-words">{meta?.label}</CardTitle>
+        <p className="text-xs text-muted-foreground mt-0.5">Clique para {expanded ? "recolher" : "expandir"} o preenchimento</p>
       </div>
-      {expanded ? <CaretUp size={18} className="text-slate-400 shrink-0" /> : <CaretDown size={18} className="text-slate-400 shrink-0" />}
+      {expanded ? <CaretUp size={18} className="text-muted-foreground shrink-0" /> : <CaretDown size={18} className="text-muted-foreground shrink-0" />}
     </button>
   );
 
   if (section.type === "ensaio_proficiencia") {
     return (
-      <Card className={cn("border-slate-200 overflow-hidden", expanded && "ring-1 ring-blue-100")}>
-        <CardHeader className="pb-3 bg-slate-50/50 border-b border-slate-100">{header}</CardHeader>
+      <Card className={cn("border-border overflow-hidden", expanded && "ring-1 ring-primary/20")}>
+        <CardHeader className="pb-3 bg-background/50 border-b border-border">{header}</CardHeader>
         {expanded && (
           <CardContent className="p-5 space-y-4">
             <div>
-              <Label className="text-xs uppercase tracking-wide text-slate-500 font-medium">Escopo do Ensaio</Label>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Escopo do Ensaio</Label>
               <textarea
-                className="mt-1.5 w-full min-h-[88px] border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="mt-1.5 w-full min-h-[88px] border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                 value={section.essay_scope || ""}
                 readOnly={readOnly}
                 placeholder="Descreva o escopo do ensaio de proficiência…"
@@ -49,9 +49,9 @@ export default function QuotationRequestSectionEditor({
               />
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-wide text-slate-500 font-medium">Critérios para Aquisição</Label>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Critérios para Aquisição</Label>
               <textarea
-                className="mt-1.5 w-full min-h-[88px] border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="mt-1.5 w-full min-h-[88px] border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                 value={section.custom_criteria || section.acquisition_criteria || ""}
                 readOnly={readOnly}
                 placeholder="Critérios de contratação do provedor…"
@@ -68,8 +68,8 @@ export default function QuotationRequestSectionEditor({
   const displayItems = typeItems.length ? typeItems : [emptyQuotationRequestItem(section.type, 1)];
 
   return (
-    <Card className={cn("border-slate-200 overflow-hidden", expanded && "ring-1 ring-blue-100")}>
-      <CardHeader className="pb-3 bg-slate-50/50 border-b border-slate-100">{header}</CardHeader>
+    <Card className={cn("border-border overflow-hidden", expanded && "ring-1 ring-primary/20")}>
+      <CardHeader className="pb-3 bg-background/50 border-b border-border">{header}</CardHeader>
       {expanded && (
         <CardContent className="p-5">
           <QuotationRequestItemsTable

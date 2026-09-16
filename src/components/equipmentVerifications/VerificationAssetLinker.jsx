@@ -252,7 +252,7 @@ export default function VerificationAssetLinker({
   };
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-base">Equipamentos ({assets.length})</CardTitle>
         <div className="flex flex-wrap gap-2">
@@ -271,7 +271,7 @@ export default function VerificationAssetLinker({
       </CardHeader>
       <CardContent className="space-y-2">
         {!assets.length ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             {assetKindUsesInlineCadastro(kind)
               ? "Adicione computadores ou veículos para preencher o checklist de cada um."
               : kind === "pesos"
@@ -279,10 +279,10 @@ export default function VerificationAssetLinker({
                 : "Vincule um ou mais equipamentos do cadastro para preencher o checklist."}
           </p>
         ) : (
-          <ul className="divide-y divide-slate-100 border border-slate-100 rounded-lg">
+          <ul className="divide-y divide-border border border-border rounded-lg">
             {assets.map((asset) => (
               <li key={asset.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                <span className="font-medium text-slate-800 truncate">{formatAssetLabel(asset, kind)}</span>
+                <span className="font-medium text-foreground truncate">{formatAssetLabel(asset, kind)}</span>
                 <div className="flex shrink-0 gap-1">
                   {assetKindUsesInlineCadastro(kind) && (
                     <Button type="button" variant="ghost" size="sm" onClick={() => openInlineEdit(asset)} disabled={busy}>
@@ -307,14 +307,14 @@ export default function VerificationAssetLinker({
             </DialogTitle>
           </DialogHeader>
           {loadingOptions ? (
-            <p className="text-sm text-slate-500 py-4">A carregar…</p>
+            <p className="text-sm text-muted-foreground py-4">A carregar…</p>
           ) : !cadastroOptions.length ? (
-            <p className="text-sm text-slate-500 py-4">Nenhum equipamento disponível no cadastro.</p>
+            <p className="text-sm text-muted-foreground py-4">Nenhum equipamento disponível no cadastro.</p>
           ) : (
             <ul className="space-y-1 max-h-[50vh] overflow-y-auto py-2">
               {cadastroOptions.map((opt) => (
                 <li key={opt.id}>
-                  <label className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-slate-50 cursor-pointer text-sm">
+                  <label className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-accent cursor-pointer text-sm">
                     <Checkbox
                       checked={selectedLinkIds.has(opt.id)}
                       onCheckedChange={() => toggleLinkId(opt.id)}

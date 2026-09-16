@@ -36,7 +36,7 @@ export default function EccentricityTestFields({
 
   if (notApplicable) {
     return (
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-muted-foreground">
         Excentricidade não aplicável para o tipo de plataforma selecionado.
       </p>
     );
@@ -61,10 +61,10 @@ export default function EccentricityTestFields({
         <CalibracaoOrdemTooltip tipoPlataforma={tipoPlataforma} />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm min-w-[20rem]">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
+            <tr className="bg-background border-b border-border">
               <th className="p-2 text-left font-semibold w-12">Ponto</th>
               <th className="p-2 text-left font-semibold">Antes do ajuste</th>
               <th className="p-2 text-left font-semibold">Depois do ajuste</th>
@@ -72,8 +72,8 @@ export default function EccentricityTestFields({
           </thead>
           <tbody>
             {pontos.map((pt, i) => (
-              <tr key={i} className="border-b border-slate-100 last:border-0">
-                <td className="p-2 font-mono text-slate-600">{i + 1}</td>
+              <tr key={i} className="border-b border-border last:border-0">
+                <td className="p-2 font-mono text-muted-foreground">{i + 1}</td>
                 <td className="p-2">
                   <Input
                     value={pt.antes || ""}
@@ -95,7 +95,7 @@ export default function EccentricityTestFields({
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Os 5 primeiros pontos aparecem no certificado. Preencha conforme a ordem de calibração da plataforma.
       </p>
     </div>

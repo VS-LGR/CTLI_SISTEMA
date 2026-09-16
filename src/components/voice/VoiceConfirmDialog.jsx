@@ -124,18 +124,18 @@ export default function VoiceConfirmDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="rounded-md border bg-slate-50 px-3 py-3 min-h-[3.5rem]">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
+          <div className="rounded-md border bg-background px-3 py-3 min-h-[3.5rem]">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
               {listening ? "A ouvir" : "Transcrição"}
             </p>
-            <p className="text-base text-slate-900 break-words">{displayLive}</p>
+            <p className="text-base text-foreground break-words">{displayLive}</p>
           </div>
 
           <div className="rounded-md border px-3 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">Valor interpretado</p>
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Valor interpretado</p>
             {interpreted.ok ? (
               <p className={cn(
-                "font-semibold text-slate-900",
+                "font-semibold text-foreground",
                 kind === "number" ? "text-2xl tabular-nums" : "text-lg",
               )}
               >
@@ -150,7 +150,7 @@ export default function VoiceConfirmDialog({
 
           {interpreted.ok && interpreted.matches?.length > 1 && (
             <div className="space-y-1.5">
-              <p className="text-[11px] uppercase tracking-wide text-slate-500">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                 Resultados da pesquisa — selecione o correto
               </p>
               <ul className="max-h-40 overflow-y-auto space-y-1">
@@ -161,12 +161,12 @@ export default function VoiceConfirmDialog({
                       className={cn(
                         "w-full text-left rounded-md border px-3 py-2 text-sm min-h-11",
                         selectedMatchId === m.id
-                          ? "border-blue-500 bg-blue-50 text-blue-900"
-                          : "border-slate-200 bg-white hover:bg-slate-50",
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border bg-card hover:bg-accent",
                       )}
                       onClick={() => setSelectedMatchId(m.id)}
                     >
-                      <span className="text-slate-500 mr-2">{i + 1}.</span>
+                      <span className="text-muted-foreground mr-2">{i + 1}.</span>
                       {m.label}
                     </button>
                   </li>
@@ -202,7 +202,7 @@ export default function VoiceConfirmDialog({
           </Button>
           <Button
             type="button"
-            className="min-h-11 min-w-[7rem] text-base bg-blue-600 hover:bg-blue-700"
+            className="min-h-11 min-w-[7rem] text-base bg-primary hover:bg-primary/90"
             disabled={!canConfirm}
             onClick={doConfirm}
           >

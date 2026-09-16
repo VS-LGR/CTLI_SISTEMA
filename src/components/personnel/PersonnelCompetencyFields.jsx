@@ -121,7 +121,7 @@ export default function PersonnelCompetencyFields({
         disabled={readOnly}
       />
 
-      <div className="space-y-2 border rounded-lg p-4 bg-slate-50/50">
+      <div className="space-y-2 border rounded-lg p-4 bg-background/50">
         <Label>Responsável pela análise e aprovação</Label>
         <label className="flex items-center gap-2 text-sm">
           <input

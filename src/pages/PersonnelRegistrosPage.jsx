@@ -55,7 +55,7 @@ const DEFAULT_OPEN_TOPICS = Object.fromEntries(
 );
 
 const filterFieldClass =
-  "h-10 rounded-lg border-slate-200 bg-white text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-slate-300";
+  "h-10 rounded-lg border-border bg-card text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring";
 
 function syncTopicsToSearchParams(topics, setSearchParams) {
   setSearchParams((prev) => {
@@ -192,7 +192,7 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
 
   if (!currentTenantId) {
     return (
-      <div className="text-center py-16 text-slate-500">
+      <div className="text-center py-16 text-muted-foreground">
         Selecione um ambiente (cliente) no topo para aceder aos registros de pessoal.
       </div>
     );
@@ -242,18 +242,18 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
     <div className="space-y-6 min-w-0" data-testid="personnel-registros-page">
       {!embedded && (
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">6.2 Pessoal</p>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">6.2 Pessoal</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
             Registros
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Documentos RE/PR do módulo Pessoal — {currentTenant?.name || "ambiente"}.
           </p>
         </div>
       )}
 
       {embedded && (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           {lockedTopicMeta
             ? `${lockedTopicMeta.label} — ${currentTenant?.name || "ambiente"}.`
             : "Registros do módulo 6.2 Pessoal — cargos, adequações, monitoramentos, avaliações, seleções e listas de presença."}
@@ -263,7 +263,7 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
       {!lockedTopic && (
       <div className="space-y-3" data-testid="personnel-topic-totals">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Total por tópico
           </h2>
           {filtersActive && (
@@ -272,7 +272,7 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
               variant="outline"
               size="sm"
               onClick={clearFilters}
-              className="shrink-0 border-slate-300 text-slate-700"
+              className="shrink-0 border-border text-foreground/90"
               data-testid="personnel-clear-filters-top"
             >
               <Funnel size={16} className="mr-1.5" />
@@ -303,13 +303,13 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
               return (
                 <span
                   key={topicId}
-                  className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800"
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
                 >
                   {topic.shortLabel}
                   <button
                     type="button"
                     onClick={() => removeTopic(topicId)}
-                    className="rounded-full p-0.5 hover:bg-blue-100 transition-colors"
+                    className="rounded-full p-0.5 hover:bg-primary/10 transition-colors"
                     aria-label={`Remover filtro ${topic.shortLabel}`}
                   >
                     <X size={12} weight="bold" />
@@ -324,7 +324,7 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
 
       {!lockedTopic && (
       <div className="space-y-3" data-testid="personnel-env-kpis">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Indicadores do ambiente
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
@@ -373,14 +373,14 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
       )}
 
       <div
-        className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm"
+        className="rounded-xl border border-border bg-card p-3 sm:p-4 shadow-sm"
         data-testid="personnel-registros-filters"
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative min-w-0 flex-1">
             <MagnifyingGlass
               size={18}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <Input
@@ -408,7 +408,7 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
               type="date"
               value={filters.date}
               onChange={(e) => setFilters((f) => ({ ...f, date: e.target.value }))}
-              className={`${filterFieldClass} w-full sm:w-[11.5rem] text-slate-600 ${!filters.date ? "text-slate-400" : ""}`}
+              className={`${filterFieldClass} w-full sm:w-[11.5rem] text-muted-foreground ${!filters.date ? "text-muted-foreground" : ""}`}
               title="Filtrar por data do registo"
             />
             {filtersActiveForUi && (
@@ -417,7 +417,7 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
                 variant="outline"
                 size="sm"
                 onClick={clearFilters}
-                className="shrink-0 border-slate-300 text-slate-700 h-10"
+                className="shrink-0 border-border text-foreground/90 h-10"
                 data-testid="personnel-clear-filters-bar"
               >
                 <X size={16} className="mr-1.5" />
@@ -427,8 +427,8 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
           </div>
         </div>
         {filtersActiveForUi && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-            <p className="text-xs text-slate-500">
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground">
               {totalFiltered} registo(s) após filtros
             </p>
           </div>
@@ -438,7 +438,7 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
       <div className="space-y-4">
         {lockedTopic ? (
           visibleTopics.map((topic) => (
-            <Card key={topic.id} className="border-slate-200 overflow-hidden" data-testid={`personnel-topic-panel-${topic.id}`}>
+            <Card key={topic.id} className="border-border overflow-hidden" data-testid={`personnel-topic-panel-${topic.id}`}>
               <CardContent className="p-4">
                 {renderTopicPanel(topic)}
               </CardContent>
@@ -451,15 +451,15 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
               open={openTopics[topic.id] !== false}
               onOpenChange={(open) => setOpenTopics((prev) => ({ ...prev, [topic.id]: open }))}
             >
-              <Card className="border-slate-200 overflow-hidden" data-testid={`personnel-topic-panel-${topic.id}`}>
+              <Card className="border-border overflow-hidden" data-testid={`personnel-topic-panel-${topic.id}`}>
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-accent transition-colors"
                   >
                     <div className="min-w-0">
-                      <h2 className="font-semibold text-slate-900">{topic.label}</h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <h2 className="font-semibold text-foreground">{topic.label}</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {topic.code}
                         {!topicStatsLoading && topicStats[topic.id]?.total != null && (
                           <span className="ml-2">· {topicStats[topic.id].total} registo(s)</span>
@@ -468,12 +468,12 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
                     </div>
                     <CaretDown
                       size={18}
-                      className={`shrink-0 text-slate-500 transition-transform ${openTopics[topic.id] !== false ? "rotate-180" : ""}`}
+                      className={`shrink-0 text-muted-foreground transition-transform ${openTopics[topic.id] !== false ? "rotate-180" : ""}`}
                     />
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <CardContent className="px-4 pb-4 pt-0 border-t border-slate-100">
+                  <CardContent className="px-4 pb-4 pt-0 border-t border-border">
                     {renderTopicPanel(topic)}
                   </CardContent>
                 </CollapsibleContent>
@@ -482,8 +482,8 @@ export default function PersonnelRegistrosPage({ embedded = false, lockedTopic =
           ))
         )}
         {visibleTopics.length === 0 && (
-          <Card className="border-slate-200">
-            <CardContent className="p-8 text-center text-slate-500 text-sm">
+          <Card className="border-border">
+            <CardContent className="p-8 text-center text-muted-foreground text-sm">
               Nenhum tópico corresponde aos filtros selecionados.
             </CardContent>
           </Card>

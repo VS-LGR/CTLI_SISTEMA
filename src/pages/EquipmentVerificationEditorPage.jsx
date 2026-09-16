@@ -230,9 +230,9 @@ export default function EquipmentVerificationEditorPage() {
   };
 
   if (!isSupabaseAuthMode || !currentTenantId) {
-    return <p className="text-sm text-slate-500 p-8">Ligação Supabase e ambiente necessários.</p>;
+    return <p className="text-sm text-muted-foreground p-8">Ligação Supabase e ambiente necessários.</p>;
   }
-  if (loading) return <p className="text-sm text-slate-500 p-8">A carregar…</p>;
+  if (loading) return <p className="text-sm text-muted-foreground p-8">A carregar…</p>;
   if (!record) return <Navigate to={EQUIPMENT_VERIFICATION_LIST_PATH} replace />;
 
   const kind = record.equipment_kind;
@@ -246,14 +246,14 @@ export default function EquipmentVerificationEditorPage() {
         <div>
           <Link
             to={EQUIPMENT_VERIFICATION_LIST_PATH}
-            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mb-2"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mb-2"
           >
             <ArrowLeft size={12} /> Voltar
           </Link>
-          <h1 className="font-display text-xl font-semibold text-slate-900">
+          <h1 className="font-display text-xl font-semibold text-foreground">
             {equipmentKindLabel(kind)} — {record.year}
           </h1>
-          <p className="text-sm text-slate-500">RE-6.4.12B · REF. PR-6.4.12</p>
+          <p className="text-sm text-muted-foreground">RE-6.4.12B · REF. PR-6.4.12</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={handlePdf}>
@@ -319,7 +319,7 @@ export default function EquipmentVerificationEditorPage() {
           }}
         />
       ) : (
-        <p className="text-sm text-slate-500 rounded-lg border border-dashed border-slate-200 p-6 text-center">
+        <p className="text-sm text-muted-foreground rounded-lg border border-dashed border-border p-6 text-center">
           Vincule ou adicione equipamentos acima para preencher os checklists mensais.
         </p>
       )}

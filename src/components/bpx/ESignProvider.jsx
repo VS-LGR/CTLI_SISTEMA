@@ -39,8 +39,8 @@ export function ESignProvider({ children }) {
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-600">{meaning}</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-sm text-muted-foreground">{meaning}</p>
+          <p className="text-xs text-muted-foreground">
             Esta ação exige senha no ato (assinatura eletrónica). Não basta o login da sessão.
           </p>
           <div className="space-y-2">
@@ -61,7 +61,6 @@ export function ESignProvider({ children }) {
             <Button
               type="button"
               disabled={!password}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={() => close({ ok: true, password, meaning })}
               data-testid="esign-confirm"
             >

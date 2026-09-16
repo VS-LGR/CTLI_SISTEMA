@@ -36,9 +36,9 @@ export default function RequirementFolderShortcuts({ requirementId, folder, role
   if (!items.length) return null;
 
   return (
-    <Card className="border-slate-200 shadow-sm min-w-0" data-testid={`req-folder-shortcuts-${folder?.folderKey}`}>
+    <Card className="border-border shadow-sm min-w-0" data-testid={`req-folder-shortcuts-${folder?.folderKey}`}>
       <CardHeader className="pb-3">
-        <CardTitle className="font-display text-base text-slate-900">Cadastros</CardTitle>
+        <CardTitle className="font-display text-base text-foreground">Cadastros</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5 pt-0 min-w-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 min-w-0">

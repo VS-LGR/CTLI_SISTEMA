@@ -40,13 +40,13 @@ export default function DashboardContent({
   return (
     <div className="space-y-8 min-w-0" data-testid="dashboard-content">
       <div>
-        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{sectionLabel}</div>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+        <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{sectionLabel}</div>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
           Dashboard
         </h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Atalhos e visão documental do ambiente{" "}
-          <span className="font-medium text-slate-800">{currentTenant?.name}</span>.
+          <span className="font-medium text-foreground">{currentTenant?.name}</span>.
         </p>
       </div>
 
@@ -99,17 +99,17 @@ export default function DashboardContent({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 items-start">
-        <Card className="border-slate-200 min-w-0 lg:row-span-2">
+        <Card className="border-border min-w-0 lg:row-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="font-display text-lg">Documentos recentes</CardTitle>
-            <p className="text-xs text-slate-500 font-normal mt-1">Criados ou atualizados recentemente</p>
+            <p className="text-xs text-muted-foreground font-normal mt-1">Criados ou atualizados recentemente</p>
           </CardHeader>
           <CardContent className="min-w-0">
             <DashboardRecentDocs documents={recent} />
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 min-w-0">
+        <Card className="border-border min-w-0">
           <CardHeader className="pb-2">
             <CardTitle className="font-display text-lg flex items-center gap-2">
               <PushPin size={18} weight="fill" /> Documentos marcados
@@ -121,7 +121,7 @@ export default function DashboardContent({
         </Card>
 
         {showReminders && (
-          <Card className="border-slate-200 min-w-0">
+          <Card className="border-border min-w-0">
             <CardHeader className="pb-2">
               <CardTitle className="font-display text-lg flex items-center gap-2">
                 <NotePencil size={18} /> Lembretes

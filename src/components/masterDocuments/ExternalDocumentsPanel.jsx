@@ -47,16 +47,16 @@ export default function ExternalDocumentsPanel({ tenantId }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-600">Consulta semestral de normas e legislações controladas.</p>
+      <p className="text-sm text-muted-foreground">Consulta semestral de normas e legislações controladas.</p>
       <div className="flex justify-end">
         <Button onClick={() => { setEditRow(null); setFormOpen(true); }}>
           <Plus size={16} className="mr-1" /> Novo documento externo
         </Button>
       </div>
-      <Card className="overflow-x-auto border-slate-200">
+      <Card className="overflow-x-auto border-border">
         <table className="w-full text-sm min-w-[960px]">
-          <thead className="bg-slate-50 border-b">
-            <tr className="text-[10px] uppercase text-slate-500">
+          <thead className="bg-background border-b">
+            <tr className="text-[10px] uppercase text-muted-foreground">
               <th className="px-3 py-2 text-left">Título</th>
               <th className="px-3 py-2 text-left">Órgão</th>
               <th className="px-3 py-2 text-left">Revisão</th>
@@ -68,8 +68,8 @@ export default function ExternalDocumentsPanel({ tenantId }) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {loading && <tr><td colSpan={8} className="p-6 text-center text-slate-500">Carregando…</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-slate-500">Nenhum documento externo.</td></tr>}
+            {loading && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Nenhum documento externo.</td></tr>}
             {rows.map((r) => {
               const due = getDueStatus(r.next_consultation_date);
               return (

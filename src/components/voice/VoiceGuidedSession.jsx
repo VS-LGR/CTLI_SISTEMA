@@ -144,23 +144,23 @@ export default function VoiceGuidedSession({
           </p>
         ) : field ? (
           <div className="space-y-3">
-            <p className="text-base font-medium text-slate-900">{field.label}</p>
-            <div className="rounded-md border bg-slate-50 px-3 py-3 min-h-[3.5rem]">
-              <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
+            <p className="text-base font-medium text-foreground">{field.label}</p>
+            <div className="rounded-md border bg-background px-3 py-3 min-h-[3.5rem]">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
                 {phase === "listening" || speech.listening ? "A ouvir" : "Transcrição"}
               </p>
-              <p className="text-base text-slate-900 break-words">
+              <p className="text-base text-foreground break-words">
                 {speech.listening
                   ? (speech.interim || "A ouvir…")
                   : (speech.finalTranscript || "—")}
               </p>
             </div>
             <div className="rounded-md border px-3 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">Valor interpretado</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Valor interpretado</p>
               {parsed.ok ? (
                 <p className="text-2xl font-semibold tabular-nums">{parsed.value}</p>
               ) : (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   {speech.finalTranscript ? parsed.message : "Fale o valor numérico."}
                 </p>
               )}
@@ -172,7 +172,7 @@ export default function VoiceGuidedSession({
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-slate-600">Sequência vazia.</p>
+          <p className="text-sm text-muted-foreground">Sequência vazia.</p>
         )}
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -193,7 +193,7 @@ export default function VoiceGuidedSession({
           </Button>
           <Button
             type="button"
-            className="min-h-11 text-base bg-blue-600 hover:bg-blue-700"
+            className="min-h-11 text-base bg-primary hover:bg-primary/90"
             disabled={!parsed.ok || speech.listening}
             onClick={handleConfirm}
           >

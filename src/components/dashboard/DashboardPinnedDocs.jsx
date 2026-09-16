@@ -22,24 +22,24 @@ export default function DashboardPinnedDocs({ documents = [], onChange }) {
 
   if (!documents.length) {
     return (
-      <p className="text-sm text-slate-500 py-4">
+      <p className="text-sm text-muted-foreground py-4">
         Nenhum documento marcado. Use o ícone de pin na listagem ou no editor.
       </p>
     );
   }
 
   return (
-    <ul className="divide-y divide-slate-100" data-testid="dashboard-pinned-docs">
+    <ul className="divide-y divide-border" data-testid="dashboard-pinned-docs">
       {documents.map((r) => (
         <li key={r.id} className="py-3 flex items-center justify-between gap-3 min-w-0">
           <div className="min-w-0 flex-1">
             <Link
               to={`/document/${r.id}`}
-              className="font-medium text-sm text-slate-800 hover:text-blue-600 truncate block"
+              className="font-medium text-sm text-foreground hover:text-primary truncate block"
             >
               {r.title}
             </Link>
-            <div className="text-xs text-slate-500 mt-0.5 truncate">
+            <div className="text-xs text-muted-foreground mt-0.5 truncate">
               Req. {r.requirement} • {r.section}
             </div>
           </div>
@@ -51,7 +51,7 @@ export default function DashboardPinnedDocs({ documents = [], onChange }) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-slate-500"
+              className="h-8 w-8 p-0 text-muted-foreground"
               title="Remover da dashboard"
               onClick={() => unpin(r.id)}
               data-testid={`unpin-${r.id}`}

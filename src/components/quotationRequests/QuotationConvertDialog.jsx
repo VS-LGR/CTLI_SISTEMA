@@ -91,9 +91,9 @@ export default function QuotationConvertDialog({
         </DialogHeader>
 
         {loading ? (
-          <p className="text-sm text-slate-500 py-4">A carregar…</p>
+          <p className="text-sm text-muted-foreground py-4">A carregar…</p>
         ) : !quotation ? (
-          <p className="text-sm text-slate-500 py-4">Solicitação não encontrada.</p>
+          <p className="text-sm text-muted-foreground py-4">Solicitação não encontrada.</p>
         ) : (
           <div className="space-y-4">
             {state?.trainingSelected && (
@@ -107,7 +107,7 @@ export default function QuotationConvertDialog({
 
             {state?.pending?.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                   Serão criados ({state.pending.length})
                 </p>
                 <ul className="space-y-2">
@@ -116,11 +116,11 @@ export default function QuotationConvertDialog({
                     return (
                       <li
                         key={sectionType}
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                       >
-                        <span className="font-medium text-slate-800">{sectionTypeLabel(sectionType)}</span>
-                        <span className="text-slate-500"> → </span>
-                        <span className="text-slate-700">{poTypeLabel(poType)}</span>
+                        <span className="font-medium text-foreground">{sectionTypeLabel(sectionType)}</span>
+                        <span className="text-muted-foreground"> → </span>
+                        <span className="text-foreground/90">{poTypeLabel(poType)}</span>
                       </li>
                     );
                   })}
@@ -130,7 +130,7 @@ export default function QuotationConvertDialog({
 
             {(quotation.conversions || []).length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                   Já convertidos
                 </p>
                 <ul className="space-y-1.5">
@@ -141,7 +141,7 @@ export default function QuotationConvertDialog({
                       <li key={conv.id}>
                         <Link
                           to={pedidoEditorPath(po.id)}
-                          className="inline-flex items-center gap-1.5 text-sm text-blue-700 hover:underline"
+                          className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
                         >
                           {sectionTypeLabel(conv.section_type)}
                           {" · "}
@@ -156,7 +156,7 @@ export default function QuotationConvertDialog({
             )}
 
             {!state?.canConvert && !state?.pending?.length && (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 {quotation.status === "convertida_pedido_compra"
                   ? "Todos os tipos convertíveis já foram convertidos."
                   : "Não há tipos elegíveis para conversão nesta solicitação."}
@@ -171,7 +171,7 @@ export default function QuotationConvertDialog({
           </Button>
           <Button
             type="button"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-primary"
             disabled={loading || converting || !state?.canConvert}
             onClick={handleConvert}
           >

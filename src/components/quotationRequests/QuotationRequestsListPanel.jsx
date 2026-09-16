@@ -91,13 +91,13 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
   useEffect(() => { load(); }, [load]);
 
   if (!canAccessQuotationRequests(user?.role, user)) {
-    return <div className="text-slate-600 text-sm">Sem permissão para solicitações de orçamento.</div>;
+    return <div className="text-muted-foreground text-sm">Sem permissão para solicitações de orçamento.</div>;
   }
   if (!isSupabaseAuthMode) {
-    return <div className="text-slate-600 text-sm">Solicitações de orçamento requerem modo Supabase.</div>;
+    return <div className="text-muted-foreground text-sm">Solicitações de orçamento requerem modo Supabase.</div>;
   }
   if (!tenantId) {
-    return <div className="text-slate-600 text-sm">Selecione um ambiente no topo.</div>;
+    return <div className="text-muted-foreground text-sm">Selecione um ambiente no topo.</div>;
   }
 
   const exportPdf = async (row) => {
@@ -151,23 +151,23 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
     <div className="space-y-5 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Solicitações de Orçamento</h2>
-          <p className="text-sm text-slate-500 mt-0.5">RE-6.6C · Gestão de cotações com provedores</p>
+          <h2 className="text-lg font-semibold text-foreground">Solicitações de Orçamento</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">RE-6.6C · Gestão de cotações com provedores</p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white shrink-0">
+        <Button asChild className="bg-primary shrink-0">
           <Link to={QUOTATION_NEW_PATH} data-tour="tour-orcamento-nova"><Plus size={16} className="mr-1.5" /> Nova solicitação</Link>
         </Button>
       </div>
 
-      <Card className="border-slate-200" data-tour="tour-orcamento-lista">
+      <Card className="border-border" data-tour="tour-orcamento-lista">
         <CardContent className="p-4">
-          <div className="flex items-center gap-2 text-slate-600 mb-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-3">
             <Funnel size={16} />
             <span className="text-xs font-semibold uppercase tracking-wide">Filtros</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
-              <Label className="text-xs text-slate-500 mb-1 block">Ano</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">Ano</Label>
               <select className={selectClass} value={filters.year} onChange={(e) => setFilters((f) => ({ ...f, year: e.target.value }))}>
                 {[0, 1, 2, 3].map((o) => {
                   const y = new Date().getFullYear() - o;
@@ -176,7 +176,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
               </select>
             </div>
             <div>
-              <Label className="text-xs text-slate-500 mb-1 block">Status</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
               <select className={selectClass} value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
                 <option value="all">Todos</option>
                 {QUOTATION_REQUEST_STATUSES.map((s) => (
@@ -185,7 +185,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
               </select>
             </div>
             <div>
-              <Label className="text-xs text-slate-500 mb-1 block">Tipo</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
               <select className={selectClass} value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}>
                 <option value="all">Todos</option>
                 {QUOTATION_REQUEST_TYPES.map((t) => (
@@ -194,7 +194,7 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
               </select>
             </div>
             <div>
-              <Label className="text-xs text-slate-500 mb-1 block">Provedor</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">Provedor</Label>
               <select className={selectClass} value={filters.supplierId} onChange={(e) => setFilters((f) => ({ ...f, supplierId: e.target.value }))}>
                 <option value="">Todos</option>
                 {(cadastro.suppliers || []).map((s) => (
@@ -206,9 +206,9 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
         </CardContent>
       </Card>
 
-      <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm">
+      <div className="overflow-x-auto border border-border rounded-xl bg-card shadow-sm">
         <table className="w-full text-sm min-w-[720px]">
-          <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
+          <thead className="bg-background text-muted-foreground border-b border-border">
             <tr>
               <th className="p-3 text-left font-semibold">Nº</th>
               <th className="p-3 text-left font-semibold">Data</th>
@@ -220,35 +220,35 @@ export default function QuotationRequestsListPanel({ tenantId, tenant }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="p-8 text-center text-slate-500">A carregar…</td></tr>
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">A carregar…</td></tr>
             ) : !rows.length ? (
               <tr>
                 <td colSpan={6} className="p-10 text-center">
-                  <p className="text-slate-600 font-medium">Nenhuma solicitação encontrada</p>
-                  <p className="text-sm text-slate-500 mt-1">Ajuste os filtros ou crie uma nova solicitação.</p>
-                  <Button asChild className="mt-4 bg-blue-600 hover:bg-blue-700 text-white" size="sm">
+                  <p className="text-muted-foreground font-medium">Nenhuma solicitação encontrada</p>
+                  <p className="text-sm text-muted-foreground mt-1">Ajuste os filtros ou crie uma nova solicitação.</p>
+                  <Button asChild className="mt-4 bg-primary" size="sm">
                     <Link to={QUOTATION_NEW_PATH}><Plus size={14} className="mr-1" /> Nova solicitação</Link>
                   </Button>
                 </td>
               </tr>
             ) : rows.map((row) => (
-              <tr key={row.id} className="border-t border-slate-100 hover:bg-slate-50/60 transition-colors">
+              <tr key={row.id} className="border-t border-border hover:bg-accent/60 transition-colors">
                 <td className="p-3">
                   <button
                     type="button"
-                    className="font-semibold text-blue-700 hover:underline font-mono text-left"
+                    className="font-semibold text-primary hover:underline font-mono text-left"
                     onClick={() => nav(quotationEditorPath(row.id))}
                   >
                     {formatRequestNumber(row.request_number, row.request_year)}
                   </button>
                 </td>
-                <td className="p-3 text-slate-700 whitespace-nowrap">
+                <td className="p-3 text-foreground/90 whitespace-nowrap">
                   {row.request_date ? new Date(`${row.request_date}T12:00:00`).toLocaleDateString("pt-BR") : "—"}
                 </td>
-                <td className="p-3 text-slate-700 max-w-[180px] truncate" title={row.supplier_data_snapshot?.company || row.supplier?.name}>
+                <td className="p-3 text-foreground/90 max-w-[180px] truncate" title={row.supplier_data_snapshot?.company || row.supplier?.name}>
                   {row.supplier_data_snapshot?.company || row.supplier?.name || "—"}
                 </td>
-                <td className="p-3 text-slate-600 hidden md:table-cell max-w-[140px] truncate">
+                <td className="p-3 text-muted-foreground hidden md:table-cell max-w-[140px] truncate">
                   {row.sent_by_data_snapshot?.full_name || "—"}
                 </td>
                 <td className="p-3">

@@ -30,7 +30,7 @@ export default function CertificateEmitSendDialog({
               {label} foi/foram aprovado(s). Deseja gerar o PDF oficial e enviar por e-mail ao cliente?
             </span>
             {clientEmail ? (
-              <span className="block text-slate-700">
+              <span className="block text-foreground/90">
                 E-mail: <strong className="font-mono">{clientEmail}</strong>
               </span>
             ) : (

@@ -17,7 +17,7 @@ const MAGNITUDES = ["Temperatura", "Umidade", "Pressão atmosférica"];
 function MobileField({ label, children }) {
   return (
     <div className="min-w-0">
-      <Label className="text-xs text-slate-500 mb-1 block break-words">{label}</Label>
+      <Label className="text-xs text-muted-foreground mb-1 block break-words">{label}</Label>
       {children}
     </div>
   );
@@ -106,7 +106,7 @@ export default function PurchaseOrderServicesEditor({
           {!readOnly && type === "calibracao_termo_baro_higrometro" && (
             <MobileField label="Certificado ambiente">
               <select
-                className="w-full border border-slate-200 rounded-md h-10 px-2 text-sm bg-white"
+                className="w-full border border-border rounded-md h-10 px-2 text-sm bg-card"
                 value=""
                 onChange={(e) => e.target.value && applyEnvCert(idx, e.target.value)}
               >
@@ -124,7 +124,7 @@ export default function PurchaseOrderServicesEditor({
           <MobileField label="Grandeza">
             {type === "compra_termo_baro_higrometro" ? (
               <select
-                className="w-full border border-slate-200 rounded-md h-10 px-2 text-sm bg-white"
+                className="w-full border border-border rounded-md h-10 px-2 text-sm bg-card"
                 value={items[idx]?.magnitude || ""}
                 disabled={readOnly}
                 onChange={(e) => updateItem(idx, { magnitude: e.target.value })}
@@ -201,7 +201,7 @@ export default function PurchaseOrderServicesEditor({
           <td className="p-2">
             {!readOnly && type === "calibracao_termo_baro_higrometro" && (
               <select
-                className="w-full border border-slate-200 rounded-md h-10 px-1 mb-1 text-xs bg-white"
+                className="w-full border border-border rounded-md h-10 px-1 mb-1 text-xs bg-card"
                 value=""
                 onChange={(e) => e.target.value && applyEnvCert(idx, e.target.value)}
               >
@@ -217,7 +217,7 @@ export default function PurchaseOrderServicesEditor({
           <td className="p-2">
             {type === "compra_termo_baro_higrometro" ? (
               <select
-                className="w-full border border-slate-200 rounded-md h-10 px-1 text-sm bg-white"
+                className="w-full border border-border rounded-md h-10 px-1 text-sm bg-card"
                 value={items[idx]?.magnitude || ""}
                 disabled={readOnly}
                 onChange={(e) => updateItem(idx, { magnitude: e.target.value })}
@@ -277,7 +277,7 @@ export default function PurchaseOrderServicesEditor({
   return (
     <div className="space-y-4 min-w-0">
       {meta?.serviceTypeLabel && (
-        <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+        <p className="text-sm text-muted-foreground bg-background border border-border rounded-md px-3 py-2">
           Tipo de serviço: <strong>{meta.serviceTypeLabel}</strong>
         </p>
       )}
@@ -296,7 +296,7 @@ export default function PurchaseOrderServicesEditor({
             onRemove={() => removeRow(idx)}
           >
             {renderTypeFieldsMobile(idx)}
-            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border">
               <MobileField label="Quantidade">{numCell(idx, "quantity")}</MobileField>
               <MobileField label="Valor unitário">{numCell(idx, "unit_value")}</MobileField>
               <MobileField label="Impostos">
@@ -312,7 +312,7 @@ export default function PurchaseOrderServicesEditor({
                 />
               </MobileField>
               <MobileField label="Total">
-                <p className="text-sm font-semibold text-slate-900 py-2">
+                <p className="text-sm font-semibold text-foreground py-2">
                   {(row.total_value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </p>
               </MobileField>
@@ -363,9 +363,9 @@ export default function PurchaseOrderServicesEditor({
         renderTableRow={(row, idx) => (
           <tr
             key={idx}
-            className={`border-t border-slate-100 align-top ${idx % 2 === 1 ? "bg-slate-50/40" : ""}`}
+            className={`border-t border-border align-top ${idx % 2 === 1 ? "bg-background/40" : ""}`}
           >
-            <td className="p-2 text-center font-medium text-slate-600">{idx + 1}</td>
+            <td className="p-2 text-center font-medium text-muted-foreground">{idx + 1}</td>
             {renderTypeFieldsTable(idx)}
             <td className="p-2">{numCell(idx, "quantity")}</td>
             <td className="p-2">{numCell(idx, "unit_value")}</td>
@@ -381,7 +381,7 @@ export default function PurchaseOrderServicesEditor({
                 className={inputCls}
               />
             </td>
-            <td className="p-2 font-semibold whitespace-nowrap text-slate-900">
+            <td className="p-2 font-semibold whitespace-nowrap text-foreground">
               {(row.total_value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </td>
             {!readOnly && (

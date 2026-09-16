@@ -11,7 +11,7 @@ export default function DocumentEditorActionBar({
 
   return (
     <div
-      className={`sticky bottom-0 z-20 -mx-4 px-4 py-3 mt-6 bg-white/95 backdrop-blur border-t border-slate-200 ${className}`}
+      className={`sticky bottom-0 z-20 -mx-4 px-4 py-3 mt-6 bg-white/95 backdrop-blur border-t border-border ${className}`}
     >
       <div className="flex flex-wrap gap-2 max-w-5xl mx-auto">
         {visibleActions.map((action) => {
@@ -37,7 +37,7 @@ export default function DocumentEditorActionBar({
             size={primary.size || "sm"}
             onClick={primary.onClick}
             disabled={primary.disabled || primary.loading}
-            className={`ml-auto bg-blue-600 hover:bg-blue-700 text-white ${primary.className || ""}`}
+            className={`ml-auto bg-primary ${primary.className || ""}`}
           >
             {primary.icon ? <primary.icon size={16} className="mr-1.5" /> : null}
             {primary.loading ? primary.loadingLabel || `${primary.label}…` : primary.label}

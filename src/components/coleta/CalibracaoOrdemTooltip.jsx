@@ -52,7 +52,7 @@ export default function CalibracaoOrdemTooltip({ tipoPlataforma = "" }) {
 
   const content = useMemo(() => (
     <>
-      <p className="text-xs font-semibold text-slate-800 mb-2 pr-1">
+      <p className="text-xs font-semibold text-foreground mb-2 pr-1">
         Validação dos pontos de pesagem (ordem por formato da plataforma)
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -63,7 +63,7 @@ export default function CalibracaoOrdemTooltip({ tipoPlataforma = "" }) {
               key={item.src}
               className={cn(
                 "rounded-md border p-2 transition-colors",
-                active ? "border-blue-400 bg-blue-50/80 ring-1 ring-blue-200" : "border-slate-200 bg-slate-50/50",
+                active ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background/50",
               )}
             >
               <img
@@ -75,19 +75,19 @@ export default function CalibracaoOrdemTooltip({ tipoPlataforma = "" }) {
                 decoding="async"
                 className="w-full h-auto rounded object-contain"
               />
-              <figcaption className="mt-1.5 text-center text-[11px] font-medium text-slate-700">
+              <figcaption className="mt-1.5 text-center text-[11px] font-medium text-foreground/90">
                 {item.label}
               </figcaption>
             </figure>
           );
         })}
       </div>
-      <p className="mt-2 text-[10px] text-slate-500 leading-snug">
+      <p className="mt-2 text-[10px] text-muted-foreground leading-snug">
         Selecione o tipo de plataforma na secção 2 para destacar o diagrama correspondente.
       </p>
-      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+      <div className="mt-3 pt-2 border-t border-border flex items-center justify-end gap-2">
         <img src={APP_LOGO} alt="" aria-hidden className="h-5 w-5 object-contain rounded-sm bg-black" />
-        <span className="text-[9px] uppercase tracking-wide text-slate-400">{APP_NAME}</span>
+        <span className="text-[9px] uppercase tracking-wide text-muted-foreground">{APP_NAME}</span>
       </div>
     </>
   ), [tipoPlataforma]);
@@ -95,10 +95,10 @@ export default function CalibracaoOrdemTooltip({ tipoPlataforma = "" }) {
   const trigger = (
     <button
       type="button"
-      className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label="Ver validação dos pontos de pesagem"
     >
-      <Info size={16} weight="duotone" className="text-blue-600 shrink-0" />
+      <Info size={16} weight="duotone" className="text-primary shrink-0" />
       <span className="hidden sm:inline">Ordem dos pontos</span>
       <span className="sm:hidden">Pontos</span>
     </button>
@@ -135,7 +135,7 @@ export default function CalibracaoOrdemTooltip({ tipoPlataforma = "" }) {
           side="bottom"
           align="end"
           sideOffset={8}
-          className="max-w-[min(94vw,42rem)] border border-slate-200 bg-white p-3 text-slate-900 shadow-lg"
+          className="max-w-[min(94vw,42rem)] border border-border bg-card p-3 text-foreground shadow-lg"
         >
           {content}
         </TooltipContent>

@@ -33,11 +33,11 @@ export default function MasterDocumentHub({ tenantId, tenant, section }) {
         <div className="space-y-6">
           <MasterDocumentActivityFeed tenantId={tenantId} limit={10} compact />
           <div>
-            <h3 className="text-sm font-semibold text-slate-800 mb-2">Histórico documental (revisões)</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">Histórico documental (revisões)</h3>
             <DocumentRevisionsPanel tenantId={tenantId} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-800 mb-2">Histórico detalhado (conta / função)</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">Histórico detalhado (conta / função)</h3>
             <DocumentChangeLogPanel tenantId={tenantId} limit={150} />
           </div>
         </div>

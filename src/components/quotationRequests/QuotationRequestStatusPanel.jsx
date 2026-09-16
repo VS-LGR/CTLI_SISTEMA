@@ -37,7 +37,7 @@ export default function QuotationRequestStatusPanel({
           <Button
             type="button"
             size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white h-8"
+            className="bg-primary h-8"
             disabled={disabled}
             onClick={() => onTransition?.(primary.target)}
           >
@@ -62,7 +62,7 @@ export default function QuotationRequestStatusPanel({
           </div>
         )}
         {isNew && (
-          <span className="text-xs text-slate-500">Salve para alterar o status</span>
+          <span className="text-xs text-muted-foreground">Salve para alterar o status</span>
         )}
       </div>
     );
@@ -80,17 +80,17 @@ export default function QuotationRequestStatusPanel({
               <div
                 className={cn(
                   "flex flex-col items-center text-center px-2 py-1 min-w-[4.5rem] sm:min-w-[5.5rem]",
-                  isActive && "text-blue-700",
-                  isPast && !isActive && "text-slate-600",
-                  !isPast && !isActive && "text-slate-400",
+                  isActive && "text-primary",
+                  isPast && !isActive && "text-muted-foreground",
+                  !isPast && !isActive && "text-muted-foreground",
                 )}
               >
                 <span
                   className={cn(
                     "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold border-2 shrink-0 transition-colors",
-                    isActive && "border-blue-600 bg-blue-600 text-white shadow-sm",
+                    isActive && "border-primary bg-primary shadow-sm",
                     isPast && !isActive && "border-emerald-500 bg-emerald-50 text-emerald-700",
-                    !isPast && !isActive && "border-slate-200 bg-white text-slate-400",
+                    !isPast && !isActive && "border-border bg-card text-muted-foreground",
                   )}
                 >
                   {isPast && !isActive ? "✓" : i + 1}
@@ -99,14 +99,14 @@ export default function QuotationRequestStatusPanel({
                   {step.label}
                 </span>
                 {isActive && isDecision && (
-                  <span className="mt-0.5 text-[9px] text-blue-600 font-normal">atual</span>
+                  <span className="mt-0.5 text-[9px] text-primary font-normal">atual</span>
                 )}
               </div>
               {i < QUOTATION_FLOW_STEPS.length - 1 && (
                 <div
                   className={cn(
                     "h-0.5 w-3 sm:w-5 shrink-0 self-center mb-5",
-                    i < currentStep ? "bg-emerald-400" : "bg-slate-200",
+                    i < currentStep ? "bg-emerald-400" : "bg-muted",
                   )}
                   aria-hidden
                 />
@@ -120,7 +120,7 @@ export default function QuotationRequestStatusPanel({
 
   const actionButtons = !isNew && actions.length > 0 && (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Próximo passo</p>
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Próximo passo</p>
       <div className="flex flex-wrap gap-2">
         {actions.map((a, idx) => (
           <Button
@@ -134,7 +134,7 @@ export default function QuotationRequestStatusPanel({
                   ? "default"
                   : "outline"
             }
-            className={idx === 0 && a.variant !== "destructive" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+            className={idx === 0 && a.variant !== "destructive" ? "bg-primary" : ""}
             disabled={disabled}
             onClick={() => onTransition?.(a.target)}
           >
@@ -152,7 +152,7 @@ export default function QuotationRequestStatusPanel({
           <QuotationStatusBadge status={status} />
         </div>
         {help && (
-          <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 leading-relaxed">
+          <p className="text-sm text-muted-foreground bg-background border border-border rounded-lg px-3 py-2.5 leading-relaxed">
             {help}
           </p>
         )}
@@ -162,16 +162,16 @@ export default function QuotationRequestStatusPanel({
   }
 
   return (
-    <Card className="border-slate-200 overflow-hidden">
+    <Card className="border-border overflow-hidden">
       <CardContent className="p-5 space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Estado da solicitação</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Estado da solicitação</p>
             <QuotationStatusBadge status={status} />
           </div>
         </div>
         {help && (
-          <p className="text-sm text-slate-600 bg-blue-50/50 border border-blue-100 rounded-lg px-3 py-2.5 leading-relaxed">
+          <p className="text-sm text-muted-foreground bg-primary/10 border border-primary/20 rounded-lg px-3 py-2.5 leading-relaxed">
             {help}
           </p>
         )}

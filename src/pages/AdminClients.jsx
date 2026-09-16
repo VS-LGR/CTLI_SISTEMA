@@ -256,7 +256,7 @@ const AdminClients = () => {
       });
   }, [uTenant, uRole]);
 
-  if (!isAdmin) return <div className="text-slate-600">Acesso restrito a administradores CTLI.</div>;
+  if (!isAdmin) return <div className="text-muted-foreground">Acesso restrito a administradores CTLI.</div>;
 
   const uploadTenantLogo = async (tenantId) => {
     if (!tLogoFile || !tenantId) return tLogoPath || null;
@@ -603,9 +603,9 @@ const AdminClients = () => {
     <div className="space-y-6" data-testid="admin-clients">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Administração CTLI</div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Ambientes (clientes)</h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Administração CTLI</div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">Ambientes (clientes)</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Cada ambiente corresponde a um cliente: documentos e utilizadores ficam isolados.
             Cadastre pessoas com acesso ao portal ou apenas como responsáveis em documentos, num único fluxo.
           </p>
@@ -637,13 +637,13 @@ const AdminClients = () => {
                 <div>
                   <Label>
                     Ambiente (cliente) {uRole === "admin" && uPortalAccess && (
-                      <span className="text-xs text-slate-500">(não aplicável a CTLI)</span>
+                      <span className="text-xs text-muted-foreground">(não aplicável a CTLI)</span>
                     )}
                   </Label>
                   <select
                     value={uTenant}
                     onChange={(e) => setUTenant(e.target.value)}
-                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                    className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card"
                     data-testid="user-tenant-select"
                     disabled={uRole === "admin" && uPortalAccess || Boolean(editingUserId || editingRespId)}
                   >
@@ -656,7 +656,7 @@ const AdminClients = () => {
                   </select>
                 </div>
 
-                <div className="flex items-start gap-3 rounded-md border border-slate-200 p-3">
+                <div className="flex items-start gap-3 rounded-md border border-border p-3">
                   <Checkbox
                     id="portal-access"
                     checked={uPortalAccess}
@@ -678,7 +678,7 @@ const AdminClients = () => {
                     <Label htmlFor="portal-access" className="cursor-pointer font-medium">
                       Acesso ao portal (login)
                     </Label>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       Desmarque para cadastrar apenas como responsável em documentos, sem conta de acesso.
                     </p>
                   </div>
@@ -711,7 +711,7 @@ const AdminClients = () => {
                         applyRoleAclPreset(nextRole);
                       }
                     }}
-                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                    className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card"
                     data-testid="user-role-select"
                   >
                     {(uPortalAccess ? ROLES : RESPONSIBLE_ROLES).map((r) => (
@@ -730,7 +730,7 @@ const AdminClients = () => {
                     <select
                       value={uEmployeeId}
                       onChange={(e) => setUEmployeeId(e.target.value)}
-                      className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                      className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card"
                       disabled={!uTenant}
                     >
                       <option value="">Selecione o colaborador…</option>
@@ -742,7 +742,7 @@ const AdminClients = () => {
                       ))}
                     </select>
                     {!uTenant && (
-                      <p className="text-xs text-slate-500 mt-1">Selecione o ambiente primeiro.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Selecione o ambiente primeiro.</p>
                     )}
                     {uTenant && tenantSignatories.length === 0 && (
                       <p className="text-xs text-amber-700 mt-1">
@@ -766,7 +766,7 @@ const AdminClients = () => {
                   </div>
                 )}
                 {uPortalAccess && isDocumentResponsibleRole(uRole) && uRole !== "admin" && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Também será registado como responsável em documentos (lista mestra, revisões, etc.).
                   </p>
                 )}
@@ -775,7 +775,7 @@ const AdminClients = () => {
                 <Button variant="outline" onClick={() => setOpenUser(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={createOrUpdatePerson} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-user">
+                <Button onClick={createOrUpdatePerson} className="bg-primary" data-testid="confirm-create-user">
                   {editingUserId || editingRespId ? "Guardar" : "Cadastrar"}
                 </Button>
               </DialogFooter>
@@ -791,7 +791,7 @@ const AdminClients = () => {
           >
             <DialogTrigger asChild>
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary"
                 data-testid="open-create-tenant"
                 onClick={() => resetTenantForm()}
               >
@@ -820,7 +820,7 @@ const AdminClients = () => {
                   <select
                     value={tDeploymentModel}
                     onChange={(e) => setTDeploymentModel(e.target.value)}
-                    className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white"
+                    className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card"
                     data-testid="tenant-deployment-model"
                   >
                     {DEPLOYMENT_MODEL_OPTIONS.map((o) => (
@@ -829,7 +829,7 @@ const AdminClients = () => {
                   </select>
                 </div>
                 <div>
-                  <Label className="text-slate-700 font-medium">Formulário RE-7.2A</Label>
+                  <Label className="text-foreground/90 font-medium">Formulário RE-7.2A</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                     <div className="min-w-0">
                       <Label className="text-xs">Código</Label>
@@ -850,13 +850,13 @@ const AdminClients = () => {
                     <Label>Logo do ambiente (PDF coleta)</Label>
                     <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={onTenantLogoPick} className="mt-1" />
                     {tLogoPreview && (
-                      <img src={tLogoPreview} alt="Pré-visualização do logo" className="mt-2 h-16 w-auto object-contain border rounded p-1 bg-white" />
+                      <img src={tLogoPreview} alt="Pré-visualização do logo" className="mt-2 h-16 w-auto object-contain border rounded p-1 bg-card" />
                     )}
                   </div>
                 )}
                 {isSupabaseAuthMode && editingTenantId && (
                   <div className="border-t pt-3 space-y-3">
-                    <Label className="text-slate-700 font-medium">Dados para faturamento (pedidos de compra)</Label>
+                    <Label className="text-foreground/90 font-medium">Dados para faturamento (pedidos de compra)</Label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
                       <div className="min-w-0">
                         <Label className="text-xs">Razão social</Label>
@@ -912,7 +912,7 @@ const AdminClients = () => {
                 <Button variant="outline" onClick={() => setOpenTenant(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={createOrUpdateTenant} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="confirm-create-tenant">
+                <Button onClick={createOrUpdateTenant} className="bg-primary" data-testid="confirm-create-tenant">
                   {editingTenantId ? "Guardar" : "Criar"}
                 </Button>
               </DialogFooter>
@@ -922,7 +922,7 @@ const AdminClients = () => {
       </div>
 
       {isSupabaseAuthMode && (
-        <Card className="border-slate-200">
+        <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="font-display text-lg flex items-center gap-2">
               <Users size={20} /> Administradores CTLI
@@ -930,17 +930,17 @@ const AdminClients = () => {
           </CardHeader>
           <CardContent>
             {adminProfiles.length === 0 ? (
-              <p className="text-sm text-slate-500">Nenhum administrador CTLI listado.</p>
+              <p className="text-sm text-muted-foreground">Nenhum administrador CTLI listado.</p>
             ) : (
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {adminProfiles.map((p) => (
                   <div
                     key={p.id}
-                    className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2"
+                    className="text-xs flex items-center justify-between border border-border rounded px-2 py-1.5 gap-2"
                   >
                     <div className="min-w-0">
-                      <div className="font-medium text-slate-700 truncate">{p.full_name}</div>
-                      <div className="text-slate-500 truncate">
+                      <div className="font-medium text-foreground/90 truncate">{p.full_name}</div>
+                      <div className="text-muted-foreground truncate">
                         {p.email} • {roleShort(p.role)}
                       </div>
                     </div>
@@ -953,7 +953,7 @@ const AdminClients = () => {
                             null,
                           )
                         }
-                        className="text-slate-500 hover:text-blue-600 p-1"
+                        className="text-muted-foreground hover:text-primary p-1"
                         title="Editar"
                       >
                         <PencilSimple size={14} />
@@ -977,25 +977,25 @@ const AdminClients = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {tenants.length === 0 && (
-          <Card className="md:col-span-2 xl:col-span-3 border-slate-200 border-dashed">
+          <Card className="md:col-span-2 xl:col-span-3 border-border border-dashed">
             <CardContent className="p-10 text-center">
-              <Buildings size={48} className="mx-auto text-slate-300" />
+              <Buildings size={48} className="mx-auto text-muted-foreground" />
               <h3 className="font-display text-xl font-semibold mt-3">Nenhum ambiente (cliente)</h3>
-              <p className="text-sm text-slate-600">Cadastre o primeiro ambiente para começar.</p>
+              <p className="text-sm text-muted-foreground">Cadastre o primeiro ambiente para começar.</p>
             </CardContent>
           </Card>
         )}
         {tenants.map((t) => (
-          <Card key={t.id} className="border-slate-200" data-testid={`tenant-card-${t.id}`}>
+          <Card key={t.id} className="border-border" data-testid={`tenant-card-${t.id}`}>
             <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
               <div className="min-w-0">
                 <CardTitle className="font-display text-lg truncate">{t.name}</CardTitle>
-                {t.code && <div className="text-xs font-mono text-slate-500 mt-0.5">{t.code}</div>}
-                <div className="text-xs text-slate-500 mt-1">{deploymentModelLabel(t.deployment_model)}</div>
+                {t.code && <div className="text-xs font-mono text-muted-foreground mt-0.5">{t.code}</div>}
+                <div className="text-xs text-muted-foreground mt-1">{deploymentModelLabel(t.deployment_model)}</div>
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
                 {isSupabaseAuthMode && (
-                  <Button variant="ghost" size="sm" onClick={() => openEditTenant(t)} className="text-slate-600" title="Editar">
+                  <Button variant="ghost" size="sm" onClick={() => openEditTenant(t)} className="text-muted-foreground" title="Editar">
                     <PencilSimple size={16} />
                   </Button>
                 )}
@@ -1005,10 +1005,10 @@ const AdminClients = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {t.description && <p className="text-sm text-slate-600 mb-3">{t.description}</p>}
+              {t.description && <p className="text-sm text-muted-foreground mb-3">{t.description}</p>}
 
               <Tabs defaultValue="people">
-                <TabsList className="w-full bg-slate-100">
+                <TabsList className="w-full bg-muted">
                   <TabsTrigger value="people" data-testid={`tab-people-${t.id}`}>
                     Usuários ({getTenantPeople(t.id, users, resps).length})
                   </TabsTrigger>
@@ -1016,19 +1016,19 @@ const AdminClients = () => {
 
                 <TabsContent value="people" className="mt-3 space-y-1 max-h-44 overflow-y-auto">
                   {getTenantPeople(t.id, users, resps).length === 0 && (
-                    <div className="text-xs text-slate-500 italic">Sem usuários. Use &quot;Novo usuário&quot;.</div>
+                    <div className="text-xs text-muted-foreground italic">Sem usuários. Use &quot;Novo usuário&quot;.</div>
                   )}
                   {getTenantPeople(t.id, users, resps).map((item) => {
                     if (item.kind === "user") {
                       const u = item.data;
                       return (
-                        <div key={`user-${u.id}`} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2">
+                        <div key={`user-${u.id}`} className="text-xs flex items-center justify-between border border-border rounded px-2 py-1.5 gap-2">
                           <div className="min-w-0">
-                            <div className="font-medium text-slate-700 truncate flex items-center gap-1.5">
+                            <div className="font-medium text-foreground/90 truncate flex items-center gap-1.5">
                               <span className="truncate">{u.name}</span>
-                              <span className="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">Portal</span>
+                              <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">Portal</span>
                             </div>
-                            <div className="text-slate-500 truncate">
+                            <div className="text-muted-foreground truncate">
                               {u.email} • {roleShort(u.role)}
                             </div>
                           </div>
@@ -1037,7 +1037,7 @@ const AdminClients = () => {
                               <button
                                 type="button"
                                 onClick={() => openEditUser(u, t.id)}
-                                className="text-slate-500 hover:text-blue-600 p-1"
+                                className="text-muted-foreground hover:text-primary p-1"
                                 title="Editar"
                               >
                                 <PencilSimple size={12} />
@@ -1052,13 +1052,13 @@ const AdminClients = () => {
                     }
                     const r = item.data;
                     return (
-                      <div key={`resp-${r.id}`} className="text-xs flex items-center justify-between border border-slate-100 rounded px-2 py-1.5 gap-2">
+                      <div key={`resp-${r.id}`} className="text-xs flex items-center justify-between border border-border rounded px-2 py-1.5 gap-2">
                         <div className="min-w-0">
-                          <div className="font-medium text-slate-700 truncate flex items-center gap-1.5">
+                          <div className="font-medium text-foreground/90 truncate flex items-center gap-1.5">
                             <span className="truncate">{r.name}</span>
-                            <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">Só documentos</span>
+                            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Só documentos</span>
                           </div>
-                          <div className="text-slate-500 truncate">
+                          <div className="text-muted-foreground truncate">
                             {roleShort(r.role)}
                             {r.email ? ` • ${r.email}` : ""}
                           </div>
@@ -1068,7 +1068,7 @@ const AdminClients = () => {
                             <button
                               type="button"
                               onClick={() => openEditResp(r, t.id)}
-                              className="text-slate-500 hover:text-blue-600 p-1"
+                              className="text-muted-foreground hover:text-primary p-1"
                               title="Editar"
                             >
                               <PencilSimple size={12} />

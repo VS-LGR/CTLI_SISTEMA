@@ -211,7 +211,7 @@ export default function AttendanceListEditorPage() {
         </div>
 
         {bulkOpen && (
-          <div className="border rounded-lg p-4 space-y-2 bg-slate-50">
+          <div className="border rounded-lg p-4 space-y-2 bg-background">
             <Label>Selecionar colaboradores</Label>
             <div className="max-h-40 overflow-y-auto grid gap-1">
               {employees.map((e) => (
@@ -294,7 +294,7 @@ export default function AttendanceListEditorPage() {
           )}
         />
 
-        <div className="border rounded-lg p-4 space-y-3 bg-slate-50/50">
+        <div className="border rounded-lg p-4 space-y-3 bg-background/50">
           <Label>Movimento Geral</Label>
           <div className="grid gap-3 sm:grid-cols-2">
             <div><Label className="text-xs">Nº de concluintes</Label><Input type="number" value={form.concludes_count} onChange={(e) => set("concludes_count", Number(e.target.value) || 0)} className="h-9" /></div>
@@ -310,7 +310,7 @@ export default function AttendanceListEditorPage() {
 
         <div className="flex gap-2 mt-6">
           <Button variant="outline" onClick={() => navigate(PERSONNEL_PRESENCA_PATH)}>Cancelar</Button>
-          <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
+          <Button className="bg-primary" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>
     </div>

@@ -131,7 +131,7 @@ export default function PositionForm({
         disabled={readOnly}
       />
 
-      <div className="space-y-2 border rounded-lg p-4 bg-slate-50/50">
+      <div className="space-y-2 border rounded-lg p-4 bg-background/50">
         <Label>Responsável pela Análise e Aprovação</Label>
         <label className="flex items-center gap-2 text-sm">
           <input

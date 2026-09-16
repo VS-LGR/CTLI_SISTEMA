@@ -22,17 +22,17 @@ function CorrectionPreviewTable({ equipmentBlocks }) {
   return (
     <div className="space-y-3 mt-3">
       {equipmentBlocks.map((block) => (
-        <div key={block.cert_id} className="rounded-md border border-slate-200 bg-slate-50/80 p-3">
+        <div key={block.cert_id} className="rounded-md border border-border bg-background/80 p-3">
           <EllipsisTooltip
             label={block.equipment_name || block.label || ""}
-            className="text-xs font-semibold text-slate-700 mb-2 block"
+            className="text-xs font-semibold text-foreground/90 mb-2 block"
           >
             {block.equipment_name || block.label}
           </EllipsisTooltip>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-slate-500">
+                <tr className="text-muted-foreground">
                   <th className="text-left p-1">Grandeza</th>
                   <th className="text-left p-1">Fase</th>
                   <th className="text-left p-1">Aparelho</th>
@@ -46,7 +46,7 @@ function CorrectionPreviewTable({ equipmentBlocks }) {
                     if (!res.valid) return null;
                     const meta = TBH_QUANTITIES[qKey];
                     return (
-                      <tr key={`${block.cert_id}-${phase}-${qKey}`} className="border-t border-slate-200/60">
+                      <tr key={`${block.cert_id}-${phase}-${qKey}`} className="border-t border-border/60">
                         <td className="p-1">{meta?.label}</td>
                         <td className="p-1 capitalize">{phase === "initial" ? "Inicial" : "Final"}</td>
                         <td className="p-1 font-mono">{res.device?.toString().replace(".", ",")}</td>

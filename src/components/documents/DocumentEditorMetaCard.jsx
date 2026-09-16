@@ -18,10 +18,10 @@ function DocumentEditorMetaCard({
   onPatch,
 }) {
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <div className="min-w-0">
-          <Label className="text-xs uppercase tracking-wider text-slate-500">Título</Label>
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Título</Label>
           <Input
             className="mt-1"
             value={title || ""}
@@ -32,7 +32,7 @@ function DocumentEditorMetaCard({
           />
         </div>
         <div className="min-w-0">
-          <Label className="text-xs uppercase tracking-wider text-slate-500">Revisão</Label>
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Revisão</Label>
           <Input
             className="mt-1"
             value={version || ""}
@@ -44,7 +44,7 @@ function DocumentEditorMetaCard({
           />
         </div>
         <div className="min-w-0">
-          <Label className="text-xs uppercase tracking-wider text-slate-500">Emissão</Label>
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Emissão</Label>
           <Input
             className="mt-1"
             type="date"
@@ -56,12 +56,12 @@ function DocumentEditorMetaCard({
           />
         </div>
         <div className="min-w-0">
-          <Label className="text-xs uppercase tracking-wider text-slate-500">Responsável</Label>
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Responsável</Label>
           <select
             value={responsible || ""}
             disabled={readOnly}
             onChange={(e) => onPatch("responsible", e.target.value)}
-            className="w-full border border-slate-200 rounded-md h-10 px-3 mt-1 text-sm bg-white disabled:opacity-60"
+            className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card disabled:opacity-60"
             data-testid="edit-responsible"
           >
             <option value="">Selecione…</option>
@@ -76,7 +76,7 @@ function DocumentEditorMetaCard({
           </select>
         </div>
         <div className="min-w-0">
-          <Label className="text-xs uppercase tracking-wider text-slate-500">Próxima revisão</Label>
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Próxima revisão</Label>
           <Input
             className="mt-1"
             type="date"
@@ -88,10 +88,10 @@ function DocumentEditorMetaCard({
           />
         </div>
         {hasFile && (
-          <div className="text-xs bg-slate-50 border border-slate-200 rounded-md p-3 sm:col-span-2 xl:col-span-5 min-w-0">
-            <div className="font-semibold text-slate-700 mb-1">Ficheiro Word</div>
-            <div className="text-slate-600 truncate" title={fileName}>{fileName}</div>
-            <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-xs bg-background border border-border rounded-md p-3 sm:col-span-2 xl:col-span-5 min-w-0">
+            <div className="font-semibold text-foreground/90 mb-1">Ficheiro Word</div>
+            <div className="text-muted-foreground truncate" title={fileName}>{fileName}</div>
+            <div className="text-[11px] text-muted-foreground mt-1">
               Edição nativa .docx com toolbar do editor. «Baixar original» = ficheiro do upload.
               Salvar usa gravação seletiva e valida cabeçalho/rodapé Word.
               PDF: impressão do editor (fundo branco). Use «Visualizar» na lista para só leitura.

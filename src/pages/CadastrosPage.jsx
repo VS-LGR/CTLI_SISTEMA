@@ -170,8 +170,8 @@ const CadastrosPage = () => {
 
   if (!isSupabaseAuthMode) {
     return (
-      <div className="max-w-xl text-slate-600">
-        <h1 className="font-display text-2xl font-bold text-slate-900">Cadastros</h1>
+      <div className="max-w-xl text-muted-foreground">
+        <h1 className="font-display text-2xl font-bold text-foreground">Cadastros</h1>
         <p className="mt-2 text-sm">Configure Supabase (`REACT_APP_SUPABASE_URL` e chave pública) para usar esta área.</p>
       </div>
     );
@@ -179,8 +179,8 @@ const CadastrosPage = () => {
 
   if (!currentTenantId) {
     return (
-      <div className="max-w-xl text-slate-600">
-        <h1 className="font-display text-2xl font-bold text-slate-900">Cadastros</h1>
+      <div className="max-w-xl text-muted-foreground">
+        <h1 className="font-display text-2xl font-bold text-foreground">Cadastros</h1>
         <p className="mt-2 text-sm">Selecione um ambiente no topo da página para ver e editar os cadastros desse cliente.</p>
       </div>
     );
@@ -206,14 +206,14 @@ const CadastrosPage = () => {
   return (
     <div className="space-y-6 min-w-0" data-testid="cadastros-page">
       <div>
-        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-          <Link to="/dashboard" className="hover:text-slate-700">Dashboard</Link>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <Link to="/dashboard" className="hover:text-foreground/90">Dashboard</Link>
           <span className="mx-1.5">/</span>
-          <Link to={folderPath} className="hover:text-slate-700">{folderLabel || `Requisito ${reqId}`}</Link>
+          <Link to={folderPath} className="hover:text-foreground/90">{folderLabel || `Requisito ${reqId}`}</Link>
         </div>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">{sectionTitle}</h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Ambiente: <span className="font-medium text-slate-800">{tenantName || currentTenantId}</span>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">{sectionTitle}</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Ambiente: <span className="font-medium text-foreground">{tenantName || currentTenantId}</span>
         </p>
       </div>
       <RequirementFolderQuickAccess requirementId={reqId} folderKey={folderKey} />
@@ -329,14 +329,14 @@ function SupplierSection({ rows, tenantId, onRefresh }) {
   };
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end">
-          <Button onClick={openNew} size="sm" className="bg-blue-600 text-white" data-tour="tour-cadastro-novo"><Plus size={16} className="mr-1" /> Novo provedor</Button>
+          <Button onClick={openNew} size="sm" className="bg-primary" data-tour="tour-cadastro-novo"><Plus size={16} className="mr-1" /> Novo provedor</Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <thead className="bg-background text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-2">Nome</th>
                 <th className="p-2">CNPJ</th>
@@ -348,14 +348,14 @@ function SupplierSection({ rows, tenantId, onRefresh }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-slate-500 text-center">Nenhum provedor.</td></tr>
+                <tr><td colSpan={6} className="p-4 text-muted-foreground text-center">Nenhum provedor.</td></tr>
               )}
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-border">
                   <td className="p-2 font-medium">{r.name}</td>
                   <td className="p-2">{r.cnpj}</td>
                   <td className="p-2">{r.representative_name}</td>
-                  <td className="p-2">{r.phone} {r.email ? <span className="text-slate-500">· {r.email}</span> : null}</td>
+                  <td className="p-2">{r.phone} {r.email ? <span className="text-muted-foreground">· {r.email}</span> : null}</td>
                   <td className="p-2">{fmtIsoDate(r.registration_date)}</td>
                   <td className="p-2">
                     <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><PencilSimple size={16} /></Button>
@@ -380,7 +380,7 @@ function SupplierSection({ rows, tenantId, onRefresh }) {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 text-white" onClick={save}>Guardar</Button>
+              <Button className="bg-primary" onClick={save}>Guardar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -450,14 +450,14 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
   };
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end">
-          <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-blue-600 text-white" data-tour="tour-cadastro-novo"><Plus size={16} className="mr-1" /> Novo cliente</Button>
+          <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-primary" data-tour="tour-cadastro-novo"><Plus size={16} className="mr-1" /> Novo cliente</Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <thead className="bg-background text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-2">Nome</th>
                 <th className="p-2">CNPJ</th>
@@ -470,15 +470,15 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-slate-500 text-center">Nenhum cliente cadastrado.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-muted-foreground text-center">Nenhum cliente cadastrado.</td></tr>
               )}
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-border">
                   <td className="p-2 font-medium">{r.name}</td>
                   <td className="p-2">{r.cnpj}</td>
                   <td className="p-2">{[r.city, r.state].filter(Boolean).join(" / ") || "—"}</td>
                   <td className="p-2">{r.representative_name}</td>
-                  <td className="p-2">{r.phone} {r.email ? <span className="text-slate-500">· {r.email}</span> : null}</td>
+                  <td className="p-2">{r.phone} {r.email ? <span className="text-muted-foreground">· {r.email}</span> : null}</td>
                   <td className="p-2">{fmtIsoDate(r.registration_date)}</td>
                   <td className="p-2">
                     <Button variant="ghost" size="sm" onClick={() => {
@@ -514,7 +514,7 @@ function EndCustomerSection({ rows, tenantId, onRefresh }) {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 text-white" onClick={save}>Guardar</Button>
+              <Button className="bg-primary" onClick={save}>Guardar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -658,22 +658,22 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
     .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "", "pt"));
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4 space-y-4">
         {returnTo && (
-          <div className="rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
-            <span className="text-slate-700">A vincular colaborador no fluxo de integração de pessoal.</span>
-            <Button variant="link" size="sm" className="h-auto p-0 text-blue-700" asChild>
+          <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+            <span className="text-foreground/90">A vincular colaborador no fluxo de integração de pessoal.</span>
+            <Button variant="link" size="sm" className="h-auto p-0 text-primary" asChild>
               <Link to={returnTo}>Voltar ao fluxo</Link>
             </Button>
           </div>
         )}
         <div className="flex justify-end">
-          <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-blue-600 text-white"><Plus size={16} className="mr-1" /> Novo colaborador</Button>
+          <Button onClick={() => { reset(); setOpen(true); }} size="sm" className="bg-primary"><Plus size={16} className="mr-1" /> Novo colaborador</Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <thead className="bg-background text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-2">Matrícula</th>
                 <th className="p-2">Nome</th>
@@ -684,10 +684,10 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={5} className="p-4 text-slate-500 text-center">Nenhum colaborador.</td></tr>
+                <tr><td colSpan={5} className="p-4 text-muted-foreground text-center">Nenhum colaborador.</td></tr>
               )}
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-border">
                   <td className="p-2 font-mono text-xs">{r.registration_code}</td>
                   <td className="p-2 font-medium">{r.full_name}</td>
                   <td className="p-2">{positionTitle(positions, r.position_id) || jobLabel(r.job_role)}</td>
@@ -717,7 +717,7 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Editar colaborador" : "Novo colaborador"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div><Label>Matrícula</Label><Input value={code} onChange={(e) => setCode(e.target.value)} readOnly={!editing} className={!editing ? "bg-slate-50" : ""} /></div>
+              <div><Label>Matrícula</Label><Input value={code} onChange={(e) => setCode(e.target.value)} readOnly={!editing} className={!editing ? "bg-background" : ""} /></div>
               <div><Label>Nome *</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
               <div><Label>E-mail (notificações)</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="signatario@empresa.com.br" /></div>
               <div><Label>CPF</Label><Input value={cpf} onChange={(e) => setCpf(e.target.value)} /></div>
@@ -737,7 +737,7 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
                   {positions.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}
                 </select>
                 {positions.length === 0 && (
-                  <p className="text-xs text-slate-500 mt-1">Cadastre cargos em 6.2 Pessoal.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Cadastre cargos em 6.2 Pessoal.</p>
                 )}
               </div>
               <div>
@@ -774,7 +774,7 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
                       <option value={sourceSelectionId}>Seleção vinculada (atual)</option>
                     )}
                   </select>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Vincula o colaborador a uma seleção aprovada ainda sem admissão registada.
                   </p>
                 </div>
@@ -788,13 +788,13 @@ function EmployeeSection({ rows, positions = [], tenantId, onRefresh }) {
                   onChange={(e) => setSigFile(e.target.files?.[0] || null)}
                 />
                 {sigPath && !sigFile && (
-                  <p className="text-xs text-slate-500 mt-1">Assinatura guardada no servidor.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Assinatura guardada no servidor.</p>
                 )}
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 text-white" onClick={save}>Guardar</Button>
+              <Button className="bg-primary" onClick={save}>Guardar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -907,13 +907,13 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
   };
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="outline" size="sm" onClick={pdf}>
             <FilePdf size={16} className="mr-1" /> Baixar certificados vigentes
           </Button>
-          <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}>
+          <Button size="sm" className="bg-primary" onClick={() => { reset(); setOpen(true); }}>
             <Plus size={16} className="mr-1" /> Novo
           </Button>
         </div>
@@ -933,7 +933,7 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
 
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <thead className="bg-background text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-2">Conjunto</th>
                 <th className="p-2">Nº cert.</th>
@@ -946,10 +946,10 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
             </thead>
             <tbody>
               {searchFiltered.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-slate-500 text-center">Nenhum registro.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-muted-foreground text-center">Nenhum registro.</td></tr>
               )}
               {searchFiltered.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-border">
                   <td className="p-2 font-medium max-w-[10rem]">
                     <EllipsisTooltip label={r.set_name || ""} className="block">
                       {r.set_name}
@@ -995,7 +995,7 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
               <div><Label>Material</Label><Input value={mat} onChange={(e) => setMat(e.target.value)} /></div>
               <div><Label>Nº certificado de calibração</Label><Input value={certNum} onChange={(e) => setCertNum(e.target.value)} /></div>
               <div><Label>Data da calibração</Label><Input type="date" value={calDate} onChange={(e) => setCalDate(e.target.value)} /></div>
-              <div className="text-xs text-slate-500">Checagem intermediária e vencimento são calculados automaticamente (+1 ano e +2 anos).</div>
+              <div className="text-xs text-muted-foreground">Checagem intermediária e vencimento são calculados automaticamente (+1 ano e +2 anos).</div>
               <div><Label>Calibrado por</Label><Input value={calBy} onChange={(e) => setCalBy(e.target.value)} /></div>
               <div>
                 <Label>Anexo (PDF/imagem)</Label>
@@ -1004,7 +1004,7 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 text-white" onClick={save}>Guardar</Button>
+              <Button className="bg-primary" onClick={save}>Guardar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1138,13 +1138,13 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
   };
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="outline" size="sm" onClick={pdf}>
             <FilePdf size={16} className="mr-1" /> Baixar certificados vigentes
           </Button>
-          <Button size="sm" className="bg-blue-600 text-white" onClick={() => { reset(); setOpen(true); }}>
+          <Button size="sm" className="bg-primary" onClick={() => { reset(); setOpen(true); }}>
             <Plus size={16} className="mr-1" /> Novo
           </Button>
         </div>
@@ -1164,7 +1164,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
 
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <thead className="bg-background text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-2">Tipo</th>
                 <th className="p-2">Equipamento</th>
@@ -1178,10 +1178,10 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
             </thead>
             <tbody>
               {searchFiltered.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-slate-500 text-center">Nenhum registro.</td></tr>
+                <tr><td colSpan={8} className="p-4 text-muted-foreground text-center">Nenhum registro.</td></tr>
               )}
               {searchFiltered.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-border">
                   <td className="p-2 text-xs max-w-[8rem]">
                     <EllipsisTooltip label={envEquipmentTypeLabel(r.equipment_type)} className="block">
                       {envEquipmentTypeLabel(r.equipment_type)}
@@ -1247,7 +1247,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
               <div><Label>Modelo</Label><Input value={model} onChange={(e) => setModel(e.target.value)} /></div>
               <div><Label>Nº certificado de calibração</Label><Input value={certNum} onChange={(e) => setCertNum(e.target.value)} /></div>
               <div><Label>Data da calibração</Label><Input type="date" value={calDate} onChange={(e) => setCalDate(e.target.value)} /></div>
-              <div className="text-xs text-slate-500">Checagem e vencimento calculados automaticamente.</div>
+              <div className="text-xs text-muted-foreground">Checagem e vencimento calculados automaticamente.</div>
               <div><Label>Calibrado por</Label><Input value={calBy} onChange={(e) => setCalBy(e.target.value)} /></div>
               <div>
                 <Label>Anexo (PDF/imagem)</Label>
@@ -1261,7 +1261,7 @@ function EnvCertSection({ rows, allRows, tenantId, tenantName, year, years, onYe
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 text-white" onClick={save}>Guardar</Button>
+              <Button className="bg-primary" onClick={save}>Guardar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1279,9 +1279,9 @@ function OpenAttachment({ path }) {
     });
     return () => { cancel = true; };
   }, [path]);
-  if (!href) return <span className="text-xs text-slate-400">…</span>;
+  if (!href) return <span className="text-xs text-muted-foreground">…</span>;
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs underline inline-flex items-center gap-0.5">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary text-xs underline inline-flex items-center gap-0.5">
       <FileArrowUp size={14} /> Abrir
     </a>
   );

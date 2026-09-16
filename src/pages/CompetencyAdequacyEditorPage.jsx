@@ -137,9 +137,9 @@ export default function CompetencyAdequacyEditorPage() {
         )}
       </div>
       {returnTo && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
-          <span className="text-slate-700">A registar adequação no fluxo de integração de pessoal.</span>
-          <Button variant="link" size="sm" className="h-auto p-0 text-blue-700" asChild>
+        <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+          <span className="text-foreground/90">A registar adequação no fluxo de integração de pessoal.</span>
+          <Button variant="link" size="sm" className="h-auto p-0 text-primary" asChild>
             <Link to={returnTo}>Voltar ao fluxo</Link>
           </Button>
         </div>
@@ -189,7 +189,7 @@ export default function CompetencyAdequacyEditorPage() {
         />
         <div className="flex gap-2 mt-6">
           <Button variant="outline" onClick={() => navigate(registrosBack)}>Cancelar</Button>
-          <Button className="bg-blue-600 text-white" disabled={busy} onClick={save}>Guardar</Button>
+          <Button className="bg-primary" disabled={busy} onClick={save}>Guardar</Button>
         </div>
       </CardContent></Card>
     </div>

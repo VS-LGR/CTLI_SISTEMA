@@ -50,8 +50,8 @@ export default function ProposalWeightsTable({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">Pesos-padrão</h3>
-          <p className="text-xs text-slate-600">
+          <h3 className="text-sm font-semibold text-foreground">Pesos-padrão</h3>
+          <p className="text-xs text-muted-foreground">
             Itens desta proposta de calibração de pesos (RE-5.4.2A).
           </p>
         </div>
@@ -68,7 +68,7 @@ export default function ProposalWeightsTable({
       </div>
 
       {!weightItems.length ? (
-        <p className="text-xs text-slate-500 border border-dashed border-slate-200 rounded-md px-3 py-4">
+        <p className="text-xs text-muted-foreground border border-dashed border-border rounded-md px-3 py-4">
           Nenhum peso-padrão nesta proposta.
         </p>
       ) : open ? (
@@ -76,10 +76,10 @@ export default function ProposalWeightsTable({
           {weightItems.map((item, index) => (
             <li
               key={item.id || `weight-${index}`}
-              className="rounded-md border border-slate-200 bg-slate-50/40 p-3 space-y-3"
+              className="rounded-md border border-border bg-background/40 p-3 space-y-3"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-slate-800">Peso {index + 1}</span>
+                <span className="text-sm font-medium text-foreground">Peso {index + 1}</span>
                 <Button
                   type="button"
                   size="sm"
@@ -95,9 +95,9 @@ export default function ProposalWeightsTable({
 
               {standardWeights.length > 0 && (
                 <div>
-                  <Label className="text-xs text-slate-600">Cadastro de peso-padrão</Label>
+                  <Label className="text-xs text-muted-foreground">Cadastro de peso-padrão</Label>
                   <select
-                    className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm"
+                    className="mt-1 w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
                     value={item.standard_weight_item_id || ""}
                     onChange={(e) => applyStandard(index, e.target.value)}
                   >
@@ -134,7 +134,7 @@ export default function ProposalWeightsTable({
                 <div>
                   <Label className="text-xs">Unidade</Label>
                   <select
-                    className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm"
+                    className="mt-1 w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
                     value={item.nominal_unit || "g"}
                     onChange={(e) => updateItem(index, { nominal_unit: e.target.value })}
                   >
@@ -146,7 +146,7 @@ export default function ProposalWeightsTable({
                 <div>
                   <Label className="text-xs">Classe</Label>
                   <select
-                    className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm"
+                    className="mt-1 w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
                     value={item.uut_class || ""}
                     onChange={(e) => updateItem(index, { uut_class: e.target.value })}
                   >
@@ -196,7 +196,7 @@ export default function ProposalWeightsTable({
           ))}
         </ul>
       ) : (
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-muted-foreground">
           {weightItems.length} peso(s) na proposta — expanda para editar.
         </p>
       )}

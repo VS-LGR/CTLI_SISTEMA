@@ -11,13 +11,13 @@ export default function PersonnelPage() {
 
   if (section === "listas") {
     if (!currentTenantId) {
-      return <div className="p-8 text-center text-slate-500">Selecione um ambiente no topo.</div>;
+      return <div className="p-8 text-center text-muted-foreground">Selecione um ambiente no topo.</div>;
     }
     return (
       <div className="max-w-6xl mx-auto px-4 py-6 min-w-0 space-y-6">
         <div>
-          <h1 className="text-xl font-display font-bold text-slate-900 mb-1">6.2 Pessoal</h1>
-          <p className="text-sm text-slate-600">Níveis e Listas Padrão</p>
+          <h1 className="text-xl font-display font-bold text-foreground mb-1">6.2 Pessoal</h1>
+          <p className="text-sm text-muted-foreground">Níveis e Listas Padrão</p>
         </div>
         <RequirementFolderQuickAccess requirementId="6" folderKey="pr-6-2" />
         <StandardOptionsPanel tenantId={currentTenantId} />

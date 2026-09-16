@@ -45,14 +45,14 @@ const Dashboard = () => {
   if (tenants && tenants.length === 0) {
     return (
       <div className="max-w-2xl">
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-2">Dashboard</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-2">Dashboard</h1>
         <Card className="mt-6">
           <CardContent className="p-8 text-center">
-            <FolderSimple size={48} className="mx-auto text-slate-400" />
+            <FolderSimple size={48} className="mx-auto text-muted-foreground" />
             <h3 className="font-display text-xl font-semibold mt-4">Nenhum ambiente (cliente) cadastrado</h3>
-            <p className="text-sm text-slate-600 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Para começar, cadastre o primeiro ambiente em{" "}
-              <Link to="/admin/clients" className="text-blue-600 underline">
+              <Link to="/admin/clients" className="text-primary underline">
                 Administração CTLI → Ambientes (clientes)
               </Link>
               .
@@ -64,7 +64,7 @@ const Dashboard = () => {
   }
 
   if (!currentTenantId) {
-    return <div className="text-slate-600">Selecione um ambiente para visualizar o dashboard.</div>;
+    return <div className="text-muted-foreground">Selecione um ambiente para visualizar o dashboard.</div>;
   }
 
   if (isDirectorRole(user?.role)) {
@@ -76,7 +76,7 @@ const Dashboard = () => {
     );
   }
 
-  if (loading && !data) return <div className="text-slate-600">Carregando dashboard…</div>;
+  if (loading && !data) return <div className="text-muted-foreground">Carregando dashboard…</div>;
 
   const portalMode = isEffectiveClientPortal(currentTenant, user?.role);
 
@@ -99,17 +99,17 @@ const Dashboard = () => {
   return (
     <div data-testid="dashboard">
       {switchNotice && (
-        <Alert className="border-blue-300 bg-blue-50 text-blue-950 mb-8">
-          <Info size={18} className="text-blue-600" />
-          <AlertTitle className="font-display text-blue-950">Ambiente alterado</AlertTitle>
-          <AlertDescription className="text-blue-900/90 pr-8">
+        <Alert className="border-primary/40 bg-primary/10 text-foreground mb-8">
+          <Info size={18} className="text-primary" />
+          <AlertTitle className="font-display text-foreground">Ambiente alterado</AlertTitle>
+          <AlertDescription className="text-foreground/90 pr-8">
             A pré-visualizar: <strong>{switchNotice.name}</strong>. Os documentos e ficheiros listados
             abaixo pertencem apenas a este cliente — confirme o ambiente antes de editar ou exportar.
           </AlertDescription>
           <button
             type="button"
             onClick={() => setSwitchNotice(null)}
-            className="absolute right-3 top-3 rounded-md p-1 text-blue-700 hover:bg-blue-100"
+            className="absolute right-3 top-3 rounded-md p-1 text-primary hover:bg-primary/10"
             aria-label="Fechar aviso"
           >
             <X size={16} />

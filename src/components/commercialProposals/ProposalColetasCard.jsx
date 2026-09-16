@@ -17,12 +17,12 @@ import { ClipboardText, ArrowSquareOut, Plus } from "@phosphor-icons/react";
 
 const STATUS_BADGE = {
   pending: { label: "Coleta pendente", className: "text-amber-700 bg-amber-50 border-amber-200" },
-  rascunho: { label: "Coleta gerada", className: "text-blue-700 bg-blue-50 border-blue-200" },
+  rascunho: { label: "Coleta gerada", className: "text-primary bg-primary/10 border-primary/30" },
   preenchida: { label: "Coleta preenchida", className: "text-emerald-700 bg-emerald-50 border-emerald-200" },
   conferida: { label: "Coleta conferida", className: "text-emerald-800 bg-emerald-50 border-emerald-300" },
   aprovada_certificado: { label: "Aguardando certificado", className: "text-indigo-700 bg-indigo-50 border-indigo-200" },
   certificado_gerado: { label: "Certificado gerado", className: "text-green-800 bg-green-50 border-green-300" },
-  cancelada: { label: "Cancelada", className: "text-slate-600 bg-slate-50 border-slate-200" },
+  cancelada: { label: "Cancelada", className: "text-muted-foreground bg-background border-border" },
 };
 
 function StatusBadge({ status }) {
@@ -167,8 +167,8 @@ export default function ProposalColetasCard({
 
   if (!proposalId) {
     return (
-      <Card className="border-slate-200 border-dashed">
-        <CardContent className="p-4 text-sm text-slate-600">
+      <Card className="border-border border-dashed">
+        <CardContent className="p-4 text-sm text-muted-foreground">
           Guarde a proposta para gerar coletas de dados (balanças RE-7.2A e pesos RE-5.4.2A) com dados pré-preenchidos.
         </CardContent>
       </Card>
@@ -178,12 +178,12 @@ export default function ProposalColetasCard({
   const hasAnyItem = scales.length > 0 || weightItems.length > 0;
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <ClipboardText size={20} className="text-blue-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Coletas de dados</h3>
+            <ClipboardText size={20} className="text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Coletas de dados</h3>
           </div>
           {pendingCount > 0 && (
             <Button type="button" size="sm" variant="outline" onClick={handleGenerateAll} disabled={generatingAll}>
@@ -191,23 +191,23 @@ export default function ProposalColetasCard({
             </Button>
           )}
         </div>
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-muted-foreground">
           Gere uma coleta por item desta proposta. Cliente e equipamento são copiados; o técnico preenche leituras e TBH.
         </p>
 
         {scales.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-700">Balanças (RE-7.2A)</p>
+            <p className="text-xs font-semibold text-foreground/90">Balanças (RE-7.2A)</p>
             <ul className="space-y-2 text-sm">
               {scales.map((s, i) => (
                 <li
                   key={s.id || `scale-${i}`}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-100 bg-slate-50/50 px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-background/50 px-3 py-2"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span>
                       <span className="font-medium">Balança {i + 1}</span>
-                      <span className="text-slate-500 ml-2 font-mono text-xs">Série {s.serial_number || "—"}</span>
+                      <span className="text-muted-foreground ml-2 font-mono text-xs">Série {s.serial_number || "—"}</span>
                     </span>
                     <StatusBadge status={s.collection_id ? (scaleStatuses[s.collection_id] || "rascunho") : "pending"} />
                   </div>
@@ -242,17 +242,17 @@ export default function ProposalColetasCard({
 
         {weightItems.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-700">Pesos-padrão (RE-5.4.2A)</p>
+            <p className="text-xs font-semibold text-foreground/90">Pesos-padrão (RE-5.4.2A)</p>
             <ul className="space-y-2 text-sm">
               {weightItems.map((w, i) => (
                 <li
                   key={w.id || `weight-${i}`}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-100 bg-slate-50/50 px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-background/50 px-3 py-2"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span>
                       <span className="font-medium">Peso {i + 1}</span>
-                      <span className="text-slate-500 ml-2 font-mono text-xs">{w.identification || "—"}</span>
+                      <span className="text-muted-foreground ml-2 font-mono text-xs">{w.identification || "—"}</span>
                     </span>
                     <StatusBadge status={w.collection_id ? (weightStatuses[w.collection_id] || "rascunho") : "pending"} />
                   </div>
@@ -286,7 +286,7 @@ export default function ProposalColetasCard({
         )}
 
         {!hasAnyItem && (
-          <p className="text-xs text-slate-500">Adicione balanças ou pesos na proposta para gerar coletas.</p>
+          <p className="text-xs text-muted-foreground">Adicione balanças ou pesos na proposta para gerar coletas.</p>
         )}
         {hasAnyItem && pendingCount === 0 && (
           <p className="text-xs text-green-700">Todas as coletas foram geradas.</p>

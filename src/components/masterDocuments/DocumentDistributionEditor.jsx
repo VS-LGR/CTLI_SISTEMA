@@ -90,7 +90,7 @@ export default function DocumentDistributionEditor({ tenantId, masterDocumentId,
         <Button size="sm" onClick={openNew}><Plus size={14} className="mr-1" /> Adicionar</Button>
       </div>
       {showForm && (
-        <div className="border rounded-lg p-4 space-y-3 bg-slate-50">
+        <div className="border rounded-lg p-4 space-y-3 bg-background">
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Área</Label><Input value={form.area} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} /></div>
             <div><Label>Usuário</Label><Input value={form.recipient_name} onChange={(e) => setForm((f) => ({ ...f, recipient_name: e.target.value }))} placeholder="Nome do destinatário" /></div>
@@ -118,8 +118,8 @@ export default function DocumentDistributionEditor({ tenantId, masterDocumentId,
         </div>
       )}
       <table className="w-full text-sm border rounded-lg overflow-hidden">
-        <thead className="bg-slate-50 border-b">
-          <tr className="text-[10px] uppercase text-slate-500">
+        <thead className="bg-background border-b">
+          <tr className="text-[10px] uppercase text-muted-foreground">
             <th className="px-3 py-2 text-left">Área</th>
             <th className="px-3 py-2 text-left">Usuário</th>
             <th className="px-3 py-2 text-left">Cópia</th>
@@ -128,9 +128,9 @@ export default function DocumentDistributionEditor({ tenantId, masterDocumentId,
             <th className="px-3 py-2 text-right">Ações</th>
           </tr>
         </thead>
-        <tbody className="divide-y bg-white">
+        <tbody className="divide-y bg-card">
           {distributions.length === 0 && (
-            <tr><td colSpan={6} className="px-3 py-4 text-center text-slate-500 text-xs">Nenhuma distribuição.</td></tr>
+            <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhuma distribuição.</td></tr>
           )}
           {distributions.map((d) => (
             <tr key={d.id}>

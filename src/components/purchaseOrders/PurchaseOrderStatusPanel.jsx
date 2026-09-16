@@ -25,14 +25,14 @@ export default function PurchaseOrderStatusPanel({
   const inner = (
     <div className={bare ? "space-y-5" : "p-5 space-y-5"}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Estado atual</span>
-          <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-800 border border-blue-200 px-3 py-1 text-sm font-semibold">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Estado atual</span>
+          <span className="inline-flex items-center rounded-full bg-primary/10 text-primary border border-primary/30 px-3 py-1 text-sm font-semibold">
             {statusLabel(status)}
           </span>
         </div>
 
         {help && (
-          <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+          <p className="text-sm text-muted-foreground bg-background border border-border rounded-md px-3 py-2">
             {help}
           </p>
         )}
@@ -48,17 +48,17 @@ export default function PurchaseOrderStatusPanel({
                   <div
                     className={cn(
                       "flex flex-col items-center text-center px-1 sm:px-2 max-w-[4.5rem] sm:max-w-none",
-                      isActive && "text-blue-700",
-                      isPast && !isActive && "text-slate-600",
-                      !isPast && !isActive && "text-slate-400",
+                      isActive && "text-primary",
+                      isPast && !isActive && "text-muted-foreground",
+                      !isPast && !isActive && "text-muted-foreground",
                     )}
                   >
                     <span
                       className={cn(
                         "flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full text-xs font-bold border-2 shrink-0",
-                        isActive && "border-blue-600 bg-blue-600 text-white",
-                        isPast && !isActive && "border-slate-400 bg-slate-100 text-slate-700",
-                        !isPast && !isActive && "border-slate-200 bg-white text-slate-400",
+                        isActive && "border-primary bg-primary",
+                        isPast && !isActive && "border-slate-400 bg-muted text-foreground/90",
+                        !isPast && !isActive && "border-border bg-card text-muted-foreground",
                       )}
                     >
                       {i + 1}
@@ -69,7 +69,7 @@ export default function PurchaseOrderStatusPanel({
                     <div
                       className={cn(
                         "h-0.5 w-4 sm:w-6 mx-0.5 shrink-0",
-                        i < currentStep ? "bg-slate-400" : "bg-slate-200",
+                        i < currentStep ? "bg-slate-400" : "bg-muted",
                       )}
                       aria-hidden
                     />
@@ -82,10 +82,10 @@ export default function PurchaseOrderStatusPanel({
         )}
 
         {isNew ? (
-          <p className="text-sm text-slate-500">Guarde o pedido para alterar o status.</p>
+          <p className="text-sm text-muted-foreground">Guarde o pedido para alterar o status.</p>
         ) : actions.length > 0 ? (
           <div className="space-y-2">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Próximo passo</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Próximo passo</p>
             <div className="flex flex-wrap gap-2">
               {actions.map((action) => (
                 <Button
@@ -99,7 +99,7 @@ export default function PurchaseOrderStatusPanel({
                         ? "outline"
                         : "default"
                   }
-                  className={action.variant === "primary" ? "bg-blue-600 hover:bg-blue-700" : undefined}
+                  className={action.variant === "primary" ? "bg-primary hover:bg-primary/90" : undefined}
                   disabled={disabled}
                   onClick={() => onTransition?.(action.target)}
                 >
@@ -109,14 +109,14 @@ export default function PurchaseOrderStatusPanel({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-slate-500">Não há transições disponíveis neste estado.</p>
+          <p className="text-sm text-muted-foreground">Não há transições disponíveis neste estado.</p>
         )}
     </div>
   );
 
   if (bare) return inner;
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-0">{inner}</CardContent>
     </Card>
   );

@@ -57,13 +57,13 @@ export default function AdequaciesListPanel({
     <Card className={personnelPanelCardClass(compact)}>
       <CardContent className={compact ? "p-0 space-y-4" : "p-4 space-y-4"}>
         <div className="flex justify-end">
-          <Button size="sm" className="bg-blue-600 text-white" onClick={() => navigate(adequacyEditorPath("nova"))}>
+          <Button size="sm" className="bg-primary" onClick={() => navigate(adequacyEditorPath("nova"))}>
             <Plus size={16} className="mr-1" /> Nova adequação
           </Button>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="w-full text-sm min-w-[800px]">
-            <thead className="bg-slate-50 text-xs text-slate-600 text-left">
+            <thead className="bg-background text-xs text-muted-foreground text-left">
               <tr>
                 <th className="p-2">Matrícula</th>
                 <th className="p-2">Ocupante</th>
@@ -78,7 +78,7 @@ export default function AdequaciesListPanel({
             </thead>
             <tbody>
               {displayRows.length === 0 && (
-                <tr><td colSpan={9} className="p-4 text-center text-slate-500">Nenhuma adequação.</td></tr>
+                <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">Nenhuma adequação.</td></tr>
               )}
               {displayRows.map((r) => (
                 <tr key={r.id} className="border-t">
