@@ -21,6 +21,8 @@ import { DEVICE_SHEET_LIST_PATH } from "@/lib/deviceTechnicalSheetRoutes";
 import { EQUIPMENT_VERIFICATION_LIST_PATH } from "@/lib/equipmentVerificationRoutes";
 import { CALIBRATION_SCHEDULE_PATH } from "@/lib/calibrationScheduleRoutes";
 import { MAINTENANCE_PROGRAM_PATH } from "@/lib/maintenanceProgramRoutes";
+import { WEIGHT_COLETA_LIST_PATH, WEIGHT_COLETA_NEW_PATH, weightColetaEditorPath, WEIGHT_COLETA_LEGACY_LIST_PATH } from "@/lib/weightCalibration/weightColetaRoutes";
+import { WEIGHT_CERTIFICATE_LIST_PATH, WEIGHT_CERTIFICATE_NEW_PATH, weightCertificateEditorPath, WEIGHT_CERTIFICATE_LEGACY_LIST_PATH } from "@/lib/weightCalibration/weightCertificateRoutes";
 import TenantModuleGate, { RequirementAccessGate, CadastroSectionGate } from "@/components/tenant/TenantModuleGate";
 import { cadastroSectionPath, getVisibleCadastroSections } from "@/lib/cadastroSections";
 import "@/App.css";
@@ -77,6 +79,18 @@ const ColetaLegacyRedirect = () => {
   if (!id || id === "balancas") return <Navigate to={COLETA_LIST_PATH} replace />;
   if (id === "nova") return <Navigate to={COLETA_NEW_PATH} replace />;
   return <Navigate to={coletaEditorPath(id)} replace />;
+};
+
+const WeightColetaLegacyRedirect = () => {
+  const { id } = useParams();
+  if (!id || id === "nova") return <Navigate to={WEIGHT_COLETA_NEW_PATH} replace />;
+  return <Navigate to={weightColetaEditorPath(id)} replace />;
+};
+
+const WeightCertificateLegacyRedirect = () => {
+  const { id } = useParams();
+  if (!id || id === "nova") return <Navigate to={WEIGHT_CERTIFICATE_NEW_PATH} replace />;
+  return <Navigate to={weightCertificateEditorPath(id)} replace />;
 };
 
 const CadastrosRootRedirect = () => {
@@ -281,7 +295,7 @@ const App = () => (
               )}
             />
             <Route
-              path="/requirement/7/pr-7-2/pesos/coleta"
+              path={WEIGHT_COLETA_LIST_PATH}
               element={(
                 <Protected coletaOnly>
                   <Suspense fallback={pageSuspenseFallback}>
@@ -291,7 +305,7 @@ const App = () => (
               )}
             />
             <Route
-              path="/requirement/7/pr-7-2/pesos/coleta/nova"
+              path={WEIGHT_COLETA_NEW_PATH}
               element={(
                 <Protected coletaOnly>
                   <Suspense fallback={pageSuspenseFallback}>
@@ -301,7 +315,7 @@ const App = () => (
               )}
             />
             <Route
-              path="/requirement/7/pr-7-2/pesos/coleta/:id"
+              path={`${WEIGHT_COLETA_LIST_PATH}/:id`}
               element={(
                 <Protected coletaOnly>
                   <Suspense fallback={pageSuspenseFallback}>
@@ -310,8 +324,10 @@ const App = () => (
                 </Protected>
               )}
             />
+            <Route path={WEIGHT_COLETA_LEGACY_LIST_PATH} element={<Navigate to={WEIGHT_COLETA_LIST_PATH} replace />} />
+            <Route path={`${WEIGHT_COLETA_LEGACY_LIST_PATH}/:id`} element={<WeightColetaLegacyRedirect />} />
             <Route
-              path="/requirement/7/pr-7-2/pesos/certificados"
+              path={WEIGHT_CERTIFICATE_LIST_PATH}
               element={(
                 <Protected certificatesOnly>
                   <Suspense fallback={pageSuspenseFallback}>
@@ -321,7 +337,7 @@ const App = () => (
               )}
             />
             <Route
-              path="/requirement/7/pr-7-2/pesos/certificados/nova"
+              path={WEIGHT_CERTIFICATE_NEW_PATH}
               element={(
                 <Protected certificatesOnly>
                   <Suspense fallback={pageSuspenseFallback}>
@@ -331,7 +347,7 @@ const App = () => (
               )}
             />
             <Route
-              path="/requirement/7/pr-7-2/pesos/certificados/:id"
+              path={`${WEIGHT_CERTIFICATE_LIST_PATH}/:id`}
               element={(
                 <Protected certificatesOnly>
                   <Suspense fallback={pageSuspenseFallback}>
@@ -340,6 +356,8 @@ const App = () => (
                 </Protected>
               )}
             />
+            <Route path={WEIGHT_CERTIFICATE_LEGACY_LIST_PATH} element={<Navigate to={WEIGHT_CERTIFICATE_LIST_PATH} replace />} />
+            <Route path={`${WEIGHT_CERTIFICATE_LEGACY_LIST_PATH}/:id`} element={<WeightCertificateLegacyRedirect />} />
             <Route path="/coleta" element={<Navigate to={COLETA_HUB_PATH} replace />} />
             <Route path="/coleta/:id" element={<ColetaLegacyRedirect />} />
             <Route

@@ -11,6 +11,7 @@ export const CADASTRO_SECTIONS = [
   { id: "pesos", label: "Peso Padrão", reqId: "6", folderKey: "pr-6-4" },
   { id: "balancas", label: "Balanças", reqId: "7", folderKey: "pr-7-1" },
   { id: "thermo", label: "Termobarohigrômetro", reqId: "6", folderKey: "pr-6-4" },
+  { id: "balancas-lab", label: "Balanças do laboratório", reqId: "6", folderKey: "pr-6-4" },
   { id: "tecnicos", label: "Técnicos de campo", reqId: "6", folderKey: "pr-6-2", techniciansOnly: true },
 ];
 

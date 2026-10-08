@@ -116,11 +116,13 @@ export const HELP_MODULES = [
     matchPath: (pathname) =>
       pathname.startsWith(COLETA_HUB_PATH)
       || pathname.startsWith(COLETA_LIST_PATH)
-      || (pathname.includes("/pr-7-2/") && pathname.includes("/coleta")),
+      || (pathname.includes("/pr-7-2/") && pathname.includes("/coleta"))
+      || pathname.includes("/pr-7-2-pesos/coleta"),
     steps: [
       {
         title: "Escolher tipo de coleta",
         body: "No hub, escolha calibração de balanças ou de pesos-padrão.",
+        highlight: "tour-coleta-hub",
       },
       {
         title: "Nova coleta",
@@ -192,7 +194,7 @@ export const HELP_MODULES = [
     tourPath: WEIGHT_CERTIFICATE_LIST_PATH,
     matchPath: (pathname) =>
       pathname.startsWith(WEIGHT_CERTIFICATE_LIST_PATH)
-      || pathname.includes("/pr-7-2/pesos/certificados"),
+      || pathname.includes("/pr-7-2-pesos/certificados"),
     steps: [
       {
         title: "Novo certificado de peso",

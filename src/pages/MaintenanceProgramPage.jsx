@@ -59,6 +59,7 @@ export default function MaintenanceProgramPage({ embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [pendingKeys, setPendingKeys] = useState(() => new Set());
   const [issuedApprovedBy, setIssuedApprovedBy] = useState("");
+  const [recordDate, setRecordDate] = useState("");
   const [savingMeta, setSavingMeta] = useState(false);
 
   const load = useCallback(async () => {
@@ -69,6 +70,7 @@ export default function MaintenanceProgramPage({ embedded = false }) {
       setPrograms(list);
       const meta = list.find((p) => p.issued_approved_by)?.issued_approved_by || "";
       setIssuedApprovedBy(meta);
+      setRecordDate(list.find((p) => p.record_date)?.record_date || "");
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -78,7 +80,7 @@ export default function MaintenanceProgramPage({ embedded = false }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const { rows, updatedAt } = useMemo(
+  const { rows } = useMemo(
     () => buildMaintenanceScheduleRows({ programs }),
     [programs],
   );
@@ -150,8 +152,8 @@ export default function MaintenanceProgramPage({ embedded = false }) {
   const saveMeta = async () => {
     setSavingMeta(true);
     try {
-      await updateYearIssuedApprovedBy(currentTenantId, year, issuedApprovedBy);
-      toast.success("Responsável atualizado");
+      await updateYearIssuedApprovedBy(currentTenantId, year, issuedApprovedBy, recordDate);
+      toast.success("Registo atualizado");
       await load();
     } catch (e) {
       toast.error(e.message);
@@ -167,7 +169,7 @@ export default function MaintenanceProgramPage({ embedded = false }) {
         year,
         rows,
         issuedApprovedBy,
-        updatedAt,
+        updatedAt: recordDate || null,
         tenantId: currentTenantId,
         tenantName: currentTenant?.name || "",
         tenant: currentTenant,
@@ -334,7 +336,18 @@ export default function MaintenanceProgramPage({ embedded = false }) {
         <Card className="border-border">
           <CardContent className="p-4 text-sm text-muted-foreground">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Última atualização</div>
-            <div>{updatedAt ? fmtDmyShort(updatedAt) : "—"}</div>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                className="h-9"
+                value={recordDate || ""}
+                onChange={(e) => setRecordDate(e.target.value)}
+              />
+              <Button type="button" size="sm" className="h-9 shrink-0" disabled={savingMeta} onClick={saveMeta}>
+                Guardar
+              </Button>
+            </div>
+            <p className="text-[11px] mt-2">Data do registo. O instante de gravação fica na trilha do sistema.</p>
           </CardContent>
         </Card>
       </div>

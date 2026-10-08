@@ -40,6 +40,7 @@ const FOLDER_CATALOG = {
   ],
   "6": [
     { folderKey: "pr-6-2", label: "PR-6.2 Pessoal" },
+    { folderKey: "pr-6-3", label: "PR-6.3 Instalações e Condições Ambientais" },
     { folderKey: "pr-6-4", label: "PR-6.4 Equipamentos" },
     { folderKey: "pr-6-4-10", label: "PR-6.4.10 Checagens Intermediárias" },
     { folderKey: "pr-6-4-12", label: "PR-6.4.12 Manutenção de Equipamentos" },
@@ -52,6 +53,8 @@ const FOLDER_CATALOG = {
     { folderKey: "pr-7-10", label: "PR-7.10 Trabalho Não Conforme" },
     { folderKey: "pr-7-11", label: "PR-7.11 Controle de Dados e Gestão da Informação" },
     { folderKey: "pr-7-2", label: "PR-7.2 Calibração de Balanças" },
+    { folderKey: "pr-7-2-pesos", label: "PR-7.2 Calibração de Pesos" },
+    { folderKey: "pr-7-2-1", label: "PR-7.2.1 Calibração de Massas Diversas" },
     { folderKey: "pr-7-2-2", label: "PR-7.2.2 Validação de Métodos" },
     { folderKey: "pr-7-4", label: "PR-7.4 Manuseio de Itens de Calibração" },
     { folderKey: "pr-7-6", label: "PR-7.6 Avaliação da Incerteza de Medição" },
@@ -83,6 +86,7 @@ const CADASTRO_SECTION_FOLDER = {
   pesos: { reqId: "6", folderKey: "pr-6-4" },
   balancas: { reqId: "7", folderKey: "pr-7-1" },
   thermo: { reqId: "6", folderKey: "pr-6-4" },
+  "balancas-lab": { reqId: "6", folderKey: "pr-6-4" },
   tecnicos: { reqId: "6", folderKey: "pr-6-2" },
 };
 

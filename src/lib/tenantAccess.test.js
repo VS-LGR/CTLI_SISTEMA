@@ -248,7 +248,7 @@ describe("tenantAccess", () => {
     const items = getVisibleReqMenuItems(portalTenant, "client", clientUser);
     expect(items.map((i) => i.id)).toEqual(["5", "7", "8"]);
     const r7 = getFoldersForRequirement("7", portalTenant, "client", clientUser).map((f) => f.folderKey);
-    expect(r7).toEqual(["pr-7-1", "pr-7-2", "pr-7-6"]);
+    expect(r7).toEqual(["pr-7-1", "pr-7-2", "pr-7-2-pesos", "pr-7-2-1", "pr-7-6"]);
   });
 
   test("gerente qualidade vê cadastros no menu", () => {

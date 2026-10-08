@@ -53,7 +53,7 @@ export default function ColetaHubPage({ embedded = false }) {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2" data-tour="tour-coleta-hub">
         <Card className="border-border hover:border-primary/40 transition-colors">
           <CardContent className="p-5 sm:p-6 flex flex-col h-full gap-4">
             <div className="flex items-start gap-3">

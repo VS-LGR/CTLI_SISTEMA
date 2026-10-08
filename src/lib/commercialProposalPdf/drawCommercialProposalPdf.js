@@ -42,16 +42,16 @@ function drawSectionTitle(doc, y, title) {
   return y + 9;
 }
 
-function drawParagraphs(doc, y, text, drawPageHeader, logoDataUrl, model, fontSize = 7) {
+function drawParagraphs(doc, y, text, drawPageHeader, logoDataUrl, model, fontSize = 8) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(fontSize);
   const blocks = String(text || "").split(/\n+/);
   for (const block of blocks) {
     const lines = doc.splitTextToSize(block.trim(), MR - ML - 4);
     for (const line of lines) {
-      y = ensureSpace(doc, y, 5, drawPageHeader, logoDataUrl, model);
+      y = ensureSpace(doc, y, 6, drawPageHeader, logoDataUrl, model);
       doc.text(line, ML + 2, y);
-      y += 3.5;
+      y += 4.2;
     }
     y += 1;
   }
@@ -69,12 +69,14 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = drawPageHeader(doc, model, logoDataUrl);
+  y += 2;
+  y = drawSectionTitle(doc, y, "Cliente");
 
   autoTable(doc, {
     startY: y,
     margin: { left: ML, right: PAGE_W - MR },
     theme: "grid",
-    styles: { fontSize: 7, cellPadding: 1.5, lineColor: BORDER, lineWidth: 0.1 },
+    styles: { fontSize: 8, cellPadding: 2.2, lineColor: BORDER, lineWidth: 0.15, textColor: TEXT },
     body: [
       ["Empresa", model.client.company],
       ["Endereço", model.client.address],
@@ -95,12 +97,13 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
   y = drawParagraphs(doc, y, model.introText, drawPageHeader, logoDataUrl, model);
 
   y = ensureSpace(doc, y, 20, drawPageHeader, logoDataUrl, model);
+  y = drawSectionTitle(doc, y, "Itens de calibração");
   autoTable(doc, {
     startY: y,
     margin: { left: ML, right: PAGE_W - MR },
     theme: "grid",
-    styles: { fontSize: 6.5, cellPadding: 1.2, lineColor: BORDER, lineWidth: 0.1, overflow: "linebreak" },
-    headStyles: { fillColor: HEADER_GRAY, textColor: TEXT, fontStyle: "bold", fontSize: 6.5 },
+    styles: { fontSize: 7.5, cellPadding: 2, lineColor: BORDER, lineWidth: 0.15, overflow: "linebreak", textColor: TEXT },
+    headStyles: { fillColor: [32, 32, 32], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
     head: [["Marca", "Modelo", "Tag", "Série", "Capacidade", "Divisão/Res.", "Pontos de Calibração", "Valor Unit. (R$)"]],
     body: [
       ...model.scaleRows.map((r) => [
@@ -123,12 +126,13 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
 
   if ((model.weightRows || []).length) {
     y = ensureSpace(doc, y, 20, drawPageHeader, logoDataUrl, model);
+    y = drawSectionTitle(doc, y, "Pesos-padrão");
     autoTable(doc, {
       startY: y,
       margin: { left: ML, right: PAGE_W - MR },
       theme: "grid",
-      styles: { fontSize: 6.5, cellPadding: 1.2, lineColor: BORDER, lineWidth: 0.1, overflow: "linebreak" },
-      headStyles: { fillColor: HEADER_GRAY, textColor: TEXT, fontStyle: "bold", fontSize: 6.5 },
+      styles: { fontSize: 7.5, cellPadding: 2, lineColor: BORDER, lineWidth: 0.15, overflow: "linebreak", textColor: TEXT },
+      headStyles: { fillColor: [32, 32, 32], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
       head: [["Pesos-padrão — Identificação", "Nominal", "Classe", "Série", "Fabricante", "Valor Unit. (R$)"]],
       body: model.weightRows.map((r) => [
         r.identification, r.nominal, r.class, r.serial, r.manufacturer, r.unit_value,
@@ -140,11 +144,11 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
   if ((model.coletaRefs || []).length) {
     y = ensureSpace(doc, y, 12, drawPageHeader, logoDataUrl, model);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.text("Coletas / O.S. geradas a partir desta proposta", ML, y);
-    y += 4;
+    y += 5;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
+    doc.setFontSize(8);
     model.coletaRefs.forEach((line) => {
       doc.text(`• ${line}`, ML + 2, y);
       y += 3.5;
@@ -152,12 +156,12 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
     y += 2;
   }
 
-  y = drawParagraphs(doc, y, model.mileageNote, drawPageHeader, logoDataUrl, model, 7);
+  y = drawParagraphs(doc, y, model.mileageNote, drawPageHeader, logoDataUrl, model, 8);
 
   y = ensureSpace(doc, y, 14, drawPageHeader, logoDataUrl, model);
   y = drawSectionTitle(doc, y, "Necessidade de Ajustes");
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
+  doc.setFontSize(8);
   doc.text(`A calibração será executada antes de possíveis ajustes?  ${model.adjustBefore}`, ML + 2, y);
   y += 4;
   doc.text(`A calibração será executada depois de possíveis ajustes?  ${model.adjustAfter}`, ML + 2, y);

@@ -72,6 +72,7 @@ const FOLDERS = {
         },
       ],
     },
+    { folderKey: "pr-6-3", label: "PR-6.3 Instalações e Condições Ambientais" },
     { folderKey: "pr-6-4", label: "PR-6.4 Equipamentos",
       children: [
         {
@@ -93,6 +94,13 @@ const FOLDERS = {
           label: "Termobarohigrômetro",
           to: cadastroSectionPath("thermo"),
           cadastroSectionId: "thermo",
+          kind: "cadastro",
+        },
+        {
+          key: "cad-balancas-lab",
+          label: "Balanças do laboratório",
+          to: cadastroSectionPath("balancas-lab"),
+          cadastroSectionId: "balancas-lab",
           kind: "cadastro",
         },
       ],
@@ -144,6 +152,11 @@ const FOLDERS = {
       folderKey: "pr-7-2",
       label: "PR-7.2 Calibração de Balanças",
     },
+    {
+      folderKey: "pr-7-2-pesos",
+      label: "PR-7.2 Calibração de Pesos",
+    },
+    { folderKey: "pr-7-2-1", label: "PR-7.2.1 Calibração de Massas Diversas" },
     { folderKey: "pr-7-2-2", label: "PR-7.2.2 Validação de Métodos" },
     { folderKey: "pr-7-4", label: "PR-7.4 Manuseio de Itens de Calibração" },
     { folderKey: "pr-7-6", label: "PR-7.6 Avaliação da Incerteza de Medição" },

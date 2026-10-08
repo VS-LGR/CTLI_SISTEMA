@@ -32,7 +32,7 @@ export const CLIENT_ENV_REQ_IDS = new Set(["5", "7", "8"]);
 
 export const CLIENT_ENV_REQ5_FOLDERS = new Set(["manual-qualidade"]);
 
-export const CLIENT_ENV_REQ7_FOLDERS = new Set(["pr-7-1", "pr-7-2", "pr-7-6"]);
+export const CLIENT_ENV_REQ7_FOLDERS = new Set(["pr-7-1", "pr-7-2", "pr-7-2-pesos", "pr-7-2-1", "pr-7-6"]);
 
 export const CLIENT_ENV_REQ8_FOLDERS = new Set(["pr-8-3"]);
 

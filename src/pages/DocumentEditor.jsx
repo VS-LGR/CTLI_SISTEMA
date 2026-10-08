@@ -10,6 +10,7 @@ import {
   downloadOriginalFile, duplicateDocument, toggleDocumentPin as togglePinApi,
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/blobDownload";
+import { downloadFormattedProcedurePdf } from "@/lib/documents/downloadFormattedProcedurePdf";
 import { isDocxFile, isDocxFileName } from "@/lib/docxFileUtils";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -252,6 +253,11 @@ const DocumentEditor = () => {
 
   const exportFile = async (format) => {
     try {
+      if (format === "pdf" && doc.has_file) {
+        await downloadFormattedProcedurePdf(doc, { mode: "print" });
+        toast.info("A impressão abre o PDF formatado. O Word original não foi alterado.");
+        return;
+      }
       if (format === "pdf" && canEditRich && docxEditorRef?.current?.print) {
         setPrintMode(true);
         await new Promise((r) => window.requestAnimationFrame(r));
@@ -428,7 +434,23 @@ const DocumentEditor = () => {
               <DownloadSimple size={16} className="mr-1.5" /> Baixar original
             </Button>
           )}
-          <Button variant="outline" onClick={() => exportFile("pdf")} data-testid="export-pdf-btn" title="Impressão do editor (PDF fiel)">
+          {doc.has_file && (
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await downloadFormattedProcedurePdf(doc);
+                  toast.success("PDF formatado descarregado. O Word original não foi alterado.");
+                } catch (err) {
+                  toast.error(err?.message || "Falha ao gerar o PDF formatado");
+                }
+              }}
+              title="Folha de controlo e corpo com logo, nome e número de página"
+            >
+              <FilePdf size={16} className="mr-1.5" /> Baixar formatado
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => exportFile("pdf")} data-testid="export-pdf-btn" title="Imprimir o PDF formatado, sem alterar o Word">
             <FilePdf size={16} className="mr-1.5" /> PDF
           </Button>
           <Button variant="outline" onClick={() => exportFile("docx")} data-testid="export-docx-btn" title={docxDirty ? "Exportar versão editada" : "Descarrega original se não houve edição"}>

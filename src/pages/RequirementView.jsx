@@ -54,6 +54,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { COLETA_REQ_ID, COLETA_FOLDER_KEY } from "@/lib/coletaRoutes";
+import { WEIGHT_COLETA_FOLDER_KEY } from "@/lib/weightCalibration/weightColetaRoutes";
+import { WEIGHT_CERTIFICATE_FOLDER_KEY } from "@/lib/weightCalibration/weightCertificateRoutes";
 import {
   PERSONNEL_REQ_ID,
   PERSONNEL_FOLDER_KEY,
@@ -76,7 +78,8 @@ import AssinaturasSection from "@/components/documents/AssinaturasSection";
 import { findMasterDocumentByCode } from "@/lib/masterDocuments/masterDocumentsApi";
 import { inferProcedureCodeFromFolder } from "@/lib/masterDocuments/masterDocumentRoutes";
 
-const ColetaHubPage = lazy(() => import("@/pages/ColetaHubPage"));
+const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
+const WeightColetaPage = lazy(() => import("@/pages/WeightColetaPage"));
 const CertificateListPage = lazy(() => import("@/pages/CertificateListPage"));
 const WeightCertificateListPage = lazy(() => import("@/pages/WeightCertificateListPage"));
 const DeviceTechnicalSheetPage = lazy(() => import("@/pages/DeviceTechnicalSheetPage"));
@@ -632,6 +635,11 @@ const RequirementView = () => {
     && folderKey === COLETA_FOLDER_KEY
     && (section === "coleta_dados" || section === "registro")
     && canAccessColeta(user?.role, user);
+  const isWeightColetaTab =
+    String(id) === COLETA_REQ_ID
+    && folderKey === WEIGHT_COLETA_FOLDER_KEY
+    && (section === "coleta_dados" || section === "registro")
+    && canAccessColeta(user?.role, user);
   const isCertBalancasTab =
     String(id) === COLETA_REQ_ID
     && folderKey === COLETA_FOLDER_KEY
@@ -639,7 +647,7 @@ const RequirementView = () => {
     && canAccessCalibrationCertificates(user?.role, user);
   const isCertPesoTab =
     String(id) === COLETA_REQ_ID
-    && folderKey === COLETA_FOLDER_KEY
+    && folderKey === WEIGHT_CERTIFICATE_FOLDER_KEY
     && section === "emissao_cert_peso_padrao"
     && canAccessCalibrationCertificates(user?.role, user);
   const isFichaTecnicaTab = String(id) === "6" && folderKey === "pr-6-4" && section === "ficha_tecnica";
@@ -796,7 +804,11 @@ const RequirementView = () => {
             <CommercialProposalsListPanel tenantId={currentTenantId} tenant={currentTenant} />
           ) : isColetaRegistro ? (
             <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar coleta…</div>}>
-              <ColetaHubPage embedded />
+              <ColetaPage embedded />
+            </Suspense>
+          ) : isWeightColetaTab ? (
+            <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar coleta…</div>}>
+              <WeightColetaPage embedded />
             </Suspense>
           ) : isCertBalancasTab ? (
             <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar certificados…</div>}>

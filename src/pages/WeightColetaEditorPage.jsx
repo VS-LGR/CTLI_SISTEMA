@@ -41,6 +41,7 @@ import { YES_NO_OPTIONS, NOMINAL_UNIT_OPTIONS } from "@/lib/voice/spokenMatch";
 import {
   WEIGHT_COLETA_LIST_PATH,
   WEIGHT_COLETA_NEW_PATH,
+  weightColetaEditorPath,
 } from "@/lib/weightCalibration/weightColetaRoutes";
 import { weightCertificateEditorPath } from "@/lib/weightCalibration/weightCertificateRoutes";
 import {
@@ -605,7 +606,7 @@ export default function WeightColetaEditorPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentTenantId } = useOutletContext();
-  const isNew = id === "nova" || pathname.endsWith("/pesos/coleta/nova") || pathname === WEIGHT_COLETA_NEW_PATH;
+  const isNew = id === "nova" || pathname === WEIGHT_COLETA_NEW_PATH;
 
   const [payload, setPayload] = useState(() => emptyWeightColetaPayload());
   const [workflowStatus, setWorkflowStatus] = useState("rascunho");
@@ -937,7 +938,7 @@ export default function WeightColetaEditorPage() {
       setWorkflowStatus(saved.workflow_status || nextWorkflow);
       toast.success(isNew ? "Coleta criada" : "Coleta guardada");
       if (isNew) navigate(WEIGHT_COLETA_LIST_PATH);
-      else if (saved.id && saved.id !== id) navigate(`/requirement/7/pr-7-2/pesos/coleta/${saved.id}`);
+      else if (saved.id && saved.id !== id) navigate(weightColetaEditorPath(saved.id));
     } catch (e) {
       toast.error(e.message || "Falha ao guardar");
     } finally {

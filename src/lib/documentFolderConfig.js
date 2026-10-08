@@ -57,7 +57,12 @@ const FOLDER_MODES = {
     commercialProposals: true,
   },
   "pr-7-2": {
-    sections: ["procedimento", "coleta_dados", "emissao_cert_balancas", "emissao_cert_peso_padrao"],
+    sections: ["procedimento", "coleta_dados", "emissao_cert_balancas"],
+    defaultSection: "procedimento",
+    richEditor: true,
+  },
+  "pr-7-2-pesos": {
+    sections: ["procedimento", "coleta_dados", "emissao_cert_peso_padrao"],
     defaultSection: "procedimento",
     richEditor: true,
   },
@@ -127,6 +132,7 @@ const SPECIAL_FOLDER_REQ = {
   "pr-6-6": "6",
   "pr-7-1": "7",
   "pr-7-2": "7",
+  "pr-7-2-pesos": "7",
   "pr-8-3": "8",
   "manual-qualidade": "5",
   "documentacao-legal": "5",

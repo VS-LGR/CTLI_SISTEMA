@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import ColetaTechniciansPanel from "@/components/coleta/ColetaTechniciansPanel";
 import PesoItemSection from "@/components/cadastros/PesoItemSection";
 import ScaleRegistrationSection from "@/components/cadastros/ScaleRegistrationSection";
+import LaboratoryScaleSection from "@/components/cadastros/LaboratoryScaleSection";
 import {
   cadastroSectionPath,
   getCadastroSectionLabel,
@@ -242,6 +243,9 @@ const CadastrosPage = () => {
             tenantId={currentTenantId}
             onRefresh={loadAll}
           />
+        )}
+        {activeSection === "balancas-lab" && (
+          <LaboratoryScaleSection tenantId={currentTenantId} />
         )}
         {activeSection === "thermo" && (
           <EnvCertSection rows={filteredEnv} allRows={envCerts} tenantId={currentTenantId} tenantName={tenantName}
@@ -812,6 +816,7 @@ async function signedUrl(path) {
 
 function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, onYearChange, onRefresh }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [substitutions, setSubstitutions] = useState([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [setName, setSetName] = useState("");
@@ -824,6 +829,19 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
   const [calDate, setCalDate] = useState(todayIso());
   const [calBy, setCalBy] = useState("");
   const [file, setFile] = useState(null);
+
+  const loadSubstitutions = useCallback(async () => {
+    if (!tenantId) return;
+    const { data, error } = await supabase
+      .from("weight_set_certificate_substitutions")
+      .select("id, set_name, previous_certificate_number, new_certificate_number, changed_at, changed_by_name")
+      .eq("tenant_id", tenantId)
+      .order("changed_at", { ascending: false })
+      .limit(40);
+    if (!error) setSubstitutions(data || []);
+  }, [tenantId]);
+
+  useEffect(() => { loadSubstitutions(); }, [loadSubstitutions]);
 
   const reset = () => {
     setEditing(null);
@@ -857,6 +875,28 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
           attachment_storage_path: file ? path : editing.attachment_storage_path,
         }).eq("id", editing.id);
         if (error) throw error;
+        const previousNumber = String(editing.certificate_number || "").trim();
+        const nextNumber = certNum.trim();
+        if (previousNumber && previousNumber !== nextNumber) {
+          const { data: sessionData } = await supabase.auth.getUser();
+          const userId = sessionData?.user?.id || null;
+          let changedByName = "";
+          if (userId) {
+            const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+            changedByName = profile?.full_name || sessionData?.user?.email || "";
+          }
+          const { error: histError } = await supabase.from("weight_set_certificate_substitutions").insert({
+            tenant_id: tenantId,
+            weight_certificate_id: editing.id,
+            set_name: setName.trim() || editing.set_name || "",
+            previous_certificate_number: previousNumber,
+            new_certificate_number: nextNumber,
+            changed_by: userId,
+            changed_by_name: changedByName,
+          });
+          if (histError) toast.error(histError.message || "Certificado atualizado, mas o histórico de substituição não foi gravado.");
+          else await loadSubstitutions();
+        }
         toast.success("Atualizado");
       } else {
         const { data, error } = await supabase.from("weight_standard_certificates").insert({
@@ -982,6 +1022,22 @@ function WeightCertSection({ rows, allRows, tenantId, tenantName, year, years, o
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="rounded-md border border-border bg-background px-3 py-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Histórico de substituições</p>
+          {!substitutions.length ? (
+            <p className="text-sm text-muted-foreground">A linha acima mostra só o certificado vigente. As trocas de número ficam nesta barra.</p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {substitutions.map((item) => (
+                <div key={item.id} className="shrink-0 rounded-md border border-border px-3 py-2 text-xs min-w-[180px]">
+                  <div className="font-medium">{item.set_name || "Conjunto"}</div>
+                  <div className="text-muted-foreground mt-1">{fmtDmyShort(item.changed_at)} · {item.changed_by_name || "—"}</div>
+                  <div className="mt-1">{item.previous_certificate_number} → {item.new_certificate_number}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">

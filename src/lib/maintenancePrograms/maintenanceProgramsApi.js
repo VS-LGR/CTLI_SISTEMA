@@ -85,6 +85,7 @@ export function buildMaintenanceScheduleRows({ programs = [] } = {}) {
   return {
     rows,
     issuedApprovedBy: programs.find((p) => p.issued_approved_by)?.issued_approved_by || "",
+    recordDate: programs.find((p) => p.record_date)?.record_date || "",
     updatedAt: programs.reduce((max, p) => {
       const iso = p.updated_at || null;
       if (iso && (!max || iso > max)) return iso;
@@ -222,10 +223,13 @@ export async function upsertMaintenanceMark({
   return { program: prog, event: data };
 }
 
-export async function updateYearIssuedApprovedBy(tenantId, year, issuedApprovedBy) {
+export async function updateYearIssuedApprovedBy(tenantId, year, issuedApprovedBy, recordDate = undefined) {
+  await ensureYearMaintenancePrograms(tenantId, year, { seedDefaults: false });
+  const patch = { issued_approved_by: String(issuedApprovedBy || "").trim() };
+  if (recordDate !== undefined) patch.record_date = recordDate || null;
   const { error } = await supabase
     .from("equipment_maintenance_programs")
-    .update({ issued_approved_by: String(issuedApprovedBy || "").trim() })
+    .update(patch)
     .eq("tenant_id", tenantId)
     .eq("year", year);
   if (error) throw error;

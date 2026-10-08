@@ -94,6 +94,7 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
   const [endCustomers, setEndCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") || (approvalMode ? "aguardando_aprovacao" : "all"));
+  const [emailFilter, setEmailFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [logoDataUrl, setLogoDataUrl] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -147,12 +148,18 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
     return () => { cancelled = true; };
   }, [currentTenant]);
 
+  const visibleRows = useMemo(() => {
+    if (emailFilter === "sent") return rows.filter((r) => r.status === "enviado" || r.client_email_sent_to);
+    if (emailFilter === "not_sent") return rows.filter((r) => r.status !== "enviado" && !r.client_email_sent_to);
+    return rows;
+  }, [rows, emailFilter]);
+
   const selectableIds = useMemo(() => {
     const ids = new Set();
-    rows.filter(isApprovableRow).forEach((r) => ids.add(r.id));
-    rows.filter(isZipDownloadableRow).forEach((r) => ids.add(r.id));
+    visibleRows.filter(isApprovableRow).forEach((r) => ids.add(r.id));
+    visibleRows.filter(isZipDownloadableRow).forEach((r) => ids.add(r.id));
     return [...ids];
-  }, [rows]);
+  }, [visibleRows]);
 
   if (!canAccessCalibrationCertificates(user?.role, user)) {
     return <Navigate to="/dashboard" replace />;
@@ -362,7 +369,7 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por cliente, tag, nº…"
+            placeholder="Buscar cliente, identificação ou número…"
             className="h-10 pl-10"
           />
         </div>
@@ -375,6 +382,16 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
             {CERTIFICATE_STATUSES.map((s) => (
               <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={emailFilter} onValueChange={setEmailFilter}>
+          <SelectTrigger className="h-10 w-full sm:w-44">
+            <SelectValue placeholder="E-mail" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="not_sent">Não enviados</SelectItem>
+            <SelectItem value="sent">Já enviados</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -399,10 +416,10 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
 
       {loading ? (
         <p className="text-sm text-muted-foreground py-8 text-center">A carregar…</p>
-      ) : rows.length === 0 ? (
+      ) : visibleRows.length === 0 ? (
         <div className="text-center py-12 border rounded-lg bg-background">
           <p className="text-muted-foreground">Nenhum certificado encontrado.</p>
-          {canCreate && (
+          {canCreate && !query && statusFilter === "all" && emailFilter === "all" && (
             <Button asChild className="mt-4 bg-primary hover:bg-primary/90">
               <Link to={WEIGHT_CERTIFICATE_NEW_PATH}>Criar primeiro certificado</Link>
             </Button>
@@ -410,8 +427,8 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
         </div>
       ) : (
         <div className="border rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
-            <thead className="bg-background border-b">
+          <table className="w-full text-sm min-w-[1100px]">
+            <thead className="bg-background border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="p-3 w-10">
                   <Checkbox
@@ -419,17 +436,20 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
                     onCheckedChange={toggleSelectAll}
                   />
                 </th>
-                <th className="text-left p-3 font-medium">Nº</th>
-                <th className="text-left p-3 font-medium">Cliente</th>
-                <th className="text-left p-3 font-medium">Tag</th>
-                <th className="text-left p-3 font-medium">Tipo</th>
-                <th className="text-left p-3 font-medium">Data</th>
-                <th className="text-left p-3 font-medium">Status</th>
-                <th className="p-3 text-right w-[7.5rem]">Ações</th>
+                <th className="p-3 font-medium">Nº Certificado</th>
+                <th className="p-3 font-medium">Emissão</th>
+                <th className="p-3 font-medium">Vencimento</th>
+                <th className="p-3 font-medium">Cliente</th>
+                <th className="p-3 font-medium">Responsável</th>
+                <th className="p-3 font-medium">Identificação</th>
+                <th className="p-3 font-medium">Tipo</th>
+                <th className="p-3 font-medium">Status</th>
+                <th className="p-3 font-medium">E-mail</th>
+                <th className="p-3 text-right w-[7.5rem] font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {visibleRows.map((row) => (
                 <tr key={row.id} className="border-b last:border-0 hover:bg-accent/50">
                   <td className="p-3">
                     {selectableIds.includes(row.id) && (
@@ -445,18 +465,29 @@ export default function WeightCertificateListPage({ embedded = false, approvalMo
                       <Badge className="ml-1 bg-amber-100 text-amber-800 text-[9px]">Prévia</Badge>
                     )}
                   </td>
+                  <td className="p-3 whitespace-nowrap">{fmtDmy(row.issue_date || row.approval_date)}</td>
+                  <td className="p-3 whitespace-nowrap">{fmtDmy(row.validity_date)}</td>
                   <td className="p-3 max-w-[140px]">
                     <EllipsisTooltip label={row.client_name || ""} className="block">
                       {row.client_name || "—"}
                     </EllipsisTooltip>
                   </td>
-                  <td className="p-3 font-mono text-xs">{row.weight_tag || "—"}</td>
+                  <td className="p-3 max-w-[120px]">
+                    <EllipsisTooltip label={row.executor_name || ""} className="block">
+                      {row.executor_name || "—"}
+                    </EllipsisTooltip>
+                  </td>
+                  <td className="p-3 font-mono text-xs">{row.weight_tag || row.weight_serial || "—"}</td>
                   <td className="p-3 text-xs">{certificateTypeLabel(row.certificate_type)}</td>
-                  <td className="p-3">{fmtDmy(row.calibration_date)}</td>
                   <td className="p-3">
                     <Badge className={`text-[10px] font-normal ${statusTone[row.status] || "bg-muted"}`}>
                       {certificateStatusLabel(row.status)}
                     </Badge>
+                  </td>
+                  <td className="p-3 text-xs text-muted-foreground max-w-[120px]">
+                    <EllipsisTooltip label={row.client_email_sent_to || ""} className="block">
+                      {row.client_email_sent_to || (row.status === "enviado" ? "—" : "Não enviado")}
+                    </EllipsisTooltip>
                   </td>
                   <td className="p-3 text-right">
                     <ListRowActionsMenu

@@ -376,7 +376,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
           </table>
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
             <DialogHeader>
               <DialogTitle>
                 {editing
@@ -443,8 +443,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                 </>
               ) : (
                 <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="min-w-0">
                   <Label>V.N (valor nominal)</Label>
                   <Input
                     inputMode="decimal"
@@ -462,17 +462,17 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                     <p className="text-xs text-amber-700 mt-1">{oimlHint}</p>
                   )}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <Label>V.V.C (valor convencional)</Label>
                   <Input inputMode="decimal" value={conventionalValue} onChange={(e) => setConventionalValue(sanitizeMassNumericInput(e.target.value))} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="min-w-0">
                   <Label>V.V.C anterior</Label>
                   <Input value={previousConventionalValue} onChange={(e) => setPreviousConventionalValue(e.target.value)} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <Label>Deriva do padrão (calculada)</Label>
                   <Input
                     readOnly
@@ -490,7 +490,7 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   Nova calibração do peso
                 </Button>
               )}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label>Ue (incerteza expandida)</Label>
                   <Input inputMode="decimal" value={expandedUncertainty} onChange={(e) => setExpandedUncertainty(sanitizeMassNumericInput(e.target.value))} />
@@ -520,8 +520,8 @@ export default function PesoItemSection({ rows, weightCerts = [], tenantId, onRe
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="min-w-0">
                   <Label>Classe</Label>
                   <select
                     value={weightClass}

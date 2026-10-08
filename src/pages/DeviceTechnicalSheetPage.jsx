@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -74,6 +77,7 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
   const [quantity, setQuantity] = useState("all");
   const [status, setStatus] = useState("all");
   const [year, setYear] = useState("all");
+  const [selected, setSelected] = useState(null);
 
   const load = useCallback(async () => {
     if (!currentTenantId || !isSupabaseAuthMode) return;
@@ -256,7 +260,7 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
           </Select>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>A mostrar {filtered.length} de {rows.length} linha(s).</span>
+          <span>A mostrar {filtered.length} de {rows.length} linha(s). Clique numa linha para ver nominal, classe determinada pela Ue, classe registada e os restantes campos.</span>
           {(query || equipmentType !== "all" || quantity !== "all" || status !== "all" || year !== "all") && (
             <Button
               type="button"
@@ -279,7 +283,7 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
 
       <Card className="border-border overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-sm min-w-[2200px]">
+          <table className="w-full text-sm min-w-[880px]">
             <thead className="bg-background text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <HeadCell tip="Identificação do equipamento no cadastro">Identificação</HeadCell>
@@ -292,29 +296,20 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
                 <HeadCell>Próxima</HeadCell>
                 <HeadCell>Verif. intermediária</HeadCell>
                 <HeadCell tip="Frequência e status derivados das datas">Freq. / Status</HeadCell>
-                <HeadCell>Valor nominal</HeadCell>
-                <HeadCell>Valor convencional</HeadCell>
-                <HeadCell tip="Erro = V.C. − Nominal">Erro encontrado</HeadCell>
-                <HeadCell tip="Erro máximo tolerado (δm) da classe determinada">Erro máx. (EP)</HeadCell>
-                <HeadCell tip="Incerteza expandida atual (U95%, k=2)">Ue atual</HeadCell>
-                <HeadCell tip="Incerteza máxima tolerada = EP/3">Ue máx.</HeadCell>
-                <HeadCell>Un.</HeadCell>
-                <HeadCell tip="Classe OIML pela Ue ≤ incerteza tolerada (E1→M3)">Classe</HeadCell>
-                <HeadCell>Grandeza</HeadCell>
-                <HeadCell tip="V.C. mín = Nominal − (EP − Ue)">V.C. mín</HeadCell>
-                <HeadCell tip="V.C. máx = Nominal + (EP − Ue)">V.C. máx</HeadCell>
-                <HeadCell>Situação</HeadCell>
-                <HeadCell>Plano manut.</HeadCell>
-                <HeadCell tip="Nº da calibração do item">Histórico</HeadCell>
+                <HeadCell tip="Aprovado, reprovado ou outra situação derivada das datas e da tolerância">Situação</HeadCell>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={24} className="p-8 text-center text-muted-foreground">A carregar…</td></tr>
+                <tr><td colSpan={11} className="p-8 text-center text-muted-foreground">A carregar…</td></tr>
               ) : !filtered.length ? (
-                <tr><td colSpan={24} className="p-8 text-center text-muted-foreground">Nenhum equipamento encontrado.</td></tr>
+                <tr><td colSpan={11} className="p-8 text-center text-muted-foreground">Nenhum equipamento encontrado.</td></tr>
               ) : filtered.map((r) => (
-                <tr key={r.sourceId} className="border-t border-border">
+                <tr
+                  key={r.sourceId}
+                  className="border-t border-border cursor-pointer hover:bg-accent/50"
+                  onClick={() => setSelected(r)}
+                >
                   <td className="p-2 font-medium max-w-[120px]">
                     <EllipsisTooltip label={r.identification} className="block">{r.identification}</EllipsisTooltip>
                   </td>
@@ -337,22 +332,9 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
                   <td className="p-2 text-xs max-w-[120px]">
                     <EllipsisTooltip label={r.frequencyStatus} className="block">{r.frequencyStatus}</EllipsisTooltip>
                   </td>
-                  <td className="p-2">{r.nominalValue}</td>
-                  <td className="p-2">{r.conventionalValue}</td>
-                  <td className="p-2">{r.errorFound}</td>
-                  <td className="p-2">{r.maxError}</td>
-                  <td className="p-2">{r.uncertainty}</td>
-                  <td className="p-2">{r.maxUncertainty}</td>
-                  <td className="p-2">{r.unit}</td>
-                  <td className="p-2 font-medium">{r.equipmentClass}</td>
-                  <td className="p-2">{r.quantity}</td>
-                  <td className="p-2">{r.vcMin}</td>
-                  <td className="p-2">{r.vcMax}</td>
                   <td className="p-2">
                     <Badge variant="secondary" className={STATUS_TONE[r.status] || ""}>{r.status}</Badge>
                   </td>
-                  <td className="p-2 text-xs">{r.maintenancePlan}</td>
-                  <td className="p-2 text-xs">{r.history}</td>
                 </tr>
               ))}
             </tbody>
@@ -396,6 +378,44 @@ export default function DeviceTechnicalSheetPage({ embedded = false }) {
           </table>
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selected?.identification || "Equipamento"}</DialogTitle>
+            <DialogDescription>
+              {selected?.equipmentType || "Detalhe da ficha"}. A classe determinada vem da incerteza expandida (Ue) face à tolerância OIML. A classe registada é a que foi gravada no cadastro do peso.
+            </DialogDescription>
+          </DialogHeader>
+          {selected && (
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              {[
+                ["Valor nominal", selected.nominalValue],
+                ["Valor convencional", selected.conventionalValue],
+                ["Erro encontrado", selected.errorFound],
+                ["Erro máx. (EP)", selected.maxError],
+                ["Ue atual", selected.uncertainty],
+                ["Ue máx.", selected.maxUncertainty],
+                ["Unidade", selected.unit || "—"],
+                ["Classe determinada (Ue)", selected.equipmentClass],
+                ["Classe registada", selected.registeredClass],
+                ["Grandeza", selected.quantity || "—"],
+                ["V.C. mín", selected.vcMin],
+                ["V.C. máx", selected.vcMax],
+                ["Situação", selected.status],
+                ["Plano de manutenção", selected.maintenancePlan],
+                ["Histórico de calibração", selected.history],
+                ["Certificado vigente", selected.certificateNumber || "—"],
+              ].map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-xs text-muted-foreground">{label}</dt>
+                  <dd className="font-medium break-words">{value || "—"}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

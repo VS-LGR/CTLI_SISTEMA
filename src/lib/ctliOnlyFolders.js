@@ -20,7 +20,7 @@ export const CTLI_ONLY_FOLDER_KEYS = new Set([
 ]);
 
 /** No requisito 7, contas não-CTLI só veem estas pastas. */
-export const NON_CTLI_REQ7_FOLDER_KEYS = new Set(["pr-7-1", "pr-7-2", "pr-7-6"]);
+export const NON_CTLI_REQ7_FOLDER_KEYS = new Set(["pr-7-1", "pr-7-2", "pr-7-2-pesos", "pr-7-2-1", "pr-7-6"]);
 
 export function isCtliOnlyRequirement(requirementId) {
   return String(requirementId) === "4";

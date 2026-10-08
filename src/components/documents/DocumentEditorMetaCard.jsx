@@ -94,7 +94,7 @@ function DocumentEditorMetaCard({
             <div className="text-[11px] text-muted-foreground mt-1">
               Edição nativa .docx com toolbar do editor. «Baixar original» = ficheiro do upload.
               Salvar usa gravação seletiva e valida cabeçalho/rodapé Word.
-              PDF: impressão do editor (fundo branco). Use «Visualizar» na lista para só leitura.
+              «PDF» e «Baixar formatado» compõem a folha de controlo sem alterar o Word. Use «Visualizar» na lista para só leitura.
               {docxDirty && (
                 <span className="block mt-1 text-amber-700 font-medium">Alterações pendentes no Word.</span>
               )}

@@ -45,6 +45,8 @@ const TENANT_TABLES: TenantTableSpec[] = [
   { table: "personnel_selections", zip: "cadastros/personnel_selections.json", forceTenantId: true },
   { table: "personnel_attendance_lists", zip: "cadastros/personnel_attendance_lists.json", forceTenantId: true },
   { table: "weight_standard_certificates", zip: "cadastros/weight_certs.json", forceTenantId: true },
+  { table: "weight_set_certificate_substitutions", zip: "cadastros/weight_set_substitutions.json", forceTenantId: true },
+  { table: "laboratory_scales", zip: "cadastros/laboratory_scales.json", forceTenantId: true },
   { table: "standard_weight_items", zip: "cadastros/weight_items.json", forceTenantId: true },
   { table: "environment_sensor_certificates", zip: "cadastros/env_certs.json", forceTenantId: true },
   { table: "scale_registrations", zip: "cadastros/scale_registrations.json", forceTenantId: true },
@@ -113,6 +115,7 @@ const TENANT_FK_SANITIZE: {
   nullable: boolean;
 }[] = [
   { table: "master_document_change_logs", fk: "master_document_id", parentTable: "master_documents", nullable: true },
+  { table: "weight_set_certificate_substitutions", fk: "weight_certificate_id", parentTable: "weight_standard_certificates", nullable: false },
   { table: "certificate_email_deliveries", fk: "certificate_id", parentTable: "calibration_certificates", nullable: false },
   { table: "weight_certificate_email_deliveries", fk: "certificate_id", parentTable: "weight_calibration_certificates", nullable: false },
 ];
