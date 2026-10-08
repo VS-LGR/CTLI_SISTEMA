@@ -47,6 +47,23 @@ export const FORM_COLORS = {
 export const HEADER_GRAY = FORM_COLORS.sectionBar;
 export const BORDER = FORM_COLORS.border;
 
+/**
+ * Guia visual QUATI: preto no conteúdo, laranja só em filetes e apoio.
+ * A ordem (empresa, título, controlo, secções) vem do modelo.
+ * Fundos de tabela e rótulo ficam claros para o texto permanecer preto.
+ */
+export const HTML_FORM = {
+  accent: [252, 156, 1],
+  support: [252, 183, 57],
+  titleBar: [245, 245, 245],
+  label: [245, 245, 245],
+  zebra: [250, 250, 250],
+  border: [210, 210, 210],
+  headBorder: [210, 210, 210],
+  text: [0, 0, 0],
+  muted: [90, 90, 90],
+};
+
 export const FONT = {
   docTitle: 12,
   sectionTitle: 9,

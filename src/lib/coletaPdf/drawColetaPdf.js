@@ -7,7 +7,7 @@ import {
 } from "../coletaSchema";
 import { formatScaleRangesSummary } from "@/lib/scaleRegistrations/scaleRegistrationUtils";
 import { buildColetaPdfViewModel, coletaPdfFileSlug } from "./viewModel";
-import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
+import { companyFromSources, drawHtmlFormFooters, drawHtmlFormHeader } from "@/lib/institutionalPdf/htmlFormChrome";
 import {
   FORM_COLORS,
   ML,
@@ -15,7 +15,6 @@ import {
   PAGE_W,
   drawSectionBar,
   drawDualSectionBar,
-  drawProposalBox,
   drawEquipamentoRow,
   drawFieldGrid,
   drawMeasureBlock,
@@ -25,6 +24,7 @@ import {
 } from "./coletaPdfLayout";
 
 const CW = MR - ML;
+const CTRL_ROW_H = 5;
 
 function s(v) {
   return v == null ? "" : String(v);
@@ -34,57 +34,35 @@ function mark(checked) {
   return checked ? "X" : " ";
 }
 
-const LOGO_W = 32;
-const LOGO_H = 13;
-const PROP_W = 46;
-const CTRL_ROW_H = 5;
-const PROP_X = MR - PROP_W;
-const CENTER_X = ML + LOGO_W + 3;
-const CENTER_W = PROP_X - CENTER_X - 3;
-const CENTER_MID = CENTER_X + CENTER_W / 2;
+let headerContentStartY = 48;
 
-let headerContentStartY = 28;
-
-function drawHeader(doc, model, logoDataUrl) {
-  const propRef = model.commercialProposalRef || "";
-  const headerTop = 6;
-
-  const propH = drawProposalBox(doc, PROP_X, headerTop, PROP_W, propRef);
-
-  let logoBottom = headerTop;
-  if (logoDataUrl) {
-    try {
-      doc.addImage(logoDataUrl, "PNG", ML, headerTop, LOGO_W, LOGO_H);
-      logoBottom = headerTop + LOGO_H;
-    } catch {
-      /* logo do tenant opcional */
-    }
-  }
-
+function drawHeader(doc, model, logoDataUrl, { withControl = false, tenant } = {}) {
+  const header = model.header || {};
+  let y = drawHtmlFormHeader(doc, {
+    logoDataUrl,
+    company: companyFromSources({ tenant, fallbackName: model.tenantName }),
+    title: header.title || "COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA",
+    code: header.code || "RE-7.2A",
+    reference: header.ref || "",
+    revision: header.revision,
+    emission: header.emission && header.emission !== "—" ? header.emission : "",
+    elaborado: header.elaborado || "",
+    verificado: header.verificado || "",
+    aprovado: header.aprovado || "",
+    withControl,
+  });
   doc.setTextColor(...FORM_COLORS.text);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  const titleY = headerTop + 9;
-  doc.text("COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA", CENTER_MID, titleY, {
-    align: "center",
-    maxWidth: CENTER_W,
-  });
   doc.setFont("helvetica", "normal");
-  let metaY = titleY + 4.5;
-  doc.setFontSize(7);
+  doc.setFontSize(8);
   for (const line of model.workOrderLines || []) {
-    doc.text(line, CENTER_MID, metaY, { align: "center", maxWidth: CENTER_W });
-    metaY += 3.8;
+    doc.text(line, ML, y + 3);
+    y += 4.2;
   }
-  doc.setFontSize(7.5);
-  doc.text(model.header.codeLine, CENTER_MID, metaY + 1, {
-    align: "center",
-    maxWidth: CENTER_W,
-  });
-
-  const titleBottom = titleY + 8;
-  const bandBottom = Math.max(headerTop + propH, logoBottom, titleBottom);
-  headerContentStartY = bandBottom + 4;
+  if (model.commercialProposalRef) {
+    doc.text(`Referente à proposta comercial: ${model.commercialProposalRef}`, ML, y + 3);
+    y += 5;
+  }
+  headerContentStartY = y + 2;
 }
 
 function contentStartY() {
@@ -258,7 +236,13 @@ function drawFrente(doc, model) {
   );
   y += 2;
 
-  y = drawSectionBar(doc, ML, y, CW, "3) Condições Ambientais Durante a Calibração");
+  y = drawSectionBar(doc, ML, y, CW, "3) Observações");
+  drawMultilineField(doc, ML, y, "Observações", model.ambiente.observacoes, CW, 3);
+}
+
+function drawMedicoes(doc, model) {
+  let y = contentStartY();
+  y = drawSectionBar(doc, ML, y, CW, "4) Condições Ambientais Durante a Calibração");
   const amb = model.ambiente;
   const colR = ML + 98;
   const colRW = MR - colR;
@@ -323,14 +307,12 @@ function drawFrente(doc, model) {
   );
   y = Math.max(yLeft, yR) + 4;
 
-  y = drawMultilineField(doc, ML, y, "Observações", amb.observacoes, CW, 2) + 1;
-
   y = drawDualSectionBar(
     doc,
     ML,
     y,
-    "4) Ensaio de Excentricidade",
-    "5) Controle",
+    "5) Ensaio de Excentricidade",
+    "6) Controle",
     88,
     92,
     10,
@@ -384,7 +366,7 @@ function drawFrente(doc, model) {
   const yAfterEcc = doc.lastAutoTable.finalY + 3;
   y = Math.max(yAfterEcc, yCtrl + 10);
 
-  y = drawSectionBar(doc, ML, y, CW, "6) Calibração da Balança");
+  y = drawSectionBar(doc, ML, y, CW, "7) Calibração da Balança");
   doc.setFontSize(8);
   doc.setTextColor(...FORM_COLORS.text);
   doc.text("Ensaio de Repetitividade", ML + 72, y);
@@ -531,13 +513,18 @@ export async function drawColetaPdf(row, tenantName = "", opts = {}) {
   const { logoDataUrl, fileName } = opts;
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  drawHeader(doc, model, logoDataUrl);
+  const headerOpts = { tenant: opts.tenant };
+  drawHeader(doc, model, logoDataUrl, { ...headerOpts, withControl: true });
   drawFrente(doc, model);
 
   doc.addPage();
-  drawHeader(doc, model, logoDataUrl);
+  drawHeader(doc, model, logoDataUrl, headerOpts);
+  drawMedicoes(doc, model);
+
+  doc.addPage();
+  drawHeader(doc, model, logoDataUrl, headerOpts);
   drawVerso(doc, model);
 
-  drawInstitutionalPageFooters(doc);
+  drawHtmlFormFooters(doc, { code: model.header?.code || "RE-7.2A", revision: model.header?.revision });
   doc.save(fileName || `coleta-${slug}.pdf`);
 }

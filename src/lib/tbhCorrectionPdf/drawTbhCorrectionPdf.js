@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { drawInstitutionalReportHeader } from "@/lib/institutionalPdf/drawHeader";
+import { drawInstitutionalPdfHeader } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
 import { ML, TEXT, FORM_COLORS } from "@/lib/institutionalPdf/theme";
 
@@ -9,6 +9,16 @@ const TABLE_STYLES = {
   fontSize: 7,
   textColor: TEXT,
 };
+
+function drawControlledHeader(doc, vm) {
+  return drawInstitutionalPdfHeader(doc, {
+    title: vm.documentTitle,
+    code: vm.documentCode,
+    reference: vm.documentRef,
+    revision: vm.documentRevision || "00",
+    modelIssueDate: vm.modelIssueDate || "2025-06-30",
+  }, vm.logoDataUrl || null);
+}
 
 function drawEquipmentInfo(doc, vm, startY) {
   let y = startY;
@@ -33,10 +43,12 @@ function drawEquipmentInfo(doc, vm, startY) {
 }
 
 export function drawTbhCorrectionPdf(doc, vm) {
-  let startY = drawInstitutionalReportHeader(doc, {
-    title: vm.documentTitle,
-    subtitle: `Ambiente: ${vm.tenantName || "—"}`,
-  });
+  let startY = drawControlledHeader(doc, vm);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...TEXT);
+  doc.text(`Ambiente: ${vm.tenantName || "—"}`, ML, startY + 2);
+  startY += 6;
   startY = drawEquipmentInfo(doc, vm, startY + 2);
 
   for (const section of vm.sections || []) {
@@ -83,11 +95,11 @@ export function drawTbhCorrectionPdf(doc, vm) {
 }
 
 export function drawTbhSessionCorrectionPdf(doc, vm) {
-  let startY = drawInstitutionalReportHeader(doc, {
-    title: vm.documentTitle,
-    subtitle: `Ambiente: ${vm.tenantName || "—"}`,
-  });
-  startY += 4;
+  let startY = drawControlledHeader(doc, vm) + 4;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text(`Ambiente: ${vm.tenantName || "—"}`, ML, startY);
+  startY += 6;
 
   for (const block of vm.blocks || []) {
     doc.setFont("helvetica", "bold");

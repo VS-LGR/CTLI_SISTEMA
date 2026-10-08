@@ -14,12 +14,6 @@ function snapField(obj, key) {
   return formatDisplayValue(obj?.[key]);
 }
 
-function formatIssueEmission(order) {
-  const code = order.document_code || "RE-6.6D";
-  const rev = order.document_revision ?? "00";
-  return `${code} Rev. ${rev}`;
-}
-
 export function buildPedidoCompraPdfViewModel(order, { employees = [] } = {}) {
   const supplier = order.supplier_data_snapshot || {};
   const billing = order.client_environment_data_snapshot || {};
@@ -40,7 +34,7 @@ export function buildPedidoCompraPdfViewModel(order, { employees = [] } = {}) {
       code: order.document_code || "RE-6.6D",
       revision: order.document_revision || "00",
       reference: order.document_reference || "PR-6.6",
-      issueEmission: formatIssueEmission(order),
+      modelIssueDate: order.document_model_issue_date ? fmtDate(order.document_model_issue_date) : "",
       orderDate: fmtDate(order.order_date),
     },
     supplier: {

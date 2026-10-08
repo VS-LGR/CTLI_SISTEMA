@@ -6,7 +6,8 @@ import {
   formatPesosIds,
 } from "../coletaSchema";
 import { coletaDocMetaFromTenant } from "../coletaDocMeta";
-import { formatColetaProposalLine, formatColetaOsTitle } from "../coletaOsMeta";
+import { formatColetaOsTitle } from "../coletaOsMeta";
+import { formatDateBr } from "@/lib/quotationRequestDisplay";
 
 export function fmtDmy(isoDate) {
   if (!isoDate) return "";
@@ -77,19 +78,21 @@ export function buildColetaPdfViewModel(
     tenantName,
     commercialProposalRef: prop,
     workOrderLines: [
-      formatColetaProposalLine(prop),
       formatColetaOsTitle({
         collectionNumber: row?.collection_number,
         collectionYear: row?.collection_year,
       }),
     ].filter(Boolean),
     header: {
-      title: "COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA",
-      codeLine: `Cód. ${meta.code}  Ref. ${meta.ref}  ${meta.revision}`,
+      title: (meta.title || "COLETA DE DADOS PARA CALIBRAÇÃO DE BALANÇA").toUpperCase(),
+      code: meta.code,
+      ref: meta.ref,
+      revision: meta.revision,
+      emission: formatDateBr(documentMeta?.modelIssueDate) || "",
+      elaborado: documentMeta?.elaboratedBy || "",
+      verificado: documentMeta?.verifiedBy || "",
+      aprovado: documentMeta?.approvedBy || "",
       commercialProposalRef: prop,
-      proposalLine: prop
-        ? `Referente à Proposta Comercial: ${prop}`
-        : "Referente à Proposta Comercial:",
     },
     footer: {
       code: meta.code,

@@ -415,6 +415,9 @@ export function buildCertificatePdfViewModel(cert, {
       revision: meta.revision || meta.documentRevision || enriched.certificate_revision || "00",
       modelIssueDate: meta.modelIssueDate || meta.documentIssueDate || "",
       title: meta.title || meta.documentTitle || "CERTIFICADO DE CALIBRAÇÃO",
+      elaboratedBy: meta.elaboratedBy || "",
+      verifiedBy: meta.verifiedBy || "",
+      approvedBy: meta.approvedBy || "",
     },
     client: resolveClient(enriched),
     balance: {

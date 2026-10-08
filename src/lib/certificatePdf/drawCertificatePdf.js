@@ -154,8 +154,14 @@ function drawEnvironmentalSection(doc, model, y, ctx) {
     { label: "Massa específica do ar", value: model.environmental.airDensity },
   ], m);
 
+  return y;
+}
+
+function drawTraceabilitySection(doc, model, y, ctx) {
+  const m = ctx.metrics;
   if (model.instrumentStandards?.length) {
-    y += m.singlePage ? 0.5 : 1;
+    ({ y } = ensureSpace(doc, y, m.singlePage ? 16 : 22, ctx));
+    y = drawSectionBar(doc, ML, y, CW, "RASTREABILIDADE — INSTRUMENTOS AMBIENTAIS", m);
     autoTable(doc, {
       startY: y,
       margin: resolveTableMargin(ctx, { left: ML, right: PAGE_W - MR }),
@@ -731,6 +737,7 @@ function drawApprovalBlock(doc, model, y, ctx, signatureUrls = {}) {
 }
 
 function drawCertificatePdfContent(doc, model, opts = {}) {
+  if (opts.tenant) model.tenant = opts.tenant;
   const singlePage = opts.singlePage !== false;
   const metrics = opts.metrics || getCertificateLayoutMetrics(singlePage);
   const ctx = {
@@ -746,6 +753,7 @@ function drawCertificatePdfContent(doc, model, opts = {}) {
 
   y = drawClientSection(doc, model, y, ctx);
   y = drawInstrumentSection(doc, model, y, ctx);
+  y = drawTraceabilitySection(doc, model, y, ctx);
   y = drawEnvironmentalSection(doc, model, y, ctx);
   y = drawEccentricitySection(doc, model, y, ctx);
   y = drawRepeatabilityCalibrationSection(doc, model, y, ctx);

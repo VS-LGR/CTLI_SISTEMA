@@ -1,8 +1,8 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { drawInstitutionalPdfHeaderWithCenterLines } from "@/lib/institutionalPdf/drawHeader";
-import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
-import { ML, MR, PAGE_H, PAGE_W, TEXT, HEADER_GRAY, BORDER } from "@/lib/institutionalPdf/theme";
+import { companyFromSources, drawGuideSectionTitle, drawHtmlFormFooters, drawHtmlFormHeader } from "@/lib/institutionalPdf/htmlFormChrome";
+import { formatDateBr } from "@/lib/quotationRequestDisplay";
+import { HTML_FORM, ML, MR, PAGE_H, PAGE_W, TEXT } from "@/lib/institutionalPdf/theme";
 import { buildCommercialProposalPdfViewModel } from "./viewModel";
 
 function ensureSpace(doc, y, needed, drawPageHeader, logoDataUrl, model) {
@@ -14,48 +14,55 @@ function ensureSpace(doc, y, needed, drawPageHeader, logoDataUrl, model) {
 }
 
 function drawPageHeader(doc, model, logoDataUrl, yStart = 8) {
-  return drawInstitutionalPdfHeaderWithCenterLines(doc, logoDataUrl, yStart, {
+  const withControl = !model._controlDrawn;
+  model._controlDrawn = true;
+  let y = drawHtmlFormHeader(doc, {
+    logoDataUrl,
+    company: model.company,
     title: model.header.title,
-    titleFontSize: 12,
-    centerLines: [
-      { text: `Proposta nº: ${model.header.proposalNumber}`, bold: true, fontSize: 9 },
-      { text: `Data: ${model.header.proposalDate}`, fontSize: 8 },
-    ],
-    metaLines: [
-      `Cód.: ${model.header.code}`,
-      `Ref.: ${model.header.reference}`,
-      `Rev.: ${model.header.revision}`,
-      `Emissão: ${model.header.modelIssueDate}`,
-    ],
-    minBottom: 22,
+    code: model.header.code,
+    reference: model.header.reference || "",
+    revision: model.header.revision,
+    emission: /^\d{4}-\d{2}-\d{2}/.test(String(model.header.modelIssueDate || ""))
+      ? formatDateBr(String(model.header.modelIssueDate).slice(0, 10))
+      : (model.header.modelIssueDate || ""),
+    elaborado: model.header.elaboratedBy || "",
+    verificado: model.header.verifiedBy || "",
+    aprovado: model.header.approvedBy || "",
+    withControl,
+    yStart,
   });
-}
-
-function drawSectionTitle(doc, y, title) {
-  doc.setFillColor(...HEADER_GRAY);
-  doc.setDrawColor(...BORDER);
-  doc.rect(ML, y, MR - ML, 7, "FD");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...TEXT);
-  doc.text(title, ML + 2, y + 5);
-  return y + 9;
+  doc.text(
+    `Proposta nº ${model.header.proposalNumber}    Data ${model.header.proposalDate}`,
+    ML,
+    y + 3.5,
+  );
+  return y + 7;
+}
+
+function drawSectionTitle(doc, y, title) {
+  return drawGuideSectionTitle(doc, ML, y, MR - ML, title, 10);
 }
 
 function drawParagraphs(doc, y, text, drawPageHeader, logoDataUrl, model, fontSize = 8) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(fontSize);
-  const blocks = String(text || "").split(/\n+/);
-  for (const block of blocks) {
-    const lines = doc.splitTextToSize(block.trim(), MR - ML - 4);
-    for (const line of lines) {
+  const lineStep = Math.max(4.8, fontSize * 0.62);
+  const blocks = String(text || "").split(/\n+/).map((block) => block.trim()).filter(Boolean);
+  blocks.forEach((block, blockIndex) => {
+    const lines = doc.splitTextToSize(block, MR - ML - 4);
+    lines.forEach((line, lineIndex) => {
+      if (blockIndex === 0 && lineIndex === 0) y += 1.5;
       y = ensureSpace(doc, y, 6, drawPageHeader, logoDataUrl, model);
       doc.text(line, ML + 2, y);
-      y += 4.2;
-    }
-    y += 1;
-  }
-  return y + 2;
+      y += lineStep;
+    });
+    y += 1.4;
+  });
+  return y + 1.5;
 }
 
 export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta, tenant, fileName } = {}) {
@@ -65,7 +72,11 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
     model.header.reference = documentMeta.reference || model.header.reference;
     model.header.revision = documentMeta.revision || model.header.revision;
     model.header.modelIssueDate = documentMeta.modelIssueDate || model.header.modelIssueDate;
+    model.header.elaboratedBy = documentMeta.elaboratedBy || "";
+    model.header.verifiedBy = documentMeta.verifiedBy || "";
+    model.header.approvedBy = documentMeta.approvedBy || "";
   }
+  model.company = companyFromSources({ tenant, fallbackName: model.labName });
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = drawPageHeader(doc, model, logoDataUrl);
@@ -76,7 +87,7 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
     startY: y,
     margin: { left: ML, right: PAGE_W - MR },
     theme: "grid",
-    styles: { fontSize: 8, cellPadding: 2.2, lineColor: BORDER, lineWidth: 0.15, textColor: TEXT },
+    styles: { fontSize: 8, cellPadding: 2.2, lineColor: HTML_FORM.border, lineWidth: 0.15, textColor: TEXT },
     body: [
       ["Empresa", model.client.company],
       ["Endereço", model.client.address],
@@ -85,7 +96,8 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
       ["Telefone(s)", model.client.phone],
       ["Email", model.client.email],
     ],
-    columnStyles: { 0: { cellWidth: 35, fontStyle: "bold", fillColor: HEADER_GRAY }, 1: { cellWidth: "auto" } },
+    columnStyles: { 0: { cellWidth: 35, fontStyle: "bold", fillColor: HTML_FORM.label }, 1: { cellWidth: "auto" } },
+    alternateRowStyles: { fillColor: HTML_FORM.zebra },
   });
   y = doc.lastAutoTable.finalY + 4;
 
@@ -102,8 +114,9 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
     startY: y,
     margin: { left: ML, right: PAGE_W - MR },
     theme: "grid",
-    styles: { fontSize: 7.5, cellPadding: 2, lineColor: BORDER, lineWidth: 0.15, overflow: "linebreak", textColor: TEXT },
-    headStyles: { fillColor: [32, 32, 32], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+    styles: { fontSize: 7.5, cellPadding: 2, lineColor: HTML_FORM.border, lineWidth: 0.15, overflow: "linebreak", textColor: TEXT },
+    headStyles: { fillColor: HTML_FORM.titleBar, textColor: HTML_FORM.text, fontStyle: "bold", fontSize: 7 },
+    alternateRowStyles: { fillColor: HTML_FORM.zebra },
     head: [["Marca", "Modelo", "Tag", "Série", "Capacidade", "Divisão/Res.", "Pontos de Calibração", "Valor Unit. (R$)"]],
     body: [
       ...model.scaleRows.map((r) => [
@@ -131,8 +144,9 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
       startY: y,
       margin: { left: ML, right: PAGE_W - MR },
       theme: "grid",
-      styles: { fontSize: 7.5, cellPadding: 2, lineColor: BORDER, lineWidth: 0.15, overflow: "linebreak", textColor: TEXT },
-      headStyles: { fillColor: [32, 32, 32], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+      styles: { fontSize: 7.5, cellPadding: 2, lineColor: HTML_FORM.border, lineWidth: 0.15, overflow: "linebreak", textColor: TEXT },
+      headStyles: { fillColor: HTML_FORM.titleBar, textColor: HTML_FORM.text, fontStyle: "bold", fontSize: 7 },
+      alternateRowStyles: { fillColor: HTML_FORM.zebra },
       head: [["Pesos-padrão — Identificação", "Nominal", "Classe", "Série", "Fabricante", "Valor Unit. (R$)"]],
       body: model.weightRows.map((r) => [
         r.identification, r.nominal, r.class, r.serial, r.manufacturer, r.unit_value,
@@ -190,6 +204,7 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
   }
 
   y = ensureSpace(doc, y, 30, drawPageHeader, logoDataUrl, model);
+  y += 2;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.text("Atenciosamente,", ML, y);
@@ -210,6 +225,6 @@ export function drawCommercialProposalPdf(proposal, { logoDataUrl, documentMeta,
   y += 12;
   doc.text(`Gerente Técnico da ${model.labName}`, ML, y);
 
-  drawInstitutionalPageFooters(doc);
+  drawHtmlFormFooters(doc, { code: model.header.code, revision: model.header.revision });
   doc.save(fileName || `proposta-${model.header.proposalNumber.replace(/\//g, "-")}.pdf`);
 }

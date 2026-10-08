@@ -1,5 +1,6 @@
 import autoTable from "jspdf-autotable";
 import { displayValue } from "@/lib/quotationRequestDisplay";
+import { drawGuideSectionTitle } from "@/lib/institutionalPdf/htmlFormChrome";
 import { HEADER_GRAY, TEXT } from "@/lib/institutionalPdf/theme";
 import { PERSONNEL_PDF_MARGINS, ensurePersonnelSpace } from "./drawPersonnelPdfHeader";
 
@@ -18,11 +19,7 @@ export function drawLabelValueTable(doc, y, rows) {
 }
 
 export function drawSectionTitle(doc, y, title) {
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...TEXT);
-  doc.text(title, ML, y);
-  return y + 5;
+  return drawGuideSectionTitle(doc, ML, y, MR - ML, title, 10);
 }
 
 export function drawSectionBlock(doc, y, title, content, redrawHeader, header, logoDataUrl) {

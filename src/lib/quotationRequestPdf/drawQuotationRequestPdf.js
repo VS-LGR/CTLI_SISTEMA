@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { drawGuideSectionTitle } from "@/lib/institutionalPdf/htmlFormChrome";
 import { drawInstitutionalPdfHeaderWithCenterLines } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
 import { ML, MR, PAGE_H, PAGE_W, TEXT, HEADER_GRAY, BORDER } from "@/lib/institutionalPdf/theme";
@@ -44,14 +45,7 @@ function ensureSpace(doc, y, needed, model, logoDataUrl) {
 }
 
 function drawSectionTitle(doc, y, title) {
-  doc.setFillColor(...HEADER_GRAY);
-  doc.setDrawColor(...BORDER);
-  doc.rect(ML, y, MR - ML, 7, "FD");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...TEXT);
-  doc.text(title, ML + 2, y + 5);
-  return y + 9;
+  return drawGuideSectionTitle(doc, ML, y, MR - ML, title, 10);
 }
 
 function drawKeyValueTable(doc, y, rows) {

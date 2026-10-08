@@ -1,5 +1,6 @@
 import { displayValue, formatDateBr } from "@/lib/quotationRequestDisplay";
-import { LOGO_H, LOGO_W, ML, MR, PAGE_W, TEXT } from "./theme";
+import { companyFromSources, drawHtmlFormHeader } from "./htmlFormChrome";
+import { ML, PAGE_W, TEXT } from "./theme";
 
 /**
  * Cabeçalho institucional padrão (Pessoal 6.2).
@@ -8,40 +9,38 @@ import { LOGO_H, LOGO_W, ML, MR, PAGE_W, TEXT } from "./theme";
  * @param {string|null|undefined} logoDataUrl
  * @param {number} [yStart=8]
  */
-export function drawInstitutionalPdfHeader(doc, header, logoDataUrl, yStart = 8) {
-  const y = yStart;
-  const pageW = doc.internal?.pageSize?.getWidth?.() || PAGE_W;
-  const rightX = pageW > PAGE_W ? pageW - 12 : MR - 2;
-  const centerX = pageW / 2;
-  const titleMaxWidth = pageW > PAGE_W ? 160 : 100;
-
-  if (logoDataUrl) {
-    try {
-      doc.addImage(logoDataUrl, "PNG", ML, y, LOGO_W, LOGO_H);
-    } catch { /* optional */ }
+function emissionLabel(value) {
+  const raw = String(value || "").trim();
+  if (!raw || raw === "-" || raw === "—") return "";
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const formatted = formatDateBr(raw.slice(0, 10));
+    return formatted && formatted !== "-" ? formatted : raw;
   }
+  return raw;
+}
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(...TEXT);
-  doc.text(displayValue(header.title), centerX, y + 6, { align: "center", maxWidth: titleMaxWidth });
+function currentPage(doc) {
+  return doc.internal?.getCurrentPageInfo?.()?.pageNumber || 1;
+}
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  let ry = y + 4;
-  const emission = formatDateBr(header.modelIssueDate);
-  const metaLines = [
-    `Cód.: ${displayValue(header.code)}`,
-    `Ref.: ${displayValue(header.reference)}`,
-    `Rev.: ${displayValue(header.revision)}`,
-    `Emissão: ${emission}`,
-  ];
-  for (const line of metaLines) {
-    doc.text(line, rightX, ry, { align: "right" });
-    ry += 4.5;
-  }
-
-  return Math.max(y + LOGO_H + 2, ry + 2, y + 18);
+export function drawInstitutionalPdfHeader(doc, header = {}, logoDataUrl, yStart = 8) {
+  return drawHtmlFormHeader(doc, {
+    logoDataUrl,
+    company: header.company || companyFromSources({
+      tenant: header.tenant,
+      fallbackName: header.issuerName || header.tenantName || "",
+    }),
+    title: displayValue(header.title) === "—" ? "" : (header.title || ""),
+    code: header.code || "",
+    reference: header.reference || header.ref || "",
+    revision: header.revision || "",
+    emission: emissionLabel(header.modelIssueDate || header.emission),
+    elaborado: header.elaboratedBy || "",
+    verificado: header.verifiedBy || "",
+    aprovado: header.approvedBy || "",
+    withControl: currentPage(doc) === 1,
+    yStart,
+  });
 }
 
 /**
@@ -57,42 +56,44 @@ export function drawInstitutionalPdfHeader(doc, header, logoDataUrl, yStart = 8)
  *   minBottom?: number,
  * }} config
  */
+function readMetaLines(lines = []) {
+  const out = {};
+  lines.forEach((line) => {
+    const match = String(line).match(/^(Cód\.|Ref\.|Rev\.|Emissão):\s*(.*)$/);
+    if (!match) return;
+    const value = match[2].trim();
+    if (match[1] === "Cód.") out.code = value;
+    if (match[1] === "Ref.") out.reference = value;
+    if (match[1] === "Rev.") out.revision = value;
+    if (match[1] === "Emissão") out.emission = value === "-" || value === "—" ? "" : value;
+  });
+  return out;
+}
+
 export function drawInstitutionalPdfHeaderWithCenterLines(doc, logoDataUrl, yStart, config) {
-  const y = yStart;
-  const rightX = MR - 2;
-  const centerX = PAGE_W / 2;
-
-  if (logoDataUrl) {
-    try {
-      doc.addImage(logoDataUrl, "PNG", ML, y, LOGO_W, LOGO_H);
-    } catch { /* optional */ }
-  }
-
-  let centerY = y + 6;
-  const titleSize = config.titleFontSize ?? 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(titleSize);
+  const meta = readMetaLines(config.metaLines);
+  let y = drawHtmlFormHeader(doc, {
+    logoDataUrl,
+    company: config.company,
+    title: config.title,
+    code: config.code || meta.code || "",
+    reference: config.reference || meta.reference || "",
+    revision: config.revision || meta.revision || "",
+    emission: emissionLabel(config.emission || meta.emission),
+    elaborado: config.elaboratedBy || "",
+    verificado: config.verifiedBy || "",
+    aprovado: config.approvedBy || "",
+    withControl: currentPage(doc) === 1,
+    yStart,
+  });
   doc.setTextColor(...TEXT);
-  doc.text(config.title, centerX, centerY, { align: "center", maxWidth: 100 });
-  centerY += titleSize >= 12 ? 5 : 4;
-
   for (const line of config.centerLines || []) {
     doc.setFont("helvetica", line.bold ? "bold" : "normal");
     doc.setFontSize(line.fontSize ?? 8);
-    doc.text(line.text, centerX, centerY, { align: "center", maxWidth: line.maxWidth ?? 100 });
-    centerY += (line.fontSize ?? 8) > 8 ? 5 : 4.5;
+    doc.text(line.text, ML, y + 3.2, { maxWidth: (doc.internal?.pageSize?.getWidth?.() || PAGE_W) - ML - 12 });
+    y += (line.fontSize ?? 8) > 8 ? 5 : 4.4;
   }
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  let ry = y + 4;
-  for (const line of config.metaLines) {
-    doc.text(line, rightX, ry, { align: "right" });
-    ry += 4.5;
-  }
-
-  const minBottom = config.minBottom ?? 20;
-  return Math.max(y + LOGO_H + 2, ry + 2, centerY + 2, y + minBottom);
+  return y + 2;
 }
 
 /**

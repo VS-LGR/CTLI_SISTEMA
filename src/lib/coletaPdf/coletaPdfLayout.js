@@ -4,7 +4,8 @@
  */
 
 import { FORM_COLORS } from "./coletaPdfColors";
-import { ML as THEME_ML, MR as THEME_MR, PAGE_W as THEME_PAGE_W, SPACING } from "@/lib/institutionalPdf/theme";
+import { drawGuideSectionTitle } from "@/lib/institutionalPdf/htmlFormChrome";
+import { HTML_FORM, ML as THEME_ML, MR as THEME_MR, PAGE_W as THEME_PAGE_W, SPACING } from "@/lib/institutionalPdf/theme";
 
 export { FORM_COLORS };
 
@@ -27,7 +28,7 @@ const FIELD_BOX_H = 7;
 /** @param {import('jspdf').jsPDF} doc */
 export function tableHeadStyles(doc) {
   return {
-    fillColor: FORM_COLORS.tableHeaderGreen,
+    fillColor: HTML_FORM.titleBar,
     textColor: FORM_COLORS.text,
     fontStyle: "bold",
     lineWidth: 0.1,
@@ -39,19 +40,7 @@ export function tableHeadStyles(doc) {
  * @returns {number} y para o primeiro conteúdo abaixo da barra
  */
 export function drawSectionBar(doc, x, y, width, text) {
-  const barTop = y;
-  doc.setFillColor(...FORM_COLORS.sectionBar);
-  doc.rect(x, barTop, width, SECTION_BAR_H, "F");
-  doc.setDrawColor(...FORM_COLORS.brand);
-  doc.setLineWidth(0.12);
-  doc.rect(x, barTop, width, SECTION_BAR_H, "S");
-  doc.setTextColor(...FORM_COLORS.sectionBarText);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(text, x + 1.5, barTop + 3.6);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...FORM_COLORS.text);
-  return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
+  return drawGuideSectionTitle(doc, x, y, width, text, 10) + 0.6;
 }
 
 /** Duas faixas lado a lado (secções 4 e 5). */
@@ -67,21 +56,9 @@ export function drawDualSectionBar(
 ) {
   const barTop = y;
   const rightX = x + leftW + gap;
-  doc.setFillColor(...FORM_COLORS.sectionBar);
-  doc.rect(x, barTop, leftW, SECTION_BAR_H, "F");
-  doc.rect(rightX, barTop, rightW, SECTION_BAR_H, "F");
-  doc.setDrawColor(...FORM_COLORS.brand);
-  doc.setLineWidth(0.12);
-  doc.rect(x, barTop, leftW, SECTION_BAR_H, "S");
-  doc.rect(rightX, barTop, rightW, SECTION_BAR_H, "S");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...FORM_COLORS.sectionBarText);
-  doc.text(leftText, x + 1.5, barTop + 3.6);
-  doc.text(rightText, rightX + 1.5, barTop + 3.6);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...FORM_COLORS.text);
-  return barTop + SECTION_BAR_H + SECTION_CONTENT_GAP;
+  const leftEnd = drawGuideSectionTitle(doc, x, barTop, leftW, leftText, 9);
+  const rightEnd = drawGuideSectionTitle(doc, rightX, barTop, rightW, rightText, 9);
+  return Math.max(leftEnd, rightEnd) + 0.6;
 }
 
 const PROPOSAL_PAD = 1.2;
@@ -158,7 +135,7 @@ export function drawEquipamentoRow(doc, x, y, w, label, value) {
 
 /** Campo com rótulo verde e área de valor. */
 export function drawFieldBox(doc, x, y, w, label, value) {
-  doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
+  doc.setFillColor(...HTML_FORM.label);
   doc.rect(x, y, w, FIELD_LABEL_H, "F");
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.1);
@@ -203,7 +180,7 @@ const MEASURE_VALUE_GAP = 1.2;
  */
 export function drawMeasureBlock(doc, x, y, w, title, valueLine) {
   const barTop = y;
-  doc.setFillColor(...FORM_COLORS.fieldLabelGreen);
+  doc.setFillColor(...HTML_FORM.label);
   doc.rect(x, barTop, w, MEASURE_BAR_H, "F");
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.1);

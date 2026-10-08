@@ -3,9 +3,10 @@
  */
 
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
-import { pdfImageFormat } from "./compressPdfImages";
 import { FORM_COLORS } from "./certificatePdfColors";
+import { companyFromSources, drawGuideSectionTitle, drawHtmlFormFooters, drawHtmlFormHeader } from "@/lib/institutionalPdf/htmlFormChrome";
 import {
+  HTML_FORM,
   ML as THEME_ML,
   MR as THEME_MR,
   PAGE_W as THEME_PAGE_W,
@@ -115,7 +116,7 @@ export function getCertificateLayoutMetrics(singlePage = false) {
 /** @param {import('jspdf').jsPDF} doc */
 export function tableHeadStyles(doc) {
   return {
-    fillColor: FORM_COLORS.tableHeader,
+    fillColor: HTML_FORM.titleBar,
     textColor: FORM_COLORS.text,
     fontStyle: "bold",
     lineWidth: 0.1,
@@ -128,25 +129,13 @@ export function tableHeadStyles(doc) {
  */
 export function drawSectionBar(doc, x, y, width, text, metrics = null) {
   const m = metrics || getCertificateLayoutMetrics(false);
-  const barTop = y;
-  doc.setFillColor(...FORM_COLORS.sectionBar);
-  doc.rect(x, barTop, width, m.sectionBarH, "F");
-  doc.setDrawColor(...FORM_COLORS.border);
-  doc.setLineWidth(0.12);
-  doc.rect(x, barTop, width, m.sectionBarH, "S");
-  doc.setTextColor(...FORM_COLORS.sectionBarText);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(m.sectionTitleFontSize);
-  doc.text(text, x + 1.5, barTop + m.sectionBarH - 1.4);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...FORM_COLORS.text);
-  return barTop + m.sectionBarH + m.sectionGap;
+  return drawGuideSectionTitle(doc, x, y, width, text, m.sectionTitleFontSize) + (m.singlePage ? 0.4 : 0.8);
 }
 
 /** Campo com rótulo e área de valor. */
 function drawFieldBox(doc, x, y, w, label, value, metrics = null) {
   const m = metrics || getCertificateLayoutMetrics(false);
-  doc.setFillColor(...FORM_COLORS.fieldLabel);
+  doc.setFillColor(...HTML_FORM.label);
   doc.rect(x, y, w, m.fieldLabelH, "F");
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.1);
@@ -192,7 +181,7 @@ const MEASURE_VALUE_GAP = 1.2;
  */
 export function drawMeasureBlock(doc, x, y, w, title, valueLine) {
   const barTop = y;
-  doc.setFillColor(...FORM_COLORS.fieldLabel);
+  doc.setFillColor(...HTML_FORM.label);
   doc.rect(x, barTop, w, MEASURE_BAR_H, "F");
   doc.setDrawColor(...FORM_COLORS.border);
   doc.setLineWidth(0.1);
@@ -209,92 +198,57 @@ export function drawMeasureBlock(doc, x, y, w, title, valueLine) {
 }
 
 /** @returns {number} y para início do conteúdo após cabeçalho */
-export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 6, metrics = null) {
-  const m = metrics || getCertificateLayoutMetrics(false);
-  const headerTop = yStart ?? m.headerStartY;
-  const labX = ML;
-  let labBottom = headerTop;
+export function drawCertificateHeader(doc, model, logoDataUrl, yStart = 8, metrics = null) {
+  const identity = model.documentMeta || model.document || {};
+  const withControl = !model._controlDrawn;
+  model._controlDrawn = true;
+  const emission = formatDateBr(identity.modelIssueDate || identity.issueDate);
+  let y = drawHtmlFormHeader(doc, {
+    logoDataUrl,
+    company: companyFromSources({
+      tenant: model.tenant,
+      lab: model.lab,
+      fallbackName: model.tenantName,
+    }),
+    title: model.certificateTitle || "CERTIFICADO DE CALIBRAÇÃO",
+    code: identity.code || "",
+    reference: identity.reference || "",
+    revision: identity.revision || "",
+    emission: emission && emission !== "—" ? emission : "",
+    elaborado: identity.elaboratedBy || "",
+    verificado: identity.verifiedBy || "",
+    aprovado: identity.approvedBy || "",
+    withControl,
+    yStart,
+  });
 
-  if (logoDataUrl) {
-    try {
-      doc.addImage(logoDataUrl, pdfImageFormat(logoDataUrl), labX, headerTop, m.logoW, m.logoH);
-      labBottom = headerTop + m.logoH + 0.5;
-    } catch { /* opcional */ }
+  const hasCredential = model.certificateType === "rbc"
+    ? Boolean(model.lab?.cgcreCalNumber)
+    : Boolean(model.lab?.ipemNumber);
+  if (model.certificateType === "rbc" || hasCredential) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...FORM_COLORS.text);
+    const acc = model.certificateType === "rbc"
+      ? `RBC · Credenciado Cgcre/Inmetro${model.lab?.cgcreCalNumber ? ` · CAL ${model.lab.cgcreCalNumber}` : ""}`
+      : `Credenciada IPEM-MG${model.lab?.ipemNumber ? ` · ${model.lab.ipemNumber}` : ""}`;
+    const accLines = doc.splitTextToSize(acc, MR - ML);
+    doc.text(accLines, ML, y + 3);
+    y += accLines.length * 3.2 + 1.5;
   }
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(m.singlePage ? 5.8 : 6.5);
-  doc.setTextColor(...FORM_COLORS.text);
-  const labLines = [
-    model.lab?.name || model.tenantName || "",
-    model.lab?.address || "",
-    [model.lab?.phone, model.lab?.website].filter(Boolean).join(" · "),
-  ].filter(Boolean);
-  const labLineH = m.singlePage ? 2.7 : 3.2;
-  labLines.forEach((line, i) => {
-    doc.text(line, labX, labBottom + 2.5 + i * labLineH, { maxWidth: 68 });
-  });
-  labBottom += labLines.length * labLineH + 1;
-
-  const centerX = PAGE_W / 2;
-  doc.setTextColor(...FORM_COLORS.text);
-  doc.setFont("helvetica", "bold");
-  const titleSuffix = model.certificateType === "rbc" ? " RBC" : "";
-  doc.setFontSize(m.singlePage ? 9 : 10);
-  const certTitle = model.certificateTitle
-    || `CERTIFICADO DE CALIBRAÇÃO${titleSuffix}`;
-  doc.text(certTitle, centerX, headerTop + (m.singlePage ? 6.5 : 8), { align: "center" });
-  doc.setFontSize(m.singlePage ? 10 : 11);
-  doc.text(`Nº ${model.certificateNumber || "—"}`, centerX, headerTop + (m.singlePage ? 12 : 15), { align: "center" });
-
-  const crossParts = [
+  const instance = [
+    model.certificateNumber ? `Nº ${model.certificateNumber}` : "",
     model.proposalRef ? `Proposta ${model.proposalRef}` : "",
     model.collectionOsRef ? `O.S. ${model.collectionOsRef}` : "",
-  ].filter(Boolean);
-  if (crossParts.length) {
+  ].filter(Boolean).join("   ·   ");
+  if (instance) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(m.singlePage ? 5.5 : 6);
-    doc.text(crossParts.join("  ·  "), centerX, headerTop + (m.singlePage ? 15.2 : 18.5), { align: "center" });
+    doc.setFontSize(8);
+    doc.text(instance, ML, y + 3);
+    y += 5;
   }
-
-  if (model.certificateType === "rbc") {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(m.singlePage ? 5 : 5.5);
-    const accText = model.lab?.cgcreCalNumber
-      ? `Laboratório de Calibração acreditado pela Cgcre de acordo com a NORMA ABNT NBR ISO/IEC 17025:2017, sob o número CAL ${model.lab.cgcreCalNumber}`
-      : "Laboratório de Calibração acreditado pela Cgcre de acordo com a NORMA ABNT NBR ISO/IEC 17025:2017";
-    doc.text(accText, centerX, headerTop + (m.singlePage ? 16 : 20), { align: "center", maxWidth: m.singlePage ? 115 : 120 });
-  }
-
-  const accX = PAGE_W - ML;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(m.singlePage ? 6 : 6.5);
-  if (model.certificateType === "rbc") {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(m.singlePage ? 6.5 : 7);
-    doc.text("RBC", accX, headerTop + 3.5, { align: "right" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(m.singlePage ? 5.5 : 6);
-    doc.text("CREDENCIADO CGCRE/INMETRO", accX, headerTop + (m.singlePage ? 7.5 : 9), { align: "right" });
-    doc.text("NBR ISO/IEC 17025:2017", accX, headerTop + (m.singlePage ? 11 : 13), { align: "right" });
-    if (model.lab?.cgcreCalNumber) {
-      doc.text(`CAL ${model.lab.cgcreCalNumber}`, accX, headerTop + (m.singlePage ? 14.5 : 17), { align: "right" });
-    }
-  } else {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(m.singlePage ? 6.5 : 7);
-    doc.text("CREDENCIADA IPEM-MG", accX, headerTop + (m.singlePage ? 5 : 6), { align: "right" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(m.singlePage ? 6 : 6.5);
-    if (model.lab?.ipemNumber) {
-      doc.text(model.lab.ipemNumber, accX, headerTop + (m.singlePage ? 9 : 11), { align: "right" });
-    }
-  }
-
-  const headerBottom = model.certificateType === "rbc"
-    ? headerTop + (m.singlePage ? 21 : 26)
-    : headerTop + (m.singlePage ? 17 : 22);
-  return Math.max(labBottom, headerBottom) + (m.singlePage ? 0.5 : 2);
+  return y + 1;
 }
 
 /** Linha de medidas ambientais compactas (4 células lado a lado). */
@@ -308,7 +262,7 @@ export function drawCompactMeasureRow(doc, x, y, totalW, cells, metrics = null) 
 
   cells.forEach((cell, i) => {
     const cx = x + i * (cellW + gap);
-    doc.setFillColor(...FORM_COLORS.fieldLabel);
+    doc.setFillColor(...HTML_FORM.label);
     doc.rect(cx, y, cellW, headerH, "F");
     doc.setDrawColor(...FORM_COLORS.border);
     doc.setLineWidth(0.1);
@@ -356,22 +310,10 @@ export function drawDualSubsectionTitles(doc, x, y, leftText, rightText, leftW, 
   return nextY + (compact ? 0.6 : 0.8);
 }
 
-/** Rodapé documental em todas as páginas (Código, Ref, Emissão, Página). */
+/** Rodapé da casca HTML: código e revisão à esquerda, página à direita. */
 export function drawCertificateDocumentFooters(doc, model) {
-  const total = doc.internal.getNumberOfPages();
-  const code = model.documentMeta?.code || "RE-7.2B";
-  const rev = model.documentMeta?.revision || model.revision || "00";
-  const ref = model.documentMeta?.reference || "PR-7.2";
-  const emission = formatDateBr(model.documentMeta?.modelIssueDate) || "—";
-  const line = `Código: ${code}  Rev.: ${rev}  Ref.: ${ref}  Emissão: ${emission}  Página`;
-
-  for (let p = 1; p <= total; p += 1) {
-    doc.setPage(p);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(...FORM_COLORS.text);
-    doc.text(`${line} ${p} de ${total}`, PAGE_W / 2, FOOTER_Y, { align: "center" });
-  }
+  const meta = model?.documentMeta || model?.document || {};
+  drawHtmlFormFooters(doc, { code: meta.code || "", revision: meta.revision || "" });
 }
 
 /**

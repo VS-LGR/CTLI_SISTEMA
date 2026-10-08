@@ -274,6 +274,7 @@ function drawWeightCertificatePdfContent(doc, model, opts = {}) {
         ? "CERTIFICADO DE CALIBRAÇÃO DE PESOS RBC"
         : "CERTIFICADO DE CALIBRAÇÃO DE PESOS",
     tenantName: model.tenantName,
+    tenant: opts.tenant,
     lab: opts.tenant ? {
       name: opts.tenant.name,
       address: opts.tenant.address,
@@ -297,11 +298,11 @@ function drawWeightCertificatePdfContent(doc, model, opts = {}) {
 
   y = drawClientSection(doc, model, y, ctx);
   y = drawWeightInfoSection(doc, model, y, ctx);
-  y = drawEnvironmentalSection(doc, model, y, ctx);
   y = drawStandardsSection(doc, model, y, ctx);
+  y = drawEnvironmentalSection(doc, model, y, ctx);
   y = drawResultsSection(doc, model, y, ctx);
-  y = drawSignaturesSection(doc, model, y, ctx, opts.signatureUrls || {});
-  drawObservationsSection(doc, model, y, ctx);
+  y = drawObservationsSection(doc, model, y, ctx);
+  drawSignaturesSection(doc, model, y, ctx, opts.signatureUrls || {});
 
   drawCertificateDocumentFooters(doc, headerModel);
 

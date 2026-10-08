@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import { drawInstitutionalPdfHeaderWithCenterLines } from "@/lib/institutionalPdf/drawHeader";
 import { drawInstitutionalPageFooters } from "@/lib/institutionalPdf/drawPageFooters";
 import { ML, MR, PAGE_W, TEXT, HEADER_GRAY, BORDER } from "@/lib/institutionalPdf/theme";
+import { formatDateBr } from "@/lib/quotationRequestDisplay";
 import { buildPedidoCompraPdfViewModel } from "./viewModel";
 
 function serviceColumns(type) {
@@ -105,7 +106,7 @@ function drawHeader(doc, model, logoDataUrl, yStart = 8) {
       `Cód.: ${model.header.code}`,
       `Ref.: ${model.header.reference}`,
       `Rev.: ${model.header.revision}`,
-      `Emissão: ${model.header.issueEmission}`,
+      `Emissão: ${model.header.modelIssueDate || model.header.orderDate}`,
     ],
     minBottom: 20,
   });
@@ -144,7 +145,9 @@ export function drawPedidoCompraPdf(order, { logoDataUrl, employees = [], docume
     model.header.code = documentMeta.code || model.header.code;
     model.header.reference = documentMeta.reference || model.header.reference;
     model.header.revision = documentMeta.revision || model.header.revision;
-    model.header.modelIssueDate = documentMeta.modelIssueDate || model.header.modelIssueDate;
+    model.header.modelIssueDate = documentMeta.modelIssueDate
+      ? (formatDateBr(documentMeta.modelIssueDate) || model.header.modelIssueDate)
+      : model.header.modelIssueDate;
     model.header.title = documentMeta.title || model.header.title;
   }
   const doc = new jsPDF({ unit: "mm", format: "a4" });
