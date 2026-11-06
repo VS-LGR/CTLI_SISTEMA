@@ -7,12 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { recordExternalConsultation } from "@/lib/masterDocuments/masterDocumentsApi";
-import { EXTERNAL_VALIDITY_STATUSES } from "@/lib/masterDocuments/masterDocumentConstants";
+import { externalValidityLabel } from "@/lib/masterDocuments/masterDocumentConstants";
+import { deriveExternalValidityStatus } from "@/lib/masterDocuments/masterDocumentResolver";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 
 export default function ExternalConsultationDialog({
@@ -45,7 +43,12 @@ export default function ExternalConsultationDialog({
     if (!tenantId || !externalDoc?.id) return;
     setBusy(true);
     try {
-      await recordExternalConsultation(tenantId, externalDoc.id, form);
+      const validity_status = deriveExternalValidityStatus({
+        lastDate: form.consultation_date,
+        periodMonths: externalDoc.consultation_period_months,
+        hasRevision: form.has_revision,
+      });
+      await recordExternalConsultation(tenantId, externalDoc.id, { ...form, validity_status });
       toast.success("Consulta registrada");
       onSaved?.();
       onOpenChange(false);
@@ -79,17 +82,13 @@ export default function ExternalConsultationDialog({
             <Label>Revisão / versão externa</Label>
             <Input value={form.external_revision} onChange={(e) => set("external_revision", e.target.value)} />
           </div>
-          <div>
-            <Label>Status de validade</Label>
-            <Select value={form.validity_status} onValueChange={(v) => set("validity_status", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {EXTERNAL_VALIDITY_STATUSES.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <p className="text-sm">
+            Status: {externalValidityLabel(deriveExternalValidityStatus({
+              lastDate: form.consultation_date,
+              periodMonths: externalDoc?.consultation_period_months,
+              hasRevision: form.has_revision,
+            }))}
+          </p>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={form.has_revision} onCheckedChange={(v) => set("has_revision", !!v)} />
             Houve revisão identificada

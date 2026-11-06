@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useOutletContext, Link, Navigate, useSearchParams } from "react-router-dom";
 import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
-import { RESPONSIBLE_ROLES } from "@/lib/roles";
+import { RESPONSIBLE_ROLES, roleLabel } from "@/lib/roles";
 import {
   REQ_NAMES,
   requiresFolderNav,
@@ -20,6 +20,9 @@ import {
   isPurchaseOrdersFolder,
   isCommercialProposalsFolder,
   isMasterDocumentListFolder,
+  MASTER_LIST_PARENT,
+  folderFileAccept,
+  isSimpleDocumentMeta,
 } from "@/lib/documentFolderConfig";
 import { usesClientSidebarNav } from "@/lib/roleNav";
 import PurchaseOrdersListPanel from "@/components/purchaseOrders/PurchaseOrdersListPanel";
@@ -31,14 +34,12 @@ import {
   formatDocumentError,
   updateDocument,
   deleteDocument,
-  uploadDocumentFile,
+  attachDocumentFile,
   exportDocumentBlob,
   downloadOriginalFile,
   toggleDocumentPin,
 } from "@/lib/documentsApi";
 import { triggerBlobDownload } from "@/lib/blobDownload";
-import { tryConvertDocxToHtml } from "@/lib/docxImport";
-import { isDocxFile, uploadSuccessMessage } from "@/lib/docxFileUtils";
 import { documentUsesDocxEditor, scheduleDocxEditorPreload } from "@/lib/preloadDocxEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,7 +98,16 @@ function filterBySearch(docs, searchQuery) {
   );
 }
 
-const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLabel, onCreated }) => {
+const CreateDocDialog = ({
+  tenantId,
+  requirement,
+  folderKey,
+  section,
+  sectionLabel,
+  onCreated,
+  simpleMeta = false,
+  fileAccept = ".pdf,application/pdf",
+}) => {
   const { user } = useAuth();
   const nav = useNavigate();
   const fileInputRef = useRef(null);
@@ -139,9 +149,9 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
         section,
         title: title.trim(),
         code: emission,
-        version: revision,
+        version: simpleMeta ? "" : revision,
         responsible,
-        review_date: reviewDate || null,
+        review_date: simpleMeta ? null : (reviewDate || null),
         content_html: "",
         status: "vigente",
       };
@@ -153,30 +163,12 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
           if (masterDoc?.id) body.master_document_id = masterDoc.id;
         } catch { /* optional link */ }
       }
-      let data = await createDocument(body, user?.id);
+      let data = await createDocument({ ...body, status: file ? "rascunho" : "vigente" }, user?.id);
       if (file) {
         try {
-          if (canImportWord && isDocxFile(file)) {
-            scheduleDocxEditorPreload();
-            data = await uploadDocumentFile(data.id, file, user?.id, null);
-            setOpen(false);
-            toast.success(
-              "Ficheiro guardado. A formatação Word é preservada ao editar se usar Salvar; evite reimportar via HTML.",
-              { duration: 6000 },
-            );
-            onCreated?.(data);
-            nav(`/document/${data.id}`);
-            return;
-          }
-          let html = null;
-          let conv = { imported: false, warning: null };
-          if (canImportWord) {
-            conv = await tryConvertDocxToHtml(file);
-            html = conv.html;
-          }
-          data = await uploadDocumentFile(data.id, file, user?.id, html);
+          data = await attachDocumentFile(data, file, user?.id);
           setOpen(false);
-          toast.success(`Documento criado. ${uploadSuccessMessage(file, conv)}`);
+          toast.success("Documento criado com o PDF.");
           onCreated?.(data);
           return;
         } catch (uploadErr) {
@@ -218,30 +210,41 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Título *</Label>
             <Input className="mt-1" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          {simpleMeta ? (
             <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Revisão</Label>
-              <Input className="mt-1" value={revision} onChange={(e) => setRevision(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Emissão</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Data do documento</Label>
               <Input className="mt-1" type="date" value={emission} onChange={(e) => setEmission(e.target.value)} />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Revisão</Label>
+                <Input className="mt-1" value={revision} onChange={(e) => setRevision(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Emissão</Label>
+                <Input className="mt-1" type="date" value={emission} onChange={(e) => setEmission(e.target.value)} />
+              </div>
+            </div>
+          )}
+          <div className={simpleMeta ? "" : "grid grid-cols-2 gap-3"}>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Responsável</Label>
               <select value={responsible} onChange={(e) => setResponsible(e.target.value)} className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card">
                 <option value="">Selecione…</option>
                 {responsibles.map((r) => (
-                  <option key={r.id} value={r.name}>{r.name}</option>
+                  <option key={r.id} value={r.name}>
+                    {r.name}{r.role ? ` — ${roleLabel(r.role)}` : ""}
+                  </option>
                 ))}
               </select>
             </div>
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Próxima revisão</Label>
-              <Input className="mt-1" type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
-            </div>
+            {!simpleMeta && (
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Próxima revisão</Label>
+                <Input className="mt-1" type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
+              </div>
+            )}
           </div>
           <div>
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Arquivo (opcional)</Label>
@@ -249,7 +252,7 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
               ref={fileInputRef}
               type="file"
               hidden
-              accept=".doc,.docx,.pdf,.txt,.rtf,.odt"
+              accept={canImportWord ? ".doc,.docx,.pdf,.txt,.rtf,.odt" : fileAccept}
               onChange={(e) => {
                 setFile(e.target.files?.[0] || null);
                 e.target.value = "";
@@ -275,7 +278,9 @@ const CreateDocDialog = ({ tenantId, requirement, folderKey, section, sectionLab
               </p>
             ) : (
               <p className="text-xs text-muted-foreground mt-1.5">
-                PDF, Word e outros formatos são guardados como ficheiro anexo.
+                {simpleMeta
+                  ? "Guarde o PDF ou a imagem. A data de upload fica registada na criação. Não há revisão neste tipo de documento."
+                  : "O documento fica guardado em PDF, para consulta e descarga."}
               </p>
             )}
           </div>
@@ -320,7 +325,6 @@ function DocDeleteDialogs({ doc, deleteOpen, setDeleteOpen, remove, busy }) {
 
 const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
   const { user } = useAuth();
-  const nav = useNavigate();
   const fileInputRef = React.useRef();
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -355,26 +359,9 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
   const uploadFile = async (file) => {
     setBusy(true);
     try {
-      const canImport = allowsRichEditor(doc.requirement, doc.folder_key);
-      if (canImport && isDocxFile(file)) {
-        scheduleDocxEditorPreload();
-        const data = await uploadDocumentFile(doc.id, file, user?.id, null);
-        toast.success(
-          "Ficheiro guardado. A formatação Word é preservada ao editar se usar Salvar; evite reimportar via HTML.",
-          { duration: 6000 },
-        );
-        onUpdate?.(data);
-        nav(`/document/${doc.id}`);
-        return;
-      }
-      let contentHtml = null;
-      let conv = { imported: false, warning: null };
-      if (canImport) {
-        conv = await tryConvertDocxToHtml(file);
-        contentHtml = conv.html;
-      }
-      const data = await uploadDocumentFile(doc.id, file, user?.id, contentHtml);
-      toast.success(uploadSuccessMessage(file, conv));
+      const data = await attachDocumentFile(doc, file, user?.id);
+      toast.success(doc.has_file ? "Nova revisão guardada em PDF. A anterior ficou obsoleta." : "PDF guardado.");
+      if (data.id !== doc.id) onDelete?.(doc.id);
       onUpdate?.(data);
     } catch (err) {
       console.error("[DocRow] upload", err);
@@ -438,7 +425,7 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
       <td className="px-4 py-3 text-sm text-muted-foreground">{doc.review_date || "—"}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end flex-wrap">
-          <input ref={fileInputRef} type="file" hidden accept=".doc,.docx,.pdf" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
+          <input ref={fileInputRef} type="file" hidden accept={fileOnly ? ".pdf,application/pdf" : ".doc,.docx,.pdf"} onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
           {isVigente && (
             <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={busy} title="Upload">
               <Upload size={16} />
@@ -541,6 +528,7 @@ const RequirementView = () => {
     ) {
       return PERSONNEL_DEFAULT_REGISTRO_SECTION;
     }
+    if (tabFromUrl && MASTER_LIST_PARENT[tabFromUrl]) return MASTER_LIST_PARENT[tabFromUrl];
     if (tabFromUrl && visibleSections.some((s) => s.id === tabFromUrl)) return tabFromUrl;
     if (visibleSections.some((s) => s.id === defaultSection)) return defaultSection;
     return visibleSections[0]?.id || defaultSection;
@@ -683,7 +671,8 @@ const RequirementView = () => {
 
   const updateDoc = (d) => {
     setDocs((prev) => {
-      const next = prev.map((x) => (x.id === d.id ? d : x));
+      const exists = prev.some((x) => x.id === d.id);
+      const next = exists ? prev.map((x) => (x.id === d.id ? d : x)) : [d, ...prev];
       return next.filter((x) => x.status === status && x.section === section);
     });
   };
@@ -719,14 +708,40 @@ const RequirementView = () => {
       )}
 
       {!isColetaRegistro && !isPersonnelRegistro && !moduleTab && (
-        <div className="relative max-w-md">
-          <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por título, revisão, responsável, emissão…"
-            className="pl-9"
-          />
+        <div className="flex items-center justify-between gap-3 flex-wrap min-w-0">
+          <div className="relative max-w-md flex-1 min-w-[16rem]">
+            <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por título, revisão, responsável, emissão…"
+              className="pl-9"
+            />
+          </div>
+          {!signatures && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="inline-flex rounded-md border border-border bg-card p-0.5">
+                <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
+                  className={status === "vigente" ? "bg-primary" : ""}
+                  onClick={() => setStatus("vigente")}>Vigentes</Button>
+                <Button type="button" variant={status === "obsoleto" ? "default" : "ghost"} size="sm"
+                  className={status === "obsoleto" ? "bg-primary" : ""}
+                  onClick={() => setStatus("obsoleto")}>Obsoletos</Button>
+              </div>
+              {status === "vigente" && (
+                <CreateDocDialog
+                  tenantId={currentTenantId}
+                  requirement={id}
+                  folderKey={folderKey}
+                  section={section}
+                  sectionLabel={hideSectionTabs ? (folderLabel || "documento") : (section === "documento" ? "documento" : (currentSectionMeta?.label || section))}
+                  simpleMeta={isSimpleDocumentMeta(id, folderKey)}
+                  fileAccept={folderFileAccept(id, folderKey)}
+                  onCreated={onCreated}
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -742,59 +757,17 @@ const RequirementView = () => {
           </div>
           )}
 
-          {!hideSectionTabs && !isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
-            <div className="flex items-center gap-2 flex-wrap ml-auto">
-              <div className="inline-flex rounded-md border border-border bg-card p-0.5">
-                <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
-                  className={status === "vigente" ? "bg-primary" : ""}
-                  onClick={() => setStatus("vigente")}>Vigentes</Button>
-                <Button type="button" variant={status === "obsoleto" ? "default" : "ghost"} size="sm"
-                  className={status === "obsoleto" ? "bg-primary" : ""}
-                  onClick={() => setStatus("obsoleto")}>Obsoletos</Button>
-              </div>
-              {status === "vigente" && !signatures && (
-                <CreateDocDialog
-                  tenantId={currentTenantId}
-                  requirement={id}
-                  folderKey={folderKey}
-                  section={section}
-                  sectionLabel={
-                    section === "documento" ? "documento" : (currentSectionMeta?.label || section)
-                  }
-                  onCreated={onCreated}
-                />
-              )}
-            </div>
-          )}
         </div>
-
-        {hideSectionTabs && !isColetaRegistro && !isPersonnelRegistro && !signatures && !moduleTab && (
-          <div className="flex items-center gap-2 flex-wrap mb-3">
-            <div className="inline-flex rounded-md border border-border bg-card p-0.5">
-              <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
-                className={status === "vigente" ? "bg-primary" : ""}
-                onClick={() => setStatus("vigente")}>Vigentes</Button>
-              <Button type="button" variant={status === "obsoleto" ? "default" : "ghost"} size="sm"
-                className={status === "obsoleto" ? "bg-primary" : ""}
-                onClick={() => setStatus("obsoleto")}>Obsoletos</Button>
-            </div>
-            {status === "vigente" && (
-              <CreateDocDialog
-                tenantId={currentTenantId}
-                requirement={id}
-                folderKey={folderKey}
-                section={section}
-                sectionLabel={folderLabel || "Manual da Qualidade"}
-                onCreated={onCreated}
-              />
-            )}
-          </div>
-        )}
 
         <TabsContent value={section} className="mt-4">
           {masterDocumentTab && canAccessMasterDocuments(user?.role, user) ? (
             <Suspense fallback={<div className="text-muted-foreground text-sm py-8 text-center">A carregar Lista Mestra…</div>}>
-              <MasterDocumentHub tenantId={currentTenantId} tenant={currentTenant} section={section} />
+              <MasterDocumentHub
+                tenantId={currentTenantId}
+                tenant={currentTenant}
+                section={(tabFromUrl && MASTER_LIST_PARENT[tabFromUrl]) ? tabFromUrl : section}
+                isAdmin={isCtliAdmin(user?.role)}
+              />
             </Suspense>
           ) : purchaseOrdersTab ? (
             <PurchaseOrdersListPanel tenantId={currentTenantId} tenant={currentTenant} />

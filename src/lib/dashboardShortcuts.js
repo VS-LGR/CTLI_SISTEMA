@@ -149,15 +149,53 @@ function mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }) {
   };
 }
 
+export const CALIBRATION_SCOPE_OPTIONS = [
+  { value: "scales", label: "Calibração de balanças" },
+  { value: "weights", label: "Calibração de pesos" },
+  { value: "both", label: "Balanças e pesos" },
+];
+
+export function calibrationScopeLabel(value) {
+  return CALIBRATION_SCOPE_OPTIONS.find((o) => o.value === value)?.label || "Balanças e pesos";
+}
+
+function applyCalibrationScope(shortcuts, tenant) {
+  const scope = tenant?.calibration_scope || "both";
+  return shortcuts.map((item) => {
+    if (!item.active) return item;
+    if (scope === "scales" && item.id === "cert-peso") {
+      return {
+        ...item,
+        to: undefined,
+        active: false,
+        keepVisible: true,
+        disabledReason: "Esta empresa calibra balanças. A emissão de certificado de peso padrão não se aplica.",
+      };
+    }
+    if (scope === "weights" && item.id === "cert-balanca") {
+      return {
+        ...item,
+        to: undefined,
+        active: false,
+        keepVisible: true,
+        disabledReason: "Esta empresa calibra pesos. A emissão de certificado de balança não se aplica.",
+      };
+    }
+    return item;
+  }).filter((item) => item.active || item.keepVisible);
+}
+
 /**
  * @returns {Array<{ id: string, label: string, to?: string, bgClass: string, icon: import('react').ComponentType, active: boolean, disabledReason?: string }>}
  */
 export function getVisibleDashboardShortcuts(role, tenant = null, user = null) {
   if (isFieldTechnicianRole(role)) {
-    return HERO_SHORTCUTS
-      .filter((item) => item.module === "coleta")
-      .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() }))
-      .filter((s) => s.active);
+    return applyCalibrationScope(
+      HERO_SHORTCUTS
+        .filter((item) => item.module === "coleta")
+        .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() })),
+      tenant,
+    );
   }
 
   if (role === "diretor") {
@@ -165,26 +203,31 @@ export function getVisibleDashboardShortcuts(role, tenant = null, user = null) {
   }
 
   if (role === "signatario") {
-    return HERO_SHORTCUTS
-      .filter((item) => item.module === "certificados")
-      .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() }))
-      .filter((s) => s.active);
+    return applyCalibrationScope(
+      HERO_SHORTCUTS
+        .filter((item) => item.module === "certificados")
+        .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() })),
+      tenant,
+    );
   }
 
   if (usesClientSidebarNav(role, tenant, user)) {
-    return HERO_SHORTCUTS
-      .filter((item) => CLIENT_ENV_SHORTCUT_IDS.has(item.id))
-      .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() }))
-      .filter((s) => s.active);
+    return applyCalibrationScope(
+      HERO_SHORTCUTS
+        .filter((item) => CLIENT_ENV_SHORTCUT_IDS.has(item.id))
+        .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds: new Set() })),
+      tenant,
+    );
   }
 
   const visibleCadastroIds = new Set(
     getVisibleCadastroSections(role, tenant, user).map((s) => s.id),
   );
 
-  return HERO_SHORTCUTS
-    .map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds }))
-    .filter((s) => s.active);
+  return applyCalibrationScope(
+    HERO_SHORTCUTS.map((item) => mapShortcutItem(item, { role, tenant, user, visibleCadastroIds })),
+    tenant,
+  );
 }
 
 export function firstNameFromUser(user) {

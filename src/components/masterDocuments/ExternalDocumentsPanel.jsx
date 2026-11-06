@@ -58,7 +58,6 @@ export default function ExternalDocumentsPanel({ tenantId }) {
           <thead className="bg-background border-b">
             <tr className="text-[10px] uppercase text-muted-foreground">
               <th className="px-3 py-2 text-left">Título</th>
-              <th className="px-3 py-2 text-left">Órgão</th>
               <th className="px-3 py-2 text-left">Revisão</th>
               <th className="px-3 py-2 text-left">Consulta ant.</th>
               <th className="px-3 py-2 text-left">Última consulta</th>
@@ -68,14 +67,13 @@ export default function ExternalDocumentsPanel({ tenantId }) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {loading && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Nenhum documento externo.</td></tr>}
+            {loading && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum documento externo.</td></tr>}
             {rows.map((r) => {
               const due = getDueStatus(r.next_consultation_date);
               return (
                 <tr key={r.id}>
                   <td className="px-3 py-2">{r.title}</td>
-                  <td className="px-3 py-2 text-xs">{r.issuing_organization}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.external_revision}</td>
                   <td className="px-3 py-2 text-xs">{formatDateBr(r.previous_consultation_date)}</td>
                   <td className="px-3 py-2 text-xs">{formatDateBr(r.last_consultation_date)}</td>

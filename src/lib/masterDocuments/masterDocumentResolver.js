@@ -177,3 +177,15 @@ export function calculateNextCriticalAnalysisDate(lastDate, periodMonths = 24) {
 export function calculateNextExternalConsultationDate(lastDate, periodMonths = 6) {
   return calculateNextCriticalAnalysisDate(lastDate, periodMonths);
 }
+
+/** Válido enquanto a consulta está dentro da periodicidade; senão, pendente. */
+export function deriveExternalValidityStatus({ lastDate, periodMonths = 6, hasRevision = false } = {}) {
+  if (hasRevision) return "revisao_identificada";
+  if (!lastDate) return "pendente_consulta";
+  const next = calculateNextExternalConsultationDate(lastDate, periodMonths || 6);
+  if (!next) return "pendente_consulta";
+  const due = new Date(`${next}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return due < today ? "pendente_consulta" : "valido";
+}

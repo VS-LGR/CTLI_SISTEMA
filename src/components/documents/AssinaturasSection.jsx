@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Trash, Eye } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { createDocument, deleteDocument, uploadDocumentFile } from "@/lib/documentsApi";
+import { createDocument, deleteDocument, attachDocumentFile } from "@/lib/documentsApi";
 import ConfirmDeleteDialog from "@/components/documents/ConfirmDeleteDialog";
 import { useAuth } from "@/context/AuthContext";
 import { signedUrlForDoc } from "@/lib/documentFiles";
@@ -49,9 +49,9 @@ export default function AssinaturasSection({
         folder_key: folderKey,
         section: "assinatura",
         title: title.trim(),
-        status: "vigente",
+        status: "rascunho",
       }, user?.id);
-      await uploadDocumentFile(doc.id, file, user?.id, "");
+      await attachDocumentFile(doc, file, user?.id);
       toast.success("Assinatura cadastrada");
       setOpen(false);
       setTitle("");

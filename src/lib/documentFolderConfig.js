@@ -39,6 +39,21 @@ export const DOCUMENT_SECTIONS = {
   lista_mestra_gerados: { id: "lista_mestra_gerados", label: "Registros Gerados" },
   lista_mestra_alertas: { id: "lista_mestra_alertas", label: "Alertas" },
   lista_mestra_config: { id: "lista_mestra_config", label: "Configurações" },
+  lista_mestra_registro: { id: "lista_mestra_registro", label: "Registro" },
+  lista_mestra_configuracoes: { id: "lista_mestra_configuracoes", label: "Configurações" },
+};
+
+/** Abas antigas da lista mestra continuam a abrir dentro de Registro ou Configurações. */
+export const MASTER_LIST_PARENT = {
+  lista_mestra_internos: "lista_mestra_registro",
+  lista_mestra_externos: "lista_mestra_registro",
+  lista_mestra_software: "lista_mestra_registro",
+  lista_mestra_revisoes: "lista_mestra_registro",
+  lista_mestra_distribuicao: "lista_mestra_registro",
+  lista_mestra_templates: "lista_mestra_configuracoes",
+  lista_mestra_gerados: "lista_mestra_configuracoes",
+  lista_mestra_alertas: "lista_mestra_configuracoes",
+  lista_mestra_config: "lista_mestra_configuracoes",
 };
 
 /** Pastas com regras especiais (requisito 5). Requisito 4 pr-4-1 usa default (procedimento + registro). */
@@ -46,35 +61,41 @@ const FOLDER_MODES = {
   "pr-6-6": {
     sections: ["procedimento", "pedidos_compra", "solicitacoes_orcamento"],
     defaultSection: "procedimento",
-    richEditor: true,
+    richEditor: false,
+    fileOnly: true,
     purchaseOrders: true,
     quotationRequests: true,
   },
   "pr-7-1": {
     sections: ["procedimento", "propostas_comerciais"],
     defaultSection: "procedimento",
-    richEditor: true,
+    richEditor: false,
+    fileOnly: true,
     commercialProposals: true,
   },
   "pr-7-2": {
     sections: ["procedimento", "coleta_dados", "emissao_cert_balancas"],
     defaultSection: "procedimento",
-    richEditor: true,
+    richEditor: false,
+    fileOnly: true,
   },
   "pr-7-2-pesos": {
     sections: ["procedimento", "coleta_dados", "emissao_cert_peso_padrao"],
     defaultSection: "procedimento",
-    richEditor: true,
+    richEditor: false,
+    fileOnly: true,
   },
   "pr-6-4": {
     sections: ["procedimento", "ficha_tecnica", "cronograma_calibracao"],
     defaultSection: "procedimento",
-    richEditor: true,
+    richEditor: false,
+    fileOnly: true,
   },
   "pr-6-4-12": {
     sections: ["procedimento", "verificacao_equipamento", "programa_manutencao"],
     defaultSection: "procedimento",
-    richEditor: true,
+    richEditor: false,
+    fileOnly: true,
   },
   "pr-6-2": {
     sections: [
@@ -87,34 +108,48 @@ const FOLDER_MODES = {
       "registro_6_2f",
     ],
     defaultSection: "registro_6_2a",
-    richEditor: true,
+    richEditor: false,
+    fileOnly: true,
   },
   "manual-qualidade": {
     sections: ["procedimento"],
     defaultSection: "procedimento",
-    richEditor: true,
+    richEditor: false,
+    fileOnly: true,
+    fileAccept: ".pdf,application/pdf",
     hideSectionTabs: true,
     hideSectionNav: true,
   },
-  "documentacao-legal": { sections: ["documento"], defaultSection: "documento", richEditor: false, fileOnly: true },
-  "estrutura-organizacional": { sections: ["registro"], defaultSection: "registro", richEditor: true },
-  "politica-qualidade": { sections: ["registro"], defaultSection: "registro", richEditor: true },
+  "documentacao-legal": {
+    sections: ["documento"],
+    defaultSection: "documento",
+    richEditor: false,
+    fileOnly: true,
+    simpleMeta: true,
+    fileAccept: ".pdf,application/pdf",
+  },
+  "estrutura-organizacional": {
+    sections: ["registro"],
+    defaultSection: "registro",
+    richEditor: false,
+    fileOnly: true,
+    simpleMeta: true,
+    fileAccept: "image/png,image/jpeg,image/webp,application/pdf,.pdf",
+  },
+  "politica-qualidade": {
+    sections: ["registro"],
+    defaultSection: "registro",
+    richEditor: false,
+    fileOnly: true,
+    fileAccept: ".pdf,application/pdf",
+  },
   assinaturas: { sections: ["assinatura"], defaultSection: "assinatura", richEditor: false, signatures: true },
   "pr-8-3": {
-    sections: [
-      "procedimento",
-      "lista_mestra_internos",
-      "lista_mestra_externos",
-      "lista_mestra_software",
-      "lista_mestra_revisoes",
-      "lista_mestra_distribuicao",
-      "lista_mestra_templates",
-      "lista_mestra_gerados",
-      "lista_mestra_alertas",
-      "lista_mestra_config",
-    ],
-    defaultSection: "lista_mestra_internos",
-    richEditor: true,
+    sections: ["procedimento", "lista_mestra_registro", "lista_mestra_configuracoes"],
+    defaultSection: "lista_mestra_registro",
+    richEditor: false,
+    fileOnly: true,
+    fileAccept: ".pdf,application/pdf",
     masterDocumentList: true,
   },
 };
@@ -122,7 +157,9 @@ const FOLDER_MODES = {
 const DEFAULT_MODE = {
   sections: ["procedimento", "registro"],
   defaultSection: "procedimento",
-  richEditor: true,
+  richEditor: false,
+  fileOnly: true,
+  fileAccept: ".pdf,application/pdf",
 };
 
 const SPECIAL_FOLDER_REQ = {
@@ -183,4 +220,33 @@ export function allowsRichEditor(requirementId, folderKey) {
 
 export function isMasterDocumentListFolder(requirementId, folderKey) {
   return getFolderDocumentMode(requirementId, folderKey).masterDocumentList === true;
+}
+
+export function folderFileAccept(requirementId, folderKey) {
+  return getFolderDocumentMode(requirementId, folderKey).fileAccept || ".pdf,application/pdf";
+}
+
+export function isSimpleDocumentMeta(requirementId, folderKey) {
+  return getFolderDocumentMode(requirementId, folderKey).simpleMeta === true;
+}
+
+/** Onde um PDF da lista mestra deve ficar, a partir do código e do tipo. */
+export function routeForMasterDocument({ code = "", type = "", category = "", system_folder_key = "" }) {
+  const codeText = String(code || "");
+  const kind = `${type} ${category}`.toLowerCase();
+  if (/^MQ-/i.test(codeText) || kind.includes("manual")) {
+    return { requirement: "5", folderKey: "manual-qualidade", section: "procedimento" };
+  }
+  if (kind.includes("politica") || kind.includes("política")) {
+    return { requirement: "5", folderKey: "politica-qualidade", section: "registro" };
+  }
+  if (String(category) === "Documento" || type === "documento_interno") {
+    return { requirement: "5", folderKey: "documentacao-legal", section: "documento" };
+  }
+  const folder = SPECIAL_FOLDER_REQ[system_folder_key] ? system_folder_key : "";
+  if (!folder) return null;
+  const section = kind.includes("registro") ? "registro" : "procedimento";
+  const mode = FOLDER_MODES[folder];
+  const resolvedSection = mode?.sections?.includes(section) ? section : (mode?.sections?.[0] || "procedimento");
+  return { requirement: SPECIAL_FOLDER_REQ[folder], folderKey: folder, section: resolvedSection };
 }

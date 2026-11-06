@@ -8,7 +8,7 @@ export function validateDocumentBeforeActivation(doc) {
   if (!doc.current_issue_date) errors.push("Data de emissão obrigatória");
   if (!doc.status) errors.push("Status obrigatório");
   if (!doc.approval_responsible_id) errors.push("Responsável pela aprovação obrigatório");
-  if (doc.type === "registro" && !doc.retention_time) {
+  if (doc.type === "registro" && !doc.retention_time && !String(doc.retention_unit || "").trim()) {
     errors.push("Tempo de retenção obrigatório para registros");
   }
   if (doc.template_key) {

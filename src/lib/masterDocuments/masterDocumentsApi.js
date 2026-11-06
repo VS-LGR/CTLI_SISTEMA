@@ -109,11 +109,14 @@ export async function updateMasterDocument(tenantId, id, payload, options = {}) 
   assertSupabaseMasterDocuments();
   const before = options.before || await getMasterDocument(tenantId, id);
   const updates = { ...payload };
-  if (payload.last_critical_analysis_date !== undefined) {
+  const analysisBase = payload.last_critical_analysis_date || payload.current_issue_date || before?.current_issue_date;
+  if (analysisBase) {
     updates.next_critical_analysis_date = calculateNextCriticalAnalysisDate(
-      payload.last_critical_analysis_date,
-      payload.critical_analysis_period_months || 24,
+      analysisBase,
+      payload.critical_analysis_period_months || before?.critical_analysis_period_months || 24,
     );
+  } else if (before?.next_critical_analysis_date) {
+    updates.next_critical_analysis_date = before.next_critical_analysis_date;
   }
   const { data, error } = await supabase
     .from("master_documents")

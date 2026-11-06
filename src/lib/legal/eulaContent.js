@@ -29,7 +29,7 @@ export const EULA_SECTIONS = [
     id: "conta",
     title: "3. Conta, acesso e responsabilidade do Cliente",
     paragraphs: [
-      "O acesso ao Serviço exige credenciais individuais. O Cliente é responsável por manter a confidencialidade das senhas, por gerir os utilizadores do seu ambiente e por todas as atividades realizadas sob as suas contas.",
+      "O acesso ao Serviço exige credenciais individuais. O acesso é sempre solicitado à CTLI e justificado como funcionário da organização. Não é permitido o uso por prestadores de serviços. O Cliente é responsável por manter a confidencialidade das senhas e por todas as atividades realizadas sob as suas contas.",
       "O Cliente deve notificar a CTLI sem demora injustificada em caso de suspeita de acesso não autorizado ou comprometimento de credenciais.",
       "Cada ambiente (tenant) e os dados nele armazenados pertencem ao Cliente titular, sem prejuízo dos direitos de propriedade intelectual da CTLI sobre o software, marcas e documentação do Serviço.",
     ],
@@ -39,21 +39,23 @@ export const EULA_SECTIONS = [
     title: "4. Uso permitido",
     paragraphs: [
       `O Cliente recebe o direito limitado, não exclusivo, intransferível e não sublicenciável de utilizar o ${PRODUCT_NAME} exclusivamente para as finalidades operacionais e de qualidade da sua organização, dentro do ambiente autorizado.`,
-      "É permitido o uso por colaboradores e prestadores devidamente autorizados pelo Cliente, sob a responsabilidade deste.",
+      "É permitido o uso somente por funcionários devidamente autorizados pela CTLI, sob a responsabilidade do Cliente. Não é permitido o uso por prestadores de serviços.",
     ],
   },
   {
     id: "uso-proibido",
     title: "5. Uso proibido",
     paragraphs: [
-      "É expressamente proibido, salvo autorização prévia e escrita da CTLI:",
+      "Salvo autorização prévia, expressa e por escrito da CTLI, o licenciado não poderá, sob pena de responsabilidade civil e criminal:",
     ],
     bullets: [
-      "Copiar, modificar, distribuir, vender, alugar, sublicenciar ou de outra forma explorar comercialmente o software, a interface, a documentação ou partes destes;",
-      "Realizar engenharia reversa, descompilação ou tentativa de obter o código-fonte, salvo na medida em que a lei aplicável o permita de forma imperativa;",
-      "Remover, ocultar ou alterar avisos de copyright, marcas ou direitos reservados da CTLI ou do QUATI;",
-      "Utilizar o Serviço de forma ilícita, fraudulenta, ou que prejudique a segurança, a disponibilidade ou a integridade do sistema ou de terceiros;",
-      "Partilhar credenciais de forma indevida ou conceder acesso a pessoas não autorizadas pelo titular do ambiente.",
+      "Copiar, duplicar ou reproduzir: fazer cópias totais ou parciais do sistema, de seus módulos, código-fonte, interface, bases de dados ou documentação associada, por qualquer meio ou técnica.",
+      "Transferir, ceder ou disponibilizar a terceiros: vender, alugar, sublicenciar, emprestar, doar, compartilhar, ceder, transmitir ou de qualquer outra forma disponibilizar o acesso ao sistema ou às suas credenciais de uso a terceiros, pessoas físicas ou jurídicas.",
+      "Modificar ou criar derivados: alterar, adaptar, traduzir, customizar, integrar ou criar obras derivadas com base no sistema ou em qualquer parte dele.",
+      "Engenharia reversa: fazer engenharia reversa, descompilar, desmontar, traduzir ou tentar extrair o código-fonte do sistema ou de seus componentes.",
+      "Uso como prestação de serviços: utilizar o sistema para prestar serviços a terceiros, operar em regime de tempo compartilhado (time-sharing) ou como provedor de serviços de aplicação (bureau de processamento de dados).",
+      "Remover, ocultar ou alterar avisos de copyright, marcas ou direitos reservados da CTLI ou do QUATI.",
+      "Utilizar o Serviço de forma ilícita, fraudulenta, ou que prejudique a segurança, a disponibilidade ou a integridade do sistema ou de terceiros.",
     ],
   },
   {

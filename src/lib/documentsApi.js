@@ -289,6 +289,41 @@ export async function uploadDocumentFile(docId, file, userId, contentHtml) {
   return uploadFileApi(docId, file);
 }
 
+/**
+ * Guarda o ficheiro sem alterar o conteúdo de um documento já vigente.
+ * Documento vazio passa a rascunho, recebe o ficheiro e volta a vigente.
+ * Documento vigente que já tem ficheiro é obsoletado e a nova cópia fica vigente.
+ */
+export async function attachDocumentFile(doc, file, userId) {
+  if (!doc?.id) throw new Error("Documento não encontrado");
+  if (doc.status === "vigente" && doc.has_file) {
+    await updateDocument(doc.id, { status: "obsoleto" }, userId);
+    const created = await createDocument({
+      tenant_id: doc.tenant_id,
+      requirement: doc.requirement,
+      folder_key: doc.folder_key,
+      section: doc.section,
+      title: doc.title,
+      code: doc.code,
+      version: doc.version,
+      responsible: doc.responsible,
+      review_date: doc.review_date,
+      content_html: "",
+      status: "rascunho",
+      master_document_id: doc.master_document_id || null,
+    }, userId);
+    const uploaded = await uploadDocumentFile(created.id, file, userId, null);
+    return updateDocument(uploaded.id, { status: "vigente" }, userId);
+  }
+  let current = doc;
+  if (current.status === "vigente") {
+    current = await updateDocument(doc.id, { status: "rascunho" }, userId);
+  }
+  const uploaded = await uploadDocumentFile(current.id, file, userId, null);
+  if (uploaded.status === "vigente") return uploaded;
+  return updateDocument(uploaded.id, { status: "vigente" }, userId);
+}
+
 /** Guarda ArrayBuffer .docx no Storage (editor nativo docx-editor). */
 export async function uploadDocxBuffer(docId, arrayBuffer, fileName, userId, contentHtml) {
   const name = fileName?.endsWith(".docx") ? fileName : `${(fileName || "documento").replace(/\.[^.]+$/, "")}.docx`;

@@ -29,7 +29,10 @@ export async function ensureStandardOptionsSeeded(tenantId) {
 
   const rows = [];
   for (const [category, labels] of Object.entries(PERSONNEL_DEFAULT_OPTIONS)) {
+    const seen = new Set();
     labels.forEach((label, i) => {
+      if (seen.has(label)) return;
+      seen.add(label);
       const key = `${category}\0${label}`;
       if (!existingKeys.has(key)) {
         rows.push({
@@ -46,9 +49,12 @@ export async function ensureStandardOptionsSeeded(tenantId) {
 
   if (rows.length === 0) return existing;
 
-  const { data, error } = await supabase.from("personnel_standard_options").insert(rows).select();
+  const { error } = await supabase.from("personnel_standard_options").upsert(rows, {
+    onConflict: "tenant_id,category,label",
+    ignoreDuplicates: true,
+  });
   if (error) throw error;
-  return [...existing, ...(data || [])];
+  return listStandardOptions(tenantId, { activeOnly: false });
 }
 
 export async function loadOptionsByCategory(tenantId) {

@@ -11,16 +11,16 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { isCtliAdmin } from "@/lib/roles";
+import { roleLabel } from "@/lib/roles";
 import {
   createMasterDocument,
   updateMasterDocument,
-  listFileNamingRules,
 } from "@/lib/masterDocuments/masterDocumentsApi";
+import { createDocument, attachDocumentFile } from "@/lib/documentsApi";
+import { routeForMasterDocument } from "@/lib/documentFolderConfig";
 import {
   MASTER_DOCUMENT_TYPES,
   MASTER_DOCUMENT_STATUSES,
-  MASTER_DOCUMENT_CATEGORIES,
 } from "@/lib/masterDocuments/masterDocumentConstants";
 import { validateDocumentBeforeActivation } from "@/lib/masterDocuments/masterDocumentValidation";
 import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
@@ -60,6 +60,22 @@ const EMPTY = {
   critical_analysis_period_months: 24,
 };
 
+const CATEGORY_OPTIONS = ["Registro", "Procedimento", "Documento"];
+const STORAGE_OPTIONS = [
+  "Eletrônico na pasta do Sistema de Gestão da Qualidade",
+  "Físico em Pasta",
+  "Pasta Suspensa",
+];
+const PROTECTION_OPTIONS = ["Senha", "Arquivo"];
+
+function retentionTextFrom(doc) {
+  if (!doc) return "";
+  const unit = String(doc.retention_unit || "");
+  if (unit && !["anos", "meses", "dias"].includes(unit)) return unit;
+  if (doc.retention_time) return `${doc.retention_time} ${unit || "anos"}`.trim();
+  return "";
+}
+
 function ResponsibleSelect({ label, value, onChange, responsibles }) {
   return (
     <div>
@@ -70,7 +86,7 @@ function ResponsibleSelect({ label, value, onChange, responsibles }) {
           <SelectItem value="__none">—</SelectItem>
           {responsibles.map((r) => (
             <SelectItem key={r.id} value={r.id}>
-              {r.name}{r.role ? ` (${r.role})` : ""}
+              {r.name}{r.role ? ` — ${roleLabel(r.role)}` : ""}
             </SelectItem>
           ))}
         </SelectContent>
@@ -81,9 +97,9 @@ function ResponsibleSelect({ label, value, onChange, responsibles }) {
 
 export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId, document, onSaved }) {
   const { user } = useAuth();
-  const showTemplateFields = isCtliAdmin(user?.role);
   const [form, setForm] = useState(EMPTY);
-  const [namingRules, setNamingRules] = useState([]);
+  const [retentionText, setRetentionText] = useState("");
+  const [pdfFile, setPdfFile] = useState(null);
   const [responsibles, setResponsibles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [obsRbcText, setObsRbcText] = useState("");
@@ -91,7 +107,7 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
 
   useEffect(() => {
     if (open) {
-      listFileNamingRules().then(setNamingRules).catch(() => setNamingRules([]));
+      setPdfFile(null);
       if (tenantId) {
         loadTenantResponsibles(tenantId).then(setResponsibles).catch(() => setResponsibles([]));
       }
@@ -106,6 +122,7 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
         }
         : { ...EMPTY };
       setForm(nextForm);
+      setRetentionText(retentionTextFrom(document));
       const obs = getCertificateObservationsFromConfig(nextForm.export_template_config);
       setObsRbcText(observationsArrayToLines(obs?.rbc));
       setObsRastreavelText(observationsArrayToLines(obs?.rastreavel));
@@ -114,25 +131,21 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const onNamingRuleChange = (ruleName) => {
-    const rule = namingRules.find((r) => r.name === ruleName);
-    set("file_naming_rule", ruleName);
-    if (rule) set("export_file_name_pattern", rule.pattern);
-  };
-
   const save = async () => {
     if (!tenantId) return;
     if (!form.title?.trim()) {
       toast.error("Título obrigatório");
       return;
     }
+    const retentionNumber = Number.parseInt(String(retentionText).trim(), 10);
     const payloadBase = {
       ...form,
       emission_responsible_id: form.emission_responsible_id || null,
       analysis_responsible_id: form.analysis_responsible_id || null,
       approval_responsible_id: form.approval_responsible_id || null,
       quality_management_responsible_id: form.quality_management_responsible_id || null,
-      retention_time: form.retention_time ? Number(form.retention_time) : null,
+      retention_time: Number.isFinite(retentionNumber) ? retentionNumber : null,
+      retention_unit: retentionText.trim(),
       critical_analysis_period_months: form.critical_analysis_period_months
         ? Number(form.critical_analysis_period_months)
         : 24,
@@ -152,16 +165,40 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
     }
     setBusy(true);
     try {
+      let saved;
       if (document?.id) {
-        await updateMasterDocument(tenantId, document.id, payloadBase);
+        saved = await updateMasterDocument(tenantId, document.id, payloadBase);
         toast.success("Documento atualizado");
       } else {
-        await createMasterDocument(tenantId, payloadBase);
+        saved = await createMasterDocument(tenantId, payloadBase);
         toast.success("Documento criado");
+      }
+      if (pdfFile && saved?.id) {
+        const route = routeForMasterDocument(saved);
+        if (!route) {
+          toast.error("O PDF não foi encaminhado: use um código como PR-8.3 ou MQ-000 para indicar o requisito.");
+        } else {
+          const holder = await createDocument({
+            tenant_id: tenantId,
+            requirement: route.requirement,
+            folder_key: route.folderKey,
+            section: route.section,
+            title: saved.title,
+            code: saved.code,
+            version: saved.current_revision,
+            status: "rascunho",
+            master_document_id: saved.id,
+          }, user?.id);
+          await attachDocumentFile(holder, pdfFile, user?.id);
+          toast.success("PDF guardado no requisito correspondente.");
+        }
       }
       onSaved?.();
     } catch (e) {
-      toast.error(e.message || "Falha ao guardar");
+      const duplicate = e?.code === "23505" || String(e?.message || "").includes("idx_master_documents_unique_code");
+      toast.error(duplicate
+        ? "Já existe um documento com este código. A revisão seguinte entra no histórico desse documento, sem criar outro código."
+        : (e.message || "Falha ao guardar"));
     } finally {
       setBusy(false);
     }
@@ -219,50 +256,51 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
             </div>
             <div>
               <Label>Categoria</Label>
-              <Select value={form.category || "_"} onValueChange={(v) => set("category", v === "_" ? "" : v)}>
+              <Select value={CATEGORY_OPTIONS.includes(form.category) ? form.category : "_"} onValueChange={(v) => set("category", v === "_" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_">—</SelectItem>
-                  {MASTER_DOCUMENT_CATEGORIES.map((c) => (
+                  {CATEGORY_OPTIONS.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Data de emissão</Label>
-              <Input type="date" value={form.current_issue_date || ""} onChange={(e) => set("current_issue_date", e.target.value)} />
-            </div>
-            <div>
-              <Label>Módulo vinculado</Label>
-              <Input value={form.linked_module} onChange={(e) => set("linked_module", e.target.value)} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Departamento</Label>
-              <Input value={form.department} onChange={(e) => set("department", e.target.value)} />
-            </div>
-            <div>
-              <Label>Processo relacionado</Label>
-              <Input value={form.related_process} onChange={(e) => set("related_process", e.target.value)} />
-            </div>
+          <div>
+            <Label>Data de emissão</Label>
+            <Input type="date" value={form.current_issue_date || ""} onChange={(e) => set("current_issue_date", e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Local de armazenamento</Label>
-              <Input value={form.storage_location} onChange={(e) => set("storage_location", e.target.value)} />
+              <Select value={STORAGE_OPTIONS.includes(form.storage_location) ? form.storage_location : "_"} onValueChange={(v) => set("storage_location", v === "_" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_">—</SelectItem>
+                  {STORAGE_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Proteção</Label>
-              <Input value={form.protection_method} onChange={(e) => set("protection_method", e.target.value)} placeholder="PDF / capa plástica" />
+              <Select value={PROTECTION_OPTIONS.includes(form.protection_method) ? form.protection_method : "_"} onValueChange={(v) => set("protection_method", v === "_" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_">—</SelectItem>
+                  {PROTECTION_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div>
-            <Label>Método de distribuição</Label>
-            <Input value={form.distribution_method} onChange={(e) => set("distribution_method", e.target.value)} />
+            <Label>PDF do documento</Label>
+            <Input type="file" accept=".pdf,application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />
+            <p className="text-xs text-muted-foreground mt-1">O PDF é guardado no requisito indicado pelo código.</p>
           </div>
           <div className="rounded-md border border-border bg-background p-3 space-y-3">
             <p className="text-xs font-medium text-foreground/90">Responsáveis (obrigatório para ativar)</p>
@@ -293,34 +331,10 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
               />
             </div>
           </div>
-          {showTemplateFields && (
-            <>
-              <div>
-                <Label>Template key</Label>
-                <Input value={form.template_key} onChange={(e) => set("template_key", e.target.value)} placeholder="re-62a-adequacao-competencia-pdf" />
-              </div>
-              <div>
-                <Label>Regra de nome do arquivo</Label>
-                <Select value={form.file_naming_rule || "_"} onValueChange={(v) => onNamingRuleChange(v === "_" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar regra" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_">—</SelectItem>
-                    {namingRules.map((r) => (
-                      <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Padrão de exportação</Label>
-                <Input value={form.export_file_name_pattern} onChange={(e) => set("export_file_name_pattern", e.target.value)} className="font-mono text-xs" />
-              </div>
-            </>
-          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Retenção</Label>
-              <Input type="number" value={form.retention_time ?? ""} onChange={(e) => set("retention_time", e.target.value)} />
+              <Input value={retentionText} onChange={(e) => setRetentionText(e.target.value)} placeholder="Ex.: 5 anos" />
             </div>
             <div>
               <Label>Período análise crítica (meses)</Label>

@@ -12,7 +12,7 @@ import { Plus, Buildings, UserPlus, Trash, Users, PencilSimple } from "@phosphor
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ROLES, RESPONSIBLE_ROLES, roleShort } from "@/lib/roles";
-import { DEPLOYMENT_MODEL_OPTIONS, deploymentModelLabel } from "@/lib/tenantAccess";
+import { CALIBRATION_SCOPE_OPTIONS, calibrationScopeLabel } from "@/lib/dashboardShortcuts";
 import { TENANT_BRANDING_BUCKET, tenantLogoStoragePath } from "@/lib/tenantBranding";
 import {
   DEFAULT_COLETA_FORM_CODE,
@@ -67,7 +67,7 @@ const AdminClients = () => {
   const [tName, setTName] = useState("");
   const [tCode, setTCode] = useState("");
   const [tDesc, setTDesc] = useState("");
-  const [tDeploymentModel, setTDeploymentModel] = useState("full");
+  const [tCalibrationScope, setTCalibrationScope] = useState("both");
   const [tLogoFile, setTLogoFile] = useState(null);
   const [tLogoPreview, setTLogoPreview] = useState("");
   const [tLogoPath, setTLogoPath] = useState("");
@@ -103,7 +103,7 @@ const AdminClients = () => {
     setTName("");
     setTCode("");
     setTDesc("");
-    setTDeploymentModel("full");
+    setTCalibrationScope("both");
     setTLogoFile(null);
     setTLogoPreview("");
     setTLogoPath("");
@@ -283,7 +283,8 @@ const AdminClients = () => {
             coleta_form_code: tColetaCode.trim() || DEFAULT_COLETA_FORM_CODE,
             coleta_form_title: tColetaTitle.trim() || DEFAULT_COLETA_FORM_TITLE,
             coleta_form_revision: tColetaRev.trim() || DEFAULT_COLETA_FORM_REVISION,
-            deployment_model: tDeploymentModel,
+            deployment_model: "full",
+            calibration_scope: tCalibrationScope || "both",
             ...billingPatch(),
           };
           if (logoPath) patch.logo_storage_path = logoPath;
@@ -300,7 +301,8 @@ const AdminClients = () => {
               coleta_form_code: tColetaCode.trim() || DEFAULT_COLETA_FORM_CODE,
               coleta_form_title: tColetaTitle.trim() || DEFAULT_COLETA_FORM_TITLE,
               coleta_form_revision: tColetaRev.trim() || DEFAULT_COLETA_FORM_REVISION,
-              deployment_model: tDeploymentModel,
+              deployment_model: "full",
+            calibration_scope: tCalibrationScope || "both",
               ...billingPatch(),
             })
             .select("id")
@@ -333,7 +335,7 @@ const AdminClients = () => {
     setTName(t.name);
     setTCode(t.code || "");
     setTDesc(t.description || "");
-    setTDeploymentModel(t.deployment_model || "full");
+    setTCalibrationScope(t.calibration_scope || "both");
     setTLogoFile(null);
     setTLogoPath(t.logo_storage_path || "");
     setTColetaCode(t.coleta_form_code || DEFAULT_COLETA_FORM_CODE);
@@ -816,34 +818,20 @@ const AdminClients = () => {
                   <Input value={tDesc} onChange={(e) => setTDesc(e.target.value)} />
                 </div>
                 <div>
-                  <Label>Modelo do ambiente</Label>
+                  <Label>Atividade do laboratório</Label>
                   <select
-                    value={tDeploymentModel}
-                    onChange={(e) => setTDeploymentModel(e.target.value)}
+                    value={tCalibrationScope}
+                    onChange={(e) => setTCalibrationScope(e.target.value)}
                     className="w-full border border-border rounded-md h-10 px-3 mt-1 text-sm bg-card"
-                    data-testid="tenant-deployment-model"
+                    data-testid="tenant-calibration-scope"
                   >
-                    {DEPLOYMENT_MODEL_OPTIONS.map((o) => (
+                    {CALIBRATION_SCOPE_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <Label className="text-foreground/90 font-medium">Formulário RE-7.2A</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-                    <div className="min-w-0">
-                      <Label className="text-xs">Código</Label>
-                      <Input value={tColetaCode} onChange={(e) => setTColetaCode(e.target.value)} />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="text-xs">Título</Label>
-                      <Input value={tColetaTitle} onChange={(e) => setTColetaTitle(e.target.value)} />
-                    </div>
-                    <div className="min-w-0 sm:col-span-2 lg:col-span-1">
-                      <Label className="text-xs">Revisão / data</Label>
-                      <Input value={tColetaRev} onChange={(e) => setTColetaRev(e.target.value)} />
-                    </div>
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Define qual emissão de certificado fica disponível na dashboard. O controlo do formulário fica no requisito 8.3.
+                  </p>
                 </div>
                 {isSupabaseAuthMode && (
                   <div>
@@ -991,7 +979,7 @@ const AdminClients = () => {
               <div className="min-w-0">
                 <CardTitle className="font-display text-lg truncate">{t.name}</CardTitle>
                 {t.code && <div className="text-xs font-mono text-muted-foreground mt-0.5">{t.code}</div>}
-                <div className="text-xs text-muted-foreground mt-1">{deploymentModelLabel(t.deployment_model)}</div>
+                <div className="text-xs text-muted-foreground mt-1">{calibrationScopeLabel(t.calibration_scope)}</div>
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
                 {isSupabaseAuthMode && (
