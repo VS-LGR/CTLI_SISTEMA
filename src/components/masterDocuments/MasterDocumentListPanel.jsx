@@ -33,6 +33,7 @@ import { masterDocumentDetailPath } from "@/lib/masterDocuments/masterDocumentRo
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 import { getDueStatus, dueStatusLabel, dueStatusBadgeVariant } from "@/lib/masterDocuments/masterDocumentDueStatus";
 import MasterDocumentFormDialog from "./MasterDocumentFormDialog";
+import MasterDocumentImportPanel from "./MasterDocumentImportPanel";
 import ObsoleteDocumentDialog from "./ObsoleteDocumentDialog";
 
 export default function MasterDocumentListPanel({ tenantId, filters: extraFilters = {} }) {
@@ -132,6 +133,9 @@ export default function MasterDocumentListPanel({ tenantId, filters: extraFilter
 
   return (
     <div className="space-y-4">
+      {!systemOnly && (
+        <MasterDocumentImportPanel tenantId={tenantId} onImported={load} />
+      )}
       <div className="flex flex-wrap gap-2 items-end justify-between">
         <div className="flex flex-wrap gap-2 items-end">
           <Input

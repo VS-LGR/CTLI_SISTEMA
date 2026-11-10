@@ -34,7 +34,9 @@ import {
   formatDocumentError,
   updateDocument,
   deleteDocument,
-  attachDocumentFile,
+  uploadDocumentFile,
+  commitRevisionUpload,
+  findVigenteFileForMaster,
   exportDocumentBlob,
   downloadOriginalFile,
   toggleDocumentPin,
@@ -78,6 +80,12 @@ import { shouldSyncTenantDocumentToMasterList } from "@/lib/masterDocuments/sync
 import AssinaturasSection from "@/components/documents/AssinaturasSection";
 import { findMasterDocumentByCode } from "@/lib/masterDocuments/masterDocumentsApi";
 import { inferProcedureCodeFromFolder } from "@/lib/masterDocuments/masterDocumentRoutes";
+import FolderRevisionUploadDialog from "@/components/documents/FolderRevisionUploadDialog";
+import {
+  canCommitUploadAction,
+  decideUploadAction,
+  uploadActionHint,
+} from "@/lib/documents/documentUploadPlan";
 
 const ColetaPage = lazy(() => import("@/pages/ColetaPage"));
 const WeightColetaPage = lazy(() => import("@/pages/WeightColetaPage"));
@@ -121,11 +129,36 @@ const CreateDocDialog = ({
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [responsibles, setResponsibles] = useState([]);
+  const [masterDoc, setMasterDoc] = useState(null);
+  const [masterHasFile, setMasterHasFile] = useState(false);
 
   useEffect(() => {
-    if (!open || !tenantId) return;
+    if (!open || !tenantId) return undefined;
     loadTenantResponsibles(tenantId).then(setResponsibles).catch(() => setResponsibles([]));
-  }, [open, tenantId]);
+    const procCode = inferProcedureCodeFromFolder(folderKey);
+    if (!procCode) {
+      setMasterDoc(null);
+      setMasterHasFile(false);
+      return undefined;
+    }
+    let cancelled = false;
+    findMasterDocumentByCode(tenantId, procCode).then(async (doc) => {
+      if (cancelled) return;
+      setMasterDoc(doc);
+      if (!doc?.id) {
+        setMasterHasFile(false);
+        return;
+      }
+      const vigente = await findVigenteFileForMaster(tenantId, doc.id);
+      if (!cancelled) setMasterHasFile(Boolean(vigente?.has_file));
+    }).catch(() => {
+      if (!cancelled) {
+        setMasterDoc(null);
+        setMasterHasFile(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [open, tenantId, folderKey]);
 
   useEffect(() => {
     if (!open) {
@@ -156,17 +189,41 @@ const CreateDocDialog = ({
         status: "vigente",
       };
       if (requiresFolderNav(requirement) && folderKey) body.folder_key = folderKey;
-      const procCode = inferProcedureCodeFromFolder(folderKey);
-      if (procCode && tenantId) {
-        try {
-          const masterDoc = await findMasterDocumentByCode(tenantId, procCode);
-          if (masterDoc?.id) body.master_document_id = masterDoc.id;
-        } catch { /* optional link */ }
+      if (masterDoc?.id) body.master_document_id = masterDoc.id;
+
+      if (file && masterDoc?.id) {
+        const vigente = await findVigenteFileForMaster(tenantId, masterDoc.id);
+        const action = decideUploadAction({
+          matched: true,
+          incomingRevision: simpleMeta ? "00" : revision,
+          currentRevision: masterDoc.current_revision,
+          hasVigenteFile: Boolean(vigente?.has_file),
+        });
+        if (!canCommitUploadAction(action)) {
+          toast.info(uploadActionHint(action, masterDoc.current_revision));
+          return;
+        }
+        const data = await commitRevisionUpload({
+          ...body,
+          code: masterDoc.code,
+          id: vigente?.id,
+          status: vigente?.status,
+          has_file: Boolean(vigente?.has_file),
+          version: vigente?.version,
+        }, file, user?.id, { version: simpleMeta ? "00" : revision, action });
+        setOpen(false);
+        toast.success(action === "archive_only"
+          ? "PDF arquivado no histórico. A revisão vigente mantém-se."
+          : "Documento criado com o PDF.");
+        onCreated?.(data);
+        return;
       }
-      let data = await createDocument({ ...body, status: file ? "rascunho" : "vigente" }, user?.id);
+
       if (file) {
+        let data = await createDocument({ ...body, status: "obsoleto" }, user?.id);
         try {
-          data = await attachDocumentFile(data, file, user?.id);
+          data = await uploadDocumentFile(data.id, file, user?.id, null);
+          data = await updateDocument(data.id, { status: "vigente" }, user?.id);
           setOpen(false);
           toast.success("Documento criado com o PDF.");
           onCreated?.(data);
@@ -179,6 +236,8 @@ const CreateDocDialog = ({
           return;
         }
       }
+
+      const data = await createDocument({ ...body, status: "vigente" }, user?.id);
       toast.success("Documento criado");
       setOpen(false);
       onCreated?.(data);
@@ -283,6 +342,16 @@ const CreateDocDialog = ({
                   : "O documento fica guardado em PDF, para consulta e descarga."}
               </p>
             )}
+            {file && masterDoc && !simpleMeta && (
+              <p className="text-xs text-foreground/90 mt-1.5">
+                {uploadActionHint(decideUploadAction({
+                  matched: true,
+                  incomingRevision: revision,
+                  currentRevision: masterDoc.current_revision,
+                  hasVigenteFile: masterHasFile,
+                }), masterDoc.current_revision)}
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>
@@ -323,11 +392,12 @@ function DocDeleteDialogs({ doc, deleteOpen, setDeleteOpen, remove, busy }) {
   );
 }
 
-const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
+const DocRow = ({ doc, variant, onUpdate, onDelete, onReload, fileOnly = false, tenantId }) => {
   const { user } = useAuth();
   const fileInputRef = React.useRef();
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
   const isVigente = variant === "vigente";
   const usesDocxEditor = documentUsesDocxEditor(doc);
   const prefetchEditor = usesDocxEditor ? scheduleDocxEditorPreload : undefined;
@@ -356,13 +426,29 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
     }
   };
 
-  const uploadFile = async (file) => {
+  const confirmUpload = async ({ revision, action }) => {
     setBusy(true);
     try {
-      const data = await attachDocumentFile(doc, file, user?.id);
-      toast.success(doc.has_file ? "Nova revisão guardada em PDF. A anterior ficou obsoleta." : "PDF guardado.");
-      if (data.id !== doc.id) onDelete?.(doc.id);
-      onUpdate?.(data);
+      let template = doc;
+      if (action === "become_vigente" && doc.master_document_id && tenantId) {
+        const vigente = await findVigenteFileForMaster(tenantId, doc.master_document_id);
+        if (vigente?.id) {
+          template = {
+            ...doc,
+            id: vigente.id,
+            status: vigente.status,
+            has_file: vigente.has_file,
+            version: vigente.version,
+            master_document_id: doc.master_document_id,
+          };
+        }
+      }
+      await commitRevisionUpload(template, pendingFile, user?.id, { version: revision, action });
+      toast.success(action === "archive_only"
+        ? "Revisão anterior guardada no histórico. A vigente não mudou."
+        : "Revisão vigente atualizada. A anterior ficou no histórico.");
+      setPendingFile(null);
+      onReload?.();
     } catch (err) {
       console.error("[DocRow] upload", err);
       toast.error(formatDocumentError(err));
@@ -425,7 +511,11 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
       <td className="px-4 py-3 text-sm text-muted-foreground">{doc.review_date || "—"}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end flex-wrap">
-          <input ref={fileInputRef} type="file" hidden accept={fileOnly ? ".pdf,application/pdf" : ".doc,.docx,.pdf"} onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
+          <input ref={fileInputRef} type="file" hidden accept={fileOnly ? ".pdf,application/pdf" : ".doc,.docx,.pdf"} onChange={(e) => {
+            const picked = e.target.files?.[0];
+            e.target.value = "";
+            if (picked) setPendingFile(picked);
+          }} />
           {isVigente && (
             <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={busy} title="Upload">
               <Upload size={16} />
@@ -467,11 +557,20 @@ const DocRow = ({ doc, variant, onUpdate, onDelete, fileOnly = false }) => {
         remove={remove}
         busy={busy}
       />
+      <FolderRevisionUploadDialog
+        open={Boolean(pendingFile)}
+        onOpenChange={(next) => { if (!next) setPendingFile(null); }}
+        file={pendingFile}
+        doc={doc}
+        tenantId={tenantId || doc.tenant_id}
+        busy={busy}
+        onConfirm={confirmUpload}
+      />
     </tr>
   );
 };
 
-const DocTable = ({ docs, variant, onUpdate, onDelete, fileOnly = false }) => {
+const DocTable = ({ docs, variant, onUpdate, onDelete, onReload, fileOnly = false, tenantId }) => {
   const list = Array.isArray(docs) ? docs : [];
   return (
     <Card className="border-border overflow-hidden">
@@ -482,7 +581,7 @@ const DocTable = ({ docs, variant, onUpdate, onDelete, fileOnly = false }) => {
               <th className="px-4 py-3">Documento</th>
               <th className="px-4 py-3">Responsável</th>
               <th className="px-4 py-3">Próx. revisão</th>
-              <th className="px-4 py-3 text-right">Ações</th>
+              <th className="px-4 py-3 text-right" data-tour="tour-proc-upload">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-card">
@@ -490,7 +589,7 @@ const DocTable = ({ docs, variant, onUpdate, onDelete, fileOnly = false }) => {
               <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-muted-foreground">Nenhum documento aqui ainda.</td></tr>
             )}
             {list.map((d) => (
-              <DocRow key={d.id} doc={d} variant={variant} onUpdate={onUpdate} onDelete={onDelete} fileOnly={fileOnly} />
+              <DocRow key={d.id} doc={d} variant={variant} onUpdate={onUpdate} onDelete={onDelete} onReload={onReload} fileOnly={fileOnly} tenantId={tenantId} />
             ))}
           </tbody>
         </table>
@@ -720,7 +819,7 @@ const RequirementView = () => {
           </div>
           {!signatures && (
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="inline-flex rounded-md border border-border bg-card p-0.5">
+              <div className="inline-flex rounded-md border border-border bg-card p-0.5" data-tour="tour-proc-status">
                 <Button type="button" variant={status === "vigente" ? "default" : "ghost"} size="sm"
                   className={status === "vigente" ? "bg-primary" : ""}
                   onClick={() => setStatus("vigente")}>Vigentes</Button>
@@ -828,6 +927,8 @@ const RequirementView = () => {
               variant={variant}
               onUpdate={updateDoc}
               onDelete={removeDoc}
+              onReload={load}
+              tenantId={currentTenantId}
               fileOnly={fileOnly}
             />
           )}

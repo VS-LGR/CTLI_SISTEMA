@@ -9,6 +9,7 @@ import {
   syncOnTenantDocumentUpdate,
   syncOnTenantDocumentDelete,
 } from "@/lib/masterDocuments/syncTenantDocumentToMasterList";
+import { revisionFromVersion } from "@/lib/documents/documentUploadPlan";
 
 export const TENANT_DOCUMENTS_BUCKET = "tenant-documents";
 
@@ -83,6 +84,7 @@ const LIST_DOCUMENT_COLUMNS = [
   "file_mime",
   "storage_path",
   "pinned_at",
+  "master_document_id",
   "updated_at",
   "created_at",
 ].join(", ");
@@ -290,34 +292,122 @@ export async function uploadDocumentFile(docId, file, userId, contentHtml) {
 }
 
 /**
+ * Guarda o ficheiro numa linha nova.
+ * A linha nasce obsoleta para o trigger permitir o storage_path;
+ * só passa a vigente quando a revisão é a mais recente.
+ * Revisões anteriores ficam obsoletas, com o PDF conservado.
+ */
+export async function commitRevisionUpload(template, file, userId, { version, action } = {}) {
+  if (action !== "become_vigente" && action !== "archive_only") {
+    throw new Error("Esta revisão não substitui o documento vigente.");
+  }
+  if (!template?.tenant_id) throw new Error("Selecione um ambiente no topo.");
+  const versionLabel = revisionFromVersion(version ?? template.version);
+
+  const sameRow = template.id
+    && template.status === "vigente"
+    && !template.has_file
+    && action === "become_vigente"
+    && revisionFromVersion(template.version) === versionLabel;
+
+  let uploaded;
+  if (sameRow) {
+    await updateDocument(template.id, { status: "obsoleto", version: versionLabel }, userId);
+    uploaded = await uploadDocumentFile(template.id, file, userId, null);
+  } else {
+    const created = await createDocument({
+      tenant_id: template.tenant_id,
+      requirement: String(template.requirement),
+      folder_key: template.folder_key,
+      section: template.section,
+      title: template.title,
+      code: template.code || "",
+      version: versionLabel,
+      responsible: template.responsible || "",
+      review_date: template.review_date || null,
+      content_html: "",
+      status: "obsoleto",
+      master_document_id: template.master_document_id || null,
+    }, userId);
+    uploaded = await uploadDocumentFile(created.id, file, userId, null);
+  }
+
+  if (action === "archive_only") return uploaded;
+
+  await retireOtherVigenteCopies(template, uploaded.id, userId);
+  if (uploaded.status === "vigente") return uploaded;
+  return updateDocument(uploaded.id, { status: "vigente" }, userId);
+}
+
+async function retireOtherVigenteCopies(template, uploadedId, userId) {
+  if (template.master_document_id && template.tenant_id && isSupabaseDocumentsEnabled()) {
+    const { data, error } = await supabase
+      .from("tenant_documents")
+      .select("id")
+      .eq("tenant_id", template.tenant_id)
+      .eq("master_document_id", template.master_document_id)
+      .eq("status", "vigente");
+    if (error) throw error;
+    for (const row of data || []) {
+      if (row.id !== uploadedId) {
+        await updateDocument(row.id, { status: "obsoleto" }, userId);
+      }
+    }
+    return;
+  }
+  if (template.id && template.id !== uploadedId && template.status === "vigente") {
+    await updateDocument(template.id, { status: "obsoleto" }, userId);
+  }
+}
+
+export async function findVigenteFileForMaster(tenantId, masterDocumentId) {
+  if (!isSupabaseDocumentsEnabled() || !tenantId || !masterDocumentId) return null;
+  const { data, error } = await supabase
+    .from("tenant_documents")
+    .select(LIST_DOCUMENT_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("master_document_id", masterDocumentId)
+    .eq("status", "vigente")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data) : null;
+}
+
+export async function listVigenteFilesForTenant(tenantId) {
+  if (!isSupabaseDocumentsEnabled() || !tenantId) return [];
+  const { data, error } = await supabase
+    .from("tenant_documents")
+    .select("id, master_document_id, status, has_file, version, storage_path, title, code, requirement, folder_key, section, review_date, responsible")
+    .eq("tenant_id", tenantId)
+    .eq("status", "vigente");
+  if (error) throw error;
+  return (data || []).map(mapRow);
+}
+
+/**
  * Guarda o ficheiro sem alterar o conteúdo de um documento já vigente.
- * Documento vazio passa a rascunho, recebe o ficheiro e volta a vigente.
+ * Documento vazio passa a obsoleto, recebe o ficheiro e volta a vigente.
  * Documento vigente que já tem ficheiro é obsoletado e a nova cópia fica vigente.
  */
-export async function attachDocumentFile(doc, file, userId) {
+export async function attachDocumentFile(doc, file, userId, options = {}) {
   if (!doc?.id) throw new Error("Documento não encontrado");
+  if (options.action === "become_vigente" || options.action === "archive_only") {
+    return commitRevisionUpload(doc, file, userId, {
+      version: options.version ?? doc.version,
+      action: options.action,
+    });
+  }
   if (doc.status === "vigente" && doc.has_file) {
-    await updateDocument(doc.id, { status: "obsoleto" }, userId);
-    const created = await createDocument({
-      tenant_id: doc.tenant_id,
-      requirement: doc.requirement,
-      folder_key: doc.folder_key,
-      section: doc.section,
-      title: doc.title,
-      code: doc.code,
-      version: doc.version,
-      responsible: doc.responsible,
-      review_date: doc.review_date,
-      content_html: "",
-      status: "rascunho",
-      master_document_id: doc.master_document_id || null,
-    }, userId);
-    const uploaded = await uploadDocumentFile(created.id, file, userId, null);
-    return updateDocument(uploaded.id, { status: "vigente" }, userId);
+    return commitRevisionUpload(doc, file, userId, {
+      version: options.version ?? doc.version,
+      action: "become_vigente",
+    });
   }
   let current = doc;
   if (current.status === "vigente") {
-    current = await updateDocument(doc.id, { status: "rascunho" }, userId);
+    current = await updateDocument(doc.id, { status: "obsoleto" }, userId);
   }
   const uploaded = await uploadDocumentFile(current.id, file, userId, null);
   if (uploaded.status === "vigente") return uploaded;

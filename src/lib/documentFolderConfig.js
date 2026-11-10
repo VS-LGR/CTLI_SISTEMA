@@ -230,8 +230,52 @@ export function isSimpleDocumentMeta(requirementId, folderKey) {
   return getFolderDocumentMode(requirementId, folderKey).simpleMeta === true;
 }
 
+function canonicalFolderKey(folderKey) {
+  const key = String(folderKey || "").trim().toLowerCase();
+  if (!key) return "";
+  if (SPECIAL_FOLDER_REQ[key]) return key;
+  if (/^pr-[4-8](?:-\d+)+[a-z]$/i.test(key)) {
+    const stripped = key.replace(/[a-z]$/i, "");
+    if (SPECIAL_FOLDER_REQ[stripped] || /^pr-[4-8](?:-\d+)+$/i.test(stripped)) return stripped;
+  }
+  if (/^pr-[4-8](?:-\d+)*$/i.test(key)) return key;
+  return "";
+}
+
+function finishRoute(requirement, folderKey, type, category, codePrefix) {
+  const kind = `${type} ${category} ${codePrefix || ""}`.toLowerCase();
+  const wantRegistro = kind.includes("registro") || String(codePrefix || "").toUpperCase() === "RE";
+  const section = wantRegistro ? "registro" : "procedimento";
+  const mode = FOLDER_MODES[folderKey];
+  const resolvedSection = mode?.sections?.includes(section)
+    ? section
+    : (mode?.sections?.[0] || (wantRegistro ? "registro" : "procedimento"));
+  return { requirement: String(requirement), folderKey, section: resolvedSection };
+}
+
+function routeFromFolderKey(folderKey, type, category) {
+  const folder = canonicalFolderKey(folderKey);
+  if (!folder) return null;
+  const requirement = SPECIAL_FOLDER_REQ[folder] || folder.match(/^pr-([4-8])/i)?.[1];
+  if (!requirement) return null;
+  return finishRoute(requirement, folder, type, category);
+}
+
+function routeFromProcedureCode(code, type, category) {
+  const match = String(code || "").trim().match(/^(PR|RE)-([4-8])((?:\.\d+)*)[A-Z]?$/i);
+  if (!match) return null;
+  const prefix = match[1].toUpperCase();
+  const requirement = match[2];
+  const rest = match[3] ? match[3].slice(1).split(".").filter(Boolean) : [];
+  const folderKey = ["pr", requirement, ...rest].join("-");
+  return finishRoute(requirement, folderKey, type, category, prefix);
+}
+
 /** Onde um PDF da lista mestra deve ficar, a partir do código e do tipo. */
 export function routeForMasterDocument({ code = "", type = "", category = "", system_folder_key = "" }) {
+  const fromKey = routeFromFolderKey(system_folder_key, type, category);
+  if (fromKey) return fromKey;
+
   const codeText = String(code || "");
   const kind = `${type} ${category}`.toLowerCase();
   if (/^MQ-/i.test(codeText) || kind.includes("manual")) {
@@ -240,13 +284,12 @@ export function routeForMasterDocument({ code = "", type = "", category = "", sy
   if (kind.includes("politica") || kind.includes("política")) {
     return { requirement: "5", folderKey: "politica-qualidade", section: "registro" };
   }
+
+  const fromCode = routeFromProcedureCode(codeText, type, category);
+  if (fromCode) return fromCode;
+
   if (String(category) === "Documento" || type === "documento_interno") {
     return { requirement: "5", folderKey: "documentacao-legal", section: "documento" };
   }
-  const folder = SPECIAL_FOLDER_REQ[system_folder_key] ? system_folder_key : "";
-  if (!folder) return null;
-  const section = kind.includes("registro") ? "registro" : "procedimento";
-  const mode = FOLDER_MODES[folder];
-  const resolvedSection = mode?.sections?.includes(section) ? section : (mode?.sections?.[0] || "procedimento");
-  return { requirement: SPECIAL_FOLDER_REQ[folder], folderKey: folder, section: resolvedSection };
+  return null;
 }

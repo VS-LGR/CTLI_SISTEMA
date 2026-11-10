@@ -15,7 +15,7 @@ const REGISTRO_TABS = [
   { id: "lista_mestra_internos", label: "Documentos internos" },
   { id: "lista_mestra_externos", label: "Documentos externos" },
   { id: "lista_mestra_software", label: "Planilhas / software" },
-  { id: "lista_mestra_revisoes", label: "Histórico de revisões" },
+  { id: "lista_mestra_revisoes", label: "Histórico de revisões", tour: "tour-lista-mestra-historico" },
   { id: "lista_mestra_distribuicao", label: "Distribuição" },
 ];
 
@@ -33,6 +33,7 @@ function SubTabs({ tabs, value, onChange }) {
         <button
           key={tab.id}
           type="button"
+          data-tour={tab.tour || undefined}
           onClick={() => onChange(tab.id)}
           className={`rounded-md border px-3 py-1.5 text-sm ${
             value === tab.id

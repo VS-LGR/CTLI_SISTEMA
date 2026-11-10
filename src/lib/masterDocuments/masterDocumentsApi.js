@@ -257,7 +257,7 @@ export async function createDocumentRevision(tenantId, masterDocumentId, payload
       change_reason: { from: null, to: data.change_reason || "" },
       status: { from: null, to: data.status },
     },
-    summary: `Nova revisão ${data.revision_number} (rascunho)`,
+    summary: `Nova revisão ${data.revision_number} (${data.status || "rascunho"})`,
   });
   return data;
 }

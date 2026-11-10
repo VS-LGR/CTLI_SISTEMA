@@ -5,6 +5,7 @@ import { listAllRevisions } from "@/lib/masterDocuments/masterDocumentsApi";
 import { revisionStatusLabel } from "@/lib/masterDocuments/masterDocumentConstants";
 import { revisionResponsibleName } from "@/lib/masterDocuments/masterDocumentsApi";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
+import RevisionFileLink from "./RevisionFileLink";
 
 export default function DocumentRevisionsPanel({ tenantId }) {
   const [rows, setRows] = useState([]);
@@ -35,10 +36,11 @@ export default function DocumentRevisionsPanel({ tenantId }) {
             <th className="px-3 py-2 text-left">Descrição</th>
             <th className="px-3 py-2 text-left">Responsável</th>
             <th className="px-3 py-2 text-left">Status</th>
+            <th className="px-3 py-2 text-left">Arquivo</th>
           </tr>
         </thead>
         <tbody className="divide-y">
-          {loading && <tr><td colSpan={6} className="p-6 text-center">Carregando…</td></tr>}
+          {loading && <tr><td colSpan={7} className="p-6 text-center">Carregando…</td></tr>}
           {rows.map((r) => (
             <tr key={r.id}>
               <td className="px-3 py-2 font-mono text-xs">{r.master_document?.code} — {r.master_document?.title}</td>
@@ -47,6 +49,7 @@ export default function DocumentRevisionsPanel({ tenantId }) {
               <td className="px-3 py-2 text-xs max-w-[200px] truncate">{r.change_description}</td>
               <td className="px-3 py-2 text-xs">{revisionResponsibleName(r)}</td>
               <td className="px-3 py-2 text-xs">{revisionStatusLabel(r.status)}</td>
+              <td className="px-3 py-2 text-xs"><RevisionFileLink fileUrl={r.file_url} /></td>
             </tr>
           ))}
         </tbody>

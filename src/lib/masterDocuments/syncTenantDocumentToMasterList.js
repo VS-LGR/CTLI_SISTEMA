@@ -2,6 +2,10 @@ import { supabase } from "@/lib/supabaseClient";
 import { isSupabaseAuthMode } from "@/lib/api";
 import { inferProcedureCodeFromFolder } from "@/lib/masterDocuments/masterDocumentRoutes";
 import {
+  planMasterSync,
+  revisionFromVersion,
+} from "@/lib/documents/documentUploadPlan";
+import {
   approveDocumentRevision,
   createDocumentRevision,
   createMasterDocument,
@@ -22,13 +26,6 @@ function mapSectionToMasterType(section) {
   if (section === "documento") return "documento_interno";
   if (section === "procedimento" || section === "registro") return section;
   return "documento_interno";
-}
-
-function revisionFromVersion(version) {
-  const v = String(version || "1.0").trim();
-  const major = v.split(".")[0];
-  if (/^\d+$/.test(major)) return major.padStart(2, "0");
-  return "00";
 }
 
 function todayIso() {
@@ -70,6 +67,7 @@ async function ensureMasterDocument(tenantId, tenantDoc) {
 
   const issueDate = tenantDoc.review_date || todayIso();
   const revision = revisionFromVersion(tenantDoc.version);
+  const becomesCurrent = tenantDoc.status === "vigente";
 
   if (!masterDoc) {
     masterDoc = await createMasterDocument(tenantId, {
@@ -77,7 +75,7 @@ async function ensureMasterDocument(tenantId, tenantDoc) {
       title: tenantDoc.title || code,
       type: mapSectionToMasterType(tenantDoc.section),
       reference: tenantDoc.folder_key ? inferProcedureCodeFromFolder(tenantDoc.folder_key) || "" : "",
-      current_revision: revision,
+      current_revision: becomesCurrent ? revision : "00",
       current_issue_date: issueDate,
       current_revision_date: issueDate,
       status: "ativo",
@@ -87,29 +85,98 @@ async function ensureMasterDocument(tenantId, tenantDoc) {
     masterDoc = await updateMasterDocument(tenantId, masterDoc.id, {
       title: tenantDoc.title || masterDoc.title,
       type: mapSectionToMasterType(tenantDoc.section),
-      current_revision: revision,
-      current_revision_date: issueDate,
-      status: "ativo",
     });
   }
 
   return masterDoc;
 }
 
-async function createAndApproveRevision(tenantId, masterDocId, tenantDoc, { changeDescription, changeReason }) {
-  const issueDate = tenantDoc.review_date || todayIso();
+async function listRevisionsForNumber(masterDocId, revision) {
+  const { data, error } = await supabase
+    .from("document_revisions")
+    .select("id, status, file_url, revision_number")
+    .eq("master_document_id", masterDocId)
+    .eq("revision_number", revision);
+  if (error) throw error;
+  return data || [];
+}
+
+async function setRevisionFileUrl(revisionId, fileUrl) {
+  if (!revisionId || !fileUrl) return;
+  const { error } = await supabase
+    .from("document_revisions")
+    .update({ file_url: fileUrl })
+    .eq("id", revisionId);
+  if (error) throw error;
+}
+
+async function applyRevisionPlan(tenantId, masterDoc, tenantDoc, plan) {
+  if (!plan || plan.revision === "skip") return;
   const revision = revisionFromVersion(tenantDoc.version);
-  const rev = await createDocumentRevision(tenantId, masterDocId, {
-    revision_number: revision,
-    issue_date: issueDate,
-    revision_date: issueDate,
-    change_description: changeDescription,
-    change_reason: changeReason,
-    status: "rascunho",
-    notes: `Sincronizado automaticamente do documento SGQ (${tenantDoc.id})`,
-  });
-  await approveDocumentRevision(rev.id);
-  return rev;
+  const fileUrl = tenantDoc.storage_path || "";
+  const issueDate = tenantDoc.review_date || todayIso();
+  const existing = await listRevisionsForNumber(masterDoc.id, revision);
+  const vigente = existing.find((row) => row.status === "vigente");
+  const notes = `Sincronizado automaticamente do documento SGQ (${tenantDoc.id})`;
+
+  if (plan.revision === "approve") {
+    if (vigente) {
+      await setRevisionFileUrl(vigente.id, fileUrl);
+      return;
+    }
+    const rev = await createDocumentRevision(tenantId, masterDoc.id, {
+      revision_number: revision,
+      issue_date: issueDate,
+      revision_date: issueDate,
+      change_description: "Revisão vigente a partir do ficheiro importado",
+      change_reason: "Importação de documento controlado",
+      status: "rascunho",
+      file_url: fileUrl,
+      notes,
+    });
+    await approveDocumentRevision(rev.id);
+    return;
+  }
+
+  if (plan.revision === "attach_file" || plan.revision === "keep_file") {
+    if (vigente) {
+      await setRevisionFileUrl(vigente.id, fileUrl);
+      return;
+    }
+    if (!fileUrl) return;
+    const sameFile = existing.find((row) => row.file_url === fileUrl);
+    if (sameFile) return;
+    const rev = await createDocumentRevision(tenantId, masterDoc.id, {
+      revision_number: revision,
+      issue_date: issueDate,
+      revision_date: issueDate,
+      change_description: plan.revision === "keep_file"
+        ? "Ficheiro da revisão vigente conservado no histórico"
+        : "Ficheiro associado à revisão vigente",
+      change_reason: "Importação de documento controlado",
+      status: plan.revision === "keep_file" ? "obsoleta" : "rascunho",
+      file_url: fileUrl,
+      notes,
+    });
+    if (plan.revision === "attach_file") await approveDocumentRevision(rev.id);
+    return;
+  }
+
+  if (plan.revision === "archive") {
+    if (!fileUrl) return;
+    const sameFile = existing.find((row) => row.file_url === fileUrl && row.status === "obsoleta");
+    if (sameFile) return;
+    await createDocumentRevision(tenantId, masterDoc.id, {
+      revision_number: revision,
+      issue_date: issueDate,
+      revision_date: issueDate,
+      change_description: "Revisão anterior arquivada no histórico",
+      change_reason: "Importação de revisão anterior à vigente",
+      status: "obsoleta",
+      file_url: fileUrl,
+      notes,
+    });
+  }
 }
 
 export async function syncOnTenantDocumentCreate(tenantDoc) {
@@ -118,10 +185,12 @@ export async function syncOnTenantDocumentCreate(tenantDoc) {
     const masterDoc = await ensureMasterDocument(tenantDoc.tenant_id, tenantDoc);
     if (!masterDoc?.id) return null;
     await linkTenantDocumentMasterId(tenantDoc.id, masterDoc.id);
-    await createAndApproveRevision(tenantDoc.tenant_id, masterDoc.id, tenantDoc, {
-      changeDescription: "Emissão inicial — inclusão na Lista Mestra",
-      changeReason: "Criação automática a partir do requisito SGQ",
+    const plan = planMasterSync({
+      tenantDoc,
+      currentRevision: masterDoc.current_revision,
+      isCreate: true,
     });
+    await applyRevisionPlan(tenantDoc.tenant_id, masterDoc, tenantDoc, plan);
     return masterDoc;
   } catch (err) {
     console.warn("[syncTenantDocumentToMasterList] create failed:", err);
@@ -143,11 +212,12 @@ export async function syncOnTenantDocumentUpdate(tenantDoc, previousDoc = null) 
     if (!masterDoc?.id) return null;
     await linkTenantDocumentMasterId(tenantDoc.id, masterDoc.id);
 
-    const revLabel = revisionFromVersion(tenantDoc.version);
-    await createAndApproveRevision(tenantDoc.tenant_id, masterDoc.id, tenantDoc, {
-      changeDescription: `Alteração registrada — Rev. ${revLabel}`,
-      changeReason: "Atualização automática a partir do requisito SGQ",
+    const plan = planMasterSync({
+      tenantDoc,
+      previousDoc,
+      currentRevision: masterDoc.current_revision,
     });
+    await applyRevisionPlan(tenantDoc.tenant_id, masterDoc, tenantDoc, plan);
     return masterDoc;
   } catch (err) {
     console.warn("[syncTenantDocumentToMasterList] update failed:", err);

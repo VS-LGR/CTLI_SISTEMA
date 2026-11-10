@@ -16,8 +16,13 @@ import {
   createMasterDocument,
   updateMasterDocument,
 } from "@/lib/masterDocuments/masterDocumentsApi";
-import { createDocument, attachDocumentFile } from "@/lib/documentsApi";
+import { commitRevisionUpload, findVigenteFileForMaster } from "@/lib/documentsApi";
 import { routeForMasterDocument } from "@/lib/documentFolderConfig";
+import {
+  canCommitUploadAction,
+  decideUploadAction,
+  uploadActionHint,
+} from "@/lib/documents/documentUploadPlan";
 import {
   MASTER_DOCUMENT_TYPES,
   MASTER_DOCUMENT_STATUSES,
@@ -176,21 +181,36 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
       if (pdfFile && saved?.id) {
         const route = routeForMasterDocument(saved);
         if (!route) {
-          toast.error("O PDF não foi encaminhado: use um código como PR-8.3 ou MQ-000 para indicar o requisito.");
+          toast.error("O PDF não foi encaminhado: o código não indica a pasta do procedimento.");
         } else {
-          const holder = await createDocument({
-            tenant_id: tenantId,
-            requirement: route.requirement,
-            folder_key: route.folderKey,
-            section: route.section,
-            title: saved.title,
-            code: saved.code,
-            version: saved.current_revision,
-            status: "rascunho",
-            master_document_id: saved.id,
-          }, user?.id);
-          await attachDocumentFile(holder, pdfFile, user?.id);
-          toast.success("PDF guardado no requisito correspondente.");
+          const previousRevision = document?.current_revision || "";
+          const current = await findVigenteFileForMaster(tenantId, saved.id);
+          const action = decideUploadAction({
+            matched: true,
+            incomingRevision: saved.current_revision,
+            currentRevision: previousRevision || current?.version || "",
+            hasVigenteFile: Boolean(current?.has_file),
+          });
+          if (!canCommitUploadAction(action)) {
+            toast.info(uploadActionHint(action, previousRevision || current?.version || saved.current_revision));
+          } else {
+            await commitRevisionUpload({
+              tenant_id: tenantId,
+              requirement: route.requirement,
+              folder_key: route.folderKey,
+              section: route.section,
+              title: saved.title,
+              code: saved.code,
+              version: current?.version || previousRevision,
+              status: current?.status,
+              has_file: Boolean(current?.has_file),
+              id: current?.id,
+              master_document_id: saved.id,
+            }, pdfFile, user?.id, { version: saved.current_revision, action });
+            toast.success(action === "archive_only"
+              ? "PDF arquivado no histórico. A revisão vigente não mudou."
+              : "PDF guardado no procedimento correspondente.");
+          }
         }
       }
       onSaved?.();
@@ -300,7 +320,9 @@ export default function MasterDocumentFormDialog({ open, onOpenChange, tenantId,
           <div>
             <Label>PDF do documento</Label>
             <Input type="file" accept=".pdf,application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />
-            <p className="text-xs text-muted-foreground mt-1">O PDF é guardado no requisito indicado pelo código.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              O PDF segue para a pasta do procedimento. Se a revisão for igual à vigente, o envio não substitui o ficheiro.
+            </p>
           </div>
           <div className="rounded-md border border-border bg-background p-3 space-y-3">
             <p className="text-xs font-medium text-foreground/90">Responsáveis (obrigatório para ativar)</p>

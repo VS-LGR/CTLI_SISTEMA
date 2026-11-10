@@ -17,6 +17,7 @@ import { revisionStatusLabel } from "@/lib/masterDocuments/masterDocumentConstan
 import { validateRevisionBeforeApproval } from "@/lib/masterDocuments/masterDocumentValidation";
 import { formatDateBr } from "@/lib/quotationRequestDisplay";
 import { loadTenantResponsibles } from "@/lib/tenantResponsiblesApi";
+import RevisionFileLink from "./RevisionFileLink";
 
 export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revisions, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
@@ -148,6 +149,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
             <th className="px-3 py-2 text-left">Motivo</th>
             <th className="px-3 py-2 text-left">Responsável</th>
             <th className="px-3 py-2 text-left">Status</th>
+            <th className="px-3 py-2 text-left">Arquivo</th>
             <th className="px-3 py-2 text-right">Ações</th>
           </tr>
         </thead>
@@ -160,6 +162,7 @@ export default function DocumentRevisionPanel({ tenantId, masterDocumentId, revi
               <td className="px-3 py-2 text-xs max-w-[140px]">{r.change_reason || "—"}</td>
               <td className="px-3 py-2 text-xs">{revisionResponsibleName(r)}</td>
               <td className="px-3 py-2 text-xs">{revisionStatusLabel(r.status)}</td>
+              <td className="px-3 py-2 text-xs"><RevisionFileLink fileUrl={r.file_url} /></td>
               <td className="px-3 py-2 text-right">
                 {r.status === "rascunho" && (
                   approvingId === r.id ? (

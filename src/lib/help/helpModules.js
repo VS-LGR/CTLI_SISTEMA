@@ -285,14 +285,46 @@ export const HELP_MODULES = [
       || pathname.includes("/manual-qualidade"),
     steps: [
       {
-        title: "Documentos controlados",
-        body: "A Lista Mestra organiza documentos internos, externos, revisões e distribuição. Use a área iluminada.",
-        highlight: "tour-lista-mestra",
+        title: "Importar em lote",
+        body: "A Lista Mestra é a importação principal. Escolha ou largue vários PDFs. O nome pode trazer o código e a revisão, como PR-6.3_Rev02.",
+        highlight: "tour-lista-mestra-import",
+      },
+      {
+        title: "Revisão vigente",
+        body: "Antes de gravar, a tabela mostra a revisão vigente. A mais recente passa a vigente e a anterior fica no histórico. A mesma revisão não é enviada.",
+        highlight: "tour-lista-mestra-preview",
+      },
+      {
+        title: "Histórico",
+        body: "Abra Histórico de revisões para ver cada revisão e o PDF correspondente, incluindo as que já não estão vigentes.",
+        highlight: "tour-lista-mestra-historico",
       },
       {
         title: "Ajuda",
         body: "Pode rever este e outros tutoriais a qualquer momento em Ajuda.",
         highlight: "tour-nav-help",
+      },
+    ],
+  },
+  {
+    moduleKey: "procedimentos",
+    title: "Pastas de procedimento",
+    tourPath: "/requirement/6/pr-6-3",
+    matchPath: (pathname) => (
+      /\/requirement\/[4-8]\//.test(pathname)
+      && !pathname.includes("/pr-8-3")
+      && !pathname.includes("/manual-qualidade")
+    ),
+    steps: [
+      {
+        title: "Vigentes e obsoletos",
+        body: "Vigente é a revisão mais recente. Obsoletos guarda as revisões anteriores, com o ficheiro conservado.",
+        highlight: "tour-proc-status",
+      },
+      {
+        title: "Envio na pasta",
+        body: "O envio principal é a Lista Mestra. Aqui ainda pode enviar um PDF: o sistema mostra a revisão vigente e só substitui se a revisão do ficheiro for mais recente.",
+        highlight: "tour-proc-upload",
       },
     ],
   },
@@ -370,6 +402,11 @@ function canSeeHelpModule(mod, { tenant, role, user }) {
     if (mod.moduleKey === "cadastros") {
       return Boolean(resolveCadastrosTourPath({ tenant, role, user }));
     }
+    if (mod.moduleKey === "procedimentos") {
+      return ["4", "5", "6", "7", "8"].some((requirementId) => (
+        canAccessRequirement({ tenant, role, requirementId, user })
+      ));
+    }
     if (!mod.accessModule) return true;
     return canAccessModule({ tenant, role, module: mod.accessModule, user });
   }
@@ -383,6 +420,11 @@ function canSeeHelpModule(mod, { tenant, role, user }) {
   if (mod.moduleKey === "dashboard") return true;
   if (mod.moduleKey === "cadastros") {
     return Boolean(resolveCadastrosTourPath({ tenant, role, user }));
+  }
+  if (mod.moduleKey === "procedimentos") {
+    return ["4", "5", "6", "7", "8"].some((requirementId) => (
+      canAccessRequirement({ tenant, role, requirementId, user })
+    ));
   }
   if (!mod.accessModule) return true;
   return canAccessModule({ tenant, role, module: mod.accessModule, user });
